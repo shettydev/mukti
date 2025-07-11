@@ -80,4 +80,24 @@ Let's take an example to better understand how this works:
 - “Here’s an article on effective study techniques.”
 - “What has worked for you in the past when you needed to concentrate?”
 
+### Methodology
+
+At the heart of Mukti lies a commitment to empowering users to think for themselves. To achieve this rather than simply providing answers, Mukti employs a socratic approach by engaging users in a dialogue that challenges their assumptions and invites deeper exploration.
+
+How you may ask? Like this:
+
+- **Asking Probing Questions:** Rather than spoon-feeding solutions, Mukti challenges you with clever, thought-provoking questions. It nudges you to dig deeper into your dilemma, consider alternative angles, and really understand the core of the problem.
+- **Encouraging Self-Discovery:** Think of Mukti as your intellectual sparring partner. With open-ended prompts, it sparks your curiosity and pushes you to unearth your own insights, making every discovery a personal triumph.
+- **Iterative Dialogue:** Conversations with Mukti aren’t one-off Q&As—they’re dynamic journeys. Every question builds on your responses, gently steering you towards clarity while keeping the dialogue lively and engaging.
+- **Balancing Guidance with Autonomy:** Mukti walks the fine line between mentorship and independence. With hints here and resourceful nudges there, it fuels your problem-solving drive without ever taking the reins.
+- **Cultivating Cognitive Resilience:** By constantly challenging assumptions and fostering a reflective mindset, Mukti isn’t just about quick fixes. It’s about building long-term mental agility, ensuring you're never overly dependent on ready-made answers.
+
+With these Socratic twists, the goal is to transform problem-solving into an adventure—be it specific to coding (debugging, planning, optimization, designing, etc), or any other domain.
+
+## Acknowledgments
+
+Inspired by my mentor [Shaik Noorullah](https://github.com/shaiknoorullah) and by the philosophical traditions of Socrates, Plato, and the broader Socratic method of inquiry.
+
 ---
+
+_"The only true wisdom is in knowing you know nothing."_ - Socrates
