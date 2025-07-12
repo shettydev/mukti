@@ -40,7 +40,8 @@ Here is the link to the research paper: [Your Brain on ChatGPT: Accumulation of 
 > Turns out, AI isn't making us more productive. It's making us cognitively bankrupt.
 
 > [!CAUTION]
-> Attention: Final warning! If you still think using AI as a crutch is peak productivity, Mukti isn’t for you. We’re here to build brains, not babysit them. Still with me? Good. Let’s get uncomfortable.
+> Attention: This is your Final warning!
+> If you still think using AI as a crutch is peak productivity, Mukti isn’t for you. We’re here to build brains, not babysit them. Still with me? Good. Let’s get uncomfortable.
 
 ## Approach
 
@@ -48,7 +49,15 @@ So how do we solve this issue? Simply by using AI (PLOT TWIST).
 
 Weird isn't, makes us go a full circle. :trollface:
 
-Well my approach towards this problem is to use AI but not rely on it completely. _How is that possible?_ By using it as a companion or as a peer or even better as a **mentor**. Now this way, you are getting the guidance you require by using the platform to bounce of ideas and discover things on your own. I am not saying that you should not use AI, but rather that you should use it as a tool to enhance your own thinking and creativity, and not let it replace your own thoughts and ideas.
+Well my approach towards this problem is to use AI but not rely on it completely.
+
+_How is that possible?_
+
+By using it as a companion or as a peer or even better as a **mentor**. Now this way, you are getting the guidance you require by using the platform to bounce of ideas and discover things on your own.
+
+![SMAART!](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExc3MwZnBseXQ4YjV1cHFvMnhyaTZlYWowYjBrcm9jZHhteWNyeTZhbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VEsfbW0pBu145PPhOi/giphy.gif)
+
+I am not saying that you should not use AI, but rather that you should use it as a tool to enhance your own thinking and creativity, and not let it replace your own thoughts and ideas.
 
 Forget autopilot—Mukti is manual drive all the way (yes, I own a manual car). We use AI as a sounding board, not a steering wheel. If you want someone to do your thinking for you, you’re lost. If you want to actually get better at thinking, you’re home.
 
