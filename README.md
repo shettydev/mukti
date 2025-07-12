@@ -102,7 +102,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 Inspired by my mentor [Shaik Noorullah](https://github.com/shaiknoorullah) and by the philosophical traditions of Socrates, Plato, and the broader Socratic method of inquiry.
 
----
+<br />
 
 <br />
 
