@@ -261,10 +261,6 @@ We welcome contributions that align with the Mukti philosophy:
 3. **Improve resource curation** - add valuable learning resources
 4. **Expand technique variety** - develop new Socratic methods
 
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
-
 ## Acknowledgments
 
 Built on the Model Context Protocol by Anthropic. Inspired by my mentor [Shaik Noorullah](https://github.com/shaiknoorullah) and the philosophical traditions of Socrates, Plato, and the broader Socratic method of inquiry.

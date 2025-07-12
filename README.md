@@ -94,6 +94,10 @@ At the heart of Mukti lies a commitment to empowering users to think for themsel
 
 With these Socratic twists, the goal is to transform problem-solving into an adventure—be it specific to coding (debugging, planning, optimization, designing, etc), or any other domain.
 
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+
 ## Acknowledgments
 
 Inspired by my mentor [Shaik Noorullah](https://github.com/shaiknoorullah) and by the philosophical traditions of Socrates, Plato, and the broader Socratic method of inquiry.
