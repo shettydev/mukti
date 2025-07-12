@@ -1,0 +1,54 @@
+{
+  "name": "mukti-mcp-server",
+  "version": "1.0.0",
+  "description": "A Socratic AI assistant MCP server that guides users to think for themselves rather than providing direct answers",
+  "keywords": [
+    "mcp",
+    "socratic",
+    "ai",
+    "assistant",
+    "education",
+    "philosophy",
+    "thinking",
+    "questions",
+    "learning"
+  ],
+  "author": "Mukti Project",
+  "license": "MIT",
+  "homepage": "https://github.com/mukti-project/mukti-mcp-server#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mukti-project/mukti-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mukti-project/mukti-mcp-server/issues"
+  },
+  "main": "./build/index.js",
+  "type": "module",
+  "bin": {
+    "mukti-mcp-server": "./build/index.js"
+  },
+  "files": [
+    "build",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "test": "npm run build && node build/index.js --help || true",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3"
+  }
+}
