@@ -84,7 +84,7 @@ Let's take an example to better understand how this works:
 
 At the heart of Mukti lies a commitment to empowering users to think for themselves. To achieve this rather than simply providing answers, Mukti employs a socratic approach by engaging users in a dialogue that challenges their assumptions and invites deeper exploration.
 
-How you may ask? Like this:
+"But how on earth would you do this???" you may ask
 
 - **Asking Probing Questions:** Rather than spoon-feeding solutions, Mukti challenges you with clever, thought-provoking questions. It nudges you to dig deeper into your dilemma, consider alternative angles, and really understand the core of the problem.
 - **Encouraging Self-Discovery:** Think of Mukti as your intellectual sparring partner. With open-ended prompts, it sparks your curiosity and pushes you to unearth your own insights, making every discovery a personal triumph.
