@@ -40,12 +40,11 @@ Here is the link to the research paper: [Your Brain on ChatGPT: Accumulation of 
 > Turns out, AI isn't making us more productive. It's making us cognitively bankrupt.
 
 > [!CAUTION]
-> Attention: This is your Final warning!
-> If you still think using AI as a crutch is peak productivity, Mukti isn’t for you. We’re here to build brains, not babysit them. Still with me? Good. Let’s get uncomfortable.
+> Final Warning!: If you still think using AI as a crutch is peak productivity, Mukti isn’t for you. We’re here to build brains, not babysit them. Still with me? Good. Let’s get uncomfortable.
 
 ## Approach
 
-So how do we solve this issue? Simply by using AI (PLOT TWIST).
+So how do we solve this issue? Simply by using AI (_PLOT TWIST_).
 
 Weird isn't, makes us go a full circle. :trollface:
 
