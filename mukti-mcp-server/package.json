@@ -15,13 +15,13 @@
   ],
   "author": "Mukti Project",
   "license": "MIT",
-  "homepage": "https://github.com/mukti-project/mukti-mcp-server#readme",
+  "homepage": "https://github.com/shettydev/mukti",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mukti-project/mukti-mcp-server.git"
+    "url": "https://github.com/shettydev/mukti"
   },
   "bugs": {
-    "url": "https://github.com/mukti-project/mukti-mcp-server/issues"
+    "url": "https://github.com/shettydev/mukti/issues"
   },
   "main": "./build/index.js",
   "type": "module",
