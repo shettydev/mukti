@@ -180,15 +180,6 @@ export function Footer() {
               Prathik Shetty
             </Link>
           </p>
-
-          <div className="flex gap-6">
-            <Link href="#" className="hover:text-foreground transition-colors">
-              Privacy Policy
-            </Link>
-            <Link href="#" className="hover:text-foreground transition-colors">
-              Terms of Service
-            </Link>
-          </div>
         </div>
       </div>
     </footer>
