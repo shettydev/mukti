@@ -155,18 +155,32 @@ export function Footer() {
         </div>
 
         <div className="border-t mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-          <p>
-            &copy; 2025 Mukti. Open source under{" "}
+          <div>
+            <p>
+              &copy; 2025 Mukti. Open source under{" "}
+              <Link
+                href="https://github.com/shettydev/mukti/blob/main/LICENSE"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors underline"
+              >
+                MIT License
+              </Link>
+            </p>
+          </div>
+
+          <p className="mt-1">
+            Crafted with ❤️ by{" "}
             <Link
-              href="https://github.com/shettydev/mukti/blob/main/LICENSE"
+              href="https://github.com/shettydev"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors underline"
+              className="hover:text-foreground transition-colors font-semibold"
             >
-              MIT License
+              Prathik Shetty
             </Link>
-            . Built for liberation, not dependence.
           </p>
+
           <div className="flex gap-6">
             <Link href="#" className="hover:text-foreground transition-colors">
               Privacy Policy

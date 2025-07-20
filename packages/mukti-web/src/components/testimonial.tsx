@@ -7,10 +7,10 @@ export function Testimonial() {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center mb-16">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
-            What Early Users Are Saying
+            What Totally Real Users Are Saying
           </h2>
-          <p className="text-lg text-muted-foreground">
-            See how Mukti is already transforming the way people think and learn
+          <p className="text-lg text-muted-foreground italic">
+            Disclaimer: These testimonials are as real as unicorns.
           </p>
         </div>
 
@@ -26,19 +26,17 @@ export function Testimonial() {
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                &quot;Finally, an AI that doesn&apos;t make me lazy!
-                Mukti&apos;s questions push me to think deeper about my coding
-                problems. I&apos;m solving bugs I would&apos;ve just asked
-                ChatGPT to fix.&quot;
+                &quot;After using Mukti, my plants started growing faster and my
+                coffee tasted better. Coincidence? I think not.&quot;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-primary">AS</span>
+                  <span className="text-sm font-semibold text-primary">PL</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">Alex Singh</p>
+                  <p className="font-semibold text-sm">Phil the Plant</p>
                   <p className="text-xs text-muted-foreground">
-                    Software Engineer
+                    Aspiring Ficus
                   </p>
                 </div>
               </div>
@@ -56,18 +54,17 @@ export function Testimonial() {
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                &quot;As a researcher, I was shocked at how dependent I&apos;d
-                become on AI for brainstorming. Mukti helped me rediscover my
-                own creative process through strategic questioning.&quot;
+                &quot;Mukti asked me more questions than the Riddler. <br /> For
+                once, I enjoyed it.&quot;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-primary">MJ</span>
+                  <span className="text-sm font-semibold text-primary">BW</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">Dr. Maria Johnson</p>
+                  <p className="font-semibold text-sm">Batman.</p>
                   <p className="text-xs text-muted-foreground">
-                    Research Scientist
+                    Vigilante by Night, Debugger by Day
                   </p>
                 </div>
               </div>
@@ -85,18 +82,17 @@ export function Testimonial() {
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                &quot;Mukti is like having Socrates as your coding mentor.
-                Instead of giving me answers, it guides me to better questions.
-                My problem-solving skills have genuinely improved.&quot;
+                &quot;Mukti made me question everything. Including why I’m
+                reading fake testimonials on a landing page.&quot;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-primary">JC</span>
+                  <span className="text-sm font-semibold text-primary">AI</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">Jamie Chen</p>
+                  <p className="font-semibold text-sm">Anonymous Intern</p>
                   <p className="text-xs text-muted-foreground">
-                    Product Designer
+                    Existential Overthinker
                   </p>
                 </div>
               </div>

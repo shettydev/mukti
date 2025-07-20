@@ -1,9 +1,10 @@
 import { Lightbulb, MessageCircle, Target } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
+import { BorderBeam } from "./magicui/border-beam";
 
 export function Feature() {
   return (
-    <section id="features" className="py-24 bg-muted/50">
+    <section id="features" className="py-24 bg-muted/20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center mb-16">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
@@ -17,7 +18,8 @@ export function Feature() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group relative w-full overflow-hidden">
+            <BorderBeam size={150} borderWidth={2} />
             <CardContent className="p-8">
               <MessageCircle className="h-12 w-12 text-primary mb-4 group-hover:scale-110 transition-transform duration-300" />
               <h3 className="text-xl font-semibold mb-3">
@@ -30,7 +32,13 @@ export function Feature() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group animation-delay-200">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group animation-delay-200 relative w-full overflow-hidden">
+            <BorderBeam
+              size={150}
+              colorFrom="#D3959B"
+              colorTo="#BFE6BA"
+              borderWidth={2}
+            />
             <CardContent className="p-8">
               <Lightbulb className="h-12 w-12 text-primary mb-4 group-hover:scale-110 transition-transform duration-300" />
               <h3 className="text-xl font-semibold mb-3">Self-Discovery</h3>
@@ -41,7 +49,13 @@ export function Feature() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group animation-delay-400">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group animation-delay-400 relative w-full overflow-hidden">
+            <BorderBeam
+              size={150}
+              colorFrom="#ddd6f3"
+              colorTo="#faaca8"
+              borderWidth={2}
+            />
             <CardContent className="p-8">
               <Target className="h-12 w-12 text-primary mb-4 group-hover:scale-110 transition-transform duration-300" />
               <h3 className="text-xl font-semibold mb-3">
