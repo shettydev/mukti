@@ -13,10 +13,7 @@ export function Navbar({
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between">
         <div className="flex items-center space-x-2">
-          <span className="text-2xl font-bold">Mukti</span>
-          <span className="text-sm text-muted-foreground hidden sm:inline">
-            Liberation
-          </span>
+          <span className="text-2xl font-bold">mukti</span>
         </div>
 
         {/* Desktop Navigation */}

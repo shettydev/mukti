@@ -42,13 +42,13 @@ export function Waitlist({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="text-center transition-all duration-200 focus:scale-105"
+                      className="transition-all duration-200 focus:scale-105"
                     />
                   </div>
                   <Button
                     type="submit"
                     size="lg"
-                    className="w-full hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    className="w-full cursor-pointer hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
                     Join the Liberation Waitlist
                   </Button>

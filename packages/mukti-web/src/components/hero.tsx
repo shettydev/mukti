@@ -8,6 +8,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import Link from "next/link";
 
 export function Hero() {
   return (
@@ -58,28 +59,34 @@ export function Hero() {
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </a>
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-lg px-8 hover:scale-105 transition-all duration-200"
-            >
-              Learn More
-            </Button>
           </div>
 
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-muted-foreground">
+          <div className="mt-12 flex flex-col sm:flex-col items-center justify-center gap-4 sm:gap-8 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              <span>89% Report Better Thinking</span>{" "}
+              <span className="text-xs italic">
+                (study conducted in my living room)
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span>1000+ Early Users</span>
+              <span className="text-xs italic">
+                (users so early, they haven’t even signed up yet)
+              </span>
             </div>
-            <div className="flex items-center gap-2">
+            <Link
+              href="https://github.com/shettydev/mukti/stargazers"
+              target="_blank"
+              className="flex items-center gap-2"
+            >
               <Star className="h-4 w-4 fill-current text-yellow-500" />
-              <span>4.9★ Average Rating</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Brain className="h-4 w-4" />
-              <span>89% Report Better Thinking</span>
-            </div>
+              <span>Star my project</span>
+              <span className="text-xs italic">
+                (or I’ll keep making bad puns in the code)
+              </span>
+            </Link>
           </div>
         </div>
       </div>
