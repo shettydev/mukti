@@ -1,6 +1,7 @@
 import { MenuIcon, XIcon } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "./ui/button";
+import Link from "next/link";
 
 export function Navbar({
   setIsMobileMenuOpen,
@@ -18,24 +19,24 @@ export function Navbar({
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-6">
-          <a
+          <Link
             href="#features"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Features
-          </a>
-          <a
+          </Link>
+          <Link
             href="#how-it-works"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             How it Works
-          </a>
-          <a
+          </Link>
+          <Link
             href="#waitlist"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Join Waitlist
-          </a>
+          </Link>
           <ThemeToggle />
         </div>
 
@@ -61,27 +62,27 @@ export function Navbar({
       {isMobileMenuOpen && (
         <div className="md:hidden border-t bg-background">
           <div className="container mx-auto py-4 space-y-4">
-            <a
+            <Link
               href="#features"
               className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Features
-            </a>
-            <a
+            </Link>
+            <Link
               href="#how-it-works"
               className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               How it Works
-            </a>
-            <a
+            </Link>
+            <Link
               href="#waitlist"
               className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Join Waitlist
-            </a>
+            </Link>
           </div>
         </div>
       )}

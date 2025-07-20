@@ -1,33 +1,21 @@
-import {
-  ArrowRight,
-  Brain,
-  Lightbulb,
-  MessageCircle,
-  Star,
-  Users,
-  Zap,
-} from "lucide-react";
-import { Button } from "./ui/button";
+import { ArrowRight, Brain, Star, Users, Zap } from "lucide-react";
 import Link from "next/link";
+import { Particles } from "./magicui/particles";
+import { Button } from "./ui/button";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] dark:bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] animate-fade-in" />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5" />
+    <div className="min-h-screen w-full bg-[#020617] relative">
+      {/* Dark Radial Glow Background */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `radial-gradient(circle 500px at 50% 200px, #3e3e3e, transparent)`,
+        }}
+      />
+      <Particles className="absolute inset-0 z-0" />
 
-      {/* Floating brain icons */}
-      <div className="absolute top-20 left-10 text-primary/20 animate-float">
-        <Brain className="h-8 w-8" />
-      </div>
-      <div className="absolute top-40 right-20 text-primary/20 animate-float animation-delay-1000">
-        <Lightbulb className="h-6 w-6" />
-      </div>
-      <div className="absolute bottom-40 left-20 text-primary/20 animate-float animation-delay-2000">
-        <MessageCircle className="h-7 w-7" />
-      </div>
-
-      <div className="w-full max-w-7xl mx-auto px-4 py-32 md:py-48">
+      <div className="w-full max-w-7xl mx-auto px-4 py-32 md:py-48 relative z-10">
         <div className="mx-auto max-w-4xl text-center flex flex-col items-center">
           <div className="mb-8 inline-flex items-center rounded-full border bg-muted px-3 py-1 text-sm animate-fade-in-up">
             <Zap className="mr-2 h-4 w-4 animate-pulse" />
@@ -54,10 +42,10 @@ export function Hero() {
               className="text-lg px-8 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
               asChild
             >
-              <a href="#waitlist">
+              <Link href="#waitlist">
                 Join the Liberation{" "}
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </a>
+              </Link>
             </Button>
           </div>
 
@@ -90,6 +78,6 @@ export function Hero() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

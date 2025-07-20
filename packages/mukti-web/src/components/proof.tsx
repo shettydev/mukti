@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function Proof() {
   return (
     <section className="py-16 bg-muted/50">
@@ -8,14 +10,14 @@ export function Proof() {
               &quot;MIT research shows AI dependency leads to cognitive debt.
               Mukti reverses this trend.&quot;
             </p>
-            <a
+            <Link
               href="https://arxiv.org/pdf/2506.08872"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-primary hover:underline"
             >
               Read the MIT Study →
-            </a>
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center">
