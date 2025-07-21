@@ -1,20 +1,66 @@
-import { Check } from "lucide-react";
+import { Check, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useState } from "react";
+import { useWaitlist } from "@/lib/hooks/useWaitlist";
 
 export function Waitlist() {
   const [email, setEmail] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    isLoading,
+    isSubmitted,
+    error,
+    isExisting,
+    checkEmail,
+    joinWaitlist,
+    reset,
+  } = useWaitlist();
 
-  const handleWaitlistSubmit = (e: React.FormEvent) => {
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual waitlist submission
-    setIsSubmitted(true);
-    setEmail("");
+
+    if (!email.trim()) return;
+
+    // Set immediate loading state
+    setIsSubmitting(true);
+
+    try {
+      // First check if email exists
+      const exists = await checkEmail(email);
+
+      if (!exists) {
+        // If email doesn't exist, try to join waitlist
+        const success = await joinWaitlist(email);
+        if (success) {
+          setEmail("");
+        }
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Check email on blur for better UX
+  const handleEmailBlur = async () => {
+    if (email.trim() && email.includes("@")) {
+      await checkEmail(email);
+    }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    // Reset states when user starts typing again
+    if (error || isExisting) {
+      reset();
+    }
+  };
+
+  // Combined loading state for immediate feedback
+  const isProcessing = isSubmitting || isLoading;
+
   return (
     <section id="waitlist" className="py-24">
       <div className="container mx-auto px-4">
@@ -40,18 +86,55 @@ export function Waitlist() {
                       type="email"
                       placeholder="your@email.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={handleEmailChange}
+                      onBlur={handleEmailBlur}
                       required
+                      disabled={isProcessing}
                       className="transition-all duration-200 focus:scale-105"
                     />
+
+                    {/* Error Message */}
+                    {error && (
+                      <div className="flex items-center gap-2 text-sm text-red-600 mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{error}</span>
+                      </div>
+                    )}
+
+                    {/* Existing User Message */}
+                    {isExisting && !error && (
+                      <div className="flex items-center gap-2 text-sm text-blue-600 mt-2">
+                        <Check className="h-4 w-4" />
+                        <span>
+                          You&apos;re already on the waitlist! We&apos;ll notify
+                          you when Mukti is ready.
+                        </span>
+                      </div>
+                    )}
                   </div>
+
                   <Button
                     type="submit"
                     size="lg"
-                    className="w-full cursor-pointer hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    disabled={isProcessing || isExisting}
+                    className="w-full cursor-pointer hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:hover:scale-100 disabled:cursor-not-allowed"
                   >
-                    Join the Liberation Waitlist
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {isSubmitting
+                          ? "Processing..."
+                          : isExisting
+                            ? "Checking..."
+                            : "Joining..."}
+                      </>
+                    ) : isExisting ? (
+                      "Already on Waitlist"
+                    ) : (
+                      "Join the Liberation Waitlist"
+                    )}
                   </Button>
+
                   <p className="text-xs text-muted-foreground">
                     Be the first to break free from AI dependency. No spam, just
                     liberation.
@@ -60,13 +143,13 @@ export function Waitlist() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-primary/5 animate-fade-in-up">
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 dark:from-green-950/30 dark:via-emerald-950/30 dark:to-green-900/30 animate-fade-in-up">
               <CardContent className="p-8 text-center">
-                <Check className="h-12 w-12 text-green-500 mx-auto mb-4 animate-bounce" />
-                <h3 className="text-xl font-semibold mb-2">
+                <Check className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto mb-4 animate-bounce" />
+                <h3 className="text-xl font-semibold mb-2 text-green-900 dark:text-green-100">
                   Welcome to the Liberation!
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="text-green-700 dark:text-green-200 text-base">
                   You&apos;re on the waitlist. We&apos;ll notify you when Mukti
                   is ready to challenge your thinking.
                 </p>
