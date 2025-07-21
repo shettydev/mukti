@@ -9,6 +9,7 @@ import {
 } from "motion/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { BorderBeam } from "../magicui/border-beam";
 
 export const FloatingNav = ({
   navItems,
@@ -17,7 +18,7 @@ export const FloatingNav = ({
   navItems: {
     name: string;
     link: string;
-    icon?: JSX.Element;
+    icon?: React.ReactElement;
   }[];
   className?: string;
 }) => {
@@ -26,7 +27,7 @@ export const FloatingNav = ({
 
   useMotionValueEvent(scrollYProgress, "change", (current) => {
     if (typeof current === "number") {
-      let direction = current! - scrollYProgress.getPrevious()!;
+      const direction = current! - scrollYProgress.getPrevious()!;
       // Show when scrolling down, hide when scrolling up
       if (scrollYProgress.get() < 0.05) {
         setVisible(false);
@@ -95,7 +96,13 @@ export const FloatingNav = ({
             )}
           >
             Join Waitlist
-            <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent h-px" />
+            {/* <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent h-px" /> */}
+            <BorderBeam
+              size={50}
+              borderWidth={2}
+              reverse
+              className="from-transparent via-blue-500 to-transparent"
+            />
           </Link>
         </motion.div>
       )}
