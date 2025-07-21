@@ -9,27 +9,12 @@ import { Navbar } from "@/components/navbar";
 import { Proof } from "@/components/proof";
 import { Testimonial } from "@/components/testimonial";
 import { Waitlist } from "@/components/waitlist";
-import { useState } from "react";
 
 export default function Home() {
-  const [email, setEmail] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const handleWaitlistSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement actual waitlist submission
-    setIsSubmitted(true);
-    setEmail("");
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar Section */}
-      <Navbar
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-        isMobileMenuOpen={isMobileMenuOpen}
-      />
+      <Navbar />
 
       {/* Hero Section */}
       <Hero />
@@ -50,12 +35,7 @@ export default function Home() {
       <FAQ />
 
       {/* Waitlist Section */}
-      <Waitlist
-        email={email}
-        handleWaitlistSubmit={handleWaitlistSubmit}
-        isSubmitted={isSubmitted}
-        setEmail={setEmail}
-      />
+      <Waitlist />
 
       {/* Footer */}
       <Footer />

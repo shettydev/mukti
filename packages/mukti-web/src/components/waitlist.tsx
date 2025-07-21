@@ -4,17 +4,16 @@ import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
-export function Waitlist({
-  isSubmitted,
-  email,
-  setEmail,
-  handleWaitlistSubmit,
-}: {
-  isSubmitted: boolean;
-  email: string;
-  setEmail: (email: string) => void;
-  handleWaitlistSubmit: React.FormEventHandler<HTMLFormElement>;
-}) {
+export function Waitlist() {
+  const [email, setEmail] = useState("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleWaitlistSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // TODO: Implement actual waitlist submission
+    setIsSubmitted(true);
+    setEmail("");
+  };
   return (
     <section id="waitlist" className="py-24">
       <div className="container mx-auto px-4">
