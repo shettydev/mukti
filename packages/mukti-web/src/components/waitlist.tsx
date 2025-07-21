@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { useState } from "react";
 
 export function Waitlist() {
   const [email, setEmail] = useState("");
