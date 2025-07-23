@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import Squares from "./reactbits/sqaures";
 import {
   MessageCircle,
   Lightbulb,
@@ -63,8 +64,23 @@ export function Feature() {
   ];
 
   return (
-    <section id="features" className="py-24 bg-muted/20">
-      <div className="container mx-auto px-4">
+    <section
+      id="features"
+      className="py-24 bg-muted/20 relative overflow-hidden"
+    >
+      {/* Animated Squares background */}
+      <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+        <Squares
+          direction="right"
+          speed={0.5}
+          borderColor="rgba(255, 255, 255, 0.1)"
+          squareSize={60}
+          hoverFillColor="rgba(59, 130, 246, 0.1)"
+        />
+      </div>
+
+      {/* Foreground content */}
+      <div className="container mx-auto px-4 relative z-10">
         <div className="mx-auto max-w-2xl text-center mb-16">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
             Rediscover Your Cognitive Independence
@@ -76,7 +92,7 @@ export function Feature() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 relative z-10 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {features.map((feature, index) => (
             <FeatureCard key={feature.title} {...feature} index={index} />
           ))}
@@ -99,30 +115,36 @@ const FeatureCard = ({
 }) => {
   return (
     <div
-      className={cn(
-        "flex flex-col lg:border-r py-10 relative group/feature dark:border-neutral-800",
-        (index === 0 || index === 4) && "lg:border-l dark:border-neutral-800",
-        index < 4 && "lg:border-b dark:border-neutral-800",
-      )}
+      className={`group relative ${index >= 4 ? "hidden md:block" : "block"}`}
     >
-      {index < 4 && (
-        <div className="opacity-0 group-hover/feature:opacity-100 transition duration-200 absolute inset-0 h-full w-full bg-gradient-to-t from-primary/5 dark:from-primary/10 to-transparent pointer-events-none" />
-      )}
-      {index >= 4 && (
-        <div className="opacity-0 group-hover/feature:opacity-100 transition duration-200 absolute inset-0 h-full w-full bg-gradient-to-b from-primary/5 dark:from-primary/10 to-transparent pointer-events-none" />
-      )}
-      <div className="mb-4 relative z-10 px-10 text-primary/70 dark:text-primary/60 group-hover/feature:text-primary transition-colors duration-200">
-        {icon}
+      {/* Gradient border wrapper */}
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 blur-sm group-hover:blur-none animate-gradient-x"></div>
+
+      {/* Main card */}
+      <div className="relative h-full p-6 rounded-xl backdrop-blur-md bg-gradient-to-br from-white/10 via-white/5 to-transparent border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-[1.02] group-hover:border-white/30">
+        {/* Animated light effect */}
+        <div className="absolute inset-0 rounded-xl overflow-hidden">
+          <div className="absolute -top-2 -left-2 w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+        </div>
+
+        {/* Icon container */}
+        <div className="relative z-10 mb-4 p-3 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 w-fit group-hover:from-primary/30 group-hover:to-primary/20 transition-all duration-300">
+          <div className="text-primary/80 group-hover:text-primary transition-colors duration-300 group-hover:scale-110 transform">
+            {icon}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10">
+          <h3 className="text-lg font-semibold mb-3 text-foreground group-hover:text-primary transition-colors duration-300">
+            {title}
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-300">
+            {description}
+          </p>
+        </div>
       </div>
-      <div className="text-lg font-bold mb-2 relative z-10 px-10">
-        <div className="absolute left-0 inset-y-0 h-6 group-hover/feature:h-8 w-1 rounded-tr-full rounded-br-full bg-neutral-300 dark:bg-neutral-700 group-hover/feature:bg-primary transition-all duration-200 origin-center" />
-        <span className="group-hover/feature:translate-x-2 transition duration-200 inline-block text-neutral-800 dark:text-neutral-100">
-          {title}
-        </span>
-      </div>
-      <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-xs relative z-10 px-10">
-        {description}
-      </p>
     </div>
   );
 };
