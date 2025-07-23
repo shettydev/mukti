@@ -1,19 +1,16 @@
 import { ArrowRight, Brain, Star, Users, Zap } from "lucide-react";
 import Link from "next/link";
-import { Particles } from "./magicui/particles";
+import DarkVeil from "./reactbits/dark-veil";
 import { Button } from "./ui/button";
 
 export function Hero() {
   return (
     <div className="min-h-screen w-full bg-[#020617] relative overflow-hidden">
-      {/* Dark Radial Glow Background */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `radial-gradient(circle 300px at 50% 150px, #3e3e3e, transparent)`,
-        }}
-      />
-      <Particles className="absolute inset-0 z-0" />
+      {/* DarkVeil Animated Background */}
+      <div className="absolute inset-0 z-0">
+        {/* Tweak props as desired for your preferred effect */}
+        <DarkVeil />
+      </div>
 
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 md:py-32 lg:py-48 relative z-10">
         <div className="mx-auto max-w-4xl text-center flex flex-col items-center">
