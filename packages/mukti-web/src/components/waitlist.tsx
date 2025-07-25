@@ -5,6 +5,10 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useState } from "react";
 import { useWaitlist } from "@/lib/hooks/useWaitlist";
+import { BackgroundBeams } from "./ui/background-beams";
+import Dither from "./reactbits/dither";
+import GlassSurface from "./reactbits/glass-surface";
+import Iridescence from "./reactbits/iridescence";
 
 export function Waitlist() {
   const [email, setEmail] = useState("");
@@ -62,8 +66,19 @@ export function Waitlist() {
   const isProcessing = isSubmitting || isLoading;
 
   return (
-    <section id="waitlist" className="py-24">
-      <div className="container mx-auto px-4">
+    <section
+      id="waitlist"
+      className="relative w-full min-h-screen flex items-center justify-center overflow-hidden"
+    >
+      <Iridescence
+        color={[0.5, 0.1, 0.22]}
+        mouseReact={false}
+        amplitude={0.1}
+        speed={1.0}
+        className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+      />
+
+      <div className="container mx-auto px-4 relative z-10 max-w-2xl text-center">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
             Ready to Think Again?
@@ -157,6 +172,15 @@ export function Waitlist() {
             </Card>
           )}
         </div>
+
+        <GlassSurface
+          width={300}
+          height={200}
+          borderRadius={24}
+          className="my-custom-class"
+        >
+          <h2>Glass Surface Content</h2>
+        </GlassSurface>
       </div>
     </section>
   );
