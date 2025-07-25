@@ -44,7 +44,8 @@ void main() {
 }
 `;
 
-interface IridescenceProps {
+interface IridescenceProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "color"> {
   color?: [number, number, number];
   speed?: number;
   amplitude?: number;
@@ -56,6 +57,8 @@ export default function Iridescence({
   speed = 1.0,
   amplitude = 0.1,
   mouseReact = true,
+  className = "",
+  style = {},
   ...rest
 }: IridescenceProps) {
   const ctnDom = useRef<HTMLDivElement>(null);
@@ -77,7 +80,7 @@ export default function Iridescence({
         program.uniforms.uResolution.value = new Color(
           gl.canvas.width,
           gl.canvas.height,
-          gl.canvas.width / gl.canvas.height,
+          gl.canvas.width / gl.canvas.height
         );
       }
     }
@@ -95,7 +98,7 @@ export default function Iridescence({
           value: new Color(
             gl.canvas.width,
             gl.canvas.height,
-            gl.canvas.width / gl.canvas.height,
+            gl.canvas.width / gl.canvas.height
           ),
         },
         uMouse: {
@@ -140,5 +143,12 @@ export default function Iridescence({
     };
   }, [color, speed, amplitude, mouseReact]);
 
-  return <div ref={ctnDom} className="w-full h-full" {...rest} />;
+  return (
+    <div
+      ref={ctnDom}
+      className={`w-full h-full ${className}`}
+      style={style}
+      {...rest}
+    />
+  );
 }

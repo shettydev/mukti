@@ -5,10 +5,11 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useState } from "react";
 import { useWaitlist } from "@/lib/hooks/useWaitlist";
-import { BackgroundBeams } from "./ui/background-beams";
-import Dither from "./reactbits/dither";
 import GlassSurface from "./reactbits/glass-surface";
 import Iridescence from "./reactbits/iridescence";
+import BlurText from "./reactbits/blur-text";
+import ShinyText from "./reactbits/shiny-text";
+import AnimatedContent from "./reactbits/animated-content";
 
 export function Waitlist() {
   const [email, setEmail] = useState("");
@@ -70,117 +71,169 @@ export function Waitlist() {
       id="waitlist"
       className="relative w-full min-h-screen flex items-center justify-center overflow-hidden"
     >
+      {/* Iridescence Background */}
       <Iridescence
-        color={[0.5, 0.1, 0.22]}
-        mouseReact={false}
-        amplitude={0.1}
-        speed={1.0}
-        className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+        color={[0.3, 0.1, 0.5]}
+        mouseReact={true}
+        amplitude={0.15}
+        speed={0.8}
+        className="absolute inset-0 w-full h-full z-0"
       />
 
-      <div className="container mx-auto px-4 relative z-10 max-w-2xl text-center">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
-            Ready to Think Again?
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            Join the waitlist and be among the first to experience AI mentorship
-            that makes you smarter, not dependent.
-          </p>
+      {/* Top Gradient Overlay - Dark to Transparent */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#020617] via-[#020617]/80 to-transparent z-10 pointer-events-none" />
+
+      {/* Bottom Gradient Overlay - Transparent to Dark */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#020617] via-[#020617]/80 to-transparent z-10 pointer-events-none" />
+
+      <div className="container mx-auto px-4 relative z-20 max-w-3xl">
+        <AnimatedContent distance={50} direction="vertical" duration={1}>
+          <div className="text-center mb-12">
+            <BlurText
+              text="Ready to Think Again?"
+              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 text-white"
+              animateBy="words"
+              delay={100}
+              stepDuration={0.5}
+            />
+
+            <BlurText
+              text="Join the waitlist and be among the first to experience AI mentorship that makes you smarter, not dependent."
+              className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed"
+              animateBy="words"
+              delay={50}
+              stepDuration={0.3}
+            />
+          </div>
 
           {!isSubmitted ? (
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm bg-background/95">
-              <CardContent className="p-8">
-                <form onSubmit={handleWaitlistSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-left block">
-                      Email Address
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={handleEmailChange}
-                      onBlur={handleEmailBlur}
-                      required
-                      disabled={isProcessing}
-                      className="transition-all duration-200 focus:scale-105"
-                    />
+            <GlassSurface
+              width="100%"
+              height="auto"
+              borderRadius={24}
+              brightness={20}
+              opacity={0.1}
+              blur={20}
+              backgroundOpacity={0.05}
+              className="max-w-lg mx-auto"
+            >
+              <Card className="border-0 bg-transparent shadow-none">
+                <CardContent className="p-8">
+                  <form onSubmit={handleWaitlistSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="email"
+                        className="text-left block text-white/90 text-base font-medium"
+                      >
+                        Email Address
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={handleEmailChange}
+                        onBlur={handleEmailBlur}
+                        required
+                        disabled={isProcessing}
+                        className="bg-white/10 border-white/20 text-white placeholder-white/60 focus:border-white/40 focus:ring-white/20 transition-all duration-200 backdrop-blur-sm"
+                      />
 
-                    {/* Error Message */}
-                    {error && (
-                      <div className="flex items-center gap-2 text-sm text-red-600 mt-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>{error}</span>
-                      </div>
-                    )}
+                      {/* Error Message */}
+                      {error && (
+                        <div className="flex items-center gap-2 text-sm text-red-400 mt-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>{error}</span>
+                        </div>
+                      )}
 
-                    {/* Existing User Message */}
-                    {isExisting && !error && (
-                      <div className="flex items-center gap-2 text-sm text-blue-600 mt-2">
-                        <Check className="h-4 w-4" />
-                        <span>
-                          You&apos;re already on the waitlist! We&apos;ll notify
-                          you when Mukti is ready.
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                      {/* Existing User Message */}
+                      {isExisting && !error && (
+                        <div className="flex items-center gap-2 text-sm text-green-400 mt-2">
+                          <Check className="h-4 w-4" />
+                          <span>
+                            You&apos;re already on the waitlist! We&apos;ll
+                            notify you when Mukti is ready.
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={isProcessing || isExisting}
-                    className="w-full cursor-pointer hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:hover:scale-100 disabled:cursor-not-allowed"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isSubmitting
-                          ? "Processing..."
-                          : isExisting
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={isProcessing || isExisting}
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 hover:scale-105 transition-all duration-200 shadow-xl hover:shadow-2xl disabled:hover:scale-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {isSubmitting
+                            ? "Processing..."
+                            : isExisting
                             ? "Checking..."
                             : "Joining..."}
-                      </>
-                    ) : isExisting ? (
-                      "Already on Waitlist"
-                    ) : (
-                      "Join the Liberation Waitlist"
-                    )}
-                  </Button>
+                        </>
+                      ) : isExisting ? (
+                        "Already on Waitlist"
+                      ) : (
+                        "Join the Liberation Waitlist"
+                      )}
+                    </Button>
 
-                  <p className="text-xs text-muted-foreground">
-                    Be the first to break free from AI dependency. No spam, just
-                    liberation.
-                  </p>
-                </form>
-              </CardContent>
-            </Card>
+                    <p className="text-xs text-white/70 text-center leading-relaxed">
+                      Be the first to break free from AI dependency. No spam,
+                      just liberation.
+                    </p>
+                  </form>
+                </CardContent>
+              </Card>
+            </GlassSurface>
           ) : (
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 dark:from-green-950/30 dark:via-emerald-950/30 dark:to-green-900/30 animate-fade-in-up">
-              <CardContent className="p-8 text-center">
-                <Check className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto mb-4 animate-bounce" />
-                <h3 className="text-xl font-semibold mb-2 text-green-900 dark:text-green-100">
-                  Welcome to the Liberation!
-                </h3>
-                <p className="text-green-700 dark:text-green-200 text-base">
-                  You&apos;re on the waitlist. We&apos;ll notify you when Mukti
-                  is ready to challenge your thinking.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            <GlassSurface
+              width="100%"
+              height="auto"
+              borderRadius={24}
+              brightness={80}
+              opacity={0.2}
+              blur={15}
+              backgroundOpacity={0.1}
+              className="max-w-lg mx-auto"
+            >
+              <Card className="border-0 bg-transparent shadow-none">
+                <CardContent className="p-8 text-center">
+                  <Check className="h-16 w-16 text-green-400 mx-auto mb-6 animate-bounce" />
 
-        <GlassSurface
-          width={300}
-          height={200}
-          borderRadius={24}
-          className="my-custom-class"
-        >
-          <h2>Glass Surface Content</h2>
-        </GlassSurface>
+                  <ShinyText
+                    text="Welcome to the Liberation!"
+                    className="text-2xl font-bold mb-4 text-white"
+                    speed={3}
+                  />
+
+                  <BlurText
+                    text="You're on the waitlist. We'll notify you when Mukti is ready to challenge your thinking."
+                    className="text-white/90 text-base leading-relaxed"
+                    animateBy="words"
+                    delay={30}
+                    stepDuration={0.2}
+                  />
+                </CardContent>
+              </Card>
+            </GlassSurface>
+          )}
+        </AnimatedContent>
+
+        {/* Decorative floating elements */}
+        <div className="absolute top-20 left-10 w-2 h-2 bg-white/20 rounded-full animate-pulse" />
+        <div className="absolute top-40 right-20 w-1 h-1 bg-white/30 rounded-full animate-ping" />
+        <div
+          className="absolute bottom-32 left-1/4 w-1.5 h-1.5 bg-white/25 rounded-full animate-pulse"
+          style={{ animationDelay: "1s" }}
+        />
+        <div
+          className="absolute top-1/3 right-10 w-1 h-1 bg-white/20 rounded-full animate-ping"
+          style={{ animationDelay: "2s" }}
+        />
       </div>
     </section>
   );

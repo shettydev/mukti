@@ -164,6 +164,15 @@
   }
 }
 
+@keyframes shine {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.6s ease-out;
 }
@@ -179,6 +188,10 @@
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradient 3s ease infinite;
+}
+
+.animate-shine {
+  animation: shine var(--animation-duration, 5s) ease-in-out infinite;
 }
 
 .animation-delay-200 {
