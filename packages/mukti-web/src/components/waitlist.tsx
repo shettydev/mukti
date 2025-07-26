@@ -1,5 +1,4 @@
 import { Check, AlertCircle, Loader2 } from "lucide-react";
-import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -77,7 +76,7 @@ export function Waitlist() {
         className="absolute inset-0 w-full h-full z-0"
       />
     ),
-    [],
+    []
   );
 
   return (
@@ -99,7 +98,7 @@ export function Waitlist() {
           <div className="text-center mb-12">
             <BlurText
               text="Ready to Think Again?"
-              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 text-white"
+              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mt-16"
               animateBy="words"
               delay={100}
               stepDuration={0.5}
@@ -107,7 +106,7 @@ export function Waitlist() {
 
             <BlurText
               text="Join the waitlist and be among the first to experience AI mentorship that makes you smarter, not dependent."
-              className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed mt-44"
+              className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed mt-40"
               animateBy="words"
               delay={50}
               stepDuration={0.3}
@@ -174,8 +173,8 @@ export function Waitlist() {
                           {isSubmitting
                             ? "Processing..."
                             : isExisting
-                              ? "Checking..."
-                              : "Joining..."}
+                            ? "Checking..."
+                            : "Joining..."}
                         </>
                       ) : isExisting ? (
                         "Already on Waitlist"

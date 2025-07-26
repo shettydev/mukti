@@ -2,7 +2,7 @@ import { FloatingNav } from "./ui/floating-navbar";
 
 export function Navbar() {
   return (
-    <div className="relative  w-full">
+    <div className="relative w-full">
       <FloatingNav
         navItems={[
           { name: "Features", link: "#features" },

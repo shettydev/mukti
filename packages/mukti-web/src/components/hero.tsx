@@ -1,11 +1,11 @@
 import { ArrowRight, Brain, Star, Users, Zap } from "lucide-react";
 import Link from "next/link";
 import DarkVeil from "./reactbits/dark-veil";
-import { Button } from "./ui/button";
 import BlurText from "./reactbits/blur-text";
 import ShinyText from "./reactbits/shiny-text";
 import AnimatedContent from "./reactbits/animated-content";
 import GradientText from "./reactbits/gradient-text";
+import { ShimmerButton } from "./magicui/shimmer-button";
 
 export function Hero() {
   return (
@@ -86,16 +86,17 @@ export function Hero() {
             delay={1.2}
           >
             <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:justify-center sm:items-center w-full sm:w-auto">
-              <Button
-                size="lg"
-                className="text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl w-full sm:w-auto group"
-                asChild
-              >
-                <Link href="#waitlist">
+              <Link href="#waitlist" className="w-full sm:w-auto">
+                <ShimmerButton
+                  shimmerColor="#3B82F6"
+                  shimmerSize="0.1em"
+                  shimmerDuration="2s"
+                  className="text-base dark:text-white sm:text-lg px-6 sm:px-8 py-3 sm:py-4 w-full sm:w-auto group hover:border-blue-500/50 transition-all duration-300"
+                >
                   Join the Liberation{" "}
                   <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
+                </ShimmerButton>
+              </Link>
             </div>
           </AnimatedContent>
 

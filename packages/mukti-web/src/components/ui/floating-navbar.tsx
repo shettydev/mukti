@@ -65,7 +65,8 @@ export const FloatingNav = ({
             "px-0 py-0 sm:px-6 sm:py-2",
             "items-center justify-center space-x-2 sm:space-x-4",
             "max-w-full sm:max-w-fit",
-            className,
+            "rounded-full",
+            className
           )}
         >
           {/* Nav links: hidden on mobile, shown on sm+ */}
@@ -78,7 +79,7 @@ export const FloatingNav = ({
                   "flex items-center",
                   "text-neutral-600 dark:text-neutral-50 hover:text-neutral-500 dark:hover:text-neutral-300",
                   "px-2 py-1 rounded-full transition-colors duration-150",
-                  "text-sm",
+                  "text-sm"
                 )}
               >
                 <span className="mr-1">{navItem.icon}</span>
@@ -92,7 +93,7 @@ export const FloatingNav = ({
             className={cn(
               "relative border text-xs sm:text-sm font-medium border-neutral-200 dark:border-white/[0.2]",
               "dark:bg-black text-black dark:text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full",
-              "transition-colors duration-150",
+              "transition-colors duration-150"
             )}
           >
             Join Waitlist
