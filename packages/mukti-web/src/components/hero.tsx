@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import BlurText from "./reactbits/blur-text";
 import ShinyText from "./reactbits/shiny-text";
 import AnimatedContent from "./reactbits/animated-content";
+import GradientText from "./reactbits/gradient-text";
 
 export function Hero() {
   return (
@@ -53,13 +54,14 @@ export function Hero() {
             duration={1}
             delay={0.6}
           >
-            <BlurText
-              text="Not Through AI"
-              className="mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-tight bg-gradient-to-r from-primary via-purple-500 to-primary/60 bg-clip-text text-transparent"
-              animateBy="words"
-              delay={150}
-              stepDuration={0.6}
-            />
+            <GradientText
+              colors={["#FF3F33", "#FFB4B4", "#FF3F33", "#FFB4B4", "#FF3F33"]}
+              animationSpeed={5}
+              showBorder={false}
+              className="mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl tracking-tight font-bold"
+            >
+              Not Through AI
+            </GradientText>
           </AnimatedContent>
 
           <AnimatedContent
