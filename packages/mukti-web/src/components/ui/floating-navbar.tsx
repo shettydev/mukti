@@ -61,10 +61,10 @@ export const FloatingNav = ({
             duration: 0.2,
           }}
           className={cn(
-            "flex fixed top-4 left-1/2 -translate-x-1/2 z-[5000] rounded-full shadow-lg border border-transparent dark:border-white/[0.2] dark:bg-black bg-white",
-            "px-2 py-1 sm:px-6 sm:py-2",
+            "flex fixed top-4 left-1/2 -translate-x-1/2 z-[5000] bg-transparent dark:bg-transparent sm:bg-white sm:dark:bg-black shadow-none sm:shadow-lg border-none sm:border sm:border-transparent sm:dark:border-white/[0.2]",
+            "px-0 py-0 sm:px-6 sm:py-2",
             "items-center justify-center space-x-2 sm:space-x-4",
-            "max-w-[95vw] sm:max-w-fit",
+            "max-w-full sm:max-w-fit",
             className,
           )}
         >
@@ -91,12 +91,11 @@ export const FloatingNav = ({
             href="#waitlist"
             className={cn(
               "relative border text-xs sm:text-sm font-medium border-neutral-200 dark:border-white/[0.2]",
-              "text-black dark:text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full",
+              "dark:bg-black text-black dark:text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full",
               "transition-colors duration-150",
             )}
           >
             Join Waitlist
-            {/* <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent h-px" /> */}
             <BorderBeam
               size={50}
               borderWidth={2}

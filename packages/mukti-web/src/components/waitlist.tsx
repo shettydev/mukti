@@ -3,13 +3,14 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useWaitlist } from "@/lib/hooks/useWaitlist";
 import GlassSurface from "./reactbits/glass-surface";
 import Iridescence from "./reactbits/iridescence";
 import BlurText from "./reactbits/blur-text";
 import ShinyText from "./reactbits/shiny-text";
 import AnimatedContent from "./reactbits/animated-content";
+import { RainbowButton } from "./magicui/rainbow-button";
 
 export function Waitlist() {
   const [email, setEmail] = useState("");
@@ -66,19 +67,26 @@ export function Waitlist() {
   // Combined loading state for immediate feedback
   const isProcessing = isSubmitting || isLoading;
 
-  return (
-    <section
-      id="waitlist"
-      className="relative w-full min-h-screen flex items-center justify-center overflow-hidden"
-    >
-      {/* Iridescence Background */}
+  const iridescence = useMemo(
+    () => (
       <Iridescence
-        color={[0.3, 0.1, 0.5]}
-        mouseReact={true}
+        color={[0.5, 0.1, 0.22]}
+        mouseReact={false}
         amplitude={0.15}
         speed={0.8}
         className="absolute inset-0 w-full h-full z-0"
       />
+    ),
+    [],
+  );
+
+  return (
+    <section
+      id="waitlist"
+      className="relative w-full min-h-screen grid place-items-center overflow-hidden"
+    >
+      {/* Iridescence Background */}
+      {iridescence}
 
       {/* Top Gradient Overlay - Dark to Transparent */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#020617] via-[#020617]/80 to-transparent z-10 pointer-events-none" />
@@ -99,7 +107,7 @@ export function Waitlist() {
 
             <BlurText
               text="Join the waitlist and be among the first to experience AI mentorship that makes you smarter, not dependent."
-              className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed"
+              className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed mt-44"
               animateBy="words"
               delay={50}
               stepDuration={0.3}
@@ -111,10 +119,6 @@ export function Waitlist() {
               width="100%"
               height="auto"
               borderRadius={24}
-              brightness={20}
-              opacity={0.1}
-              blur={20}
-              backgroundOpacity={0.05}
               className="max-w-lg mx-auto"
             >
               <Card className="border-0 bg-transparent shadow-none">
@@ -158,12 +162,11 @@ export function Waitlist() {
                         </div>
                       )}
                     </div>
-
-                    <Button
+                    <RainbowButton
                       type="submit"
                       size="lg"
                       disabled={isProcessing || isExisting}
-                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 hover:scale-105 transition-all duration-200 shadow-xl hover:shadow-2xl disabled:hover:scale-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="w-full"
                     >
                       {isProcessing ? (
                         <>
@@ -171,16 +174,15 @@ export function Waitlist() {
                           {isSubmitting
                             ? "Processing..."
                             : isExisting
-                            ? "Checking..."
-                            : "Joining..."}
+                              ? "Checking..."
+                              : "Joining..."}
                         </>
                       ) : isExisting ? (
                         "Already on Waitlist"
                       ) : (
                         "Join the Liberation Waitlist"
                       )}
-                    </Button>
-
+                    </RainbowButton>
                     <p className="text-xs text-white/70 text-center leading-relaxed">
                       Be the first to break free from AI dependency. No spam,
                       just liberation.
@@ -222,18 +224,6 @@ export function Waitlist() {
             </GlassSurface>
           )}
         </AnimatedContent>
-
-        {/* Decorative floating elements */}
-        <div className="absolute top-20 left-10 w-2 h-2 bg-white/20 rounded-full animate-pulse" />
-        <div className="absolute top-40 right-20 w-1 h-1 bg-white/30 rounded-full animate-ping" />
-        <div
-          className="absolute bottom-32 left-1/4 w-1.5 h-1.5 bg-white/25 rounded-full animate-pulse"
-          style={{ animationDelay: "1s" }}
-        />
-        <div
-          className="absolute top-1/3 right-10 w-1 h-1 bg-white/20 rounded-full animate-ping"
-          style={{ animationDelay: "2s" }}
-        />
       </div>
     </section>
   );
