@@ -50,12 +50,12 @@ export function Hero() {
 
           <AnimatedContent
             distance={50}
-            direction="vertical"
+            direction="horizontal"
             duration={1}
-            delay={0.6}
+            delay={1.8}
           >
             <GradientText
-              colors={["#FF3F33", "#FFB4B4", "#FF3F33", "#FFB4B4", "#FF3F33"]}
+              colors={["#00FFDE", "#4300FF", "#00FFDE", "#4300FF", "#00FFDE"]}
               animationSpeed={5}
               showBorder={false}
               className="mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl tracking-tight font-bold"
