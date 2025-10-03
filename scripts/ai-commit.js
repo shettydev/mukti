@@ -86,6 +86,38 @@ async function callOpenRouter(diff, count = 3) {
   return data.choices[0].message.content;
 }
 
+// Wrap text to max line length
+function wrapText(text, maxLength = 100) {
+  if (!text) return '';
+
+  const lines = text.split('\n');
+  const wrappedLines = [];
+
+  for (const line of lines) {
+    if (line.length <= maxLength) {
+      wrappedLines.push(line);
+      continue;
+    }
+
+    // Wrap long lines
+    const words = line.split(' ');
+    let currentLine = '';
+
+    for (const word of words) {
+      if (currentLine.length + word.length + 1 <= maxLength) {
+        currentLine += (currentLine ? ' ' : '') + word;
+      } else {
+        if (currentLine) wrappedLines.push(currentLine);
+        currentLine = word;
+      }
+    }
+
+    if (currentLine) wrappedLines.push(currentLine);
+  }
+
+  return wrappedLines.join('\n');
+}
+
 // Parse AI response to extract commit messages
 function parseCommitMessages(aiResponse) {
   try {
@@ -111,7 +143,7 @@ function parseCommitMessages(aiResponse) {
         type: msg.type,
         scope: msg.scope || '',
         subject: msg.subject,
-        body: msg.body || '',
+        body: wrapText(msg.body || '', 100),
         full: `${msg.type}${msg.scope ? `(${msg.scope})` : ''}: ${msg.subject}`
       }));
     }
@@ -233,8 +265,9 @@ async function main() {
 
     if (addBody) {
       commitBody = await input({
-        message: 'Enter commit body (optional):'
+        message: 'Enter commit body (will be wrapped to 100 chars):'
       });
+      commitBody = wrapText(commitBody, 100);
     }
   }
 

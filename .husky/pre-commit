@@ -5,11 +5,4 @@ bun nx affected --target=lint --fix --parallel=3
 echo "💎 Running affected format..."
 bun nx affected --target=format --parallel=3
 
-# Check if there are changes after formatting
-if ! git diff --quiet; then
-  echo "⚠️  Files were formatted. Please review and stage the changes."
-  git status --short
-  exit 1
-fi
-
 echo "✅ Pre-commit checks passed!"

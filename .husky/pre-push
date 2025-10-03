@@ -1,0 +1,8 @@
+Check if there are changes after formatting
+if ! git diff --quiet; then
+  echo "⚠️  Files were formatted. Please review and stage the changes."
+  git status --short
+  exit 1
+fi
+
+echo "✅ Pre-push checks passed!"

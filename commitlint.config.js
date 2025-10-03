@@ -1,5 +1,3 @@
-import autocomplete from 'inquirer-autocomplete-prompt';
-
 const scopes = [
   // Project scopes
   'api',
@@ -35,7 +33,7 @@ const scopes = [
   'release'
 ];
 
-export default {
+module.exports = {
   extends: ['@commitlint/config-conventional'],
   rules: {
     'scope-enum': [2, 'always', scopes],
