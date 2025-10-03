@@ -8,13 +8,21 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
+    "@commitlint/cz-commitlint": "^20.1.0",
+    "@inquirer/prompts": "^7.8.6",
     "@nx/eslint": "21.6.3",
     "@nx/jest": "21.6.3",
+    "@nx/workspace": "^21.6.3",
     "@types/bun": "latest",
+    "commitizen": "^4.3.1",
     "eslint": "~8.57.0",
     "husky": "^9.1.7",
+    "inquirer": "9",
+    "inquirer-autocomplete-prompt": "^3.0.1",
     "jest": "^30.0.2",
+    "lint-staged": "^16.2.3",
     "nx": "21.6.3",
+    "opencommit": "^3.2.10",
     "prettier": "3.6.2"
   },
   "peerDependencies": {
@@ -26,6 +34,27 @@
     "react-dom": "19.0.0"
   },
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "bun nx run-many --target=dev --all --parallel=2",
+    "build": "bun nx run-many --target=build --all",
+    "lint": "bun nx run-many --target=lint --all",
+    "lint:fix": "bun nx run-many --target=lint:fix --all",
+    "format": "bun nx run-many --target=format --all",
+    "format:check": "bun nx run-many --target=format:check --all",
+    "format:root": "bun prettier --write .",
+    "format:root:check": "bun prettier --check .",
+    "test": "bun nx run-many --target=test --all",
+    "test:cov": "bun nx run-many --target=test:cov --all",
+    "affected:lint": "bun nx affected --target=lint",
+    "affected:test": "bun nx affected --target=test",
+    "affected:build": "bun nx affected --target=build",
+    "graph": "bun nx graph",
+    "commit": "bun git-cz",
+    "ai:commit": "bun run scripts/ai-commit.js"
+  },
+  "config": {
+    "commitizen": {
+      "path": "@commitlint/cz-commitlint"
+    }
   }
 }
