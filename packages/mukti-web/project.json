@@ -1,0 +1,67 @@
+{
+  "name": "@mukti/web",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/mukti-web/src",
+  "projectType": "application",
+  "tags": ["scope:web", "type:application"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "next build",
+        "cwd": "packages/mukti-web"
+      },
+      "outputs": ["{projectRoot}/.next"]
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "next dev",
+        "cwd": "packages/mukti-web"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "next start",
+        "cwd": "packages/mukti-web"
+      },
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "next lint",
+        "cwd": "packages/mukti-web"
+      }
+    },
+    "lint:fix": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "next lint --fix",
+        "cwd": "packages/mukti-web"
+      }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+        "cwd": "packages/mukti-web"
+      }
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+        "cwd": "packages/mukti-web"
+      }
+    },
+    "type-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "packages/mukti-web"
+      }
+    }
+  }
+}
