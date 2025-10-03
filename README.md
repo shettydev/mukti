@@ -5,7 +5,7 @@ Mukti _(mook-tee /ˈmʊkti/)_, which translates to **Liberation** from the Hindi
 AI is everywhere—like glitter at a kid’s party. It’s fun until you realize it’s stuck to everything, including your critical thinking. Welcome to Mukti, where we hand out brooms, not blindfolds.
 
 > [!WARNING]
-> If you’re here to get spoon-fed answers and let your brain atrophy, you’re in the wrong place. Mukti is for those who want to wrestle with their brains, not outsource them. If that sounds exhausting, the exit is that way. For the rest of you—welcome to the dojo.
+> If you’re here to get spoon-fed answers and let your brain rot, you’re in the wrong place. Mukti is for those who want to wrestle with their brains, not outsource them. If that sounds exhausting, the exit is that way. For the rest of you—welcome to the dojo.
 
 ## Motivation
 
