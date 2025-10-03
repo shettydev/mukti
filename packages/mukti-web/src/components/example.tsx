@@ -1,4 +1,4 @@
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent } from './ui/card';
 
 export function Example() {
   return (
@@ -9,8 +9,8 @@ export function Example() {
             The Anti-Autopilot Approach
           </h2>
           <p className="text-lg text-muted-foreground">
-            Mukti doesn&apos;t replace your thinking—it enhances it through
-            iterative dialogue and strategic questioning.
+            Mukti doesn&apos;t replace your thinking—it enhances it through iterative dialogue and
+            strategic questioning.
           </p>
         </div>
 
@@ -22,12 +22,10 @@ export function Example() {
                   1
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Ask Better Questions
-                  </h3>
+                  <h3 className="text-lg font-semibold mb-2">Ask Better Questions</h3>
                   <p className="text-muted-foreground">
-                    Instead of &quot;What&apos;s the answer?&quot;, Mukti helps
-                    you ask &quot;What&apos;s the real problem?&quot;
+                    Instead of &quot;What&apos;s the answer?&quot;, Mukti helps you ask
+                    &quot;What&apos;s the real problem?&quot;
                   </p>
                 </div>
               </div>
@@ -37,12 +35,10 @@ export function Example() {
                   2
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Explore Perspectives
-                  </h3>
+                  <h3 className="text-lg font-semibold mb-2">Explore Perspectives</h3>
                   <p className="text-muted-foreground">
-                    Challenge your assumptions and consider alternative angles
-                    through guided dialogue.
+                    Challenge your assumptions and consider alternative angles through guided
+                    dialogue.
                   </p>
                 </div>
               </div>
@@ -52,12 +48,9 @@ export function Example() {
                   3
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Build Understanding
-                  </h3>
+                  <h3 className="text-lg font-semibold mb-2">Build Understanding</h3>
                   <p className="text-muted-foreground">
-                    Develop deep, personal insights that stick because you
-                    discovered them yourself.
+                    Develop deep, personal insights that stick because you discovered them yourself.
                   </p>
                 </div>
               </div>
@@ -75,9 +68,8 @@ export function Example() {
                   <div className="bg-primary/10 rounded-lg p-4 border">
                     <p className="text-sm font-medium text-primary">Mukti:</p>
                     <p className="text-sm mt-1">
-                      &quot;What usually distracts you during study sessions?
-                      Have you tried breaking your study time into shorter
-                      intervals?&quot;
+                      &quot;What usually distracts you during study sessions? Have you tried
+                      breaking your study time into shorter intervals?&quot;
                     </p>
                   </div>
                   <div className="text-center text-xs text-muted-foreground">

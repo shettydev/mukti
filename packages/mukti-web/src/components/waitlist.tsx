@@ -1,28 +1,21 @@
-import { Check, AlertCircle, Loader2 } from "lucide-react";
-import { Card, CardContent } from "./ui/card";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { useMemo, useState } from "react";
-import { useWaitlist } from "@/lib/hooks/useWaitlist";
-import GlassSurface from "./reactbits/glass-surface";
-import Iridescence from "./reactbits/iridescence";
-import BlurText from "./reactbits/blur-text";
-import ShinyText from "./reactbits/shiny-text";
-import AnimatedContent from "./reactbits/animated-content";
-import { RainbowButton } from "./magicui/rainbow-button";
+import { Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Card, CardContent } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { useMemo, useState } from 'react';
+import { useWaitlist } from '@/lib/hooks/useWaitlist';
+import GlassSurface from './reactbits/glass-surface';
+import Iridescence from './reactbits/iridescence';
+import BlurText from './reactbits/blur-text';
+import ShinyText from './reactbits/shiny-text';
+import AnimatedContent from './reactbits/animated-content';
+import { RainbowButton } from './magicui/rainbow-button';
 
 export function Waitlist() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const {
-    isLoading,
-    isSubmitted,
-    error,
-    isExisting,
-    checkEmail,
-    joinWaitlist,
-    reset,
-  } = useWaitlist();
+  const { isLoading, isSubmitted, error, isExisting, checkEmail, joinWaitlist, reset } =
+    useWaitlist();
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +33,7 @@ export function Waitlist() {
         // If email doesn't exist, try to join waitlist
         const success = await joinWaitlist(email);
         if (success) {
-          setEmail("");
+          setEmail('');
         }
       }
     } finally {
@@ -50,7 +43,7 @@ export function Waitlist() {
 
   // Check email on blur for better UX
   const handleEmailBlur = async () => {
-    if (email.trim() && email.includes("@")) {
+    if (email.trim() && email.includes('@')) {
       await checkEmail(email);
     }
   };
@@ -114,12 +107,7 @@ export function Waitlist() {
           </div>
 
           {!isSubmitted ? (
-            <GlassSurface
-              width="100%"
-              height="auto"
-              borderRadius={24}
-              className="max-w-lg mx-auto"
-            >
+            <GlassSurface width="100%" height="auto" borderRadius={24} className="max-w-lg mx-auto">
               <Card className="border-0 bg-transparent shadow-none">
                 <CardContent className="p-8">
                   <form onSubmit={handleWaitlistSubmit} className="space-y-6">
@@ -155,8 +143,8 @@ export function Waitlist() {
                         <div className="flex items-center gap-2 text-sm text-green-400 mt-2">
                           <Check className="h-4 w-4" />
                           <span>
-                            You&apos;re already on the waitlist! We&apos;ll
-                            notify you when Mukti is ready.
+                            You&apos;re already on the waitlist! We&apos;ll notify you when Mukti is
+                            ready.
                           </span>
                         </div>
                       )}
@@ -171,20 +159,19 @@ export function Waitlist() {
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           {isSubmitting
-                            ? "Processing..."
+                            ? 'Processing...'
                             : isExisting
-                            ? "Checking..."
-                            : "Joining..."}
+                              ? 'Checking...'
+                              : 'Joining...'}
                         </>
                       ) : isExisting ? (
-                        "Already on Waitlist"
+                        'Already on Waitlist'
                       ) : (
-                        "Join the Liberation Waitlist"
+                        'Join the Liberation Waitlist'
                       )}
                     </RainbowButton>
                     <p className="text-xs text-white/70 text-center leading-relaxed">
-                      Be the first to break free from AI dependency. No spam,
-                      just liberation.
+                      Be the first to break free from AI dependency. No spam, just liberation.
                     </p>
                   </form>
                 </CardContent>

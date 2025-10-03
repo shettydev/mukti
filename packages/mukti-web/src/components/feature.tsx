@@ -1,4 +1,4 @@
-import Squares from "./reactbits/sqaures";
+import Squares from './reactbits/sqaures';
 import {
   MessageCircle,
   Lightbulb,
@@ -8,65 +8,62 @@ import {
   Zap,
   HelpCircle,
   User,
-} from "lucide-react";
+} from 'lucide-react';
 
 export function Feature() {
   const features = [
     {
-      title: "Socratic Questioning",
+      title: 'Socratic Questioning',
       description:
-        "Instead of giving direct answers, Mukti asks thought-provoking questions that guide you to discover solutions yourself.",
+        'Instead of giving direct answers, Mukti asks thought-provoking questions that guide you to discover solutions yourself.',
       icon: <MessageCircle />,
     },
     {
-      title: "Self-Discovery",
+      title: 'Self-Discovery',
       description:
-        "Unlock your own insights through guided exploration, making every breakthrough a personal achievement.",
+        'Unlock your own insights through guided exploration, making every breakthrough a personal achievement.',
       icon: <Lightbulb />,
     },
     {
-      title: "Cognitive Resilience",
+      title: 'Cognitive Resilience',
       description:
-        "Build long-term mental agility and independent thinking skills that serve you beyond any AI interaction.",
+        'Build long-term mental agility and independent thinking skills that serve you beyond any AI interaction.',
       icon: <Target />,
     },
     {
-      title: "Critical Thinking",
+      title: 'Critical Thinking',
       description:
-        "Develop the ability to analyze, evaluate, and synthesize information without relying on AI shortcuts.",
+        'Develop the ability to analyze, evaluate, and synthesize information without relying on AI shortcuts.',
       icon: <Brain />,
     },
     {
-      title: "Independent Learning",
+      title: 'Independent Learning',
       description:
-        "Foster self-directed learning habits that make you a stronger, more autonomous thinker.",
+        'Foster self-directed learning habits that make you a stronger, more autonomous thinker.',
       icon: <BookOpen />,
     },
     {
-      title: "Mental Agility",
+      title: 'Mental Agility',
       description:
-        "Train your mind to adapt, pivot, and solve problems creatively without external cognitive crutches.",
+        'Train your mind to adapt, pivot, and solve problems creatively without external cognitive crutches.',
       icon: <Zap />,
     },
     {
-      title: "Question Everything",
+      title: 'Question Everything',
       description:
-        "Cultivate healthy skepticism and the courage to challenge assumptions, even your own.",
+        'Cultivate healthy skepticism and the courage to challenge assumptions, even your own.',
       icon: <HelpCircle />,
     },
     {
-      title: "Think for Yourself",
+      title: 'Think for Yourself',
       description:
-        "Break free from AI dependency and reclaim your intellectual autonomy and confidence.",
+        'Break free from AI dependency and reclaim your intellectual autonomy and confidence.',
       icon: <User />,
     },
   ];
 
   return (
-    <section
-      id="features"
-      className="py-24 bg-muted/20 relative overflow-hidden"
-    >
+    <section id="features" className="py-24 bg-muted/20 relative overflow-hidden">
       {/* Animated Squares background */}
       <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
         <Squares
@@ -85,9 +82,8 @@ export function Feature() {
             Rediscover Your Cognitive Independence
           </h2>
           <p className="text-lg text-muted-foreground">
-            While other AI tools do the thinking for you, Mukti challenges you
-            to think deeper, question assumptions, and build lasting cognitive
-            resilience.
+            While other AI tools do the thinking for you, Mukti challenges you to think deeper,
+            question assumptions, and build lasting cognitive resilience.
           </p>
         </div>
 
@@ -113,9 +109,7 @@ const FeatureCard = ({
   index: number;
 }) => {
   return (
-    <div
-      className={`group relative ${index >= 4 ? "hidden md:block" : "block"}`}
-    >
+    <div className={`group relative ${index >= 4 ? 'hidden md:block' : 'block'}`}>
       {/* Gradient border wrapper */}
       <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 blur-sm group-hover:blur-none animate-gradient-x"></div>
 

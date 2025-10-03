@@ -1,5 +1,5 @@
-import { Star } from "lucide-react";
-import { Card, CardContent } from "./ui/card";
+import { Star } from 'lucide-react';
+import { Card, CardContent } from './ui/card';
 
 export function Testimonial() {
   return (
@@ -19,15 +19,12 @@ export function Testimonial() {
             <CardContent className="p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-4 w-4 fill-current text-yellow-500"
-                  />
+                  <Star key={i} className="h-4 w-4 fill-current text-yellow-500" />
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                &quot;After using Mukti, my plants started growing faster and my
-                coffee tasted better. Coincidence? I think not.&quot;
+                &quot;After using Mukti, my plants started growing faster and my coffee tasted
+                better. Coincidence? I think not.&quot;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -35,9 +32,7 @@ export function Testimonial() {
                 </div>
                 <div>
                   <p className="font-semibold text-sm">Phil the Plant</p>
-                  <p className="text-xs text-muted-foreground">
-                    Aspiring Ficus
-                  </p>
+                  <p className="text-xs text-muted-foreground">Aspiring Ficus</p>
                 </div>
               </div>
             </CardContent>
@@ -47,15 +42,12 @@ export function Testimonial() {
             <CardContent className="p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-4 w-4 fill-current text-yellow-500"
-                  />
+                  <Star key={i} className="h-4 w-4 fill-current text-yellow-500" />
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                &quot;Mukti asked me more questions than the Riddler. <br /> For
-                once, I enjoyed it.&quot;
+                &quot;Mukti asked me more questions than the Riddler. <br /> For once, I enjoyed
+                it.&quot;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -75,15 +67,12 @@ export function Testimonial() {
             <CardContent className="p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-4 w-4 fill-current text-yellow-500"
-                  />
+                  <Star key={i} className="h-4 w-4 fill-current text-yellow-500" />
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                &quot;Mukti made me question everything. Including why I’m
-                reading fake testimonials on a landing page.&quot;
+                &quot;Mukti made me question everything. Including why I’m reading fake testimonials
+                on a landing page.&quot;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -91,9 +80,7 @@ export function Testimonial() {
                 </div>
                 <div>
                   <p className="font-semibold text-sm">Anonymous Intern</p>
-                  <p className="text-xs text-muted-foreground">
-                    Existential Overthinker
-                  </p>
+                  <p className="text-xs text-muted-foreground">Existential Overthinker</p>
                 </div>
               </div>
             </CardContent>

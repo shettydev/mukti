@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
-import React, { useEffect, useId, useRef, useState } from "react";
+import { cn } from '@/lib/utils';
+import { motion } from 'motion/react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 
 /**
  *  DotPattern Component Props
@@ -85,15 +85,13 @@ export function DotPattern({
     };
 
     updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
   const dots = Array.from(
     {
-      length:
-        Math.ceil(dimensions.width / width) *
-        Math.ceil(dimensions.height / height),
+      length: Math.ceil(dimensions.width / width) * Math.ceil(dimensions.height / height),
     },
     (_, i) => {
       const col = i % Math.ceil(dimensions.width / width);
@@ -104,17 +102,14 @@ export function DotPattern({
         delay: Math.random() * 5,
         duration: Math.random() * 3 + 2,
       };
-    },
+    }
   );
 
   return (
     <svg
       ref={containerRef}
       aria-hidden="true"
-      className={cn(
-        "pointer-events-none absolute inset-0 h-full w-full",
-        className,
-      )}
+      className={cn('pointer-events-none absolute inset-0 h-full w-full', className)}
       {...props}
     >
       <defs>
@@ -129,7 +124,7 @@ export function DotPattern({
           cx={dot.x}
           cy={dot.y}
           r={cr}
-          fill={glow ? `url(#${id}-gradient)` : "currentColor"}
+          fill={glow ? `url(#${id}-gradient)` : 'currentColor'}
           className="text-neutral-400/80"
           initial={glow ? { opacity: 0.4, scale: 1 } : {}}
           animate={
@@ -145,9 +140,9 @@ export function DotPattern({
               ? {
                   duration: dot.duration,
                   repeat: Infinity,
-                  repeatType: "reverse",
+                  repeatType: 'reverse',
                   delay: dot.delay,
-                  ease: "easeInOut",
+                  ease: 'easeInOut',
                 }
               : {}
           }

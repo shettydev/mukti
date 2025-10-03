@@ -1,9 +1,9 @@
-import { MongoClient, Db } from "mongodb";
+import { MongoClient, Db } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
 
 if (!uri) {
-  throw new Error("Please add your MongoDB URI to .env.local");
+  throw new Error('Please add your MongoDB URI to .env.local');
 }
 
 const options = {};
@@ -11,7 +11,7 @@ const options = {};
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === 'development') {
   // In development mode, use a global variable so that the value
   // is preserved across module reloads caused by HMR (Hot Module Replacement).
   const globalWithMongo = global as typeof globalThis & {
@@ -34,7 +34,7 @@ export async function connectToDatabase(): Promise<{
   db: Db;
 }> {
   const client = await clientPromise;
-  const db = client.db("mukti"); // You can change this database name
+  const db = client.db('mukti'); // You can change this database name
   return { client, db };
 }
 
