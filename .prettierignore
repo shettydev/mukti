@@ -1,3 +1,45 @@
-# Ignore artifacts:
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
 build
+.next
+out
 coverage
+
+# Cache
+.nx
+.turbo
+.cache
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lock
+
+# Generated files
+*.generated.*
