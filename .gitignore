@@ -4,3 +4,4 @@ build/
 .env
 .cursor
 .DS_Store
+.claude
