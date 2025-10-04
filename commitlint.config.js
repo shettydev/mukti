@@ -66,6 +66,8 @@ module.exports = {
       enableMultipleScopes: true,
       scopeEnumSeparator: ','
     },
+    enableMultipleScopes: true,
+    scopeEnumSeparator: ',',
     messages: {
       skip: '(press enter to skip)',
       max: 'upper %d chars',
@@ -132,28 +134,27 @@ module.exports = {
             description: 'Reverts a previous commit',
             title: 'Reverts',
             emoji: '🗑'
+          },
+          wip: {
+            description: 'Work in progress (avoid in main branch)',
+            title: 'Work in Progress',
+            emoji: '🚧'
+          },
+          init: {
+            description: 'Initial commit',
+            title: 'Initial',
+            emoji: '🎉'
           }
         }
       },
       scope: {
-        description: 'What is the scope of this change (type to filter)?',
-        // Enable autocomplete for scopes
-        type: 'autocomplete',
-        source: (answersSoFar, input) => {
-          input = input || '';
-          return new Promise((resolve) => {
-            const fuzzyResult = scopes.filter((scope) =>
-              scope.toLowerCase().includes(input.toLowerCase())
-            );
-            resolve(fuzzyResult);
-          });
-        }
+        description: 'What is the scope of this change (e.g. component or file name)?'
       },
       subject: {
-        description: 'Write a short, imperative tense description of the change (AI can help with "bun run ai:commit")'
+        description: 'Write a short, imperative tense description of the change'
       },
       body: {
-        description: 'Provide a longer description of the change (AI can help with "bun run ai:commit")'
+        description: 'Provide a longer description of the change'
       },
       isBreaking: {
         description: 'Are there any breaking changes?'
