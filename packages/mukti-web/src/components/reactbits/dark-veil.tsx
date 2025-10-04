@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { Renderer, Program, Mesh, Triangle, Vec2 } from 'ogl';
+import { Mesh, Program, Renderer, Triangle, Vec2 } from 'ogl';
+import { useEffect, useRef } from 'react';
 
 const vertex = `
 attribute vec2 position;
@@ -76,21 +76,21 @@ void main(){
 type Props = {
   hueShift?: number;
   noiseIntensity?: number;
+  resolutionScale?: number;
+  scanlineFrequency?: number;
   scanlineIntensity?: number;
   speed?: number;
-  scanlineFrequency?: number;
   warpAmount?: number;
-  resolutionScale?: number;
 };
 
 export default function DarkVeil({
   hueShift = 0,
   noiseIntensity = 0,
+  resolutionScale = 1,
+  scanlineFrequency = 0,
   scanlineIntensity = 0,
   speed = 0.5,
-  scanlineFrequency = 0,
   warpAmount = 0,
-  resolutionScale = 1,
 }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -98,32 +98,32 @@ export default function DarkVeil({
     const parent = canvas.parentElement as HTMLElement;
 
     const renderer = new Renderer({
-      dpr: Math.min(window.devicePixelRatio, 2),
       canvas,
+      dpr: Math.min(window.devicePixelRatio, 2),
     });
 
     const gl = renderer.gl;
     const geometry = new Triangle(gl);
 
     const program = new Program(gl, {
-      vertex,
       fragment,
       uniforms: {
-        uTime: { value: 0 },
-        uResolution: { value: new Vec2() },
         uHueShift: { value: hueShift },
         uNoise: { value: noiseIntensity },
+        uResolution: { value: new Vec2() },
         uScan: { value: scanlineIntensity },
         uScanFreq: { value: scanlineFrequency },
+        uTime: { value: 0 },
         uWarp: { value: warpAmount },
       },
+      vertex,
     });
 
     const mesh = new Mesh(gl, { geometry, program });
 
     const resize = () => {
-      const w = parent.clientWidth,
-        h = parent.clientHeight;
+      const h = parent.clientHeight,
+        w = parent.clientWidth;
       renderer.setSize(w * resolutionScale, h * resolutionScale);
       program.uniforms.uResolution.value.set(w, h);
     };
@@ -160,5 +160,5 @@ export default function DarkVeil({
     warpAmount,
     resolutionScale,
   ]);
-  return <canvas ref={ref} className="w-full h-full block" />;
+  return <canvas className="w-full h-full block" ref={ref} />;
 }

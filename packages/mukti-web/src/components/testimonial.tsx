@@ -1,4 +1,5 @@
 import { Star } from 'lucide-react';
+
 import { Card, CardContent } from './ui/card';
 
 export function Testimonial() {
@@ -19,7 +20,7 @@ export function Testimonial() {
             <CardContent className="p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current text-yellow-500" />
+                  <Star className="h-4 w-4 fill-current text-yellow-500" key={i} />
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
@@ -42,7 +43,7 @@ export function Testimonial() {
             <CardContent className="p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current text-yellow-500" />
+                  <Star className="h-4 w-4 fill-current text-yellow-500" key={i} />
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
@@ -67,7 +68,7 @@ export function Testimonial() {
             <CardContent className="p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current text-yellow-500" />
+                  <Star className="h-4 w-4 fill-current text-yellow-500" key={i} />
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">

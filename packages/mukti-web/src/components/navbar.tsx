@@ -5,8 +5,8 @@ export function Navbar() {
     <div className="relative w-full">
       <FloatingNav
         navItems={[
-          { name: 'Features', link: '#features' },
-          { name: 'How it Works', link: '#how-it-works' },
+          { link: '#features', name: 'Features' },
+          { link: '#how-it-works', name: 'How it Works' },
         ]}
       />
     </div>

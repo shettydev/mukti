@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
-type CanvasStrokeStyle = string | CanvasGradient | CanvasPattern;
+type CanvasStrokeStyle = CanvasGradient | CanvasPattern | string;
 
 interface GridOffset {
   x: number;
@@ -8,22 +8,22 @@ interface GridOffset {
 }
 
 interface SquaresProps {
-  direction?: 'diagonal' | 'up' | 'right' | 'down' | 'left';
-  speed?: number;
   borderColor?: CanvasStrokeStyle;
-  squareSize?: number;
+  direction?: 'diagonal' | 'down' | 'left' | 'right' | 'up';
   hoverFillColor?: CanvasStrokeStyle;
+  speed?: number;
+  squareSize?: number;
 }
 
 const Squares: React.FC<SquaresProps> = ({
-  direction = 'right',
-  speed = 1,
   borderColor = '#999',
-  squareSize = 40,
+  direction = 'right',
   hoverFillColor = '#222',
+  speed = 1,
+  squareSize = 40,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestRef = useRef<number | null>(null);
+  const requestRef = useRef<null | number>(null);
   const numSquaresX = useRef<number>(0);
   const numSquaresY = useRef<number>(0);
   const gridOffset = useRef<GridOffset>({ x: 0, y: 0 });
@@ -31,7 +31,9 @@ const Squares: React.FC<SquaresProps> = ({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
     const ctx = canvas.getContext('2d');
 
     const resizeCanvas = () => {
@@ -45,7 +47,9 @@ const Squares: React.FC<SquaresProps> = ({
     resizeCanvas();
 
     const drawGrid = () => {
-      if (!ctx) return;
+      if (!ctx) {
+        return;
+      }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -89,21 +93,21 @@ const Squares: React.FC<SquaresProps> = ({
     const updateAnimation = () => {
       const effectiveSpeed = Math.max(speed, 0.1);
       switch (direction) {
-        case 'right':
+        case 'diagonal':
           gridOffset.current.x = (gridOffset.current.x - effectiveSpeed + squareSize) % squareSize;
-          break;
-        case 'left':
-          gridOffset.current.x = (gridOffset.current.x + effectiveSpeed + squareSize) % squareSize;
-          break;
-        case 'up':
-          gridOffset.current.y = (gridOffset.current.y + effectiveSpeed + squareSize) % squareSize;
+          gridOffset.current.y = (gridOffset.current.y - effectiveSpeed + squareSize) % squareSize;
           break;
         case 'down':
           gridOffset.current.y = (gridOffset.current.y - effectiveSpeed + squareSize) % squareSize;
           break;
-        case 'diagonal':
+        case 'left':
+          gridOffset.current.x = (gridOffset.current.x + effectiveSpeed + squareSize) % squareSize;
+          break;
+        case 'right':
           gridOffset.current.x = (gridOffset.current.x - effectiveSpeed + squareSize) % squareSize;
-          gridOffset.current.y = (gridOffset.current.y - effectiveSpeed + squareSize) % squareSize;
+          break;
+        case 'up':
+          gridOffset.current.y = (gridOffset.current.y + effectiveSpeed + squareSize) % squareSize;
           break;
         default:
           break;
@@ -143,13 +147,15 @@ const Squares: React.FC<SquaresProps> = ({
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [direction, speed, borderColor, hoverFillColor, squareSize]);
 
-  return <canvas ref={canvasRef} className="w-full h-full border-none block"></canvas>;
+  return <canvas className="w-full h-full border-none block" ref={canvasRef} />;
 };
 
 export default Squares;

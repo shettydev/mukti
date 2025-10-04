@@ -1,77 +1,78 @@
-import Squares from './reactbits/sqaures';
 import {
-  MessageCircle,
-  Lightbulb,
-  Target,
-  Brain,
   BookOpen,
-  Zap,
+  Brain,
   HelpCircle,
+  Lightbulb,
+  MessageCircle,
+  Target,
   User,
+  Zap,
 } from 'lucide-react';
+
+import Squares from './reactbits/sqaures';
 
 export function Feature() {
   const features = [
     {
-      title: 'Socratic Questioning',
       description:
         'Instead of giving direct answers, Mukti asks thought-provoking questions that guide you to discover solutions yourself.',
       icon: <MessageCircle />,
+      title: 'Socratic Questioning',
     },
     {
-      title: 'Self-Discovery',
       description:
         'Unlock your own insights through guided exploration, making every breakthrough a personal achievement.',
       icon: <Lightbulb />,
+      title: 'Self-Discovery',
     },
     {
-      title: 'Cognitive Resilience',
       description:
         'Build long-term mental agility and independent thinking skills that serve you beyond any AI interaction.',
       icon: <Target />,
+      title: 'Cognitive Resilience',
     },
     {
-      title: 'Critical Thinking',
       description:
         'Develop the ability to analyze, evaluate, and synthesize information without relying on AI shortcuts.',
       icon: <Brain />,
+      title: 'Critical Thinking',
     },
     {
-      title: 'Independent Learning',
       description:
         'Foster self-directed learning habits that make you a stronger, more autonomous thinker.',
       icon: <BookOpen />,
+      title: 'Independent Learning',
     },
     {
-      title: 'Mental Agility',
       description:
         'Train your mind to adapt, pivot, and solve problems creatively without external cognitive crutches.',
       icon: <Zap />,
+      title: 'Mental Agility',
     },
     {
-      title: 'Question Everything',
       description:
         'Cultivate healthy skepticism and the courage to challenge assumptions, even your own.',
       icon: <HelpCircle />,
+      title: 'Question Everything',
     },
     {
-      title: 'Think for Yourself',
       description:
         'Break free from AI dependency and reclaim your intellectual autonomy and confidence.',
       icon: <User />,
+      title: 'Think for Yourself',
     },
   ];
 
   return (
-    <section id="features" className="py-24 bg-muted/20 relative overflow-hidden">
+    <section className="py-24 bg-muted/20 relative overflow-hidden" id="features">
       {/* Animated Squares background */}
       <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
         <Squares
-          direction="right"
-          speed={0.5}
           borderColor="rgba(255, 255, 255, 0.1)"
-          squareSize={60}
+          direction="right"
           hoverFillColor="rgba(59, 130, 246, 0.1)"
+          speed={0.5}
+          squareSize={60}
         />
       </div>
 
@@ -98,27 +99,27 @@ export function Feature() {
 }
 
 const FeatureCard = ({
-  title,
   description,
   icon,
   index,
+  title,
 }: {
-  title: string;
   description: string;
   icon: React.ReactNode;
   index: number;
+  title: string;
 }) => {
   return (
     <div className={`group relative ${index >= 4 ? 'hidden md:block' : 'block'}`}>
       {/* Gradient border wrapper */}
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 blur-sm group-hover:blur-none animate-gradient-x"></div>
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 blur-sm group-hover:blur-none animate-gradient-x" />
 
       {/* Main card */}
       <div className="relative h-full p-6 rounded-xl backdrop-blur-md bg-gradient-to-br from-white/10 via-white/5 to-transparent border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-[1.02] group-hover:border-white/30">
         {/* Animated light effect */}
         <div className="absolute inset-0 rounded-xl overflow-hidden">
-          <div className="absolute -top-2 -left-2 w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+          <div className="absolute -top-2 -left-2 w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
         </div>
 
         {/* Icon container */}

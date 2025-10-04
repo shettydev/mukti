@@ -1,43 +1,45 @@
-import React, { useRef, useEffect, ReactNode } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import React, { type ReactNode, useEffect, useRef } from 'react';
 
 gsap.registerPlugin(ScrollTrigger);
 
 interface AnimatedContentProps {
-  children: ReactNode;
-  distance?: number;
-  direction?: 'vertical' | 'horizontal';
-  reverse?: boolean;
-  duration?: number;
-  ease?: string | ((progress: number) => number);
-  initialOpacity?: number;
   animateOpacity?: boolean;
+  children: ReactNode;
+  delay?: number;
+  direction?: 'horizontal' | 'vertical';
+  distance?: number;
+  duration?: number;
+  ease?: ((progress: number) => number) | string;
+  initialOpacity?: number;
+  onComplete?: () => void;
+  reverse?: boolean;
   scale?: number;
   threshold?: number;
-  delay?: number;
-  onComplete?: () => void;
 }
 
 const AnimatedContent: React.FC<AnimatedContentProps> = ({
+  animateOpacity = true,
   children,
-  distance = 100,
+  delay = 0,
   direction = 'vertical',
-  reverse = false,
+  distance = 100,
   duration = 0.8,
   ease = 'power3.out',
   initialOpacity = 0,
-  animateOpacity = true,
+  onComplete,
+  reverse = false,
   scale = 1,
   threshold = 0.1,
-  delay = 0,
-  onComplete,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
 
     const axis = direction === 'horizontal' ? 'x' : 'y';
     const offset = reverse ? -distance : distance;
@@ -45,23 +47,23 @@ const AnimatedContent: React.FC<AnimatedContentProps> = ({
 
     gsap.set(el, {
       [axis]: offset,
-      scale,
       opacity: animateOpacity ? initialOpacity : 1,
+      scale,
     });
 
     gsap.to(el, {
       [axis]: 0,
-      scale: 1,
-      opacity: 1,
+      delay,
       duration,
       ease,
-      delay,
       onComplete,
+      opacity: 1,
+      scale: 1,
       scrollTrigger: {
-        trigger: el,
+        once: true,
         start: `top ${startPct}%`,
         toggleActions: 'play none none none',
-        once: true,
+        trigger: el,
       },
     });
 

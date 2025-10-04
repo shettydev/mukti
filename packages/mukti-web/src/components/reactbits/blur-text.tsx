@@ -1,28 +1,28 @@
-import { motion, Transition, Easing } from 'framer-motion';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { type Easing, motion, type Transition } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type BlurTextProps = {
-  text?: string;
-  delay?: number;
+  animateBy?: 'letters' | 'words';
+  animationFrom?: Record<string, number | string>;
+  animationTo?: Array<Record<string, number | string>>;
   className?: string;
-  animateBy?: 'words' | 'letters';
-  direction?: 'top' | 'bottom';
-  threshold?: number;
-  rootMargin?: string;
-  animationFrom?: Record<string, string | number>;
-  animationTo?: Array<Record<string, string | number>>;
+  delay?: number;
+  direction?: 'bottom' | 'top';
   easing?: (t: number) => number;
   onAnimationComplete?: () => void;
+  rootMargin?: string;
   stepDuration?: number;
+  text?: string;
+  threshold?: number;
 };
 
 const buildKeyframes = (
-  from: Record<string, string | number>,
-  steps: Array<Record<string, string | number>>
-): Record<string, Array<string | number>> => {
+  from: Record<string, number | string>,
+  steps: Array<Record<string, number | string>>
+): Record<string, Array<number | string>> => {
   const keys = new Set<string>([...Object.keys(from), ...steps.flatMap((s) => Object.keys(s))]);
 
-  const keyframes: Record<string, Array<string | number>> = {};
+  const keyframes: Record<string, Array<number | string>> = {};
   keys.forEach((k) => {
     keyframes[k] = [from[k], ...steps.map((s) => s[k])];
   });
@@ -30,25 +30,27 @@ const buildKeyframes = (
 };
 
 const BlurText: React.FC<BlurTextProps> = ({
-  text = '',
-  delay = 200,
-  className = '',
   animateBy = 'words',
-  direction = 'top',
-  threshold = 0.1,
-  rootMargin = '0px',
   animationFrom,
   animationTo,
+  className = '',
+  delay = 200,
+  direction = 'top',
   easing = (t) => t,
   onAnimationComplete,
+  rootMargin = '0px',
   stepDuration = 0.35,
+  text = '',
+  threshold = 0.1,
 }) => {
   const elements = animateBy === 'words' ? text.split(' ') : text.split('');
   const [inView, setInView] = useState(false);
   const ref = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
-    if (!ref.current) return;
+    if (!ref.current) {
+      return;
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -58,7 +60,7 @@ const BlurText: React.FC<BlurTextProps> = ({
           }
         }
       },
-      { threshold, rootMargin }
+      { rootMargin, threshold }
     );
     observer.observe(ref.current);
     return () => observer.disconnect();
@@ -94,28 +96,28 @@ const BlurText: React.FC<BlurTextProps> = ({
   );
 
   return (
-    <p ref={ref} className={className} style={{ display: 'flex', flexWrap: 'wrap' }}>
+    <p className={className} ref={ref} style={{ display: 'flex', flexWrap: 'wrap' }}>
       {elements.map((segment, index) => {
         const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
 
         const spanTransition: Transition = {
-          duration: totalDuration,
-          times,
           delay: (index * delay) / 1000,
+          duration: totalDuration,
           ease: easing as Easing,
+          times,
         };
 
         return (
           <motion.span
-            key={index}
-            initial={fromSnapshot}
             animate={inView ? animateKeyframes : fromSnapshot}
-            transition={spanTransition}
+            initial={fromSnapshot}
+            key={index}
             onAnimationComplete={index === elements.length - 1 ? onAnimationComplete : undefined}
             style={{
               display: 'inline-block',
               willChange: 'transform, filter, opacity',
             }}
+            transition={spanTransition}
           >
             {segment === ' ' ? '\u00A0' : segment}
             {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}

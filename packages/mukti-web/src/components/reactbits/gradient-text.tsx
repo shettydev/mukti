@@ -1,23 +1,23 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 interface GradientTextProps {
+  animationSpeed?: number;
   children: ReactNode;
   className?: string;
   colors?: string[];
-  animationSpeed?: number;
   showBorder?: boolean;
 }
 
 export default function GradientText({
+  animationSpeed = 8,
   children,
   className = '',
   colors = ['#ffaa40', '#9c40ff', '#ffaa40'],
-  animationSpeed = 8,
   showBorder = false,
 }: GradientTextProps) {
   const gradientStyle = {
-    backgroundImage: `linear-gradient(to right, ${colors.join(', ')})`,
     animationDuration: `${animationSpeed}s`,
+    backgroundImage: `linear-gradient(to right, ${colors.join(', ')})`,
   };
 
   return (
@@ -35,13 +35,13 @@ export default function GradientText({
           <div
             className="absolute inset-0 bg-black rounded-[1.25rem] z-[-1]"
             style={{
-              width: 'calc(100% - 2px)',
               height: 'calc(100% - 2px)',
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
+              width: 'calc(100% - 2px)',
             }}
-          ></div>
+          />
         </div>
       )}
       <div
@@ -49,10 +49,10 @@ export default function GradientText({
         style={{
           ...gradientStyle,
           backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
           backgroundSize: '300% 100%',
           letterSpacing: '0.025em',
           lineHeight: '1.1',
+          WebkitBackgroundClip: 'text',
         }}
       >
         {children}

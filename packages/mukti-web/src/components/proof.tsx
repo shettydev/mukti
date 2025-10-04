@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { DotPattern } from './magicui/dot-pattern';
+
 import { cn } from '@/lib/utils';
+
+import { DotPattern } from './magicui/dot-pattern';
 
 export function Proof() {
   return (
@@ -14,10 +16,10 @@ export function Proof() {
           trend.&quot;
         </p>
         <Link
-          href="https://arxiv.org/pdf/2506.08872"
-          target="_blank"
-          rel="noopener noreferrer"
           className="text-sm text-primary hover:underline"
+          href="https://arxiv.org/pdf/2506.08872"
+          rel="noopener noreferrer"
+          target="_blank"
         >
           Read the MIT Study →
         </Link>

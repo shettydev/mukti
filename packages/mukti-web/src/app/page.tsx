@@ -10,6 +10,9 @@ import { Proof } from '@/components/proof';
 import { Testimonial } from '@/components/testimonial';
 import { Waitlist } from '@/components/waitlist';
 
+// Alias FAQ to satisfy PascalCase linting
+const Faq = FAQ;
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
@@ -32,7 +35,7 @@ export default function Home() {
       <Proof />
 
       {/* FAQ Section */}
-      <FAQ />
+      <Faq />
 
       {/* Waitlist Section */}
       <Waitlist />

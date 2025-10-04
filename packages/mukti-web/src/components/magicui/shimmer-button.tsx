@@ -1,49 +1,49 @@
-import React, { CSSProperties, ComponentPropsWithoutRef } from 'react';
+import React, { type ComponentPropsWithoutRef, type CSSProperties } from 'react';
 
 import { cn } from '@/lib/utils';
 
 export interface ShimmerButtonProps extends ComponentPropsWithoutRef<'button'> {
-  shimmerColor?: string;
-  shimmerSize?: string;
-  borderRadius?: string;
-  shimmerDuration?: string;
   background?: string;
-  className?: string;
+  borderRadius?: string;
   children?: React.ReactNode;
+  className?: string;
+  shimmerColor?: string;
+  shimmerDuration?: string;
+  shimmerSize?: string;
 }
 
 export const ShimmerButton = React.forwardRef<HTMLButtonElement, ShimmerButtonProps>(
   (
     {
-      shimmerColor = '#ffffff',
-      shimmerSize = '0.05em',
-      shimmerDuration = '3s',
-      borderRadius = '100px',
       background = 'rgba(0, 0, 0, 1)',
-      className,
+      borderRadius = '100px',
       children,
+      className,
+      shimmerColor = '#ffffff',
+      shimmerDuration = '3s',
+      shimmerSize = '0.05em',
       ...props
     },
     ref
   ) => {
     return (
       <button
-        style={
-          {
-            '--spread': '90deg',
-            '--shimmer-color': shimmerColor,
-            '--radius': borderRadius,
-            '--speed': shimmerDuration,
-            '--cut': shimmerSize,
-            '--bg': background,
-          } as CSSProperties
-        }
         className={cn(
           'group relative z-0 flex cursor-pointer items-center justify-center overflow-hidden whitespace-nowrap border border-white/10 px-6 py-3 text-white [background:var(--bg)] [border-radius:var(--radius)] dark:text-black',
           'transform-gpu transition-transform duration-300 ease-in-out active:translate-y-px',
           className
         )}
         ref={ref}
+        style={
+          {
+            '--bg': background,
+            '--cut': shimmerSize,
+            '--radius': borderRadius,
+            '--shimmer-color': shimmerColor,
+            '--speed': shimmerDuration,
+            '--spread': '90deg',
+          } as CSSProperties
+        }
         {...props}
       >
         {/* spark container */}

@@ -1,4 +1,4 @@
-import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
+import { Color, Mesh, Program, Renderer, Triangle } from 'ogl';
 import { useEffect, useRef } from 'react';
 
 const vertexShader = `
@@ -45,18 +45,18 @@ void main() {
 `;
 
 interface IridescenceProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'color'> {
-  color?: [number, number, number];
-  speed?: number;
   amplitude?: number;
+  color?: [number, number, number];
   mouseReact?: boolean;
+  speed?: number;
 }
 
 export default function Iridescence({
-  color = [1, 1, 1],
-  speed = 1.0,
   amplitude = 0.1,
-  mouseReact = true,
   className = '',
+  color = [1, 1, 1],
+  mouseReact = true,
+  speed = 1.0,
   style = {},
   ...rest
 }: IridescenceProps) {
@@ -64,7 +64,9 @@ export default function Iridescence({
   const mousePos = useRef({ x: 0.5, y: 0.5 });
 
   useEffect(() => {
-    if (!ctnDom.current) return;
+    if (!ctnDom.current) {
+      return;
+    }
     const ctn = ctnDom.current;
     const renderer = new Renderer();
     const gl = renderer.gl;
@@ -89,20 +91,20 @@ export default function Iridescence({
 
     const geometry = new Triangle(gl);
     program = new Program(gl, {
-      vertex: vertexShader,
       fragment: fragmentShader,
       uniforms: {
-        uTime: { value: 0 },
+        uAmplitude: { value: amplitude },
         uColor: { value: new Color(...color) },
-        uResolution: {
-          value: new Color(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height),
-        },
         uMouse: {
           value: new Float32Array([mousePos.current.x, mousePos.current.y]),
         },
-        uAmplitude: { value: amplitude },
+        uResolution: {
+          value: new Color(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height),
+        },
         uSpeed: { value: speed },
+        uTime: { value: 0 },
       },
+      vertex: vertexShader,
     });
 
     const mesh = new Mesh(gl, { geometry, program });
@@ -139,5 +141,5 @@ export default function Iridescence({
     };
   }, [color, speed, amplitude, mouseReact]);
 
-  return <div ref={ctnDom} className={`w-full h-full ${className}`} style={style} {...rest} />;
+  return <div className={`w-full h-full ${className}`} ref={ctnDom} style={style} {...rest} />;
 }

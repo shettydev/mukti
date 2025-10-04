@@ -1,16 +1,11 @@
-import { useState, useCallback } from 'react';
-
-interface WaitlistEntry {
-  exists: boolean;
-  joinedAt: string | null;
-}
+import { useCallback, useState } from 'react';
 
 interface UseWaitlistReturn {
+  checkEmail: (email: string) => Promise<boolean>;
+  error: null | string;
+  isExisting: boolean;
   isLoading: boolean;
   isSubmitted: boolean;
-  error: string | null;
-  isExisting: boolean;
-  checkEmail: (email: string) => Promise<boolean>;
   joinWaitlist: (email: string) => Promise<boolean>;
   reset: () => void;
 }
@@ -18,7 +13,7 @@ interface UseWaitlistReturn {
 export function useWaitlist(): UseWaitlistReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<null | string>(null);
   const [isExisting, setIsExisting] = useState(false);
 
   const checkEmail = useCallback(async (email: string): Promise<boolean> => {
@@ -46,11 +41,11 @@ export function useWaitlist(): UseWaitlistReturn {
       setError(null);
 
       const response = await fetch('/api/waitlist', {
-        method: 'POST',
+        body: JSON.stringify({ email }),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        method: 'POST',
       });
 
       const data = await response.json();
@@ -85,11 +80,11 @@ export function useWaitlist(): UseWaitlistReturn {
   }, []);
 
   return {
-    isLoading,
-    isSubmitted,
+    checkEmail,
     error,
     isExisting,
-    checkEmail,
+    isLoading,
+    isSubmitted,
     joinWaitlist,
     reset,
   };

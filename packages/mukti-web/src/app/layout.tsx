@@ -1,35 +1,37 @@
 import type { Metadata } from 'next';
+
 import { Geist, Geist_Mono } from 'next/font/google';
+
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 
 const geistSans = Geist({
-  variable: '--font-geist-sans',
   subsets: ['latin'],
+  variable: '--font-geist-sans',
 });
 
 const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
   subsets: ['latin'],
+  variable: '--font-geist-mono',
 });
 
 export const metadata: Metadata = {
-  title: 'Mukti - Liberation from AI Dependency',
+  authors: [{ name: 'Prathik Shetty' }],
   description:
     'Break free from cognitive dependency with Mukti, your AI mentor that uses the Socratic method to guide you toward your own insights and rediscover independent thinking.',
   keywords: ['AI', 'Socratic method', 'cognitive independence', 'critical thinking', 'learning'],
-  authors: [{ name: 'Prathik Shetty' }],
   openGraph: {
-    title: 'Mukti - Liberation from AI Dependency',
     description:
       'Think for yourself, not through AI. Mukti guides you toward your own insights using the Socratic method.',
+    title: 'Mukti - Liberation from AI Dependency',
     type: 'website',
   },
+  title: 'Mukti - Liberation from AI Dependency',
   twitter: {
     card: 'summary_large_image',
-    title: 'Mukti - Liberation from AI Dependency',
     description:
       'Think for yourself, not through AI. Mukti guides you toward your own insights using the Socratic method.',
+    title: 'Mukti - Liberation from AI Dependency',
   },
 };
 
@@ -44,7 +46,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange enableSystem>
           {children}
         </ThemeProvider>
       </body>

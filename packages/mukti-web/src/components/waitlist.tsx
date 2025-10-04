@@ -1,26 +1,30 @@
-import { Check, AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, Loader2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+
+import { useWaitlist } from '@/lib/hooks/useWaitlist';
+
+import { RainbowButton } from './magicui/rainbow-button';
+import AnimatedContent from './reactbits/animated-content';
+import BlurText from './reactbits/blur-text';
+import GlassSurface from './reactbits/glass-surface';
+import Iridescence from './reactbits/iridescence';
+import ShinyText from './reactbits/shiny-text';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { useMemo, useState } from 'react';
-import { useWaitlist } from '@/lib/hooks/useWaitlist';
-import GlassSurface from './reactbits/glass-surface';
-import Iridescence from './reactbits/iridescence';
-import BlurText from './reactbits/blur-text';
-import ShinyText from './reactbits/shiny-text';
-import AnimatedContent from './reactbits/animated-content';
-import { RainbowButton } from './magicui/rainbow-button';
 
 export function Waitlist() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { isLoading, isSubmitted, error, isExisting, checkEmail, joinWaitlist, reset } =
+  const { checkEmail, error, isExisting, isLoading, isSubmitted, joinWaitlist, reset } =
     useWaitlist();
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email.trim()) return;
+    if (!email.trim()) {
+      return;
+    }
 
     // Set immediate loading state
     setIsSubmitting(true);
@@ -62,11 +66,11 @@ export function Waitlist() {
   const iridescence = useMemo(
     () => (
       <Iridescence
+        amplitude={0.15}
+        className="absolute inset-0 w-full h-full z-0"
         color={[0.5, 0.1, 0.22]}
         mouseReact={false}
-        amplitude={0.15}
         speed={0.8}
-        className="absolute inset-0 w-full h-full z-0"
       />
     ),
     []
@@ -74,8 +78,8 @@ export function Waitlist() {
 
   return (
     <section
-      id="waitlist"
       className="relative w-full min-h-screen grid place-items-center overflow-hidden"
+      id="waitlist"
     >
       {/* Iridescence Background */}
       {iridescence}
@@ -87,47 +91,47 @@ export function Waitlist() {
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#020617] via-[#020617]/80 to-transparent z-10 pointer-events-none" />
 
       <div className="container mx-auto px-4 relative z-20 max-w-3xl">
-        <AnimatedContent distance={50} direction="vertical" duration={1}>
+        <AnimatedContent direction="vertical" distance={50} duration={1}>
           <div className="text-center mb-12">
             <BlurText
-              text="Ready to Think Again?"
-              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mt-16"
               animateBy="words"
+              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mt-16"
               delay={100}
               stepDuration={0.5}
+              text="Ready to Think Again?"
             />
 
             <BlurText
-              text="Join the waitlist and be among the first to experience AI mentorship that makes you smarter, not dependent."
-              className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed mt-40"
               animateBy="words"
+              className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed mt-40"
               delay={50}
               stepDuration={0.3}
+              text="Join the waitlist and be among the first to experience AI mentorship that makes you smarter, not dependent."
             />
           </div>
 
           {!isSubmitted ? (
-            <GlassSurface width="100%" height="auto" borderRadius={24} className="max-w-lg mx-auto">
+            <GlassSurface borderRadius={24} className="max-w-lg mx-auto" height="auto" width="100%">
               <Card className="border-0 bg-transparent shadow-none">
                 <CardContent className="p-8">
-                  <form onSubmit={handleWaitlistSubmit} className="space-y-6">
+                  <form className="space-y-6" onSubmit={handleWaitlistSubmit}>
                     <div className="space-y-2">
                       <Label
-                        htmlFor="email"
                         className="text-left block text-white/90 text-base font-medium"
+                        htmlFor="email"
                       >
                         Email Address
                       </Label>
                       <Input
-                        id="email"
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={handleEmailChange}
-                        onBlur={handleEmailBlur}
-                        required
-                        disabled={isProcessing}
                         className="bg-white/10 border-white/20 text-white placeholder-white/60 focus:border-white/40 focus:ring-white/20 transition-all duration-200 backdrop-blur-sm"
+                        disabled={isProcessing}
+                        id="email"
+                        onBlur={handleEmailBlur}
+                        onChange={handleEmailChange}
+                        placeholder="your@email.com"
+                        required
+                        type="email"
+                        value={email}
                       />
 
                       {/* Error Message */}
@@ -150,10 +154,10 @@ export function Waitlist() {
                       )}
                     </div>
                     <RainbowButton
-                      type="submit"
-                      size="lg"
-                      disabled={isProcessing || isExisting}
                       className="w-full"
+                      disabled={isProcessing || isExisting}
+                      size="lg"
+                      type="submit"
                     >
                       {isProcessing ? (
                         <>
@@ -179,31 +183,31 @@ export function Waitlist() {
             </GlassSurface>
           ) : (
             <GlassSurface
-              width="100%"
-              height="auto"
+              backgroundOpacity={0.1}
+              blur={15}
               borderRadius={24}
               brightness={80}
-              opacity={0.2}
-              blur={15}
-              backgroundOpacity={0.1}
               className="max-w-lg mx-auto"
+              height="auto"
+              opacity={0.2}
+              width="100%"
             >
               <Card className="border-0 bg-transparent shadow-none">
                 <CardContent className="p-8 text-center">
                   <Check className="h-16 w-16 text-green-400 mx-auto mb-6 animate-bounce" />
 
                   <ShinyText
-                    text="Welcome to the Liberation!"
                     className="text-2xl font-bold mb-4 text-white"
                     speed={3}
+                    text="Welcome to the Liberation!"
                   />
 
                   <BlurText
-                    text="You're on the waitlist. We'll notify you when Mukti is ready to challenge your thinking."
-                    className="text-white/90 text-base leading-relaxed"
                     animateBy="words"
+                    className="text-white/90 text-base leading-relaxed"
                     delay={30}
                     stepDuration={0.2}
+                    text="You're on the waitlist. We'll notify you when Mukti is ready to challenge your thinking."
                   />
                 </CardContent>
               </Card>
