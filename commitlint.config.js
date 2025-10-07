@@ -11,6 +11,7 @@ const scopes = [
   'docker',
   'deployment',
   'monorepo',
+  'scripts',
 
   // Documentation
   'docs',
