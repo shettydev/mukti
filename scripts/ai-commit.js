@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
+import { confirm, input, select } from '@inquirer/prompts';
 import { execSync } from 'child_process';
-import { readFileSync } from 'fs';
-import { select, confirm, input } from '@inquirer/prompts';
-import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
