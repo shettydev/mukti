@@ -59,17 +59,14 @@ export class Subscription {
   })
   limits: SubscriptionLimits;
 
+  @Prop({ type: Object })
+  paymentMetadata?: Record<string, any>; // Provider-specific data (customerId, subscriptionId, etc.)
+
+  @Prop({ type: String })
+  paymentProvider?: string; // e.g., 'stripe', 'paypal', 'razorpay'
+
   @Prop({ required: true, type: Date })
   startDate: Date;
-
-  @Prop({ type: String })
-  stripeCustomerId?: string;
-
-  @Prop({ type: String })
-  stripePriceId?: string;
-
-  @Prop({ type: String })
-  stripeSubscriptionId?: string;
 
   @Prop({
     default: 'free',
@@ -116,8 +113,12 @@ SubscriptionSchema.index(
     sparse: true,
   },
 );
-SubscriptionSchema.index({ stripeCustomerId: 1 }, { sparse: true });
-SubscriptionSchema.index({ stripeSubscriptionId: 1 }, { sparse: true });
+SubscriptionSchema.index({ paymentProvider: 1 }, { sparse: true });
+SubscriptionSchema.index({ 'paymentMetadata.customerId': 1 }, { sparse: true });
+SubscriptionSchema.index(
+  { 'paymentMetadata.subscriptionId': 1 },
+  { sparse: true },
+);
 
 // Virtual for user population
 SubscriptionSchema.virtual('user', {
