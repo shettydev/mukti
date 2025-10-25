@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
