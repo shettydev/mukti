@@ -25,6 +25,15 @@ _Why?_
 
 Because people in the process are sacrificing their **own thoughts**, **ideas**, **creativity**, **critical thinking**, and even their **own selves**. And this is something I have witnessed firsthand :(
 
+Take a look at this study conducted by MIT on users by assigning participants to three groups (Brain only, LLM -> Brain, Brain -> LLM):
+
+Here is the link to the research paper: [Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task](https://arxiv.org/pdf/2506.08872)
+
+> TLDR; turns out, AI isn't making us more productive. It's making us cognitively bankrupt. 
+
+> [!CAUTION]
+> Final Warning!: If you still think using AI as a crutch is peak productivity, Mukti isn’t for you. We’re here to build brains, not babysit them. Still with me? Good. Let’s get uncomfortable.
+
 So I have decided to break free from the norms of the world and start my journey towards liberation or **Mukti**.
 
 But this brings me to the next question:
@@ -33,14 +42,6 @@ How can we help people regain their ability to think for themselves? And more ov
 
 <br />
 
-MIT conducted a study on ChatGPT users by assigning participants to three groups:
-
-Here is the link to the research paper: [Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task](https://arxiv.org/pdf/2506.08872)
-
-> Turns out, AI isn't making us more productive. It's making us cognitively bankrupt.
-
-> [!CAUTION]
-> Final Warning!: If you still think using AI as a crutch is peak productivity, Mukti isn’t for you. We’re here to build brains, not babysit them. Still with me? Good. Let’s get uncomfortable.
 
 ## Approach
 
