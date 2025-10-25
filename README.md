@@ -38,9 +38,9 @@ So I have decided to break free from the norms of the world and start my journey
 
 But this brings me to the next question:
 
-How can we help people regain their ability to think for themselves? And more over, how can you not use AI, which is such an advanced and groundbreaking tool, said to shape the future of mankind and bring us closer to a utopian society?
-
 <br />
+
+How can we help people regain their ability to think for themselves? And more over, how can you not use AI, which is such an advanced and groundbreaking tool, said to shape the future of mankind and bring us closer to a utopian society?
 
 
 ## Approach
