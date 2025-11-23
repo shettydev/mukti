@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Pull Request Mode",
+  "description": "When user says \"Enter Pull Request Mode\", this hook triggers the agent to fetch PR changes from GitHub, analyze the files, and generate a comprehensive PR title and description following best practices. Uses Sequential Thinking MCP for PRs with more than 5 files.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Enter Pull Request Mode:\n\n1. Get PR number from user if not provided\n2. Fetch PR details and file changes from shettydev/mukti using GitHub MCP\n3. Analyze changes (use Sequential Thinking MCP if >5 files)\n4. Generate concise title (50-72 chars) and detailed description with:\n   - Summary, motivation, type of change\n   - Testing notes, breaking changes, related issues\n5. Update PR using `update_pull_request` tool\n\nOnly include info from THIS PR unless critical to disclose."
+  }
+}
