@@ -2,6 +2,7 @@ import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
 
 import { AppModule } from './app.module';
 
@@ -36,31 +37,33 @@ async function bootstrap() {
       : true,
   });
 
-  const swaggerEnabled =
-    configService.get<string>('ENABLE_SWAGGER')?.toLowerCase() !== 'false';
-  if (swaggerEnabled) {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('Mukti API')
-      .setDescription('API documentation for the Mukti backend')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup(`${apiPrefix}/docs`, app, swaggerDocument, {
-      swaggerOptions: {
-        persistAuthorization: true,
-      },
-    });
-  }
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Mukti API')
+    .setDescription('API documentation for the Mukti backend')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup(`${apiPrefix}/docs`, app, swaggerDocument, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
+
+  app.use(
+    `/reference`,
+    apiReference({
+      content: swaggerDocument,
+    }),
+  );
 
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);
 
   const appUrl = await app.getUrl();
   logger.log(`API listening at ${appUrl}/${apiPrefix}`);
-  if (swaggerEnabled) {
-    logger.log(`Swagger docs available at ${appUrl}/${apiPrefix}/docs`);
-  }
+
+  logger.log(`Swagger docs available at ${appUrl}/${apiPrefix}/docs`);
 }
 
 void bootstrap();
