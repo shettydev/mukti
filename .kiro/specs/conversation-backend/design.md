@@ -174,7 +174,7 @@ Integration with OpenRouter API for AI model access.
 **Configuration:**
 - API Key: From environment variable `OPENROUTER_API_KEY`
 - Base URL: `https://openrouter.ai/api/v1`
-- Models: Free tier uses `openai/gpt-3.5-turbo`, paid tier uses `openai/gpt-4o`
+- Models: Free tier uses `openai/gpt-5-mini`, paid tier uses `openai/gpt-5.1`
 - Timeout: 30 seconds
 - Retry: Exponential backoff with max 3 retries
 

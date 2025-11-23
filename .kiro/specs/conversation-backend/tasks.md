@@ -1,78 +1,78 @@
 # Implementation Plan
 
-- [ ] 1. Set up module structure and dependencies
+- [x] 1. Set up module structure and dependencies
   - Create conversations module with proper NestJS structure
   - Install required dependencies: @nestjs/mongoose, @nestjs/bullmq, bullmq, fast-check, openai SDK
   - Configure Redis connection for BullMQ
   - Configure module imports and exports
   - _Requirements: All_
 
-- [ ] 2. Implement database seeding service
+- [x] 2. Implement database seeding service
   - Create SeedService for initializing database with test data
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3_
 
-- [ ] 2.1 Implement technique seeding
+- [x] 2.1 Implement technique seeding
   - Create method to seed six built-in Socratic techniques
   - Set isBuiltIn: true, status: 'approved' for all seeded techniques
   - Include complete templates with systemPrompt, questioningStyle, followUpStrategy, exampleQuestions
   - Implement idempotency check to skip existing techniques
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 2.2 Write property test for technique seeding
+- [x] 2.2 Write property test for technique seeding
   - **Property 23: Seeded techniques have correct properties**
   - **Validates: Requirements 7.2, 7.3, 7.4**
 
-- [ ] 2.3 Write property test for seeding idempotency
+- [x] 2.3 Write property test for seeding idempotency
   - **Property 24: Seeding is idempotent**
   - **Validates: Requirements 7.5, 8.3**
 
-- [ ] 2.4 Implement test user seeding
+- [x] 2.4 Implement test user seeding
   - Create method to seed test user with email test@mukti.app
   - Hash password using bcrypt
   - Create associated subscription with free tier limits
   - Implement idempotency check to skip existing user
   - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 2.5 Create seed command or initialization hook
+- [x] 2.5 Create seed command or initialization hook
   - Integrate seeding into application bootstrap
   - Add CLI command for manual seeding
   - _Requirements: 7.1, 8.1_
 
-- [ ] 3. Implement ConversationService core CRUD operations
+- [-] 3. Implement ConversationService core CRUD operations
   - Create ConversationService with dependency injection
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 3.1, 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 6.1, 6.2_
 
-- [ ] 3.1 Implement createConversation method
+- [x] 3.1 Implement createConversation method
   - Validate technique exists in allowed set
   - Initialize conversation with empty recentMessages
   - Set default metadata values
   - Associate with authenticated user
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 3.2 Write property test for conversation creation
+- [x] 3.2 Write property test for conversation creation
   - **Property 1: Conversation creation initializes correctly**
   - **Validates: Requirements 1.1, 1.2, 1.3, 1.5**
 
-- [ ] 3.3 Write property test for invalid technique rejection
+- [x] 3.3 Write property test for invalid technique rejection
   - **Property 2: Invalid techniques are rejected**
   - **Validates: Requirements 1.4**
 
-- [ ] 3.4 Implement findConversationById method
+- [x] 3.4 Implement findConversationById method
   - Retrieve conversation by ID
   - Validate user ownership
   - Return 403 if user doesn't own conversation
   - Return 404 if conversation doesn't exist
   - _Requirements: 3.1, 3.4, 3.5_
 
-- [ ] 3.5 Write property test for ownership validation
+- [x] 3.5 Write property test for ownership validation
   - **Property 3: Ownership validation prevents unauthorized access**
   - **Validates: Requirements 2.1, 3.4, 5.4, 6.3**
 
-- [ ] 3.6 Write property test for non-existent resources
+- [x] 3.6 Write property test for non-existent resources
   - **Property 22: Non-existent resources return 404**
   - **Validates: Requirements 3.5, 5.5, 6.4**
 
-- [ ] 3.7 Implement findUserConversations method
+- [x] 3.7 Implement findUserConversations method
   - List conversations for authenticated user only
   - Support pagination with page and limit
   - Support filtering by technique, tags, isArchived, isFavorite
@@ -80,27 +80,27 @@
   - Return total count for pagination metadata
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 3.8 Write property test for conversation listing ownership
+- [x] 3.8 Write property test for conversation listing ownership
   - **Property 14: Conversation listing respects ownership**
   - **Validates: Requirements 4.1**
 
-- [ ] 3.9 Write property test for pagination
+- [x] 3.9 Write property test for pagination
   - **Property 13: Pagination works correctly**
   - **Validates: Requirements 3.3, 4.2**
 
-- [ ] 3.10 Write property test for filtering
+- [x] 3.10 Write property test for filtering
   - **Property 15: Filtering works correctly**
   - **Validates: Requirements 4.3**
 
-- [ ] 3.11 Write property test for sorting
+- [x] 3.11 Write property test for sorting
   - **Property 16: Sorting works correctly**
   - **Validates: Requirements 4.4**
 
-- [ ] 3.12 Write property test for total count accuracy
+- [x] 3.12 Write property test for total count accuracy
   - **Property 17: Total count is accurate**
   - **Validates: Requirements 4.5**
 
-- [ ] 3.13 Implement updateConversation method
+- [x] 3.13 Implement updateConversation method
   - Validate user ownership
   - Validate title is not empty
   - Validate tags are array of strings
@@ -108,31 +108,31 @@
   - Validate technique is in allowed set if provided
   - Update allowed fields only (title, tags, isFavorite, isArchived, technique)
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
-
-- [ ] 3.14 Write property test for title validation
+and 
+- [x] 3.14 Write property test for title validation
   - **Property 18: Title validation rejects empty strings**
   - **Validates: Requirements 5.1**
 
-- [ ] 3.15 Write property test for tags validation
+- [x] 3.15 Write property test for tags validation
   - **Property 19: Tags validation enforces array of strings**
   - **Validates: Requirements 5.2**
 
-- [ ] 3.16 Write property test for boolean validation
+- [x] 3.16 Write property test for boolean validation
   - **Property 20: Boolean flags accept only booleans**
   - **Validates: Requirements 5.3**
 
-- [ ] 3.17 Write property test for technique switching
+- [x] 3.17 Write property test for technique switching
   - **Property 30: Technique switching validates and updates**
   - **Validates: Requirements 5.4, 5.5**
 
-- [ ] 3.18 Implement deleteConversation method
+- [x] 3.18 Implement deleteConversation method
   - Validate user ownership
   - Delete conversation document
   - Cascade delete all archived messages
   - Return 404 if conversation doesn't exist
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 3.19 Write property test for cascade deletion
+- [x] 3.19 Write property test for cascade deletion
   - **Property 21: Conversation deletion cascades**
   - **Validates: Requirements 6.1, 6.2**
 
@@ -140,7 +140,7 @@
   - Create MessageService with dependency injection
   - _Requirements: 2.10, 2.11, 2.12, 2.13, 3.2, 3.3_
 
-- [ ] 4.1 Implement addMessageToConversation method
+- [x] 4.1 Implement addMessageToConversation method
   - Append user message and AI response to recentMessages
   - Update conversation metadata (totalTokens, estimatedCost, lastMessageAt)
   - Increment totalMessageCount
@@ -194,8 +194,8 @@
   - _Requirements: 2.7_
 
 - [ ] 5.2 Implement selectModel method
-  - Return gpt-3.5-turbo for free tier
-  - Return gpt-4o for paid tier
+  - Return gpt-5-mini for free tier
+  - Return gpt-5.1 for paid tier
   - _Requirements: 2.8_
 
 - [ ] 5.3 Implement sendChatCompletion method
