@@ -31,7 +31,10 @@ const scopes = [
   'e2e',
 
   // Release
-  'release'
+  'release',
+
+  // kiro
+  'kiro'
 ];
 
 module.exports = {
