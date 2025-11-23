@@ -108,7 +108,7 @@
   - Validate technique is in allowed set if provided
   - Update allowed fields only (title, tags, isFavorite, isArchived, technique)
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
-and 
+    and
 - [x] 3.14 Write property test for title validation
   - **Property 18: Title validation rejects empty strings**
   - **Validates: Requirements 5.1**
@@ -136,7 +136,7 @@ and
   - **Property 21: Conversation deletion cascades**
   - **Validates: Requirements 6.1, 6.2**
 
-- [ ] 4. Implement MessageService for message operations
+- [x] 4. Implement MessageService for message operations
   - Create MessageService with dependency injection
   - _Requirements: 2.10, 2.11, 2.12, 2.13, 3.2, 3.3_
 
@@ -146,15 +146,15 @@ and
   - Increment totalMessageCount
   - _Requirements: 2.10, 2.11_
 
-- [ ] 4.2 Write property test for message appending
+- [x] 4.2 Write property test for message appending
   - **Property 8: Both messages are appended**
   - **Validates: Requirements 2.10**
 
-- [ ] 4.3 Write property test for metadata updates
+- [x] 4.3 Write property test for metadata updates
   - **Property 6: Message appending updates metadata**
   - **Validates: Requirements 2.11**
 
-- [ ] 4.4 Implement archiveOldMessages method
+- [x] 4.4 Implement archiveOldMessages method
   - Check if recentMessages exceeds 50
   - Move oldest messages to ArchivedMessage collection
   - Set hasArchivedMessages flag to true
@@ -162,21 +162,21 @@ and
   - Assign sequence numbers to archived messages
   - _Requirements: 2.12, 2.13_
 
-- [ ] 4.5 Write property test for archival threshold
+- [x] 4.5 Write property test for archival threshold
   - **Property 7: Archival threshold triggers correctly**
   - **Validates: Requirements 2.12, 2.13**
 
-- [ ] 4.6 Implement getArchivedMessages method
+- [x] 4.6 Implement getArchivedMessages method
   - Retrieve archived messages by conversationId
   - Order by sequenceNumber ascending
   - Support pagination with beforeSequence parameter
   - _Requirements: 3.2, 3.3_
 
-- [ ] 4.7 Write property test for archived message ordering
+- [x] 4.7 Write property test for archived message ordering
   - **Property 12: Archived messages maintain order**
   - **Validates: Requirements 3.2**
 
-- [ ] 4.8 Implement buildConversationContext method
+- [x] 4.8 Implement buildConversationContext method
   - Load recent messages from conversation
   - Format messages for AI prompt
   - Include technique template
