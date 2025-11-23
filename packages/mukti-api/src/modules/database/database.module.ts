@@ -1,6 +1,7 @@
 import { Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { type Connection } from 'mongoose';
 
 import { ALL_SCHEMAS } from '../../schemas';
 
@@ -14,7 +15,7 @@ import { ALL_SCHEMAS } from '../../schemas';
         const logger = new Logger('DatabaseModule');
 
         const uri =
-          configService.get<string>('MONGODB_URI') ||
+          configService.get<string>('MONGODB_URI') ??
           'mongodb://localhost:27017/mukti';
         const dbName = configService.get<string>('MONGODB_DB_NAME');
         const serverSelectionTimeoutMS =
@@ -34,12 +35,12 @@ import { ALL_SCHEMAS } from '../../schemas';
 
         return {
           autoIndex,
-          connectionFactory: (connection) => {
+          connectionFactory: (connection: Connection) => {
             connection.on('connected', () => {
               logger.log('✅ MongoDB connected successfully');
             });
-            connection.on('error', (error) => {
-              logger.error('❌ MongoDB connection error', error as Error);
+            connection.on('error', (error: Error) => {
+              logger.error('❌ MongoDB connection error', error);
             });
             connection.on('disconnected', () => {
               logger.warn('⚠️ MongoDB disconnected');

@@ -160,17 +160,15 @@ RateLimitSchema.statics.getOrCreate = async function (
     windowStart: { $gte: windowStart },
   });
 
-  if (!rateLimit) {
-    rateLimit = await this.create({
-      action,
-      count: 0,
-      limit,
-      userId,
-      windowEnd,
-      windowStart,
-      windowType,
-    });
-  }
+  rateLimit ??= await this.create({
+    action,
+    count: 0,
+    limit,
+    userId,
+    windowEnd,
+    windowStart,
+    windowType,
+  });
 
   return rateLimit;
 };

@@ -91,14 +91,14 @@ DailyUsageAggregateSchema.statics.upsertAggregate = function (
     { date: normalizedDate, userId },
     {
       $inc: {
-        completionTokens: updates.completionTokens || 0,
-        conversationsCount: updates.conversationsCount || 0,
-        errorCount: updates.errorCount || 0,
-        messagesCount: updates.messagesCount || 0,
-        promptTokens: updates.promptTokens || 0,
-        questionsCount: updates.questionsCount || 0,
-        totalCost: updates.totalCost || 0,
-        totalTokens: updates.totalTokens || 0,
+        completionTokens: updates.completionTokens ?? 0,
+        conversationsCount: updates.conversationsCount ?? 0,
+        errorCount: updates.errorCount ?? 0,
+        messagesCount: updates.messagesCount ?? 0,
+        promptTokens: updates.promptTokens ?? 0,
+        questionsCount: updates.questionsCount ?? 0,
+        totalCost: updates.totalCost ?? 0,
+        totalTokens: updates.totalTokens ?? 0,
       },
       $set: {
         avgLatencyMs: updates.avgLatencyMs,
