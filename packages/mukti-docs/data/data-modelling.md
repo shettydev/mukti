@@ -7,7 +7,7 @@ This document provides an overview of the data modelling process in Mukti. And w
 Mukti uses Entity-Relationship Diagrams (ERDs) to represent data models. An ERD is a visual representation of the entities and their relationships in a database.
 
 <p align="center">
-  <img src="../mukti-data-modelling.png" alt="Mukti Data Modelling" width="800" />
+  <img src="../images/mukti-data-modelling.png" alt="Mukti Data Modelling" width="800" />
 </p>
 
 ## Data Models
