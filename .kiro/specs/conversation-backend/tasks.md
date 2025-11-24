@@ -182,90 +182,90 @@
   - Include technique template
   - _Requirements: 2.6, 2.7_
 
-- [ ] 5. Implement OpenRouterService for AI integration
+- [x] 5. Implement OpenRouterService for AI integration
   - Create OpenRouterService with HTTP client
   - Configure OpenRouter API base URL and authentication
   - _Requirements: 2.7, 2.8, 2.9, 9.1, 9.2, 9.4, 9.5_
 
-- [ ] 5.1 Implement buildPrompt method
+- [x] 5.1 Implement buildPrompt method
   - Apply technique's systemPrompt
   - Include conversation history
   - Format user message
   - _Requirements: 2.7_
 
-- [ ] 5.2 Implement selectModel method
+- [x] 5.2 Implement selectModel method
   - Return gpt-5-mini for free tier
   - Return gpt-5.1 for paid tier
   - _Requirements: 2.8_
 
-- [ ] 5.3 Implement sendChatCompletion method
+- [x] 5.3 Implement sendChatCompletion method
   - Send request to OpenRouter API
   - Include HTTP-Referer and X-Title headers
   - Set 30-second timeout
   - Handle API errors
   - _Requirements: 2.8, 2.9, 9.1, 9.5_
 
-- [ ] 5.4 Implement parseResponse method
+- [x] 5.4 Implement parseResponse method
   - Extract content from API response
   - Parse token counts (prompt, completion, total)
   - Calculate cost based on model pricing
   - _Requirements: 2.9_
 
-- [ ] 5.5 Write property test for prompt building
+- [x] 5.5 Write property test for prompt building
   - Verify systemPrompt and conversation history are included
   - _Requirements: 2.7_
 
-- [ ] 5.6 Write property test for model selection
+- [x] 5.6 Write property test for model selection
   - **Property 8 variant: Model selection based on tier**
   - **Validates: Requirements 2.8**
 
-- [ ] 5.7 Write property test for response parsing
+- [x] 5.7 Write property test for response parsing
   - Verify all required fields are extracted
   - _Requirements: 2.9_
 
-- [ ] 5.8 Implement error handling and retry logic
+- [x] 5.8 Implement error handling and retry logic
   - Log errors with full context
   - Identify retriable vs non-retriable errors
   - Return error details for failed requests
   - _Requirements: 9.1, 9.4, 9.5_
 
-- [ ] 5.9 Write property test for error logging
+- [x] 5.9 Write property test for error logging
   - **Property 25: OpenRouter errors are logged**
   - **Validates: Requirements 9.1**
 
-- [ ] 5.10 Write property test for error details storage
+- [x] 5.10 Write property test for error details storage
   - **Property 27: Failed requests store error details**
   - **Validates: Requirements 9.4**
 
-- [ ] 6. Implement QueueService with BullMQ
+- [x] 6. Implement QueueService with BullMQ
   - Create QueueService using @nestjs/bullmq
   - Configure BullMQ with Redis connection
   - _Requirements: 2.4, 2.5, 2.6, 2.14, 9.2, 9.3_
 
-- [ ] 6.1 Set up BullMQ module and queue
+- [x] 6.1 Set up BullMQ module and queue
   - Import BullModule in conversations module
   - Configure Redis connection from environment variables
   - Register 'conversation-requests' queue
   - Set queue options (attempts: 3, backoff: exponential)
   - _Requirements: 2.4_
 
-- [ ] 6.2 Implement enqueueRequest method
+- [x] 6.2 Implement enqueueRequest method
   - Add job to BullMQ queue with user message data
   - Set priority based on subscription tier (paid: 10, free: 1)
   - Return job ID and current queue position
   - _Requirements: 2.4, 2.5_
 
-- [ ] 6.3 Write property test for request enqueueing
+- [x] 6.3 Write property test for request enqueueing
   - **Property 5: Request enqueueing returns correct response**
   - **Validates: Requirements 2.4, 2.5**
 
-- [ ] 6.4 Implement getJobStatus method
+- [x] 6.4 Implement getJobStatus method
   - Query BullMQ for job status by ID
   - Return job state (waiting, active, completed, failed)
   - Include progress information if available
   - _Requirements: 2.5_
 
-- [ ] 6.5 Implement processRequest worker processor
+- [x] 6.5 Implement processRequest worker processor
   - Create @Processor decorator for 'conversation-requests' queue
   - Implement @Process() method to handle jobs
   - Load conversation context
@@ -276,28 +276,28 @@
   - Return job result with messageId, tokens, cost
   - _Requirements: 2.6, 2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, 2.14, 2.15_
 
-- [ ] 6.6 Write property test for request completion
+- [x] 6.6 Write property test for request completion
   - **Property 9: Request completion updates queue status**
   - **Validates: Requirements 2.14**
 
-- [ ] 6.7 Implement error handling in processor
+- [x] 6.7 Implement error handling in processor
   - Catch and log errors during processing
   - Throw errors to trigger BullMQ retry mechanism
   - BullMQ will automatically retry with exponential backoff
   - After max attempts, job moves to failed state
   - _Requirements: 9.2, 9.3_
 
-- [ ] 6.8 Write property test for retry logic
+- [x] 6.8 Write property test for retry logic
   - **Property 26: Retriable errors trigger requeue**
   - **Validates: Requirements 9.2**
 
-- [ ] 6.9 Implement job event listeners
+- [x] 6.9 Implement job event listeners
   - Listen to 'completed' event for successful jobs
   - Listen to 'failed' event for failed jobs after all retries
   - Log job lifecycle events
   - _Requirements: 9.3, 9.4_
 
-- [ ] 6.10 Implement getQueueMetrics method
+- [x] 6.10 Implement getQueueMetrics method
   - Get counts for waiting, active, completed, failed jobs
   - Return queue health metrics
   - _Requirements: Monitoring_
@@ -372,45 +372,45 @@
   - Return appropriate reset time for Retry-After header
   - _Requirements: 2.3, 11.3, 11.4_
 
-- [ ] 9. Implement ConversationController REST API
+- [x] 9. Implement ConversationController REST API
   - Create ConversationController with route decorators
   - Apply JWT authentication guard
   - _Requirements: All_
 
-- [ ] 9.1 Implement POST /conversations endpoint
+- [x] 9.1 Implement POST /conversations endpoint
   - Validate CreateConversationDto
   - Call ConversationService.createConversation
   - Return 201 Created with conversation data
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 9.2 Implement GET /conversations endpoint
+- [x] 9.2 Implement GET /conversations endpoint
   - Extract query parameters for filtering, sorting, pagination
   - Call ConversationService.findUserConversations
   - Return 200 OK with paginated results
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 9.3 Implement GET /conversations/:id endpoint
+- [x] 9.3 Implement GET /conversations/:id endpoint
   - Extract conversation ID from params
   - Call ConversationService.findConversationById
   - Return 200 OK with conversation data
   - Handle 403 and 404 errors
   - _Requirements: 3.1, 3.4, 3.5_
 
-- [ ] 9.4 Implement PATCH /conversations/:id endpoint
+- [x] 9.4 Implement PATCH /conversations/:id endpoint
   - Validate UpdateConversationDto
   - Call ConversationService.updateConversation
   - Return 200 OK with updated conversation
   - Handle 403 and 404 errors
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 9.5 Implement DELETE /conversations/:id endpoint
+- [x] 9.5 Implement DELETE /conversations/:id endpoint
   - Extract conversation ID from params
   - Call ConversationService.deleteConversation
   - Return 204 No Content
   - Handle 403 and 404 errors
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 9.6 Implement POST /conversations/:id/messages endpoint
+- [x] 9.6 Implement POST /conversations/:id/messages endpoint
   - Validate SendMessageDto
   - Check rate limits via RateLimitService
   - Enqueue request via QueueService
@@ -418,7 +418,7 @@
   - Return 429 if rate limit exceeded
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 9.7 Implement GET /conversations/:id/messages/archived endpoint
+- [x] 9.7 Implement GET /conversations/:id/messages/archived endpoint
   - Extract pagination parameters
   - Call MessageService.getArchivedMessages
   - Return 200 OK with paginated archived messages
@@ -429,13 +429,13 @@
   - Create Swagger documentation file in dto folder
   - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
 
-- [ ] 10.1 Create CreateConversationDto
+- [x] 10.1 Create CreateConversationDto
   - technique: string (enum validation)
   - title: string (not empty)
   - tags: string[] (optional)
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 10.2 Create UpdateConversationDto
+- [x] 10.2 Create UpdateConversationDto
   - title: string (optional, not empty if provided)
   - tags: string[] (optional)
   - isFavorite: boolean (optional)
@@ -443,16 +443,16 @@
   - technique: string (optional, enum validation)
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 10.3 Create SendMessageDto
+- [x] 10.3 Create SendMessageDto
   - content: string (not empty)
   - _Requirements: 2.1_
 
-- [ ] 10.4 Create ConversationResponseDto
+- [x] 10.4 Create ConversationResponseDto
   - Map conversation document to response format
   - Exclude sensitive fields
   - _Requirements: 3.1, 4.1_
 
-- [ ] 10.5 Create conversation.swagger.ts file
+- [x] 10.5 Create conversation.swagger.ts file
   - Document all conversation endpoints
   - Include request/response schemas
   - Add example requests and responses
