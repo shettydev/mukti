@@ -36,7 +36,6 @@
     "class-validator": "^0.14.2",
     "fast-check": "^4.3.0",
     "mongoose": "^8.19.1",
-    "openai": "^6.9.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1"
