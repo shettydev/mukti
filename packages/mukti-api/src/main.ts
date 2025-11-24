@@ -27,7 +27,7 @@ async function bootstrap() {
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
   app.setGlobalPrefix(apiPrefix);
 
-  app.enableVersioning({ type: VersioningType.URI });
+  app.enableVersioning({ defaultVersion: '1', type: VersioningType.URI });
 
   const corsOrigins = configService.get<string>('CORS_ORIGINS');
   app.enableCors({
