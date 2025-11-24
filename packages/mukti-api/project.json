@@ -90,6 +90,13 @@
         "command": "jest --config ./test/jest-e2e.json",
         "cwd": "packages/mukti-api"
       }
+    },
+    "tsc": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "packages/mukti-api"
+      }
     }
   }
 }
