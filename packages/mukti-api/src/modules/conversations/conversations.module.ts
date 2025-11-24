@@ -20,6 +20,7 @@ import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { ConversationService } from './services/conversation.service';
 import { MessageService } from './services/message.service';
+import { OpenRouterService } from './services/openrouter.service';
 import { SeedService } from './services/seed.service';
 
 /**
@@ -37,7 +38,12 @@ import { SeedService } from './services/seed.service';
  */
 @Module({
   controllers: [],
-  exports: [SeedService, ConversationService, MessageService],
+  exports: [
+    SeedService,
+    ConversationService,
+    MessageService,
+    OpenRouterService,
+  ],
   imports: [
     ConfigModule,
     // Register Mongoose schemas
@@ -81,6 +87,11 @@ import { SeedService } from './services/seed.service';
       name: 'conversation-requests',
     }),
   ],
-  providers: [SeedService, ConversationService, MessageService],
+  providers: [
+    SeedService,
+    ConversationService,
+    MessageService,
+    OpenRouterService,
+  ],
 })
 export class ConversationsModule {}
