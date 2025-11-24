@@ -18,9 +18,11 @@ import {
 import { Technique, TechniqueSchema } from '../../schemas/technique.schema';
 import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
+import { ConversationController } from './conversation.controller';
 import { ConversationService } from './services/conversation.service';
 import { MessageService } from './services/message.service';
 import { OpenRouterService } from './services/openrouter.service';
+import { QueueService } from './services/queue.service';
 import { SeedService } from './services/seed.service';
 
 /**
@@ -37,12 +39,13 @@ import { SeedService } from './services/seed.service';
  * - Database seeding for initial data
  */
 @Module({
-  controllers: [],
+  controllers: [ConversationController],
   exports: [
     SeedService,
     ConversationService,
     MessageService,
     OpenRouterService,
+    QueueService,
   ],
   imports: [
     ConfigModule,
@@ -92,6 +95,7 @@ import { SeedService } from './services/seed.service';
     ConversationService,
     MessageService,
     OpenRouterService,
+    QueueService,
   ],
 })
 export class ConversationsModule {}
