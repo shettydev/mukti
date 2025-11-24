@@ -67,6 +67,8 @@ export class SeedService {
   async seedTechniques(): Promise<void> {
     this.logger.log('Starting technique seeding...');
 
+    const systemUser = await this.ensureSystemUser();
+
     const techniques = [
       {
         description:
@@ -89,7 +91,6 @@ export class SeedService {
           systemPrompt:
             'You are a Socratic questioner using the elenchus method. Challenge assumptions by asking probing questions that reveal contradictions. Never provide direct answers. Guide the user to discover inconsistencies in their reasoning through careful questioning.',
         },
-        userId: null, // System technique, no user owner
       },
       {
         description:
@@ -112,7 +113,6 @@ export class SeedService {
           systemPrompt:
             'Guide the user through dialectical reasoning. Present opposing viewpoints and help synthesize understanding through questioning. Explore both sides of arguments to reach a higher level of understanding.',
         },
-        userId: null,
       },
       {
         description:
@@ -135,7 +135,6 @@ export class SeedService {
           systemPrompt:
             'Help the user give birth to their own ideas through gentle questioning. Draw out latent knowledge rather than imposing external answers. Be supportive and encouraging as they discover insights.',
         },
-        userId: null,
       },
       {
         description:
@@ -158,7 +157,6 @@ export class SeedService {
           systemPrompt:
             'Focus on defining key terms and concepts precisely. Ask questions that clarify meaning and boundaries. Help the user develop clear, rigorous definitions.',
         },
-        userId: null,
       },
       {
         description:
@@ -181,7 +179,6 @@ export class SeedService {
           systemPrompt:
             'Use analogies and comparisons to illuminate concepts. Ask questions that draw parallels to familiar domains. Help the user understand through creative comparison.',
         },
-        userId: null,
       },
       {
         description:
@@ -204,9 +201,11 @@ export class SeedService {
           systemPrompt:
             'Explore alternative scenarios through counterfactual questions. Ask "what if" to test reasoning and assumptions. Help the user examine consequences of different conditions.',
         },
-        userId: null,
       },
-    ];
+    ].map((technique) => ({
+      ...technique,
+      userId: systemUser._id,
+    }));
 
     let seededCount = 0;
     let skippedCount = 0;
@@ -328,6 +327,37 @@ export class SeedService {
       this.logger.error(`Failed to seed test user: ${message}`, stack);
       throw error;
     }
+  }
+
+  private async ensureSystemUser(): Promise<UserDocument> {
+    const systemEmail = 'system@mukti.app';
+
+    const existingSystemUser = await this.userModel.findOne({
+      email: systemEmail,
+    });
+
+    if (existingSystemUser) {
+      return existingSystemUser;
+    }
+
+    const passwordHash = await bcrypt.hash('system-user-internal-password', 10);
+
+    const systemUser = await this.userModel.create({
+      email: systemEmail,
+      emailVerifiedAt: new Date(),
+      isActive: true,
+      name: 'Mukti System',
+      passwordHash,
+      preferences: {
+        emailNotifications: false,
+        language: 'en',
+        theme: 'light',
+      },
+      role: 'admin',
+    });
+
+    this.logger.log('Created system user for built-in techniques');
+    return systemUser;
   }
 
   private getErrorDetails(error: unknown): { message: string; stack?: string } {

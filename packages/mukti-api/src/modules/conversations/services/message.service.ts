@@ -146,6 +146,10 @@ export class MessageService {
         conversation.metadata.estimatedCost += metadata.cost;
       }
 
+      // Mark modified paths for Mongoose to track changes
+      conversation.markModified('recentMessages');
+      conversation.markModified('metadata');
+
       // Save the updated conversation
       await conversation.save();
 
@@ -275,6 +279,9 @@ export class MessageService {
 
       // Set the hasArchivedMessages flag to true
       conversation.hasArchivedMessages = true;
+
+      // Mark modified path for Mongoose to track changes
+      conversation.markModified('recentMessages');
 
       // Save the updated conversation
       await conversation.save();

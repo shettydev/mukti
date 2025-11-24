@@ -11,6 +11,7 @@ describe('MessageService', () => {
   interface MockConversation {
     _id: Types.ObjectId;
     hasArchivedMessages: boolean;
+    markModified: jest.Mock;
     metadata: {
       estimatedCost: number;
       lastMessageAt?: Date;
@@ -31,6 +32,7 @@ describe('MessageService', () => {
   const createMockConversation = (): MockConversation => ({
     _id: new Types.ObjectId(),
     hasArchivedMessages: false,
+    markModified: jest.fn(),
     metadata: {
       estimatedCost: 0,
       lastMessageAt: undefined as Date | undefined,

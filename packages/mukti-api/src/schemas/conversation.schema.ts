@@ -57,7 +57,7 @@ export class Conversation {
   @Prop({ type: Types.ObjectId })
   oldestMessageId?: Types.ObjectId;
 
-  @Prop({ default: [], type: Array })
+  @Prop({ default: [], type: [Object] })
   recentMessages: RecentMessage[];
 
   @Prop({ sparse: true, type: String, unique: true })

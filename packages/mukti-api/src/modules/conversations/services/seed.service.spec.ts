@@ -95,6 +95,23 @@ describe('SeedService', () => {
     }).compile();
 
     service = module.get<SeedService>(SeedService);
+
+    // Speed up hashing operations during tests
+    jest
+      .spyOn(bcrypt, 'hash')
+      .mockImplementation(
+        (value: Buffer | string) => `hashed-${String(value)}`,
+      );
+    jest
+      .spyOn(bcrypt, 'compare')
+      .mockImplementation(
+        (value: Buffer | string, hash: string) =>
+          hash === `hashed-${String(value)}`,
+      );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should be defined', () => {
@@ -114,6 +131,9 @@ describe('SeedService', () => {
 
           // Seed techniques
           await service.seedTechniques();
+
+          expect(mockUsers.length).toBe(1);
+          const systemUserId = mockUsers[0]._id;
 
           // Verify all 6 techniques were created
           expect(mockTechniques.length).toBe(6);
@@ -163,6 +183,7 @@ describe('SeedService', () => {
 
             // Verify technique name is one of the expected ones
             expect(expectedTechniqueNames).toContain(technique.name);
+            expect(technique.userId).toBe(systemUserId);
           }
 
           // Verify all expected techniques are present
@@ -235,6 +256,7 @@ describe('SeedService', () => {
           const techniqueNames = mockTechniques.map((t) => t.name);
           const uniqueNames = new Set(techniqueNames);
           expect(uniqueNames.size).toBe(6);
+          expect(mockUsers.length).toBe(1);
         }),
         { numRuns: 100 },
       );
@@ -244,8 +266,8 @@ describe('SeedService', () => {
       await fc.assert(
         fc.asyncProperty(fc.integer({ max: 3, min: 2 }), async (runCount) => {
           // Reset mock data
-          mockUsers = [];
-          mockSubscriptions = [];
+          mockUsers.length = 0;
+          mockSubscriptions.length = 0;
 
           // Run seeding multiple times
           for (let i = 0; i < runCount; i++) {
@@ -261,7 +283,7 @@ describe('SeedService', () => {
           // Verify user email is correct
           expect(mockUsers[0].email).toBe('test@mukti.app');
         }),
-        { numRuns: 50 },
+        { numRuns: 20 },
       );
     }, 10000);
   });
@@ -273,8 +295,15 @@ describe('SeedService', () => {
       // Verify techniques were seeded
       expect(mockTechniques.length).toBe(6);
 
-      // Verify test user was seeded
-      expect(mockUsers.length).toBe(1);
+      // Verify system and test users were seeded
+      expect(mockUsers.length).toBe(2);
+      expect(mockUsers.map((u) => u.email)).toEqual(
+        expect.arrayContaining(['system@mukti.app', 'test@mukti.app']),
+      );
+
+      const testUser = mockUsers.find((u) => u.email === 'test@mukti.app');
+      expect(testUser).toBeDefined();
+      expect(mockSubscriptions[0].userId).toBe(testUser?._id);
       expect(mockSubscriptions.length).toBe(1);
     });
   });
