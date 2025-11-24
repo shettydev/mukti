@@ -2,6 +2,10 @@ import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 
+jest.mock('@openrouter/sdk', () => ({
+  OpenRouter: jest.fn(() => ({})),
+}));
+
 import type { RecentMessage } from '../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../schemas/technique.schema';
 

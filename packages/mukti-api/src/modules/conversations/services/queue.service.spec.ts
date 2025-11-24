@@ -1,9 +1,11 @@
-import { BullModule, getQueueToken } from '@nestjs/bullmq';
-import { ConfigModule } from '@nestjs/config';
+import { getQueueToken } from '@nestjs/bullmq';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { type Queue } from 'bullmq';
 import * as fc from 'fast-check';
+
+jest.mock('@openrouter/sdk', () => ({
+  OpenRouter: jest.fn(() => ({})),
+}));
 
 import { Conversation } from '../../../schemas/conversation.schema';
 import { Technique } from '../../../schemas/technique.schema';
@@ -13,10 +15,62 @@ import { OpenRouterService } from './openrouter.service';
 import { QueueService } from './queue.service';
 
 describe('QueueService', () => {
+  interface MockQueue {
+    add: jest.Mock;
+    getActiveCount: jest.Mock;
+    getCompletedCount: jest.Mock;
+    getFailedCount: jest.Mock;
+    getJob: jest.Mock;
+    getWaiting: jest.Mock;
+    getWaitingCount: jest.Mock;
+  }
+
   let service: QueueService;
-  let queue: Queue;
+  let queue: MockQueue;
+  let jobs: {
+    data: any;
+    getState: () => Promise<string>;
+    id: string;
+    opts: any;
+  }[];
 
   beforeEach(async () => {
+    jobs = [];
+    queue = {
+      add: jest.fn((_name: string, data: any, opts: any) => {
+        const defaultOpts = {
+          attempts: 3,
+          backoff: {
+            delay: 1000,
+            type: 'exponential',
+          },
+          removeOnComplete: {
+            age: 24 * 3600,
+            count: 1000,
+          },
+          removeOnFail: {
+            age: 7 * 24 * 3600,
+          },
+        };
+        const job = {
+          data,
+          getState: () => Promise.resolve('waiting'),
+          id: (jobs.length + 1).toString(),
+          opts: { ...defaultOpts, ...opts },
+        };
+        jobs.push(job);
+        return Promise.resolve(job);
+      }),
+      getActiveCount: jest.fn(() => Promise.resolve(0)),
+      getCompletedCount: jest.fn(() => Promise.resolve(0)),
+      getFailedCount: jest.fn(() => Promise.resolve(0)),
+      getJob: jest.fn((id: string) =>
+        Promise.resolve(jobs.find((j) => j.id === id)),
+      ),
+      getWaiting: jest.fn(() => Promise.resolve(jobs.filter(() => true))),
+      getWaitingCount: jest.fn(() => Promise.resolve(jobs.length)),
+    };
+
     // Create mock models
     const mockConversationModel = {
       create: jest.fn(),
@@ -45,36 +99,7 @@ describe('QueueService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          isGlobal: true,
-        }),
-        BullModule.forRoot({
-          connection: {
-            db: 1, // Use different DB for tests
-            host: process.env.REDIS_HOST || 'localhost',
-            password: process.env.REDIS_PASSWORD,
-            port: Number.parseInt(process.env.REDIS_PORT ?? '6379', 10),
-          },
-        }),
-        BullModule.registerQueue({
-          defaultJobOptions: {
-            attempts: 3,
-            backoff: {
-              delay: 1000,
-              type: 'exponential',
-            },
-            removeOnComplete: {
-              age: 24 * 3600,
-              count: 1000,
-            },
-            removeOnFail: {
-              age: 7 * 24 * 3600,
-            },
-          },
-          name: 'conversation-requests',
-        }),
-      ],
+      imports: [],
       providers: [
         QueueService,
         {
@@ -97,17 +122,19 @@ describe('QueueService', () => {
           provide: OpenRouterService,
           useValue: mockOpenRouterService,
         },
+        {
+          provide: getQueueToken('conversation-requests'),
+          useValue: queue,
+        },
       ],
     }).compile();
 
     service = module.get<QueueService>(QueueService);
-    queue = module.get<Queue>(getQueueToken('conversation-requests'));
   });
 
-  afterEach(async () => {
-    // Clean up queue after each test
-    await queue.obliterate({ force: true });
-    await queue.close();
+  afterEach(() => {
+    jest.clearAllMocks();
+    jobs = [];
   });
 
   describe('enqueueRequest', () => {
