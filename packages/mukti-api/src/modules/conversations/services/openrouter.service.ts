@@ -173,8 +173,9 @@ export class OpenRouterService {
 
     const code = typeof error.code === 'string' ? error.code : undefined;
     const status = typeof error.status === 'number' ? error.status : undefined;
-    const message =
+    const messageRaw =
       typeof error.message === 'string' ? error.message : undefined;
+    const message = messageRaw?.trim() ? messageRaw : undefined;
     const stack = typeof error.stack === 'string' ? error.stack : undefined;
 
     if (code === 'ECONNABORTED' || code === 'ETIMEDOUT') {
