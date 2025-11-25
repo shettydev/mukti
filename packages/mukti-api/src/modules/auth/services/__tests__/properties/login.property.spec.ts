@@ -40,27 +40,26 @@ describe('AuthService - Login Properties', () => {
   });
 
   beforeEach(async () => {
+    // Create fresh mock implementations for each test
     mockUserModel = {
-      findOne: jest.fn().mockReturnValue({
-        select: jest.fn().mockResolvedValue(null),
-      }),
+      findOne: jest.fn(),
     };
 
     mockPasswordService = {
-      comparePassword: jest.fn().mockResolvedValue(true),
+      comparePassword: jest.fn(),
     };
 
     mockJwtService = {
-      generateAccessToken: jest.fn().mockReturnValue('access-token'),
-      generateRefreshToken: jest.fn().mockReturnValue('refresh-token'),
+      generateAccessToken: jest.fn(),
+      generateRefreshToken: jest.fn(),
     };
 
     mockTokenService = {
-      createRefreshToken: jest.fn().mockResolvedValue({}),
+      createRefreshToken: jest.fn(),
     };
 
     mockEmailService = {
-      sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+      sendVerificationEmail: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -102,6 +101,9 @@ describe('AuthService - Login Properties', () => {
     it('should return tokens for any valid credentials', async () => {
       await fc.assert(
         fc.asyncProperty(loginDtoArb, async (dto) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup: User exists with password
           const mockUserId = new Types.ObjectId();
           const mockUser = {
@@ -123,6 +125,9 @@ describe('AuthService - Login Properties', () => {
             select: jest.fn().mockResolvedValue(mockUser),
           });
           mockPasswordService.comparePassword.mockResolvedValue(true);
+          mockJwtService.generateAccessToken.mockReturnValue('access-token');
+          mockJwtService.generateRefreshToken.mockReturnValue('refresh-token');
+          mockTokenService.createRefreshToken.mockResolvedValue({});
 
           // Execute
           const result = await service.login(dto);
@@ -155,19 +160,33 @@ describe('AuthService - Login Properties', () => {
     it('should update lastLoginAt for all successful logins', async () => {
       await fc.assert(
         fc.asyncProperty(loginDtoArb, async (dto) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup
+          const mockUserId = new Types.ObjectId();
           const mockUser = {
-            _id: new Types.ObjectId(),
+            _id: mockUserId,
+            createdAt: new Date(),
             email: dto.email,
+            emailVerified: false,
+            firstName: 'Test',
+            isActive: true,
             lastLoginAt: null,
+            lastName: 'User',
             password: 'hashed-password',
+            role: 'user',
             save: jest.fn().mockResolvedValue(undefined),
+            updatedAt: new Date(),
           };
 
           mockUserModel.findOne.mockReturnValue({
             select: jest.fn().mockResolvedValue(mockUser),
           });
           mockPasswordService.comparePassword.mockResolvedValue(true);
+          mockJwtService.generateAccessToken.mockReturnValue('access-token');
+          mockJwtService.generateRefreshToken.mockReturnValue('refresh-token');
+          mockTokenService.createRefreshToken.mockResolvedValue({});
 
           // Execute
           await service.login(dto);
@@ -191,6 +210,9 @@ describe('AuthService - Login Properties', () => {
     it('should reject login for any non-existent email', async () => {
       await fc.assert(
         fc.asyncProperty(loginDtoArb, async (dto) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup: User does not exist
           mockUserModel.findOne.mockReturnValue({
             select: jest.fn().mockResolvedValue(null),
@@ -215,6 +237,9 @@ describe('AuthService - Login Properties', () => {
     it('should reject login for any incorrect password', async () => {
       await fc.assert(
         fc.asyncProperty(loginDtoArb, async (dto) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup: User exists but password is wrong
           const mockUser = {
             _id: new Types.ObjectId(),
@@ -252,6 +277,9 @@ describe('AuthService - Login Properties', () => {
     it('should reject login for OAuth users without password', async () => {
       await fc.assert(
         fc.asyncProperty(loginDtoArb, async (dto) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup: User exists but has no password (OAuth user)
           const mockUser = {
             _id: new Types.ObjectId(),

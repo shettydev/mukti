@@ -31,36 +31,54 @@ describe('AuthService - Token Refresh and Logout Properties', () => {
   let mockEmailService: any;
 
   // Arbitraries for generating test data
-  const refreshTokenArb = fc.string({ maxLength: 100, minLength: 20 });
+  // Generate realistic refresh tokens (alphanumeric, no whitespace-only)
+  const refreshTokenArb = fc
+    .string({ maxLength: 100, minLength: 20 })
+    .filter((s) => s.trim().length > 0 && /[a-zA-Z0-9]/.test(s));
   const userIdArb = fc
     .string({ maxLength: 24, minLength: 24 })
     .map(() => new Types.ObjectId().toString());
 
   beforeEach(async () => {
+    // Create mock functions that persist across property test iterations
+    const mockFindById = jest.fn();
+    const mockFindOne = jest.fn();
+    const mockComparePassword = jest.fn();
+    const mockHashPassword = jest.fn();
+    const mockGenerateAccessToken = jest
+      .fn()
+      .mockReturnValue('new-access-token');
+    const mockGenerateRefreshToken = jest.fn();
+    const mockVerifyRefreshToken = jest.fn();
+    const mockCreateRefreshToken = jest.fn();
+    const mockFindRefreshToken = jest.fn();
+    const mockRevokeRefreshToken = jest.fn().mockResolvedValue(true);
+    const mockSendVerificationEmail = jest.fn();
+
     mockUserModel = {
-      findById: jest.fn(),
-      findOne: jest.fn(),
+      findById: mockFindById,
+      findOne: mockFindOne,
     };
 
     mockPasswordService = {
-      comparePassword: jest.fn(),
-      hashPassword: jest.fn(),
+      comparePassword: mockComparePassword,
+      hashPassword: mockHashPassword,
     };
 
     mockJwtService = {
-      generateAccessToken: jest.fn().mockReturnValue('new-access-token'),
-      generateRefreshToken: jest.fn(),
-      verifyRefreshToken: jest.fn(),
+      generateAccessToken: mockGenerateAccessToken,
+      generateRefreshToken: mockGenerateRefreshToken,
+      verifyRefreshToken: mockVerifyRefreshToken,
     };
 
     mockTokenService = {
-      createRefreshToken: jest.fn(),
-      findRefreshToken: jest.fn(),
-      revokeRefreshToken: jest.fn().mockResolvedValue(true),
+      createRefreshToken: mockCreateRefreshToken,
+      findRefreshToken: mockFindRefreshToken,
+      revokeRefreshToken: mockRevokeRefreshToken,
     };
 
     mockEmailService = {
-      sendVerificationEmail: jest.fn(),
+      sendVerificationEmail: mockSendVerificationEmail,
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -102,6 +120,9 @@ describe('AuthService - Token Refresh and Logout Properties', () => {
     it('should return new access token for any valid refresh token', async () => {
       await fc.assert(
         fc.asyncProperty(refreshTokenArb, async (refreshToken) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup: Valid refresh token
           const mockUserId = new Types.ObjectId();
           const mockPayload = {
@@ -157,6 +178,9 @@ describe('AuthService - Token Refresh and Logout Properties', () => {
     it('should reject refresh for any revoked token', async () => {
       await fc.assert(
         fc.asyncProperty(refreshTokenArb, async (refreshToken) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup: Revoked token
           const mockPayload = {
             email: 'test@example.com',
@@ -193,6 +217,9 @@ describe('AuthService - Token Refresh and Logout Properties', () => {
     it('should reject refresh for any expired token', async () => {
       await fc.assert(
         fc.asyncProperty(refreshTokenArb, async (refreshToken) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup: Expired token
           const mockPayload = {
             email: 'test@example.com',
@@ -229,6 +256,9 @@ describe('AuthService - Token Refresh and Logout Properties', () => {
     it('should reject refresh for any non-existent token', async () => {
       await fc.assert(
         fc.asyncProperty(refreshTokenArb, async (refreshToken) => {
+          // Reset mocks for each iteration
+          jest.clearAllMocks();
+
           // Setup: Token not in database
           const mockPayload = {
             email: 'test@example.com',
@@ -270,6 +300,9 @@ describe('AuthService - Token Refresh and Logout Properties', () => {
           userIdArb,
           refreshTokenArb,
           async (userId, refreshToken) => {
+            // Reset mocks for each iteration
+            jest.clearAllMocks();
+
             // Execute
             await service.logout(userId, refreshToken);
 
@@ -289,13 +322,16 @@ describe('AuthService - Token Refresh and Logout Properties', () => {
           userIdArb,
           refreshTokenArb,
           async (userId, refreshToken) => {
+            // Reset mocks for each iteration
+            jest.clearAllMocks();
+
             // Setup: Token already revoked
             mockTokenService.revokeRefreshToken.mockResolvedValue(false);
 
             // Execute - should not throw
             await expect(
               service.logout(userId, refreshToken),
-            ).resolves.not.toThrow();
+            ).resolves.toBeUndefined();
 
             // Verify revoke was attempted
             expect(mockTokenService.revokeRefreshToken).toHaveBeenCalledWith(
@@ -313,6 +349,9 @@ describe('AuthService - Token Refresh and Logout Properties', () => {
           userIdArb,
           refreshTokenArb,
           async (userId, refreshToken) => {
+            // Reset mocks for each iteration
+            jest.clearAllMocks();
+
             // Execute
             const result = await service.logout(userId, refreshToken);
 

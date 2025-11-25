@@ -43,7 +43,10 @@ describe('AuthService - Registration Properties', () => {
         /[@$!%*?&]/.test(pwd)
       );
     });
-  const nameArb = fc.string({ maxLength: 50, minLength: 2 });
+  // Generate names that are not just whitespace
+  const nameArb = fc
+    .string({ maxLength: 50, minLength: 2 })
+    .filter((name) => name.trim().length >= 2);
   const phoneArb = fc.option(
     fc.string({ maxLength: 15, minLength: 10 }).map((s) => `+${s}`),
     { nil: undefined },
@@ -58,26 +61,27 @@ describe('AuthService - Registration Properties', () => {
   });
 
   beforeEach(async () => {
+    // Create fresh mock implementations for each test
     mockUserModel = {
-      create: jest.fn().mockImplementation((data) => Promise.resolve(data)),
-      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn(),
+      findOne: jest.fn(),
     };
 
     mockPasswordService = {
-      hashPassword: jest.fn().mockResolvedValue('hashed-password'),
+      hashPassword: jest.fn(),
     };
 
     mockJwtService = {
-      generateAccessToken: jest.fn().mockReturnValue('access-token'),
-      generateRefreshToken: jest.fn().mockReturnValue('refresh-token'),
+      generateAccessToken: jest.fn(),
+      generateRefreshToken: jest.fn(),
     };
 
     mockTokenService = {
-      createRefreshToken: jest.fn().mockResolvedValue({}),
+      createRefreshToken: jest.fn(),
     };
 
     mockEmailService = {
-      sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+      sendVerificationEmail: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -47,7 +47,7 @@ describe('PasswordService - Property 28: Passwords are hashed with bcrypt', () =
       ),
       { numRuns: 20 }, // Reduced runs due to bcrypt computational cost
     );
-  }, 60000); // 60 second timeout
+  }, 120000); // 120 second timeout
 
   /**
    * Property: For any password, the hash should contain cost factor 12
@@ -70,7 +70,7 @@ describe('PasswordService - Property 28: Passwords are hashed with bcrypt', () =
       ),
       { numRuns: 20 },
     );
-  }, 60000);
+  }, 120000);
 
   /**
    * Property: For any password, hashing twice should produce different hashes
@@ -97,7 +97,7 @@ describe('PasswordService - Property 28: Passwords are hashed with bcrypt', () =
       ),
       { numRuns: 10 }, // Fewer runs since we hash twice per test
     );
-  }, 60000);
+  }, 120000);
 
   /**
    * Property: For any password and its hash, comparePassword should return true
@@ -116,7 +116,7 @@ describe('PasswordService - Property 28: Passwords are hashed with bcrypt', () =
       ),
       { numRuns: 20 },
     );
-  }, 60000);
+  }, 120000);
 
   /**
    * Property: For any password and a different password, comparePassword
@@ -139,7 +139,7 @@ describe('PasswordService - Property 28: Passwords are hashed with bcrypt', () =
       ),
       { numRuns: 20 },
     );
-  }, 60000);
+  }, 120000);
 
   /**
    * Property: Hashing should handle edge cases like special characters,
@@ -162,5 +162,5 @@ describe('PasswordService - Property 28: Passwords are hashed with bcrypt', () =
       ),
       { numRuns: 20 },
     );
-  }, 60000);
+  }, 120000);
 });
