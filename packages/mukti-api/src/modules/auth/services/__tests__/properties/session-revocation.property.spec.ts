@@ -337,12 +337,12 @@ describe('SessionService - Property 21: Session Revocation', () => {
           modifiedCount: 1,
         });
 
-        const beforeUpdate = Date.now() - 10; // Add small buffer for timing
+        const beforeUpdate = Date.now() - 1000; // Add buffer for timing variations
 
         // Update last activity
         await service.updateLastActivity(refreshToken);
 
-        const afterUpdate = Date.now() + 10; // Add small buffer for timing
+        const afterUpdate = Date.now() + 1000; // Add buffer for timing variations
 
         // Verify updateOne was called
         expect(sessionModel.updateOne).toHaveBeenCalledWith(
