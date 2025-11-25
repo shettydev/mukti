@@ -5,546 +5,170 @@
 ### App Router Structure
 
 - **Use App Router exclusively** - No Pages Router patterns
-- **Server Components by default** - Add 'use client' only when needed
+- **Server Components by default** - Add 'use client' only when needed (hooks, event handlers, browser APIs, animations)
 - **File-based routing** - Leverage Next.js conventions
 
 ```
 src/app/
-├── (auth)/              # Route groups for layout sharing
-│   ├── login/
-│   └── signup/
+├── (auth)/              # Route groups
 ├── (dashboard)/
-│   ├── conversations/
-│   └── settings/
 ├── api/                 # API routes
-│   └── waitlist/
-├── layout.tsx           # Root layout
-├── page.tsx             # Home page
-├── loading.tsx          # Loading UI
-├── error.tsx            # Error boundary
-└── not-found.tsx        # 404 page
+├── layout.tsx
+├── page.tsx
+├── loading.tsx
+├── error.tsx
+└── not-found.tsx
 ```
 
-### When to Use 'use client'
-
-Only add 'use client' directive when you need:
-
-- React hooks (useState, useEffect, useContext, etc.)
-- Event handlers (onClick, onChange, etc.)
-- Browser APIs (localStorage, window, document)
-- Third-party libraries that use client-only features
-
-- Animation libraries (Framer Motion, GSAP)
-
-**Keep Server Components when possible** for better performance and SEO.
-
-```typescript
-// ❌ Bad - Unnecessary client component
-'use client';
-
-export function StaticCard({ title, description }) {
-  return (
-    <div>
-      <h2>{title}</h2>
-      <p>{description}</p>
-    </div>
-  );
-}
-
-// ✅ Good - Server component (no directive needed)
-export function StaticCard({ title, description }) {
-  return (
-    <div>
-      <h2>{title}</h2>
-      <p>{description}</p>
-    </div>
-  );
-}
-
-// ✅ Good - Client component only when needed
-'use client';
-
-import { useState } from 'react';
-
-export function InteractiveCard({ title, description }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  return (
-    <div onClick={() => setIsExpanded(!isExpanded)}>
-      <h2>{title}</h2>
-      {isExpanded && <p>{description}</p>}
-    </div>
-  );
-}
-```
-
-## File and Folder Naming Conventions
+## Naming Conventions
 
 ### Files
 
-- **Components**: `kebab-case.tsx` (e.g., `hero-section.tsx`, `waitlist-form.tsx`)
-
-- **Pages**: `page.tsx` (Next.js convention)
-- **Layouts**: `layout.tsx` (Next.js convention)
-- **API Routes**: `route.ts` (Next.js convention)
-- **Hooks**: `use-{name}.ts` (e.g., `use-waitlist.ts`, `use-theme.ts`)
-- **Utils**: `{name}.ts` (e.g., `utils.ts`, `cn.ts`, `format-date.ts`)
-- **Types**: `{name}.types.ts` or `types.ts` (e.g., `conversation.types.ts`)
-- **Constants**: `{name}.constants.ts` or `constants.ts`
+- **Components**: `kebab-case.tsx` (e.g., `hero-section.tsx`)
+- **Hooks**: `use-{name}.ts` (e.g., `use-waitlist.ts`)
+- **Types**: `{name}.types.ts` (e.g., `conversation.types.ts`)
+- **Constants**: `{name}.constants.ts`
 
 ### Folders
 
 ```
 src/
 ├── app/                      # Next.js App Router
-│   ├── (marketing)/          # Route group
-│   ├── api/                  # API routes
-│   └── [dynamic]/            # Dynamic routes
 ├── components/               # React components
-│   ├── ui/                   # shadcn/ui base components
-│   ├── magicui/              # Magic UI components
-│   ├── reactbits/            # Custom animated components
-│   ├── forms/                # Form components
-│   ├── layouts/              # Layout components
-│   └── sections/             # Page sections (hero, features, etc.)
-├── lib/                      # Utilities and configurations
-│   ├── hooks/                # Custom React hooks
-│   ├── db/                   # Database clients
-│   ├── api/                  # API client functions
-│   └── utils/                # Utility functions
-├── types/                    # TypeScript type definitions
-├── styles/                   # Global styles (if needed beyond globals.css)
-└── config/                   # App configuration
+│   ├── ui/                   # shadcn/ui base
+│   ├── forms/
+│   ├── layouts/
+│   └── sections/
+├── lib/                      # Utilities
+│   ├── hooks/
+│   ├── api/
+│   └── utils/
+└── types/                    # TypeScript types
 ```
 
-## Component Organization
-
-### Component Structure
-
-Organize components by feature or type:
-
-```
-components/
-├── ui/                       # Base UI components (shadcn/ui)
-│   ├── button.tsx
-│   ├── input.tsx
-│   ├── card.tsx
-│   └── dialog.tsx
-├── forms/                    # Form-specific components
-│   ├── waitlist-form.tsx
-│   ├── contact-form.tsx
-│   └── field-error.tsx
-├── layouts/                  # Layout components
-│   ├── navbar.tsx
-│   ├── footer.tsx
-│   └── sidebar.tsx
-├── sections/                 # Page sections
-│   ├── hero.tsx
-│   ├── features.tsx
-│   ├── testimonials.tsx
-│   └── pricing.tsx
-├── conversation/             # Feature-specific components
-│   ├── conversation-list.tsx
-│   ├── conversation-card.tsx
-│   ├── message-bubble.tsx
-│   └── technique-selector.tsx
-└── shared/                   # Shared/common components
-    ├── loading-spinner.tsx
-    ├── error-message.tsx
-    └── empty-state.tsx
-```
-
-### Component Naming
-
-- **PascalCase** for component names and files export
-- **Descriptive names** that indicate purpose
-- **Avoid generic names** like `Component1`, `Wrapper`, `Container`
-
-```typescript
-// ✅ Good
-export function WaitlistForm() {}
-export function ConversationCard() {}
-export function HeroSection() {}
-
-// ❌ Bad
-export function Form() {}
-export function Card() {}
-export function Section() {}
-```
+## Component Best Practices
 
 ### Component Template
-
-Follow this structure for consistency:
 
 ```typescript
 'use client'; // Only if needed
 
-import type { ComponentProps } from 'react';
-import { useState } from 'react';
-
-import { Button } from '@/components/ui/button';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-// Types/Interfaces
-interface WaitlistFormProps {
-  onSubmit?: (email: string) => void;
+interface ComponentProps {
+  title: string;
   className?: string;
+  children?: ReactNode;
 }
 
-// Component
-export function WaitlistForm({ onSubmit, className }: WaitlistFormProps) {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      await onSubmit?.(email);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+export function Component({ title, className, children }: ComponentProps) {
   return (
-    <form onSubmit={handleSubmit} className={cn('space-y-4', className)}>
+    <div className={cn('base-styles', className)}>
       {/* Component JSX */}
-    </form>
+    </div>
   );
 }
 ```
 
-## TypeScript Practices
+### TypeScript Rules
 
-### Type Definitions
-
-- **Use interfaces for props** - More extensible than types
-- **Export types** - Make them reusable
-- **Avoid `any`** - Use `unknown` or proper types
-- **Use type imports** - `import type { ... }`
-
-```typescript
-// ✅ Good
-```
-
-import type { ReactNode } from 'react';
-
-interface CardProps {
-title: string;
-description: string;
-children?: ReactNode;
-onClick?: () => void;
-}
-
-// ❌ Bad
-interface CardProps {
-title: any;
-description: any;
-children: any;
-onClick: any;
-}
-
-````
-
-### Props Destructuring
-
-Always destructure props for clarity:
-
-```typescript
-// ✅ Good
-export function Card({ title, description, className }: CardProps) {
-  return <div className={className}>{title}</div>;
-}
-
-// ❌ Bad
-export function Card(props: CardProps) {
-  return <div className={props.className}>{props.title}</div>;
-}
-````
+- Use interfaces for props
+- Always destructure props
+- Avoid `any` - use `unknown` or proper types
+- Use type imports: `import type { ... }`
 
 ## Styling with Tailwind CSS v4
 
-### Class Organization
+### Best Practices
 
-Use `cn()` utility for conditional classes:
+- **Mobile-first** - Start with mobile, add responsive breakpoints (sm:, md:, lg:, xl:, 2xl:)
+- **Use `cn()` utility** for conditional classes
+- **Group classes** - Layout, typography, colors, states
+- **Avoid arbitrary values** - Use Tailwind's predefined values
+- **Use CSS variables** - `bg-background`, `text-foreground`, `bg-primary`
 
 ```typescript
 import { cn } from '@/lib/utils';
 
-// ✅ Good - Organized and readable
-<div
-  className={cn(
-    // Base styles
-    'rounded-lg border bg-card p-6',
-    // Responsive styles
-    'sm:p-8 md:p-10',
-    // State styles
-    isActive && 'border-primary bg-primary/5',
-    isDisabled && 'opacity-50 cursor-not-allowed',
-    // Custom className
-    className
-  )}
->
-
-// ❌ Bad - Hard to read
-<div className={`rounded-lg border bg-card p-6 sm:p-8 md:p-10 ${isActive ? 'border-primary bg-primary/5' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>
-```
-
-### Tailwind Best Practices
-
-1. **Mobile-first approach** - Start with mobile styles, add responsive breakpoints
-2. **Use design tokens** - Leverage Tailwind's color palette and spacing scale
-3. **Avoid arbitrary values** - Use Tailwind's predefined values when possible
-4. **Group related classes** - Layout, typography, colors, states
-
-```typescript
-// ✅ Good - Mobile-first, organized
 <div className={cn(
-  // Layout
-  'flex flex-col gap-4',
-  'sm:flex-row sm:gap-6',
-  'md:gap-8',
-  // Typography
-  'text-sm font-medium',
-  'sm:text-base',
-  // Colors
-  'text-foreground bg-background',
-  // States
-  'hover:bg-accent transition-colors'
-)}>
-
-// ❌ Bad - Desktop-first, arbitrary values
-<div className="flex-row gap-[24px] text-[16px] text-[#000000] hover:bg-[#f5f5f5]">
+  'flex flex-col gap-4 text-sm',
+  'sm:flex-row sm:gap-6 sm:text-base',
+  isActive && 'border-primary bg-primary/5',
+  className
+)} />
 ```
 
-### CSS Variables for Theming
+## UI/UX Principles
 
-Use CSS variables defined in `globals.css`:
+### Accessibility
 
-```css
-/* globals.css */
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-  }
-}
-```
+- Use semantic HTML and proper ARIA labels
+- Ensure keyboard navigation and visible focus states
+- Maintain WCAG AA color contrast (4.5:1 for text)
 
 ```typescript
-// Use in components
-<div className="bg-background text-foreground">
-<Button className="bg-primary text-primary-foreground">
-```
-
-## UI/UX Design Principles
-
-### Accessibility First
-
-- **Semantic HTML** - Use proper HTML elements
-- **ARIA labels** - Add labels for screen readers
-- **Keyboard navigation** - Ensure all interactive elements are keyboard accessible
-- **Focus indicators** - Visible focus states for keyboard users
-- **Color contrast** - WCAG AA minimum (4.5:1 for text)
-
-```typescript
-// ✅ Good - Accessible
 <button
   type="button"
   aria-label="Close dialog"
-  className="focus:ring-2 focus:ring-primary focus:outline-none"
+  className="focus:ring-2 focus:ring-primary"
   onClick={onClose}
 >
   <X className="h-4 w-4" />
   <span className="sr-only">Close</span>
 </button>
-
-// ❌ Bad - Not accessible
-<div onClick={onClose}>
-  <X className="h-4 w-4" />
-</div>
-```
-
-### Responsive Design
-
-- **Mobile-first** - Design for mobile, enhance for desktop
-- **Breakpoints** - Use Tailwind's responsive prefixes consistently
-  - `sm:` - 640px
-  - `md:` - 768px
-  - `lg:` - 1024px
-  - `xl:` - 1280px
-  - `2xl:` - 1536px
-
-```typescript
-// ✅ Good - Progressive enhancement
-<div className={cn(
-  'grid grid-cols-1 gap-4',
-  'sm:grid-cols-2 sm:gap-6',
-  'lg:grid-cols-3 lg:gap-8',
-  'xl:grid-cols-4'
-)}>
 ```
 
 ### Loading States
 
-**Use skeleton loading for better perceived performance.** Skeleton screens provide visual placeholders that match the content structure, creating a smoother loading experience than spinners.
-
-#### Skeleton Component
+- **Use skeleton loading** for content (not spinners)
+- **Use inline spinners** for buttons
+- Match skeleton structure to actual content
 
 ```typescript
-// components/ui/skeleton.tsx
-import { cn } from '@/lib/utils';
-
-export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+// Skeleton for lists
+function ListSkeleton() {
   return (
-    <div
-      className={cn('animate-pulse rounded-md bg-muted', className)}
-      {...props}
-    />
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton key={i} className="h-12 w-full" />
+      ))}
+    </div>
   );
 }
+
+// Button with loading state
+<Button disabled={isLoading}>
+  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
+</Button>
 ```
 
-#### Button Loading States
+### Error & Empty States
 
-For buttons, use inline spinners:
-
-```typescript
-// ✅ GOOD - Icon button with loading state
-export function DeleteButton({ onDelete }: { onDelete: () => Promise<void> }) {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    await onDelete();
-    setIsDeleting(false);
-  };
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={handleDelete}
-      disabled={isDeleting}
-    >
-      {isDeleting ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Trash className="h-4 w-4" />
-      )}
-    </Button>
-  );
-}
-```
-
-#### Loading State Best Practices
-
-1. **Match content structure** - Skeleton should mirror the actual content layout
-2. **Use appropriate count** - Show 3-5 skeleton items for lists
-3. **Maintain spacing** - Keep the same padding and margins as real content
-4. **Avoid full-page spinners** - Use skeletons for better UX
-5. **Combine with suspense** - Use React Suspense boundaries where appropriate
+Provide clear, actionable messages with icons and helpful text.
 
 ```typescript
-// ❌ BAD - Generic spinner
-export function ConversationList() {
-  const { data, isLoading } = useConversations();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  return <div>{/* content */}</div>;
-}
-
-// ✅ GOOD - Skeleton matching content structure
-export function ConversationList() {
-  const { data, isLoading } = useConversations();
-
-  if (isLoading) {
-    return <ConversationListSkeleton />;
-  }
-
-  return <div>{/* content */}</div>;
-}
-```
-
-### Error Handling
-
-Provide clear, actionable error messages:
-
-```typescript
-// ✅ Good - Helpful error message
+// Error state
 {error && (
   <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-    <div className="flex items-start gap-3">
-      <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-      <div>
-        <h4 className="font-semibold text-destructive">Failed to join waitlist</h4>
-        <p className="text-sm text-muted-foreground mt-1">
-          {error.message || 'Please check your email and try again.'}
-        </p>
-      </div>
-    </div>
+    <AlertCircle className="h-5 w-5 text-destructive" />
+    <p>{error.message}</p>
   </div>
 )}
 
-// ❌ Bad - Generic error
-{error && <p className="text-red-500">Error!</p>}
-```
-
-### Empty States
-
-Design meaningful empty states:
-
-```typescript
-// ✅ Good
-export function ConversationList({ conversations }: ConversationListProps) {
-  if (conversations.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
-        <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-          Start your first Socratic inquiry session to begin your journey toward cognitive liberation.
-        </p>
-        <Button onClick={onCreateConversation}>
-          <Plus className="mr-2 h-4 w-4" />
-          Start Conversation
-        </Button>
-      </div>
-    );
-  }
-
-  return <div>{/* Render conversations */}</div>;
+// Empty state
+if (items.length === 0) {
+  return (
+    <div className="text-center py-12">
+      <Icon className="h-12 w-12 text-muted-foreground/50 mb-4" />
+      <h3>No items yet</h3>
+      <Button onClick={onCreate}>Create Item</Button>
+    </div>
+  );
 }
 ```
 
-## Custom Hooks
-
-### Hook Naming
-
-- **Prefix with `use`** - React convention
-- **Descriptive names** - `useWaitlist`, `useConversation`, `useAuth`
-- **Return objects** - For multiple values, return an object
-
-## Form Handling
-
-### React Hook Form + Zod
-
-Use React Hook Form with Zod for type-safe validation:
+## Forms with React Hook Form + Zod
 
 ```typescript
 'use client';
@@ -553,63 +177,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-
-// Schema definition
-const waitlistSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+const schema = z.object({
+  email: z.string().email('Invalid email'),
+  name: z.string().min(2, 'Name too short'),
 });
 
-type WaitlistFormData = z.infer<typeof waitlistSchema>;
+type FormData = z.infer<typeof schema>;
 
-export function WaitlistForm() {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<WaitlistFormData>({
-    resolver: zodResolver(waitlistSchema),
+export function Form() {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+    resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: WaitlistFormData) => {
-    // Handle form submission
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          {...register('name')}
-          placeholder="John Doe"
-          aria-invalid={errors.name ? 'true' : 'false'}
-        />
-        {errors.name && (
-          <p className="text-sm text-destructive mt-1">{errors.name.message}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          {...register('email')}
-          placeholder="john@example.com"
-          aria-invalid={errors.email ? 'true' : 'false'}
-        />
-        {errors.email && (
-          <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
-        )}
-      </div>
-
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? 'Joining...' : 'Join Waitlist'}
-      </Button>
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <Input {...register('email')} />
+      {errors.email && <p className="text-destructive">{errors.email.message}</p>}
+      <Button type="submit" disabled={isSubmitting}>Submit</Button>
     </form>
   );
 }
@@ -617,242 +201,109 @@ export function WaitlistForm() {
 
 ## API Integration with TanStack Query
 
-**MANDATORY: All API calls MUST use TanStack Query** for automatic caching, background refetching, and optimistic updates.
+**MANDATORY: All API calls MUST use TanStack Query** for caching and optimistic updates.
 
-### Installation
-
-```bash
-bun add @tanstack/react-query
-bun add -D @tanstack/react-query-devtools
-```
-
-### Setup TanStack Query
+### Setup
 
 ```typescript
 // app/providers.tsx
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState, type ReactNode } from 'react';
 
-export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000, // 1 minute
-            gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
-            retry: 1,
-            refetchOnWindowFocus: true,
-            refetchOnReconnect: true,
-          },
-          mutations: {
-            retry: 1,
-          },
-        },
-      })
-  );
+export function Providers({ children }) {
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: { staleTime: 60 * 1000, retry: 1 },
+      mutations: { retry: 1 },
+    },
+  }));
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 ```
 
-```typescript
-// app/layout.tsx
-import { Providers } from './providers';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
-      </body>
-    </html>
-  );
-}
-```
-
-### API Client Pattern
-
-Create centralized API client functions:
+### API Client
 
 ```typescript
 // lib/api/client.ts
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-    public code?: string,
-    public details?: unknown
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
-
 export async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
   });
 
   const data = await response.json();
-
-  if (!response.ok) {
-    throw new ApiError(
-      data.error?.message || 'An error occurred',
-      response.status,
-      data.error?.code
-    );
-  }
-
+  if (!response.ok) throw new Error(data.error?.message || 'API Error');
   return data.data;
 }
-```
 
-```typescript
 // lib/api/conversations.ts
-import type { Conversation, CreateConversationDto } from '@/types/conversation.types';
-import { fetchApi } from './client';
-
 export const conversationsApi = {
   getAll: () => fetchApi<Conversation[]>('/conversations'),
-
   getById: (id: string) => fetchApi<Conversation>(`/conversations/${id}`),
-
-  create: (dto: CreateConversationDto) =>
-    fetchApi<Conversation>('/conversations', {
-      method: 'POST',
-      body: JSON.stringify(dto),
-    }),
-
-  update: (id: string, dto: Partial<CreateConversationDto>) =>
-    fetchApi<Conversation>(`/conversations/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(dto),
-    }),
-
-  delete: (id: string) =>
-    fetchApi<void>(`/conversations/${id}`, {
-      method: 'DELETE',
-    }),
+  create: (dto) =>
+    fetchApi<Conversation>('/conversations', { method: 'POST', body: JSON.stringify(dto) }),
+  update: (id, dto) =>
+    fetchApi<Conversation>(`/conversations/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  delete: (id) => fetchApi<void>(`/conversations/${id}`, { method: 'DELETE' }),
 };
 ```
 
-### Query Hooks Pattern (MANDATORY)
-
-**All API interactions MUST use TanStack Query hooks.** Create custom hooks for each resource:
+### Query Hooks (MANDATORY)
 
 ```typescript
 // lib/hooks/use-conversations.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Conversation, CreateConversationDto } from '@/types/conversation.types';
-import { conversationsApi } from '@/lib/api/conversations';
 
-// Query Keys - Centralized for consistency
+// Query Keys Factory
 export const conversationKeys = {
   all: ['conversations'] as const,
   lists: () => [...conversationKeys.all, 'list'] as const,
-  list: (filters: string) => [...conversationKeys.lists(), { filters }] as const,
-  details: () => [...conversationKeys.all, 'detail'] as const,
-  detail: (id: string) => [...conversationKeys.details(), id] as const,
+  detail: (id: string) => [...conversationKeys.all, 'detail', id] as const,
 };
 
-// ✅ Fetch all conversations with automatic caching
+// Fetch all
 export function useConversations() {
   return useQuery({
     queryKey: conversationKeys.lists(),
     queryFn: conversationsApi.getAll,
-    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
   });
 }
 
-// ✅ Fetch single conversation with automatic caching
+// Fetch one
 export function useConversation(id: string) {
   return useQuery({
     queryKey: conversationKeys.detail(id),
     queryFn: () => conversationsApi.getById(id),
-    enabled: !!id, // Only fetch if id exists
-    staleTime: 60 * 1000, // Consider data fresh for 1 minute
+    enabled: !!id,
   });
 }
 
-// ✅ Create conversation with optimistic updates
+// Create with optimistic updates
 export function useCreateConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: conversationsApi.create,
-    onMutate: async (newConversation) => {
-      // Cancel outgoing refetches
+    onMutate: async (newItem) => {
       await queryClient.cancelQueries({ queryKey: conversationKeys.lists() });
-
-      // Snapshot previous value
-      const previousConversations = queryClient.getQueryData(conversationKeys.lists());
-
-      // Optimistically update cache
-      queryClient.setQueryData<Conversation[]>(conversationKeys.lists(), (old) => [
-        { ...newConversation, id: 'temp-id', createdAt: new Date().toISOString() } as Conversation,
-        ...(old || []),
-      ]);
-
-      return { previousConversations };
+      const previous = queryClient.getQueryData(conversationKeys.lists());
+      queryClient.setQueryData(conversationKeys.lists(), (old) => [newItem, ...(old || [])]);
+      return { previous };
     },
-    onError: (err, newConversation, context) => {
-      // Rollback on error
-      queryClient.setQueryData(conversationKeys.lists(), context?.previousConversations);
+    onError: (err, newItem, context) => {
+      queryClient.setQueryData(conversationKeys.lists(), context?.previous);
     },
-    onSuccess: (data) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
-      // Set the new conversation in cache
-      queryClient.setQueryData(conversationKeys.detail(data.id), data);
-    },
-  });
-}
-
-// ✅ Update conversation with optimistic updates
-export function useUpdateConversation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateConversationDto> }) =>
-      conversationsApi.update(id, data),
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: conversationKeys.detail(id) });
-
-      const previousConversation = queryClient.getQueryData(conversationKeys.detail(id));
-
-      queryClient.setQueryData<Conversation>(conversationKeys.detail(id), (old) => ({
-        ...old!,
-        ...data,
-      }));
-
-      return { previousConversation };
-    },
-    onError: (err, { id }, context) => {
-      queryClient.setQueryData(conversationKeys.detail(id), context?.previousConversation);
-    },
-    onSuccess: (data, { id }) => {
-      queryClient.setQueryData(conversationKeys.detail(id), data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
     },
   });
 }
 
-// ✅ Delete conversation with optimistic updates
+// Delete with optimistic updates
 export function useDeleteConversation() {
   const queryClient = useQueryClient();
 
@@ -860,84 +311,46 @@ export function useDeleteConversation() {
     mutationFn: conversationsApi.delete,
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: conversationKeys.lists() });
-
-      const previousConversations = queryClient.getQueryData(conversationKeys.lists());
-
-      queryClient.setQueryData<Conversation[]>(
-        conversationKeys.lists(),
-        (old) => old?.filter((conv) => conv.id !== id) || []
+      const previous = queryClient.getQueryData(conversationKeys.lists());
+      queryClient.setQueryData(conversationKeys.lists(), (old) =>
+        old?.filter((item) => item.id !== id)
       );
-
-      return { previousConversations };
+      return { previous };
     },
     onError: (err, id, context) => {
-      queryClient.setQueryData(conversationKeys.lists(), context?.previousConversations);
+      queryClient.setQueryData(conversationKeys.lists(), context?.previous);
     },
-    onSuccess: (_, id) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
-      queryClient.removeQueries({ queryKey: conversationKeys.detail(id) });
     },
   });
 }
 ```
 
-### Using Query Hooks in Components
+### Using Query Hooks
 
 ```typescript
-// components/conversation/conversation-list.tsx
 'use client';
 
 import { useConversations, useDeleteConversation } from '@/lib/hooks/use-conversations';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Trash } from 'lucide-react';
-
-function ConversationListSkeleton() {
-  return (
-    <div className="space-y-4">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
-          <Skeleton className="h-6 w-[250px]" />
-          <Skeleton className="h-8 w-8 rounded-md" />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export function ConversationList() {
-  const { data: conversations, isLoading, error } = useConversations();
+  const { data, isLoading, error } = useConversations();
   const deleteMutation = useDeleteConversation();
 
-  if (isLoading) {
-    return <ConversationListSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-destructive">Failed to load conversations</p>
-        <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
-      </div>
-    );
-  }
+  if (isLoading) return <ListSkeleton />;
+  if (error) return <ErrorMessage error={error} />;
 
   return (
-    <div className="space-y-4">
-      {conversations?.map((conversation) => (
-        <div key={conversation.id} className="flex items-center justify-between p-4 border rounded-lg">
-          <h3>{conversation.title}</h3>
+    <div>
+      {data?.map((item) => (
+        <div key={item.id}>
+          <h3>{item.title}</h3>
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => deleteMutation.mutate(conversation.id)}
+            onClick={() => deleteMutation.mutate(item.id)}
             disabled={deleteMutation.isPending}
           >
-            {deleteMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash className="h-4 w-4" />
-            )}
+            {deleteMutation.isPending ? <Loader2 className="animate-spin" /> : <Trash />}
           </Button>
         </div>
       ))}
@@ -946,182 +359,46 @@ export function ConversationList() {
 }
 ```
 
-```typescript
-// components/conversation/create-conversation-form.tsx
-'use client';
-
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useCreateConversation } from '@/lib/hooks/use-conversations';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/use-toast';
-
-const schema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  technique: z.enum(['elenchus', 'maieutic', 'dialectic']),
-});
-
-type FormData = z.infer<typeof schema>;
-
-export function CreateConversationForm() {
-  const { toast } = useToast();
-  const createMutation = useCreateConversation();
-
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
-
-  const onSubmit = async (data: FormData) => {
-    try {
-      await createMutation.mutateAsync(data);
-      toast({
-        title: 'Success',
-        description: 'Conversation created successfully',
-      });
-      reset();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create conversation',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <Input {...register('title')} placeholder="Conversation title" />
-      {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
-
-      <Button type="submit" disabled={createMutation.isPending}>
-        {createMutation.isPending ? 'Creating...' : 'Create Conversation'}
-      </Button>
-    </form>
-  );
-}
-```
-
-### Advanced Caching Patterns
-
-#### Prefetching Data
-
-Prefetch data before navigation for instant page loads:
+### Advanced Patterns
 
 ```typescript
-'use client';
-
-import { useQueryClient } from '@tanstack/react-query';
-import { conversationKeys } from '@/lib/hooks/use-conversations';
-import { conversationsApi } from '@/lib/api/conversations';
-import Link from 'next/link';
-
-export function ConversationLink({ id, title }: { id: string; title: string }) {
+// Prefetching on hover
+export function ItemLink({ id, title }) {
   const queryClient = useQueryClient();
 
-  const prefetchConversation = () => {
+  const prefetch = () => {
     queryClient.prefetchQuery({
-      queryKey: conversationKeys.detail(id),
-      queryFn: () => conversationsApi.getById(id),
-      staleTime: 60 * 1000,
+      queryKey: itemKeys.detail(id),
+      queryFn: () => api.getById(id),
     });
   };
 
-  return (
-    <Link
-      href={`/conversations/${id}`}
-      onMouseEnter={prefetchConversation}
-      onFocus={prefetchConversation}
-    >
-      {title}
-    </Link>
-  );
+  return <Link href={`/items/${id}`} onMouseEnter={prefetch}>{title}</Link>;
 }
-```
 
-#### Infinite Queries (Pagination)
-
-For infinite scroll or load-more patterns:
-
-```typescript
-// lib/hooks/use-conversations.ts
-import { useInfiniteQuery } from '@tanstack/react-query';
-
-export function useInfiniteConversations() {
+// Infinite scroll
+export function useInfiniteItems() {
   return useInfiniteQuery({
-    queryKey: conversationKeys.lists(),
-    queryFn: ({ pageParam = 1 }) =>
-      fetchApi<{ data: Conversation[]; nextPage: number | null }>(
-        `/conversations?page=${pageParam}&limit=20`
-      ),
+    queryKey: itemKeys.lists(),
+    queryFn: ({ pageParam = 1 }) => api.getPage(pageParam),
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
   });
 }
-```
 
-```typescript
-// Component using infinite scroll
-'use client';
-
-import { useInfiniteConversations } from '@/lib/hooks/use-conversations';
-import { useInView } from 'react-intersection-observer';
-import { useEffect } from 'react';
-
-export function InfiniteConversationList() {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteConversations();
-
-  const { ref, inView } = useInView();
-
-  useEffect(() => {
-    if (inView && hasNextPage) {
-      fetchNextPage();
-    }
-  }, [inView, hasNextPage, fetchNextPage]);
-
-  return (
-    <div>
-      {data?.pages.map((page) =>
-        page.data.map((conversation) => (
-          <div key={conversation.id}>{conversation.title}</div>
-        ))
-      )}
-      <div ref={ref}>{isFetchingNextPage && 'Loading more...'}</div>
-    </div>
-  );
-}
-```
-
-#### Dependent Queries
-
-Fetch data that depends on other queries:
-
-```typescript
-// Fetch conversation, then fetch messages
-export function useConversationWithMessages(conversationId: string) {
-  const conversationQuery = useConversation(conversationId);
-
-  const messagesQuery = useQuery({
-    queryKey: ['messages', conversationId],
-    queryFn: () => fetchApi(`/conversations/${conversationId}/messages`),
-    enabled: !!conversationQuery.data, // Only fetch when conversation is loaded
+// Dependent queries
+export function useItemWithDetails(id: string) {
+  const itemQuery = useItem(id);
+  const detailsQuery = useQuery({
+    queryKey: ['details', id],
+    queryFn: () => api.getDetails(id),
+    enabled: !!itemQuery.data,
   });
-
-  return {
-    conversation: conversationQuery.data,
-    messages: messagesQuery.data,
-    isLoading: conversationQuery.isLoading || messagesQuery.isLoading,
-  };
+  return { item: itemQuery.data, details: detailsQuery.data };
 }
 ```
 
-### TanStack Query Best Practices
+### TanStack Query Guidelines
 
 1. **Always use query keys factory** - Centralize query keys for consistency and easy invalidation
 2. **Implement optimistic updates** - Better UX with instant feedback before server response
@@ -1786,138 +1063,6 @@ export function formatRelativeTime(timestamp: string): string {
 - SEO metadata added (if new page)
 - Code follows ESLint rules
 - Imports are properly organized
-
-## Common Patterns
-
-### Modal/Dialog Pattern
-
-```typescript
-'use client';
-
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-
-export function CreateConversationDialog() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>New Conversation</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create New Conversation</DialogTitle>
-          <DialogDescription>
-            Start a new Socratic inquiry session
-          </DialogDescription>
-        </DialogHeader>
-        {/* Form content */}
-      </DialogContent>
-    </Dialog>
-  );
-}
-```
-
-### Dropdown Menu Pattern
-
-```typescript
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash } from 'lucide-react';
-
-export function ConversationActions({ conversationId }: { conversationId: string }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleEdit(conversationId)}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => handleDelete(conversationId)}
-          className="text-destructive"
-        >
-          <Trash className="mr-2 h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-```
-
-### Toast Notification Pattern
-
-```typescript
-'use client';
-
-import { useToast } from '@/components/ui/use-toast';
-
-export function ConversationForm() {
-  const { toast } = useToast();
-
-  const handleSubmit = async () => {
-    try {
-      await createConversation();
-
-      toast({
-        title: 'Success',
-        description: 'Conversation created successfully',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create conversation',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  return <form onSubmit={handleSubmit}>{/* Form fields */}</form>;
-}
-```
-
-## Performance Monitoring
-
-### Web Vitals
-
-Monitor Core Web Vitals:
-
-```typescript
-// app/layout.tsx
-import { SpeedInsights } from '@vercel/speed-insights/next';
-import { Analytics } from '@vercel/analytics/react';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        {children}
-        <SpeedInsights />
-        <Analytics />
-      </body>
-    </html>
-  );
-}
-```
 
 ---
 
