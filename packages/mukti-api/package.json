@@ -32,6 +32,7 @@
     "@nestjs/swagger": "^11.0.2",
     "@openrouter/sdk": "^0.1.27",
     "@scalar/nestjs-api-reference": "^1.0.8",
+    "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.64.1",
     "class-transformer": "^0.5.1",
