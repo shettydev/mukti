@@ -1,10 +1,17 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
+import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 
+import {
+  RefreshToken,
+  RefreshTokenSchema,
+} from '../../schemas/refresh-token.schema';
+import { EmailService } from './services/email.service';
 import { JwtTokenService } from './services/jwt.service';
 import { PasswordService } from './services/password.service';
+import { TokenService } from './services/token.service';
 
 /**
  * Authentication and Authorization Module
@@ -27,7 +34,14 @@ import { PasswordService } from './services/password.service';
  */
 @Module({
   controllers: [],
-  exports: [JwtModule, PassportModule, PasswordService, JwtTokenService],
+  exports: [
+    JwtModule,
+    PassportModule,
+    PasswordService,
+    JwtTokenService,
+    TokenService,
+    EmailService,
+  ],
   imports: [
     // Passport for authentication strategies
     PassportModule.register({
@@ -48,8 +62,13 @@ import { PasswordService } from './services/password.service';
       }),
     }),
 
+    // Mongoose models
+    MongooseModule.forFeature([
+      { name: RefreshToken.name, schema: RefreshTokenSchema },
+    ]),
+
     ConfigModule,
   ],
-  providers: [PasswordService, JwtTokenService],
+  providers: [PasswordService, JwtTokenService, TokenService, EmailService],
 })
 export class AuthModule {}
