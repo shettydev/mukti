@@ -14,7 +14,7 @@ const scopes = [
   'scripts',
 
   // Documentation
-  'docs',
+  'architecture',
   'readme',
 
   // Database & cache
