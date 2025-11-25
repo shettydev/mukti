@@ -24,7 +24,7 @@ NestJS powers the core API layer, orchestrating business logic and request handl
 
 ### External Services
 
-Supabase provides authentication and PostgreSQL database management for user data and external-facing operations.
+MongoDB serves as the primary operational database, and authentication is handled directly within NestJS (JWT + refresh tokens backed by MongoDB user records).
 
 ### Application Layer
 
@@ -32,7 +32,7 @@ The main application logic runs on NestJS deployed within Kubernetes clusters, e
 
 ### Infrastructure Services
 
-- **PostgreSQL**: Primary relational database for persistent data storage
+- **MongoDB**: Primary document database for persistent data storage
 - **Redis**: In-memory cache for session management and performance optimization
 - **Object Storage (S3)**: Handles file uploads and media storage
 
@@ -43,4 +43,4 @@ The main application logic runs on NestJS deployed within Kubernetes clusters, e
 
 ## Data Flow
 
-Requests flow from clients through the CDN, reaching the NestJS core which coordinates between Supabase for authentication, the Kubernetes-deployed application layer, and underlying infrastructure services. External integrations handle specialized operations like payments and email delivery.
+Requests flow from clients through the CDN into the NestJS core, which performs authentication itself and coordinates with MongoDB for persistence, Redis for caching, and the Kubernetes-deployed application layer. External integrations handle specialized operations like payments and email delivery.
