@@ -17,6 +17,7 @@ import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { TokenResponseDto } from '../dto/token-response.dto';
+import { VerifyEmailDto } from '../dto/verify-email.dto';
 import { EmailService } from './email.service';
 import { JwtTokenService } from './jwt.service';
 import { PasswordService } from './password.service';
@@ -402,6 +403,69 @@ export class AuthService {
   }
 
   /**
+   * Resends the email verification email to a user.
+   *
+   * @param email - The user's email address
+   * @returns Promise that resolves when verification email is sent
+   * @throws {NotFoundException} If user with email doesn't exist
+   * @throws {BadRequestException} If email is already verified
+   *
+   * @example
+   * ```typescript
+   * await authService.resendVerification('user@example.com');
+   * ```
+   */
+  async resendVerification(email: string): Promise<void> {
+    this.logger.log(`Resend verification requested for: ${email}`);
+
+    // Find user by email
+    const user = await this.userModel.findOne({ email });
+
+    if (!user) {
+      this.logger.warn(`Resend verification failed: User ${email} not found`);
+      throw new NotFoundException('User with this email does not exist');
+    }
+
+    // Check if email is already verified
+    if (user.emailVerified) {
+      this.logger.warn(
+        `Resend verification failed: Email ${email} already verified`,
+      );
+      throw new BadRequestException('Email is already verified');
+    }
+
+    // Generate new verification token
+    const verificationToken = randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Update user with new token
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationExpires = verificationExpires;
+    await user.save();
+
+    this.logger.log(
+      `New verification token generated for user ${user._id.toString()}`,
+    );
+
+    // Send verification email
+    try {
+      await this.emailService.sendVerificationEmail(email, verificationToken);
+      this.logger.log(`Verification email resent to ${email}`);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(
+        `Failed to resend verification email: ${error.message}`,
+        error.stack,
+      );
+      // Clear the token if email fails
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+      await user.save();
+      throw new Error('Failed to send verification email');
+    }
+  }
+
+  /**
    * Resets a user's password using a valid reset token.
    *
    * @param dto - Reset password request data with token and new password
@@ -473,6 +537,61 @@ export class AuthService {
     await this.tokenService.revokeAllUserTokens(user._id);
     this.logger.log(
       `All sessions invalidated for user ${user._id.toString()} after password reset`,
+    );
+  }
+
+  /**
+   * Verifies a user's email address using a verification token.
+   *
+   * @param dto - Email verification request data with token
+   * @returns Promise that resolves when email is verified
+   * @throws {BadRequestException} If token is invalid or expired
+   *
+   * @example
+   * ```typescript
+   * await authService.verifyEmail({
+   *   token: 'verification-token-string'
+   * });
+   * ```
+   */
+  async verifyEmail(dto: VerifyEmailDto): Promise<void> {
+    this.logger.log('Email verification attempt with token');
+
+    // Find user by verification token
+    const user = await this.userModel.findOne({
+      emailVerificationToken: dto.token,
+    });
+
+    if (!user) {
+      this.logger.warn('Email verification failed: Invalid token');
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    // Check if email is already verified
+    if (user.emailVerified) {
+      this.logger.log(`Email already verified for user ${user._id.toString()}`);
+      return; // Idempotent - don't throw error
+    }
+
+    // Check if token has expired
+    if (
+      !user.emailVerificationExpires ||
+      user.emailVerificationExpires < new Date()
+    ) {
+      this.logger.warn(
+        `Email verification failed: Token expired for user ${user._id.toString()}`,
+      );
+      throw new BadRequestException('Verification token has expired');
+    }
+
+    // Update user email verification status
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    this.logger.log(
+      `Email verified successfully for user ${user._id.toString()}`,
     );
   }
 }
