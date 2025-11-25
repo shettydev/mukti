@@ -8,10 +8,17 @@ import {
   RefreshToken,
   RefreshTokenSchema,
 } from '../../schemas/refresh-token.schema';
+import { Session, SessionSchema } from '../../schemas/session.schema';
+import { User, UserSchema } from '../../schemas/user.schema';
+import { EmailVerifiedGuard } from './guards/email-verified.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { EmailService } from './services/email.service';
 import { JwtTokenService } from './services/jwt.service';
 import { PasswordService } from './services/password.service';
+import { SessionService } from './services/session.service';
 import { TokenService } from './services/token.service';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 /**
  * Authentication and Authorization Module
@@ -40,7 +47,11 @@ import { TokenService } from './services/token.service';
     PasswordService,
     JwtTokenService,
     TokenService,
+    SessionService,
     EmailService,
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerifiedGuard,
   ],
   imports: [
     // Passport for authentication strategies
@@ -65,10 +76,22 @@ import { TokenService } from './services/token.service';
     // Mongoose models
     MongooseModule.forFeature([
       { name: RefreshToken.name, schema: RefreshTokenSchema },
+      { name: Session.name, schema: SessionSchema },
+      { name: User.name, schema: UserSchema },
     ]),
 
     ConfigModule,
   ],
-  providers: [PasswordService, JwtTokenService, TokenService, EmailService],
+  providers: [
+    PasswordService,
+    JwtTokenService,
+    TokenService,
+    SessionService,
+    EmailService,
+    JwtStrategy,
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerifiedGuard,
+  ],
 })
 export class AuthModule {}
