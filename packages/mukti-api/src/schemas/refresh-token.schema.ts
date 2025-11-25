@@ -16,16 +16,16 @@ export class RefreshToken {
   @Prop({ type: String })
   deviceInfo?: string;
 
-  @Prop({ index: true, required: true })
+  @Prop({ index: true, required: true, type: Date })
   expiresAt: Date;
 
   @Prop({ type: String })
   ipAddress?: string;
 
-  @Prop({ default: false, index: true })
+  @Prop({ default: false, index: true, type: Boolean })
   isRevoked: boolean;
 
-  @Prop({ index: true, required: true, unique: true })
+  @Prop({ index: true, required: true, type: String, unique: true })
   token: string;
 
   updatedAt: Date;

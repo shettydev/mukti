@@ -25,6 +25,7 @@ export class User {
     lowercase: true,
     required: true,
     trim: true,
+    type: String,
     unique: true,
   })
   email: string;
@@ -35,16 +36,16 @@ export class User {
   @Prop({ type: String })
   emailVerificationToken?: string;
 
-  @Prop({ default: false })
+  @Prop({ default: false, type: Boolean })
   emailVerified: boolean;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ required: true, trim: true, type: String })
   firstName: string;
 
   @Prop({ type: String })
   googleId?: string;
 
-  @Prop({ default: true, index: true })
+  @Prop({ default: true, index: true, type: Boolean })
   isActive: boolean;
 
   @Prop({ type: Date })
@@ -56,10 +57,10 @@ export class User {
   @Prop({ type: String })
   lastLoginIp?: string;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ required: true, trim: true, type: String })
   lastName: string;
 
-  @Prop({ required: false, select: false })
+  @Prop({ required: false, select: false, type: String })
   password?: string; // Optional for OAuth users
 
   @Prop({ type: Date })
