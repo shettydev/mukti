@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
+import { JwtTokenService } from './services/jwt.service';
 import { PasswordService } from './services/password.service';
 
 /**
@@ -26,7 +27,7 @@ import { PasswordService } from './services/password.service';
  */
 @Module({
   controllers: [],
-  exports: [JwtModule, PassportModule, PasswordService],
+  exports: [JwtModule, PassportModule, PasswordService, JwtTokenService],
   imports: [
     // Passport for authentication strategies
     PassportModule.register({
@@ -42,13 +43,13 @@ import { PasswordService } from './services/password.service';
         secret:
           configService.get<string>('JWT_SECRET') ?? 'development-secret-key',
         signOptions: {
-          expiresIn: configService.get<number>('JWT_ACCESS_EXPIRATION') ?? 900, // 15 min
+          expiresIn: configService.get<number>('JWT_EXPIRES_IN') ?? '15m',
         },
       }),
     }),
 
     ConfigModule,
   ],
-  providers: [PasswordService],
+  providers: [PasswordService, JwtTokenService],
 })
 export class AuthModule {}
