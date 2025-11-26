@@ -6,6 +6,13 @@ import { ConversationService } from '../services/conversation.service';
 import { MessageService } from '../services/message.service';
 import { QueueService } from '../services/queue.service';
 
+// Avoid importing the ESM build of @openrouter/sdk during tests
+jest.mock('@openrouter/sdk', () => ({
+  OpenRouter: jest.fn().mockImplementation(() => ({
+    chatCompletions: { create: jest.fn() },
+  })),
+}));
+
 describe('ConversationController', () => {
   let controller: ConversationController;
   let conversationService: jest.Mocked<ConversationService>;
