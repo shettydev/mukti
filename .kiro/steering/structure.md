@@ -25,7 +25,10 @@ NestJS backend implementing the Thinking Workspace paradigm.
 packages/mukti-api/
 ├── src/
 │   ├── modules/            # Feature modules
-│   │   └── database/       # Database configuration
+│   │   ├── database/       # Database configuration
+│   │   └── feat-abc/
+│   │       └──__tests__/    # Tests
+│   │
 │   ├── schemas/            # MongoDB schemas (Mongoose)
 │   │   ├── user.schema.ts
 │   │   ├── conversation.schema.ts
@@ -125,6 +128,7 @@ mukti-mcp-server/
 ## Module Organization
 
 Follow NestJS conventions:
+
 - Group related features in modules under `src/modules/`
 - Keep schemas in `src/schemas/`
 - Use dependency injection for services
