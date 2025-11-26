@@ -10,6 +10,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
+jest.mock('uuid', () => ({
+  v7: jest.fn(() => 'test-request-id'),
+}));
+
 import { HttpExceptionFilter } from '../http-exception.filter';
 
 describe('HttpExceptionFilter', () => {

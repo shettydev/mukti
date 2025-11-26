@@ -355,7 +355,8 @@ describe('SessionService - Property 21: Session Revocation', () => {
         );
 
         // Verify timestamp is current (within reasonable range)
-        const updateCall = (sessionModel.updateOne as jest.Mock).mock.calls[0];
+        const updateCalls = (sessionModel.updateOne as jest.Mock).mock.calls;
+        const updateCall = updateCalls[updateCalls.length - 1];
         const timestamp = updateCall[1].$set.lastActivityAt.getTime();
         expect(timestamp).toBeGreaterThanOrEqual(beforeUpdate);
         expect(timestamp).toBeLessThanOrEqual(afterUpdate);
