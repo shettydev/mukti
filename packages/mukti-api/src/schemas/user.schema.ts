@@ -22,36 +22,58 @@ export class User {
     lowercase: true,
     required: true,
     trim: true,
+    type: String,
     unique: true,
   })
   email: string;
 
+  @Prop({ type: Date })
+  emailVerificationExpires?: Date;
+
   @Prop({ type: String })
   emailVerificationToken?: string;
 
-  @Prop({ type: Date })
-  emailVerifiedAt?: Date;
+  @Prop({ default: false, type: Boolean })
+  emailVerified: boolean;
 
-  @Prop({ default: true, index: true })
+  @Prop({ required: true, trim: true, type: String })
+  firstName: string;
+
+  @Prop({ type: String })
+  googleId?: string;
+
+  @Prop({ default: true, index: true, type: Boolean })
   isActive: boolean;
 
   @Prop({ type: Date })
   lastLoginAt?: Date;
 
-  @Prop({ required: true, trim: true })
-  name: string;
+  @Prop({ type: String })
+  lastLoginDevice?: string;
 
-  @Prop({ required: true })
-  passwordHash: string;
+  @Prop({ type: String })
+  lastLoginIp?: string;
+
+  @Prop({ required: true, trim: true, type: String })
+  lastName: string;
+
+  @Prop({ required: false, select: false, type: String })
+  password?: string; // Optional for OAuth users
 
   @Prop({ type: Date })
-  passwordResetExpiresAt?: Date;
+  passwordResetExpires?: Date;
 
   @Prop({ type: String })
   passwordResetToken?: string;
 
+  @Prop({ type: String })
+  phone?: string;
+
   @Prop({ default: {}, type: Object })
   preferences: UserPreferences;
+
+  @Prop({ default: [], type: [String] })
+  refreshTokens: string[];
 
   @Prop({
     default: 'user',
@@ -60,8 +82,10 @@ export class User {
     type: String,
   })
   role: string;
+
   @Prop({ ref: 'Subscription', type: Types.ObjectId })
   subscriptionId?: Types.ObjectId;
+
   updatedAt: Date;
 }
 
@@ -72,6 +96,7 @@ UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ createdAt: -1, isActive: 1, role: 1 });
 UserSchema.index({ emailVerificationToken: 1 }, { sparse: true });
 UserSchema.index({ passwordResetToken: 1 }, { sparse: true });
+UserSchema.index({ googleId: 1 }, { sparse: true });
 
 // Virtual for subscription population
 UserSchema.virtual('subscription', {
@@ -84,9 +109,10 @@ UserSchema.virtual('subscription', {
 // Ensure virtuals are included in JSON
 UserSchema.set('toJSON', {
   transform: (_, ret: any) => {
-    delete ret.passwordHash;
+    delete ret.password;
     delete ret.emailVerificationToken;
     delete ret.passwordResetToken;
+    delete ret.refreshTokens;
     delete ret.__v;
     return ret;
   },
@@ -95,9 +121,10 @@ UserSchema.set('toJSON', {
 
 UserSchema.set('toObject', {
   transform: (_, ret: any) => {
-    delete ret.passwordHash;
+    delete ret.password;
     delete ret.emailVerificationToken;
     delete ret.passwordResetToken;
+    delete ret.refreshTokens;
     delete ret.__v;
     return ret;
   },

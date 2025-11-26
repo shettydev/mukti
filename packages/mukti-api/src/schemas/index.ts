@@ -2,8 +2,10 @@ export * from './archived-message.schema';
 export * from './conversation.schema';
 export * from './daily-usage-aggregate.schema';
 export * from './rate-limit.schema';
+export * from './refresh-token.schema';
 export * from './request-queue.schema';
 export * from './resource.schema';
+export * from './session.schema';
 export * from './shared-link.schema';
 export * from './subscription.schema';
 export * from './technique.schema';
@@ -22,8 +24,10 @@ import {
   DailyUsageAggregateSchema,
 } from './daily-usage-aggregate.schema';
 import { RateLimit, RateLimitSchema } from './rate-limit.schema';
+import { RefreshToken, RefreshTokenSchema } from './refresh-token.schema';
 import { RequestQueue, RequestQueueSchema } from './request-queue.schema';
 import { Resource, ResourceSchema } from './resource.schema';
+import { Session, SessionSchema } from './session.schema';
 import { SharedLink, SharedLinkSchema } from './shared-link.schema';
 import { Subscription, SubscriptionSchema } from './subscription.schema';
 import { Technique, TechniqueSchema } from './technique.schema';
@@ -46,4 +50,6 @@ export const ALL_SCHEMAS = [
   { name: DailyUsageAggregate.name, schema: DailyUsageAggregateSchema },
   { name: RequestQueue.name, schema: RequestQueueSchema },
   { name: RateLimit.name, schema: RateLimitSchema },
+  { name: RefreshToken.name, schema: RefreshTokenSchema },
+  { name: Session.name, schema: SessionSchema },
 ];
