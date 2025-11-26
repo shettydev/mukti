@@ -11,6 +11,7 @@ import { AuthService } from '../../auth.service';
 import { EmailService } from '../../email.service';
 import { JwtTokenService } from '../../jwt.service';
 import { PasswordService } from '../../password.service';
+import { RateLimitService } from '../../rate-limit.service';
 import { TokenService } from '../../token.service';
 
 /**
@@ -89,6 +90,11 @@ describe('AuthService - Password Reset Properties', () => {
       sendVerificationEmail: jest.fn(),
     };
 
+    const mockRateLimitService = {
+      checkRateLimit: jest.fn().mockResolvedValue(undefined),
+      resetRateLimit: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -111,6 +117,10 @@ describe('AuthService - Password Reset Properties', () => {
         {
           provide: EmailService,
           useValue: mockEmailService,
+        },
+        {
+          provide: RateLimitService,
+          useValue: mockRateLimitService,
         },
       ],
     }).compile();
