@@ -3,10 +3,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
 import * as fc from 'fast-check';
 
-import { Subscription } from '../../../schemas/subscription.schema';
-import { Technique } from '../../../schemas/technique.schema';
-import { User } from '../../../schemas/user.schema';
-import { SeedService } from './seed.service';
+import { Subscription } from '../../../../schemas/subscription.schema';
+import { Technique } from '../../../../schemas/technique.schema';
+import { User } from '../../../../schemas/user.schema';
+import { SeedService } from '../seed.service';
 
 describe('SeedService', () => {
   let service: SeedService;

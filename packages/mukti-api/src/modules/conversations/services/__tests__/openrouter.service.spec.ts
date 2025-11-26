@@ -6,10 +6,10 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
-import type { RecentMessage } from '../../../schemas/conversation.schema';
-import type { TechniqueTemplate } from '../../../schemas/technique.schema';
+import type { RecentMessage } from '../../../../schemas/conversation.schema';
+import type { TechniqueTemplate } from '../../../../schemas/technique.schema';
 
-import { OpenRouterService } from './openrouter.service';
+import { OpenRouterService } from '../openrouter.service';
 
 describe('OpenRouterService', () => {
   let service: OpenRouterService;

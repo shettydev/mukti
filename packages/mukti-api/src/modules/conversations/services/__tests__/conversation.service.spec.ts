@@ -8,10 +8,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 import { Types } from 'mongoose';
 
-import { ArchivedMessage } from '../../../schemas/archived-message.schema';
-import { Conversation } from '../../../schemas/conversation.schema';
-import { Technique } from '../../../schemas/technique.schema';
-import { ConversationService } from './conversation.service';
+import { ArchivedMessage } from '../../../../schemas/archived-message.schema';
+import { Conversation } from '../../../../schemas/conversation.schema';
+import { Technique } from '../../../../schemas/technique.schema';
+import { ConversationService } from '../conversation.service';
 
 describe('ConversationService', () => {
   let service: ConversationService;

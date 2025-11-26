@@ -7,12 +7,12 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
-import { Conversation } from '../../../schemas/conversation.schema';
-import { Technique } from '../../../schemas/technique.schema';
-import { UsageEvent } from '../../../schemas/usage-event.schema';
-import { MessageService } from './message.service';
-import { OpenRouterService } from './openrouter.service';
-import { QueueService } from './queue.service';
+import { Conversation } from '../../../../schemas/conversation.schema';
+import { Technique } from '../../../../schemas/technique.schema';
+import { UsageEvent } from '../../../../schemas/usage-event.schema';
+import { MessageService } from '../message.service';
+import { OpenRouterService } from '../openrouter.service';
+import { QueueService } from '../queue.service';
 
 describe('QueueService', () => {
   interface MockQueue {

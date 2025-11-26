@@ -1,4 +1,4 @@
-# Project Structure
+# Project Structure Guidelines
 
 ## Monorepo Organization
 
@@ -6,126 +6,179 @@ Mukti uses an Nx-powered monorepo with workspace packages under `packages/`.
 
 ```
 mukti/
-├── packages/
-│   ├── mukti-api/          # NestJS backend API
-│   ├── mukti-web/          # Next.js landing page
-│   └── mukti-docs/         # Architecture documentation
-├── mukti-mcp-server/       # MCP server (separate from workspace)
-├── scripts/                # Build and utility scripts
-├── .husky/                 # Git hooks
-├── .nx/                    # Nx cache and workspace data
-└── .kiro/                  # Kiro AI steering rules
+├── packages/           # Workspace packages
+│   ├── mukti-api/      # NestJS backend API
+│   ├── mukti-web/      # Next.js frontend
+│   └── mukti-docs/     # Documentation
+├── mukti-mcp-server/   # MCP server (standalone)
+├── scripts/            # Build and utility scripts
+├── .husky/             # Git hooks
+└── .kiro/              # Kiro AI configuration
+    ├── specs/          # Feature specifications
+    └── steering/       # AI guidance rules
 ```
 
-## Package: mukti-api
+## Backend Structure (mukti-api)
 
-NestJS backend implementing the Thinking Workspace paradigm.
+### Top-Level Organization
 
 ```
 packages/mukti-api/
 ├── src/
-│   ├── modules/            # Feature modules
-│   │   └── database/       # Database configuration
-│   ├── schemas/            # MongoDB schemas (Mongoose)
-│   │   ├── user.schema.ts
-│   │   ├── conversation.schema.ts
-│   │   ├── technique.schema.ts
-│   │   └── ...
-│   ├── app.module.ts       # Root module
-│   ├── app.controller.ts   # Root controller
-│   ├── app.service.ts      # Root service
-│   └── main.ts             # Application entry point
-├── test/                   # E2E tests
-└── dist/                   # Build output
+│   ├── common/         # Shared utilities (decorators, filters, guards, pipes, utils)
+│   ├── config/         # Configuration files
+│   ├── modules/        # Feature modules (see below)
+│   ├── schemas/        # MongoDB schemas (centralized)
+│   ├── app.module.ts   # Root module
+│   └── main.ts         # Application entry point
+├── test/               # E2E tests
+└── .env.example        # Environment template
 ```
 
-### Key Schemas
+### Feature Module Structure
 
-- **user.schema.ts**: User accounts and profiles
-- **conversation.schema.ts**: Thinking session conversations
-- **technique.schema.ts**: Socratic questioning techniques
-- **resource.schema.ts**: Curated learning resources
-- **usage-event.schema.ts**: Analytics and tracking
-- **subscription.schema.ts**: User subscriptions
-- **rate-limit.schema.ts**: API rate limiting
+Each feature module should follow this structure:
 
-## Package: mukti-web
+```
+src/modules/{feature}/
+├── dto/                           # Data Transfer Objects
+│   ├── create-{feature}.dto.ts    # Creation DTO
+│   ├── update-{feature}.dto.ts    # Update DTO
+│   ├── {feature}-response.dto.ts  # Response DTO
+│   ├── {feature}.swagger.ts       # Swagger documentation (abstracted)
+│   └── index.ts                   # Barrel export
+├── guards/                        # Feature-specific guards (optional)
+│   └── __tests__/
+│       └── properties/            # Property-based tests
+├── decorators/                    # Feature-specific decorators (optional)
+├── strategies/                    # Passport strategies (auth only)
+├── services/                      # Business logic (if multiple services)
+│   ├── {feature}.service.ts
+│   ├── {other}.service.ts
+│   └── __tests__/
+│       ├── *.spec.ts              # Unit tests
+│       └── properties/            # Property-based tests
+├── {feature}.controller.ts        # HTTP endpoints
+├── {feature}.service.ts           # Main service (if single service)
+├── {feature}.module.ts            # Module definition
+└── README.md                      # Feature documentation (optional)
+```
 
-Next.js 15 frontend with App Router.
+### Naming Conventions
+
+- **Controllers**: `{feature}.controller.ts`
+- **Services**: `{feature}.service.ts` or `{specific-name}.service.ts`
+- **Modules**: `{feature}.module.ts`
+- **DTOs**: `{action}-{feature}.dto.ts` (e.g., `create-user.dto.ts`)
+- **Response DTOs**: `{feature}-response.dto.ts`
+- **Swagger Docs**: `{feature}.swagger.ts` (in dto folder)
+- **Schemas**: `{entity}.schema.ts` (in `src/schemas/`)
+- **Guards**: `{name}.guard.ts`
+- **Strategies**: `{name}.strategy.ts`
+- **Decorators**: `{name}.decorator.ts`
+- **Tests**: `{name}.spec.ts` for unit tests, `{name}.e2e-spec.ts` for E2E
+- **Property Tests**: `{name}.property.spec.ts` in `__tests__/properties/`
+
+### Key Principles
+
+- **Feature-based modules**: Group related functionality together
+- **Centralized schemas**: All Mongoose schemas in `src/schemas/`
+- **Abstracted Swagger docs**: Keep controllers clean by moving Swagger decorators to `{feature}.swagger.ts` files
+- **Co-located tests**: Place tests in `__tests__/` folders next to source code
+- **Property-based tests**: Use `__tests__/properties/` for critical business logic
+- **Dependency injection**: Use constructor injection for all dependencies
+- **DTOs for validation**: Always validate input/output with class-validator
+
+## Frontend Structure (mukti-web)
+
+### Top-Level Organization
 
 ```
 packages/mukti-web/
 ├── src/
-│   ├── app/                # Next.js App Router
-│   │   ├── api/            # API routes
-│   │   │   └── waitlist/   # Waitlist endpoint
-│   │   ├── layout.tsx      # Root layout
-│   │   ├── page.tsx        # Home page
-│   │   └── globals.css     # Global styles
-│   ├── components/         # React components
-│   │   ├── ui/             # shadcn/ui components
-│   │   ├── magicui/        # Magic UI components
-│   │   ├── reactbits/      # Custom UI components
-│   │   ├── hero.tsx
-│   │   ├── feature.tsx
-│   │   ├── waitlist.tsx
-│   │   └── ...
-│   └── lib/                # Utilities and hooks
-│       ├── db/             # Database clients
-│       ├── hooks/          # Custom React hooks
-│       └── utils.ts        # Helper functions
-├── public/                 # Static assets
-└── .next/                  # Next.js build output
+│   ├── app/            # Next.js App Router (pages, layouts, API routes)
+│   ├── components/     # React components
+│   ├── lib/            # Utilities, hooks, API clients, stores
+│   └── types/          # TypeScript type definitions
+├── public/             # Static assets
+└── .env.local          # Environment variables
 ```
 
-## Package: mukti-docs
-
-Architecture diagrams and documentation.
+### App Router Structure
 
 ```
-packages/mukti-docs/
-├── data/
-│   └── data-modelling.md
-├── mukti-architecture.png
-└── mukti-data-modelling.png
+src/app/
+├── (auth)/             # Route groups for auth pages
+├── (dashboard)/        # Route groups for dashboard
+├── api/                # API routes
+├── layout.tsx          # Root layout
+├── page.tsx            # Home page
+├── loading.tsx         # Loading UI
+├── error.tsx           # Error boundary
+├── not-found.tsx       # 404 page
+└── providers.tsx       # Context providers (TanStack Query, etc.)
 ```
 
-## MCP Server
-
-Standalone Model Context Protocol server (not in workspace).
+### Components Organization
 
 ```
-mukti-mcp-server/
-├── src/
-│   ├── index.ts                  # Server entry point
-│   ├── types.ts                  # Type definitions
-│   ├── response-strategies.ts   # Socratic response logic
-│   └── tests/
-├── build/                        # Compiled output
-└── package.json                  # Independent package
+src/components/
+├── ui/                 # shadcn/ui base components
+├── magicui/            # Magic UI components
+├── reactbits/          # Custom reusable components
+├── forms/              # Form components
+├── layouts/            # Layout components
+└── sections/           # Page section components
 ```
 
-## Configuration Files
+### Lib Organization
 
-- **nx.json**: Nx workspace configuration
-- **tsconfig.json**: Root TypeScript config (strict mode)
-- **package.json**: Root workspace dependencies and scripts
-- **.prettierrc**: Code formatting rules
-- **commitlint.config.js**: Commit message linting
-- **.env**: Environment variables (not committed)
+```
+src/lib/
+├── api/                # API client layer
+│   ├── client.ts       # Base fetch client
+│   └── {resource}.ts   # Resource-specific endpoints
+├── hooks/              # Custom React hooks (TanStack Query hooks)
+│   └── use-{resource}.ts
+├── stores/             # Zustand stores
+│   └── {name}-store.ts
+├── query-keys.ts       # TanStack Query key factory
+├── config.ts           # App configuration
+└── utils.ts            # Helper functions
+```
 
-## Naming Conventions
+### Naming Conventions
 
-- **Packages**: kebab-case with `@mukti/` scope (e.g., `@mukti/api`)
-- **Files**: kebab-case for components, PascalCase for classes
-- **Components**: PascalCase (e.g., `Hero.tsx`, `WaitlistForm.tsx`)
-- **Schemas**: kebab-case with `.schema.ts` suffix
-- **Tests**: `.spec.ts` for unit tests, `.e2e-spec.ts` for E2E tests
+- **Components**: kebab-case files, PascalCase exports (e.g., `hero-section.tsx` → `HeroSection`)
+- **Hooks**: `use-{name}.ts` (e.g., `use-conversations.ts`)
+- **API Clients**: `{resource}.ts` (e.g., `conversations.ts`)
+- **Stores**: `{name}-store.ts` (e.g., `conversation-store.ts`)
+- **Types**: `{name}.types.ts` (e.g., `conversation.types.ts`)
 
-## Module Organization
+### Key Principles
 
-Follow NestJS conventions:
-- Group related features in modules under `src/modules/`
-- Keep schemas in `src/schemas/`
-- Use dependency injection for services
-- Implement DTOs for request/response validation
+- **Server Components by default**: Only use `'use client'` when needed
+- **TanStack Query for all API calls**: Never bypass the query cache
+- **Centralized query keys**: Use query key factory pattern
+- **Co-located components**: Group related components together
+- **Type safety**: Define types in `src/types/`
+
+## General Principles
+
+### File Organization
+
+- **Co-locate related files**: Keep tests, DTOs, and services together
+- **Barrel exports**: Use `index.ts` for clean imports
+- **Flat when possible**: Avoid deep nesting unless necessary
+
+### Testing Structure
+
+- **Unit tests**: Next to source files in `__tests__/` folders
+- **Property-based tests**: In `__tests__/properties/` for critical logic
+- **E2E tests**: In `test/` directory at package root
+
+### Documentation
+
+- **README.md**: Add to complex modules for context
+- **TSDoc comments**: Document all public APIs
+- **Swagger docs**: Abstract into separate `.swagger.ts` files
