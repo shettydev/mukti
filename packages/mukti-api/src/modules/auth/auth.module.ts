@@ -4,6 +4,7 @@ import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 
+import { RateLimit, RateLimitSchema } from '../../schemas/rate-limit.schema';
 import {
   RefreshToken,
   RefreshTokenSchema,
@@ -12,10 +13,13 @@ import { Session, SessionSchema } from '../../schemas/session.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { EmailVerifiedGuard } from './guards/email-verified.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
+import { PasswordResetRateLimitGuard } from './guards/password-reset-rate-limit.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { EmailService } from './services/email.service';
 import { JwtTokenService } from './services/jwt.service';
 import { PasswordService } from './services/password.service';
+import { RateLimitService } from './services/rate-limit.service';
 import { SessionService } from './services/session.service';
 import { TokenService } from './services/token.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -49,9 +53,12 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     TokenService,
     SessionService,
     EmailService,
+    RateLimitService,
     JwtAuthGuard,
     RolesGuard,
     EmailVerifiedGuard,
+    LoginRateLimitGuard,
+    PasswordResetRateLimitGuard,
   ],
   imports: [
     // Passport for authentication strategies
@@ -75,6 +82,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
     // Mongoose models
     MongooseModule.forFeature([
+      { name: RateLimit.name, schema: RateLimitSchema },
       { name: RefreshToken.name, schema: RefreshTokenSchema },
       { name: Session.name, schema: SessionSchema },
       { name: User.name, schema: UserSchema },
@@ -88,10 +96,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     TokenService,
     SessionService,
     EmailService,
+    RateLimitService,
     JwtStrategy,
     JwtAuthGuard,
     RolesGuard,
     EmailVerifiedGuard,
+    LoginRateLimitGuard,
+    PasswordResetRateLimitGuard,
   ],
 })
 export class AuthModule {}
