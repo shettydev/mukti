@@ -3,9 +3,9 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 import { Types } from 'mongoose';
 
-import { ArchivedMessage } from '../../../schemas/archived-message.schema';
-import { Conversation } from '../../../schemas/conversation.schema';
-import { MessageService } from './message.service';
+import { ArchivedMessage } from '../../../../schemas/archived-message.schema';
+import { Conversation } from '../../../../schemas/conversation.schema';
+import { MessageService } from '../message.service';
 
 describe('MessageService', () => {
   interface MockConversation {
