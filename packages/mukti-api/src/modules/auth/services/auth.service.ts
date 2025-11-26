@@ -21,6 +21,7 @@ import { VerifyEmailDto } from '../dto/verify-email.dto';
 import { EmailService } from './email.service';
 import { JwtTokenService } from './jwt.service';
 import { PasswordService } from './password.service';
+import { RateLimitService } from './rate-limit.service';
 import { TokenService } from './token.service';
 
 /**
@@ -45,6 +46,7 @@ export class AuthService {
     private readonly jwtService: JwtTokenService,
     private readonly tokenService: TokenService,
     private readonly emailService: EmailService,
+    private readonly rateLimitService: RateLimitService,
   ) {}
 
   /**
@@ -111,6 +113,24 @@ export class AuthService {
       await user.save();
       throw new Error('Failed to send password reset email');
     }
+  }
+
+  /**
+   * Increment login attempt counter for rate limiting
+   *
+   * @param ipAddress - The IP address to track
+   */
+  async incrementLoginAttempt(ipAddress: string): Promise<void> {
+    await this.rateLimitService.incrementLoginAttempt(ipAddress);
+  }
+
+  /**
+   * Increment password reset attempt counter for rate limiting
+   *
+   * @param email - The email address to track
+   */
+  async incrementPasswordResetAttempt(email: string): Promise<void> {
+    await this.rateLimitService.incrementPasswordResetAttempt(email);
   }
 
   /**
@@ -463,6 +483,15 @@ export class AuthService {
       await user.save();
       throw new Error('Failed to send verification email');
     }
+  }
+
+  /**
+   * Reset login rate limit after successful authentication
+   *
+   * @param ipAddress - The IP address to reset
+   */
+  async resetLoginRateLimit(ipAddress: string): Promise<void> {
+    await this.rateLimitService.resetLoginRateLimit(ipAddress);
   }
 
   /**
