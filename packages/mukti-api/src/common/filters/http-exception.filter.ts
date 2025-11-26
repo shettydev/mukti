@@ -8,7 +8,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 /**
  * Global exception filter that catches all HTTP exceptions and formats them consistently.
@@ -43,7 +43,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     // Generate unique request ID for tracking
-    const requestId = uuidv4();
+    const requestId = uuidv7();
 
     // Determine status code and error details
     const isHttpException = exception instanceof HttpException;
