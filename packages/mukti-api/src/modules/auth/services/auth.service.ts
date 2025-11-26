@@ -12,6 +12,7 @@ import { Model } from 'mongoose';
 
 import { User, UserDocument } from '../../../schemas/user.schema';
 import { AuthResponseDto } from '../dto/auth-response.dto';
+import { ChangePasswordDto } from '../dto/change-password.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -41,13 +42,140 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(User.name) public userModel: Model<UserDocument>,
     private readonly passwordService: PasswordService,
     private readonly jwtService: JwtTokenService,
     private readonly tokenService: TokenService,
     private readonly emailService: EmailService,
     private readonly rateLimitService: RateLimitService,
   ) {}
+
+  /**
+   * Assigns a role to a user.
+   *
+   * @param userId - The user ID
+   * @param role - The role to assign ('user', 'moderator', 'admin')
+   * @returns The updated user
+   * @throws {NotFoundException} If user doesn't exist
+   * @throws {BadRequestException} If role is invalid
+   *
+   * @example
+   * ```typescript
+   * const user = await authService.assignRole('user-id', 'moderator');
+   * ```
+   */
+  async assignRole(
+    userId: string,
+    role: 'admin' | 'moderator' | 'user',
+  ): Promise<User> {
+    this.logger.log(`Assigning role '${role}' to user ${userId}`);
+
+    // Validate role
+    const validRoles = ['user', 'moderator', 'admin'];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException(
+        `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+      );
+    }
+
+    // Find user
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      this.logger.warn(`Role assignment failed: User ${userId} not found`);
+      throw new NotFoundException('User not found');
+    }
+
+    // Update role
+    user.role = role;
+    await user.save();
+
+    this.logger.log(
+      `Role '${role}' assigned successfully to user ${user._id.toString()}`,
+    );
+
+    return user;
+  }
+
+  /**
+   * Changes a user's password after verifying their current password.
+   *
+   * @param userId - The user ID
+   * @param dto - Change password request data
+   * @returns Promise that resolves when password is changed
+   * @throws {UnauthorizedException} If current password is incorrect
+   * @throws {NotFoundException} If user doesn't exist
+   * @throws {BadRequestException} If new password doesn't meet requirements
+   *
+   * @example
+   * ```typescript
+   * await authService.changePassword('user-id', {
+   *   currentPassword: 'OldPass123!',
+   *   newPassword: 'NewPass123!'
+   * });
+   * ```
+   */
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    this.logger.log(`Password change attempt for user ${userId}`);
+
+    // Find user with password field
+    const user = await this.userModel.findById(userId).select('+password');
+
+    if (!user) {
+      this.logger.warn(`Password change failed: User ${userId} not found`);
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user has a password (OAuth users might not)
+    if (!user.password) {
+      this.logger.warn(
+        `Password change failed: User ${userId} has no password (OAuth account)`,
+      );
+      throw new BadRequestException(
+        'Cannot change password for OAuth accounts',
+      );
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await this.passwordService.comparePassword(
+      dto.currentPassword,
+      user.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      this.logger.warn(
+        `Password change failed: Invalid current password for user ${userId}`,
+      );
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    // Validate new password strength
+    const isNewPasswordValid = this.passwordService.validatePasswordStrength(
+      dto.newPassword,
+    );
+    if (!isNewPasswordValid) {
+      throw new BadRequestException(
+        'New password must be at least 8 characters and contain uppercase, lowercase, number, and special character',
+      );
+    }
+
+    // Hash new password
+    const hashedPassword = await this.passwordService.hashPassword(
+      dto.newPassword,
+    );
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    this.logger.log(`Password changed successfully for user ${userId}`);
+
+    // Invalidate all existing sessions for security
+    await this.tokenService.revokeAllUserTokens(user._id);
+    this.logger.log(
+      `All sessions invalidated for user ${userId} after password change`,
+    );
+  }
 
   /**
    * Initiates the password reset process by sending a reset email.
@@ -113,6 +241,28 @@ export class AuthService {
       await user.save();
       throw new Error('Failed to send password reset email');
     }
+  }
+
+  /**
+   * Gets a user by ID.
+   *
+   * @param userId - The user ID
+   * @returns The user
+   * @throws {NotFoundException} If user doesn't exist
+   *
+   * @example
+   * ```typescript
+   * const user = await authService.getUserById('user-id');
+   * ```
+   */
+  async getUserById(userId: string): Promise<User> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 
   /**
