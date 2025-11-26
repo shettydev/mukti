@@ -15,9 +15,6 @@ export class User {
   // Virtual field for id
   _id: Types.ObjectId;
 
-  @Prop({ type: String })
-  appleId?: string;
-
   createdAt: Date;
 
   @Prop({
@@ -100,7 +97,6 @@ UserSchema.index({ createdAt: -1, isActive: 1, role: 1 });
 UserSchema.index({ emailVerificationToken: 1 }, { sparse: true });
 UserSchema.index({ passwordResetToken: 1 }, { sparse: true });
 UserSchema.index({ googleId: 1 }, { sparse: true });
-UserSchema.index({ appleId: 1 }, { sparse: true });
 
 // Virtual for subscription population
 UserSchema.virtual('subscription', {
