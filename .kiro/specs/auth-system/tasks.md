@@ -176,7 +176,7 @@
   - **Property 21: Session revocation invalidates tokens**
   - **Validates: Requirements 7.2**
 
-- [ ] 13. Implement rate limiting
+- [x] 13. Implement rate limiting
   - Install @nestjs/throttler
   - Configure rate limiting for login endpoint (5 attempts per 15 minutes per IP)
   - Configure rate limiting for password reset (3 attempts per hour per email)
@@ -184,19 +184,19 @@
   - Implement custom rate limit logic with reset on success
   - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
 
-- [ ] 13.1 Write property test for login rate limiting
+- [x] 13.1 Write property test for login rate limiting
   - **Property 29: Rate limiting on login attempts**
   - **Validates: Requirements 12.1, 12.2**
 
-- [ ] 13.2 Write property test for rate limit reset
+- [x] 13.2 Write property test for rate limit reset
   - **Property 30: Successful login resets rate limit**
   - **Validates: Requirements 12.3**
 
-- [ ] 13.3 Write property test for password reset rate limiting
+- [x] 13.3 Write property test for password reset rate limiting
   - **Property 31: Rate limiting on password reset requests**
   - **Validates: Requirements 12.5**
 
-- [ ] 14. Implement auth controller
+- [x] 14. Implement auth controller
   - Create `src/modules/auth/auth.controller.ts`
   - Add POST /auth/register endpoint
   - Add POST /auth/login endpoint
@@ -211,7 +211,7 @@
   - Add PATCH /auth/change-password endpoint
   - _Requirements: 1.1, 2.1, 3.1, 3.4, 4.1, 4.2, 5.2, 5.4_
 
-- [ ] 15. Create Swagger documentation for auth endpoints
+- [x] 15. Create Swagger documentation for auth endpoints
   - Create `src/modules/auth/dto/auth.swagger.ts`
   - Document all auth endpoints with ApiOperation, ApiResponse
   - Add example requests and responses
@@ -219,7 +219,7 @@
   - Add authentication requirements with ApiBearerAuth
   - _Requirements: All_
 
-- [ ] 16. Implement Google OAuth integration
+- [x] 16. Implement Google OAuth integration
   - Create `src/modules/auth/strategies/google.strategy.ts`
   - Create `src/modules/auth/services/oauth.service.ts`
   - Add GET /auth/google endpoint
@@ -227,49 +227,49 @@
   - Implement account creation/linking logic
   - _Requirements: 1.4, 2.3_
 
-- [ ] 17. Implement Apple OAuth integration
+- [ ]\* 17. Implement Apple OAuth integration
   - Create `src/modules/auth/strategies/apple.strategy.ts`
   - Add GET /auth/apple endpoint
   - Add GET /auth/apple/callback endpoint
   - Implement account creation/linking logic
   - _Requirements: 1.5, 2.4_
 
-- [ ] 18. Implement session management endpoints
+- [x] 18. Implement session management endpoints
   - Add GET /auth/sessions endpoint to list sessions
   - Add DELETE /auth/sessions/:id endpoint to revoke session
   - Add DELETE /auth/sessions/all endpoint to revoke all sessions
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 19. Implement RBAC functionality
+- [x] 19. Implement RBAC functionality
   - Add role assignment logic to user service
   - Implement role hierarchy (admin > moderator > user)
   - Add default role assignment on user creation
   - Test role-based access control with guards
   - _Requirements: 6.1, 6.2, 6.4, 6.5_
 
-- [ ] 19.1 Write property test for default role
+- [x] 19.1 Write property test for default role
   - **Property 16: New users have default role**
   - **Validates: Requirements 6.1**
 
-- [ ] 19.2 Write property test for role assignment
+- [x] 19.2 Write property test for role assignment
   - **Property 17: Role assignment updates permissions**
   - **Validates: Requirements 6.2, 6.4**
 
-- [ ] 20. Add global exception filter
+- [x] 20. Add global exception filter
   - Create `src/common/filters/http-exception.filter.ts`
   - Format all errors consistently
   - Add request ID to error responses
   - Log errors with context
   - _Requirements: All_
 
-- [ ] 21. Configure CORS and security headers
+- [x] 21. Configure CORS and security headers
   - Configure CORS for frontend origin
   - Add helmet for security headers
   - Configure cookie settings (httpOnly, secure, sameSite)
   - Add CSRF protection
   - _Requirements: 9.2, 9.4, 9.5_
 
-- [ ] 22. Checkpoint - Backend complete, all tests passing
+- [x] 22. Checkpoint - Backend complete, all tests passing
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 23. Set up frontend auth store
