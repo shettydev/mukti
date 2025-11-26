@@ -11,17 +11,21 @@ import {
 } from '../../schemas/refresh-token.schema';
 import { Session, SessionSchema } from '../../schemas/session.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
+import { AuthController } from './auth.controller';
 import { EmailVerifiedGuard } from './guards/email-verified.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { PasswordResetRateLimitGuard } from './guards/password-reset-rate-limit.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { AuthService } from './services/auth.service';
 import { EmailService } from './services/email.service';
 import { JwtTokenService } from './services/jwt.service';
+import { OAuthService } from './services/oauth.service';
 import { PasswordService } from './services/password.service';
 import { RateLimitService } from './services/rate-limit.service';
 import { SessionService } from './services/session.service';
 import { TokenService } from './services/token.service';
+import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 /**
@@ -29,7 +33,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
  *
  * Provides comprehensive authentication services including:
  * - JWT-based authentication with access and refresh tokens
- * - OAuth 2.0 integration (Google, Apple)
+ * - OAuth 2.0 integration (Google)
  * - Password management (hashing, reset, validation)
  * - Email verification
  * - Session management
@@ -44,7 +48,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
  * - CSRF protection for state-changing operations
  */
 @Module({
-  controllers: [],
+  controllers: [AuthController],
   exports: [
     JwtModule,
     PassportModule,
@@ -54,6 +58,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     SessionService,
     EmailService,
     RateLimitService,
+    OAuthService,
     JwtAuthGuard,
     RolesGuard,
     EmailVerifiedGuard,
@@ -91,13 +96,16 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     ConfigModule,
   ],
   providers: [
+    AuthService,
     PasswordService,
     JwtTokenService,
     TokenService,
     SessionService,
     EmailService,
     RateLimitService,
+    OAuthService,
     JwtStrategy,
+    GoogleStrategy,
     JwtAuthGuard,
     RolesGuard,
     EmailVerifiedGuard,
