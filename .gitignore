@@ -5,6 +5,7 @@ build/
 .cursor
 .DS_Store
 .claude
+.vscode
 
 .nx/installation
 .nx/cache

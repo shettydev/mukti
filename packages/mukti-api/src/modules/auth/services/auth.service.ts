@@ -482,6 +482,15 @@ export class AuthService {
    */
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
     this.logger.log(`Registering new user: ${dto.email}`);
+    this.logger.debug(
+      `Registration DTO: ${JSON.stringify({ email: dto.email, firstName: dto.firstName, hasPassword: !!dto.password, lastName: dto.lastName })}`,
+    );
+
+    // Validate required fields
+    if (!dto.email || !dto.password || !dto.firstName || !dto.lastName) {
+      this.logger.error(`Missing required fields in registration DTO`);
+      throw new BadRequestException('Missing required fields');
+    }
 
     // Check if user already exists
     const existingUser = await this.userModel.findOne({ email: dto.email });

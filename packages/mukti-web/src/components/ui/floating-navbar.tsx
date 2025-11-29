@@ -11,6 +11,8 @@ import { BorderBeam } from '../magicui/border-beam';
 export const FloatingNav = ({
   className,
   navItems,
+  signInHref,
+  signUpHref,
 }: {
   className?: string;
   navItems: {
@@ -18,6 +20,8 @@ export const FloatingNav = ({
     link: string;
     name: string;
   }[];
+  signInHref?: string;
+  signUpHref?: string;
 }) => {
   const { scrollYProgress } = useScroll();
   const [visible, setVisible] = useState(false);
@@ -84,23 +88,40 @@ export const FloatingNav = ({
               </Link>
             ))}
           </div>
-          {/* Join Waitlist button: always visible */}
-          <Link
-            className={cn(
-              'relative border text-xs sm:text-sm font-medium border-neutral-200 dark:border-white/[0.2]',
-              'dark:bg-black text-black dark:text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full',
-              'transition-colors duration-150'
+          {/* Auth buttons: always visible */}
+          <div className="flex items-center space-x-2">
+            {signInHref && (
+              <Link
+                className={cn(
+                  'text-xs sm:text-sm font-medium',
+                  'text-neutral-600 dark:text-neutral-50 hover:text-neutral-500 dark:hover:text-neutral-300',
+                  'px-3 sm:px-4 py-1 sm:py-2 rounded-full',
+                  'transition-colors duration-150'
+                )}
+                href={signInHref}
+              >
+                Sign In
+              </Link>
             )}
-            href="#waitlist"
-          >
-            Join Waitlist
-            <BorderBeam
-              borderWidth={2}
-              className="from-transparent via-blue-500 to-transparent"
-              reverse
-              size={50}
-            />
-          </Link>
+            {signUpHref && (
+              <Link
+                className={cn(
+                  'relative border text-xs sm:text-sm font-medium border-neutral-200 dark:border-white/[0.2]',
+                  'dark:bg-black text-black dark:text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full',
+                  'transition-colors duration-150'
+                )}
+                href={signUpHref}
+              >
+                Sign Up
+                <BorderBeam
+                  borderWidth={2}
+                  className="from-transparent via-blue-500 to-transparent"
+                  reverse
+                  size={50}
+                />
+              </Link>
+            )}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

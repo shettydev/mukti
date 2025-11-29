@@ -107,15 +107,17 @@ This document outlines the requirements for implementing a comprehensive authent
 
 ### Requirement 8
 
-**User Story:** As a developer, I want the frontend to have a beautiful, animated authentication UI, so that users have an engaging experience during sign-up and login.
+**User Story:** As a developer, I want the frontend to have a beautiful, full-page authentication UI, so that users have an engaging experience during sign-up and login.
 
 #### Acceptance Criteria
 
-1. WHEN the authentication modal is displayed THEN the UI SHALL show a pulsing gradient background that transitions between purple, blue, and pink colors
-2. WHEN a user switches between sign-up and sign-in tabs THEN the UI SHALL smoothly animate the transition
+1. WHEN a user navigates to the authentication page THEN the UI SHALL display a full-page gradient background transitioning from purple/violet at the top to blue at the bottom
+2. WHEN a user switches between sign-up and sign-in tabs THEN the UI SHALL smoothly animate the transition within a centered dark card
 3. WHEN form validation errors occur THEN the UI SHALL display inline error messages with smooth animations
 4. WHEN a user submits the form THEN the UI SHALL show a loading state on the submit button
 5. WHEN OAuth buttons are clicked THEN the UI SHALL provide visual feedback before redirecting
+6. WHEN a user successfully signs in THEN the system SHALL automatically redirect to the dashboard page
+7. WHEN the authentication page is displayed THEN the UI SHALL show a semi-transparent dark card with rounded corners centered on the page
 
 ### Requirement 9
 

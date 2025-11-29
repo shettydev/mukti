@@ -12,6 +12,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    bodyParser: true, // Explicitly enable body parser
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
   const logger = new Logger('Bootstrap');
@@ -58,10 +59,12 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      forbidNonWhitelisted: true,
-      forbidUnknownValues: true,
+      forbidNonWhitelisted: false,
       transform: true,
-      whitelist: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      whitelist: false, // Don't strip properties - let decorators handle it
     }),
   );
 
@@ -81,7 +84,7 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     origin: corsOrigins
       ? corsOrigins.split(',').map((origin) => origin.trim())
-      : frontendUrl || 'http://localhost:3001',
+      : (frontendUrl ?? 'http://localhost:3001'),
   });
 
   // Security: CSRF protection (only for state-changing operations)
