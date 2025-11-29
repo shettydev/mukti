@@ -52,6 +52,16 @@ global.IntersectionObserver = class IntersectionObserver {
   unobserve() {}
 } as any;
 
+// Mock ResizeObserver used by some UI components
+if (!global.ResizeObserver) {
+  class ResizeObserver {
+    disconnect() {}
+    observe() {}
+    unobserve() {}
+  }
+  global.ResizeObserver = ResizeObserver;
+}
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
