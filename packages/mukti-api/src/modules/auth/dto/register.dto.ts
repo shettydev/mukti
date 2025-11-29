@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -61,6 +62,9 @@ export class RegisterDto {
     required: false,
   })
   @IsOptional()
-  @IsPhoneNumber()
+  @IsPhoneNumber(undefined, {
+    message: 'Phone number must be a valid phone number',
+  })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   phone?: string;
 }
