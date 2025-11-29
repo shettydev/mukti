@@ -78,6 +78,104 @@ export function Component({ title, className, children }: ComponentProps) {
 - Avoid `any` - use `unknown` or proper types
 - Use type imports: `import type { ... }`
 
+## Configuration Management
+
+### Centralized Configuration (MANDATORY)
+
+**All environment variables and app settings MUST be accessed through the centralized config file.**
+
+```typescript
+// ✅ GOOD - Use centralized config
+import { config } from '@/lib/config';
+
+const apiUrl = config.api.baseUrl;
+const isDebugEnabled = config.features.enableDebug;
+
+// ❌ BAD - Direct environment variable access
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+```
+
+### Configuration Structure
+
+The `src/lib/config.ts` file provides:
+
+1. **API Configuration** - Base URL, timeout settings
+2. **Authentication** - Token expiry, refresh buffer
+3. **OAuth** - Google/Apple client IDs, redirect URIs
+4. **App Settings** - Base URL, name, description
+5. **Feature Flags** - Enable/disable features
+6. **Environment Info** - isDevelopment, isProduction, isServer, isClient
+7. **Pagination** - Default page size, max page size
+8. **Cache Settings** - TanStack Query stale/cache times
+
+### Usage Examples
+
+```typescript
+// API calls
+import { config } from '@/lib/config';
+
+const response = await fetch(`${config.api.baseUrl}/users`);
+
+// Feature flags
+if (config.features.enableOAuth) {
+  // Show OAuth buttons
+}
+
+// Environment checks
+if (config.env.isDevelopment) {
+  console.log('Debug info');
+}
+
+// Helper functions
+import { getApiUrl, getAppUrl, isFeatureEnabled } from '@/lib/config';
+
+const endpoint = getApiUrl('/auth/login');
+const homeUrl = getAppUrl('/dashboard');
+const showAnalytics = isFeatureEnabled('enableAnalytics');
+```
+
+### Environment Variables
+
+All environment variables are defined in `.env.example`. Copy to `.env.local` and configure:
+
+```bash
+# Required
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+
+# Optional (with defaults)
+NEXT_PUBLIC_API_TIMEOUT=30000
+NEXT_PUBLIC_APP_URL=http://localhost:3001
+NEXT_PUBLIC_ENABLE_OAUTH=true
+NEXT_PUBLIC_DEFAULT_PAGE_SIZE=20
+```
+
+### Configuration Best Practices
+
+1. **Never access `process.env` directly** - Always use `config` object
+2. **Add new env vars to config.ts** - Maintain single source of truth
+3. **Update .env.example** - Document all new variables
+4. **Use type-safe access** - TypeScript will catch typos
+5. **Provide sensible defaults** - App should work with minimal config
+6. **Document all options** - Add JSDoc comments in config.ts
+
+### ❌ ANTI-PATTERNS - DO NOT DO THIS
+
+```typescript
+// ❌ BAD - Direct env access scattered throughout codebase
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+// ❌ BAD - Hardcoded values
+const API_URL = 'http://localhost:3000/api/v1';
+
+// ❌ BAD - Duplicate configuration
+const timeout = 30000; // Should come from config
+
+// ✅ GOOD - Use centralized config
+import { config } from '@/lib/config';
+const apiUrl = config.api.baseUrl;
+const timeout = config.api.timeout;
+```
+
 ## Styling with Tailwind CSS v4
 
 ### Best Practices

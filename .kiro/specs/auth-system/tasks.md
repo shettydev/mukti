@@ -272,21 +272,21 @@
 - [x] 22. Checkpoint - Backend complete, all tests passing
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 23. Set up frontend auth store
+- [x] 23. Set up frontend auth store
   - Create `src/lib/stores/auth-store.ts` with Zustand
   - Define auth state (user, accessToken, isAuthenticated)
   - Implement setUser, setAccessToken, clearAuth actions
   - Add persistence for user data (not tokens)
   - _Requirements: 3.2, 9.1_
 
-- [ ] 24. Implement frontend API client
+- [x] 24. Implement frontend API client
   - Create `src/lib/api/client.ts` with fetch wrapper
   - Add automatic Authorization header injection
   - Add automatic token refresh on 401
   - Implement request/response interceptors
   - _Requirements: 9.3_
 
-- [ ] 25. Create auth API functions
+- [x] 25. Create auth API functions
   - Create `src/lib/api/auth.ts`
   - Implement register API call
   - Implement login API call
@@ -300,7 +300,7 @@
   - Implement appleAuth API call
   - _Requirements: 1.1, 2.1, 3.1, 3.4, 4.1, 4.2, 5.2, 5.4_
 
-- [ ] 26. Implement auth hooks with TanStack Query
+- [x] 26. Implement auth hooks with TanStack Query
   - Create `src/lib/hooks/use-auth.ts`
   - Implement useAuth hook with login, register, logout, refresh
   - Implement useUser hook to get current user
@@ -310,108 +310,103 @@
   - Add automatic token refresh logic
   - _Requirements: 1.1, 2.1, 3.1, 3.4_
 
-- [ ] 27. Create animated background component
-  - Create `src/components/auth/animated-background.tsx`
-  - Implement pulsing gradient animation
-  - Use colors: purple (#8B5CF6), blue (#3B82F6), pink (#EC4899)
-  - Add 15-second animation duration
+- [x] 27. Create gradient background component
+  - Create `src/components/auth/gradient-background.tsx`
+  - Implement full-page gradient from purple/violet to blue
+  - Use colors: top (#8B5CF6 to #6D28D9), bottom (#3B82F6 to #1E40AF)
   - Make background responsive
-  - _Requirements: 8.1_
+  - _Requirements: 8.1, 8.7_
 
-- [ ] 28. Create auth modal component
-  - Create `src/components/auth/auth-modal.tsx`
-  - Implement modal with animated background
+- [x] 28. Create auth page component
+  - Create `src/app/(auth)/auth/page.tsx`
+  - Implement full-page layout with gradient background
+  - Add centered dark card with backdrop blur
   - Add tab switching between sign up and sign in
-  - Add close button
-  - Make modal responsive
+  - Make page responsive
   - Add smooth animations for tab switching
-  - _Requirements: 8.1, 8.2_
+  - _Requirements: 8.1, 8.2, 8.7_
 
-- [ ] 29. Create sign up form component
-  - Create `src/components/auth/sign-up-form.tsx`
-  - Add form fields: firstName, lastName, email, phone, password
-  - Implement form validation with React Hook Form + Zod
-  - Add password strength indicator
-  - Add phone number input with country selector
-  - Add submit button with loading state
-  - Add inline error messages
-  - _Requirements: 1.1, 1.3, 1.7, 8.3, 8.4_
+- [x] 29. Update sign up form component for full-page design
+  - Update `src/components/auth/sign-up-form.tsx`
+  - Style form fields with dark backgrounds matching reference design
+  - Update submit button to blue gradient style
+  - Add automatic redirect to dashboard on success
+  - Ensure form works within full-page card layout
+  - _Requirements: 1.1, 1.3, 1.7, 8.3, 8.4, 8.6_
 
-- [ ] 30. Create sign in form component
-  - Create `src/components/auth/sign-in-form.tsx`
-  - Add form fields: email, password
-  - Implement form validation with React Hook Form + Zod
-  - Add "Remember me" checkbox
-  - Add "Forgot password" link
-  - Add submit button with loading state
-  - Add inline error messages
-  - _Requirements: 2.1, 8.3, 8.4_
+- [x] 30. Update sign in form component for full-page design
+  - Update `src/components/auth/sign-in-form.tsx`
+  - Style form fields with dark backgrounds matching reference design
+  - Update submit button to blue gradient style
+  - Add automatic redirect to dashboard on success
+  - Ensure form works within full-page card layout
+  - _Requirements: 2.1, 8.3, 8.4, 8.6_
 
-- [ ] 31. Create OAuth buttons component
-  - Create `src/components/auth/oauth-buttons.tsx`
-  - Add Google OAuth button with icon
-  - Add Apple OAuth button with icon
-  - Implement OAuth redirect logic
-  - Add loading states
-  - Add visual feedback on click
+- [ ] 31. Update OAuth buttons component for full-page design
+  - Update `src/components/auth/oauth-buttons.tsx`
+  - Style buttons with dark backgrounds matching reference design
+  - Ensure proper spacing and layout within card
+  - Maintain OAuth redirect logic
+  - Keep loading states and visual feedback
   - _Requirements: 1.4, 1.5, 2.3, 2.4, 8.5_
 
 - [ ] 32. Implement OAuth callback handling
-  - Create OAuth callback pages for Google and Apple
+  - Create OAuth callback pages for Google
   - Extract authorization code from URL
   - Call backend OAuth endpoints
   - Store tokens and redirect to dashboard
   - Handle OAuth errors
   - _Requirements: 1.4, 1.5, 2.3, 2.4_
 
-- [ ] 33. Create password reset flow
+- [x] 33. Create password reset flow
   - Create forgot password page/modal
   - Create reset password page with token validation
   - Implement email sending for reset link
   - Add success/error messages
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 34. Create email verification flow
+- [x] 34. Create email verification flow
   - Create email verification page with token validation
   - Add resend verification button
   - Show verification status in UI
   - Add success/error messages
   - _Requirements: 5.1, 5.2, 5.4, 5.5_
 
-- [ ] 35. Implement session management UI
+- [x] 35. Implement session management UI
   - Create sessions page to list active sessions
   - Show device, location, last activity for each session
   - Add revoke button for individual sessions
   - Add "Logout from all devices" button
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 36. Add protected route wrapper
+- [x] 36. Add protected route wrapper
   - Create `src/components/auth/protected-route.tsx`
   - Check authentication status
   - Redirect to login if not authenticated
   - Show loading state while checking auth
   - _Requirements: 6.3_
 
-- [ ] 37. Implement role-based UI components
+- [x] 37. Implement role-based UI components
   - Create `src/components/auth/require-role.tsx`
   - Hide/show content based on user role
   - Support role hierarchy
   - _Requirements: 6.3, 6.5_
 
-- [ ] 38. Add auth modal trigger
-  - Add "Sign In" and "Sign Up" buttons to navbar
-  - Implement useAuthModal hook for modal state
-  - Open modal with correct tab based on button clicked
+- [x] 38. Update auth navigation
+  - Update "Sign In" and "Sign Up" buttons to navigate to `/auth` page
+  - Remove modal-based authentication
+  - Pass tab parameter via URL query string
+  - Update navbar to link to auth page instead of opening modal
   - _Requirements: 8.1, 8.2_
 
-- [ ] 39. Implement token storage and management
+- [x] 39. Implement token storage and management
   - Store access token in memory (auth store)
   - Store refresh token in httpOnly cookie (handled by backend)
   - Implement automatic token refresh before expiration
   - Clear tokens on logout
   - _Requirements: 9.1, 9.2_
 
-- [ ] 40. Add form validation schemas
+- [x] 40. Add form validation schemas
   - Create Zod schemas for registration
   - Create Zod schemas for login
   - Create Zod schemas for password reset
@@ -419,26 +414,27 @@
   - Add custom validation for phone numbers
   - _Requirements: 1.3, 1.7_
 
-- [ ] 41. Implement error handling in UI
+- [x] 41. Implement error handling in UI
   - Display API errors in forms
   - Show toast notifications for success/error
   - Handle network errors gracefully
   - Add retry logic for failed requests
   - _Requirements: All_
 
-- [ ] 42. Add loading states and skeletons
+- [x] 42. Add loading states and skeletons
   - Add skeleton loading for user profile
   - Add skeleton loading for session list
   - Add button loading states
   - Add form submission loading states
   - _Requirements: 8.4_
 
-- [ ] 43. Implement responsive design
-  - Make auth modal responsive (mobile, tablet, desktop)
-  - Adjust form layouts for mobile
+- [x] 43. Implement responsive design for full-page auth
+  - Make auth page responsive (mobile, tablet, desktop)
+  - Adjust card size and padding for mobile
+  - Ensure gradient background works on all screen sizes
   - Test on different screen sizes
   - Ensure touch-friendly buttons
-  - _Requirements: 8.1_
+  - _Requirements: 8.1, 8.7_
 
 - [ ] 44. Add accessibility features
   - Add ARIA labels to all form inputs
@@ -448,7 +444,14 @@
   - Ensure color contrast meets WCAG AA
   - _Requirements: All_
 
-- [ ] 45. Checkpoint - Frontend complete, all tests passing
+- [ ] 44.1 Implement automatic dashboard redirect
+  - Update useAuth hook to redirect to `/dashboard` after successful sign in
+  - Update useAuth hook to redirect to `/dashboard` after successful registration
+  - Ensure redirect happens automatically without user interaction
+  - Test redirect flow from both sign in and sign up
+  - _Requirements: 8.6_
+
+- [x] 45. Checkpoint - Frontend complete, all tests passing
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ]\* 46. Write E2E tests for registration flow

@@ -226,12 +226,10 @@ class EmailVerifiedGuard implements CanActivate {
 
 #### 1. Auth Components (`src/components/auth/`)
 
-**AuthModal** - Main authentication modal
+**AuthPage** - Main authentication page (not a modal)
 
 ```typescript
-interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface AuthPageProps {
   defaultTab?: 'signup' | 'signin';
 }
 ```
@@ -254,12 +252,11 @@ interface SignInFormProps {
 }
 ```
 
-**AnimatedBackground** - Pulsing gradient background
+**GradientBackground** - Full-page gradient background
 
 ```typescript
-interface AnimatedBackgroundProps {
-  colors: string[];
-  duration?: number;
+interface GradientBackgroundProps {
+  children: React.ReactNode;
 }
 ```
 
@@ -291,16 +288,13 @@ function useAuth() {
 }
 ```
 
-**useAuthModal** - Modal state management
+**useAuthRedirect** - Post-authentication redirect management
 
 ```typescript
-function useAuthModal() {
+function useAuthRedirect() {
   return {
-    isOpen: boolean;
-    open: (tab?: 'signup' | 'signin') => void;
-    close: () => void;
-    tab: 'signup' | 'signin';
-    setTab: (tab: 'signup' | 'signin') => void;
+    redirectToDashboard: () => void;
+    redirectToAuth: (tab?: 'signup' | 'signin') => void;
   };
 }
 ```
@@ -988,58 +982,75 @@ db.sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 ## UI/UX Design
 
-### Animated Background
+### Full-Page Gradient Background
 
-The authentication modal features a pulsing gradient background that transitions smoothly between colors:
+The authentication page features a full-page gradient background that transitions from dark/black at the top through deep purple to vibrant blue at the bottom:
 
 **Color Palette:**
 
-- Purple: `#8B5CF6` (violet-500)
-- Blue: `#3B82F6` (blue-500)
-- Pink: `#EC4899` (pink-500)
-- Dark overlay: `rgba(0, 0, 0, 0.4)`
+- Top: `#000000` (black) - Creates dramatic dark atmosphere
+- Middle: `#581C87` (purple-900) - Deep purple transition
+- Bottom: `#2563EB` (blue-600) - Vibrant blue
+- Card Background: `rgba(0, 0, 0, 0.6)` with backdrop blur
+- Card Border: `rgba(255, 255, 255, 0.1)`
 
-**Animation:**
+**Gradient Implementation:**
 
 ```css
-@keyframes gradientPulse {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+.auth-page-background {
+  background: linear-gradient(180deg, #000000 0%, #581c87 50%, #2563eb 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.animated-background {
-  background: linear-gradient(-45deg, #8b5cf6, #3b82f6, #ec4899, #8b5cf6);
-  background-size: 400% 400%;
-  animation: gradientPulse 15s ease infinite;
+.auth-card {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 48px;
+  max-width: 480px;
+  width: 100%;
 }
 ```
 
 ### Form Design
 
+**Page Layout:**
+
+- Full-page gradient background (purple to blue)
+- Centered dark card with backdrop blur
+- Tab navigation at top of card (Sign up / Sign in)
+- Form content area
+- OAuth buttons section
+- Terms & conditions footer
+
 **Sign Up Form Fields:**
 
-1. First Name (text input)
-2. Last Name (text input)
-3. Email (email input with icon)
-4. Phone (phone input with country selector)
-5. Password (password input with strength indicator)
-6. Submit button (gradient, full width)
-7. OAuth buttons (Google, Apple)
+1. First Name (text input, dark background)
+2. Last Name (text input, dark background)
+3. Email (email input with icon, dark background)
+4. Phone (phone input with country selector, dark background)
+5. Password (password input with strength indicator, dark background)
+6. Submit button (blue gradient, full width)
+7. OAuth buttons (Google, Apple) with dark backgrounds
 8. Terms & Service link
 
 **Sign In Form Fields:**
 
-1. Email (email input with icon)
-2. Password (password input with show/hide toggle)
+1. Email (email input with icon, dark background)
+2. Password (password input with show/hide toggle, dark background)
 3. Remember me (checkbox)
 4. Forgot password link
-5. Submit button (gradient, full width)
-6. OAuth buttons (Google, Apple)
+5. Submit button (blue gradient, full width)
+6. OAuth buttons (Google, Apple) with dark backgrounds
+
+**Post-Authentication:**
+
+- Successful sign in automatically redirects to `/dashboard`
+- No intermediate confirmation or modal
 
 ### Validation Feedback
 
