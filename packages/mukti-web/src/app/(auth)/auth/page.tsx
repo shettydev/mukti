@@ -113,7 +113,7 @@ function AuthContent() {
           <p className="text-xs sm:text-sm text-white/60">
             {activeTab === 'signup'
               ? 'Create your account to get started'
-              : 'Sign in to continue your journey'} 
+              : 'Sign in to continue your journey'}
           </p>
         </div>
 
