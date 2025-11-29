@@ -98,17 +98,17 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white text-sm">First Name</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                  <FormControl>
                     <Input
                       {...field}
                       className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
                       placeholder="John"
                       type="text"
                     />
-                  </div>
-                </FormControl>
+                  </FormControl>
+                </div>
                 <FormMessage className="text-red-300 text-xs" />
               </FormItem>
             )}
@@ -120,17 +120,17 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white text-sm">Last Name</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                  <FormControl>
                     <Input
                       {...field}
                       className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
                       placeholder="Doe"
                       type="text"
                     />
-                  </div>
-                </FormControl>
+                  </FormControl>
+                </div>
                 <FormMessage className="text-red-300 text-xs" />
               </FormItem>
             )}
@@ -144,17 +144,17 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-white text-sm">Email</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                <FormControl>
                   <Input
                     {...field}
                     className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
                     placeholder="john@example.com"
                     type="email"
                   />
-                </div>
-              </FormControl>
+                </FormControl>
+              </div>
               <FormMessage className="text-red-300 text-xs" />
             </FormItem>
           )}
@@ -202,24 +202,24 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-white text-sm">Password</FormLabel>
-              <FormControl>
-                <div className="relative">
+              <div className="relative">
+                <FormControl>
                   <Input
                     {...field}
                     className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
                     placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
                   />
-                  <button
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation"
-                    onClick={() => setShowPassword(!showPassword)}
-                    type="button"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </FormControl>
+                </FormControl>
+                <button
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation"
+                  onClick={() => setShowPassword(!showPassword)}
+                  type="button"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <FormMessage className="text-red-300 text-xs" />
               <PasswordStrengthIndicator password={password} />
             </FormItem>

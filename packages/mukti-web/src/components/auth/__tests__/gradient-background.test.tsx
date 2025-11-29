@@ -23,9 +23,9 @@ describe('GradientBackground', () => {
 
     const backgroundDiv = container.firstChild as HTMLElement;
     expect(backgroundDiv).toHaveClass('bg-gradient-to-b');
-    expect(backgroundDiv).toHaveClass('from-violet-500');
-    expect(backgroundDiv).toHaveClass('via-violet-700');
-    expect(backgroundDiv).toHaveClass('to-blue-800');
+    expect(backgroundDiv).toHaveClass('from-black');
+    expect(backgroundDiv).toHaveClass('via-purple-900');
+    expect(backgroundDiv).toHaveClass('to-blue-600');
   });
 
   it('applies full viewport height and width classes', () => {

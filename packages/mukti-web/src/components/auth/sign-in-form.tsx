@@ -104,9 +104,9 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-white text-sm">Email</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                <FormControl>
                   <Input
                     {...field}
                     autoComplete="email"
@@ -114,8 +114,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                     placeholder="john@example.com"
                     type="email"
                   />
-                </div>
-              </FormControl>
+                </FormControl>
+              </div>
               <FormMessage className="text-red-300 text-xs" />
             </FormItem>
           )}
@@ -128,8 +128,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-white text-sm">Password</FormLabel>
-              <FormControl>
-                <div className="relative">
+              <div className="relative">
+                <FormControl>
                   <Input
                     {...field}
                     autoComplete="current-password"
@@ -137,16 +137,16 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                     placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
                   />
-                  <button
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation"
-                    onClick={() => setShowPassword(!showPassword)}
-                    type="button"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </FormControl>
+                </FormControl>
+                <button
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation"
+                  onClick={() => setShowPassword(!showPassword)}
+                  type="button"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <FormMessage className="text-red-300 text-xs" />
             </FormItem>
           )}
