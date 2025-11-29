@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { GradientBackground } from '@/components/auth/gradient-background';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
@@ -29,6 +29,36 @@ type AuthTab = 'signin' | 'signup';
  * Navigate to /auth to show sign in form by default
  */
 export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <GradientBackground>
+          <div
+            className={cn(
+              'bg-black/60 backdrop-blur-xl',
+              'border border-white/10',
+              'rounded-2xl sm:rounded-3xl',
+              'w-full max-w-[95%] xs:max-w-md sm:max-w-lg',
+              'p-6 sm:p-8 md:p-10',
+              'shadow-2xl shadow-black/50',
+              'animate-pulse'
+            )}
+          >
+            <div className="h-96" />
+          </div>
+        </GradientBackground>
+      }
+    >
+      <AuthContent />
+    </Suspense>
+  );
+}
+
+/**
+ * Auth content component that uses search params.
+ * Separated to allow Suspense boundary wrapping.
+ */
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') as AuthTab | null;
@@ -83,7 +113,7 @@ export default function AuthPage() {
           <p className="text-xs sm:text-sm text-white/60">
             {activeTab === 'signup'
               ? 'Create your account to get started'
-              : 'Sign in to continue your journey'}
+              : 'Sign in to continue your journey'} 
           </p>
         </div>
 
