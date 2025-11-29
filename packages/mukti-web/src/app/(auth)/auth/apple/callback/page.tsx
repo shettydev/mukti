@@ -34,8 +34,6 @@ export default function AppleCallbackPage() {
  * 4. Redirects to dashboard
  * 5. Handles errors gracefully
  *
- * Requirements: 1.5, 2.4
- *
  * @example
  * URL: /auth/apple/callback?code=c1234567890...&state=...
  */

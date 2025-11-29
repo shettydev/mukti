@@ -14,8 +14,6 @@ import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
  * - Responsive design
  * - Back to sign in navigation
  *
- * Requirements: 4.1, 8.1
- *
  * @example
  * Navigate to: /auth/forgot-password
  */

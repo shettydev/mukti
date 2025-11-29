@@ -34,8 +34,6 @@ export default function GoogleCallbackPage() {
  * 4. Redirects to dashboard
  * 5. Handles errors gracefully
  *
- * Requirements: 1.4, 2.3
- *
  * @example
  * URL: /auth/google/callback?code=4/0AY0e-g7...&state=...
  */

@@ -22,8 +22,6 @@ import { Skeleton } from '@/components/ui/skeleton';
  * - Resend verification email option
  * - Responsive design
  *
- * Requirements: 5.1, 5.2, 5.4, 5.5, 8.1
- *
  * @example
  * Navigate to: /auth/verify-email?token=abc123
  */

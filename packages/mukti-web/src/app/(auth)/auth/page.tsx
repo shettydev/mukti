@@ -23,8 +23,6 @@ type AuthTab = 'signin' | 'signup';
  * - URL query parameter support (?tab=signup or ?tab=signin)
  * - Automatic redirect to dashboard on successful authentication
  *
- * Requirements: 8.1, 8.2, 8.7
- *
  * @example
  * Navigate to /auth?tab=signup to show sign up form
  * Navigate to /auth?tab=signin to show sign in form

@@ -121,15 +121,6 @@ The OAuth buttons in `src/components/auth/oauth-buttons.tsx` initiate the OAuth 
 
 The backend handles the OAuth provider redirect and returns to our callback URLs.
 
-## Requirements Validated
-
-This implementation satisfies the following requirements:
-
-- **1.4** - Google OAuth authentication
-- **1.5** - Apple OAuth authentication
-- **2.3** - Google OAuth sign-in
-- **2.4** - Apple OAuth sign-in
-
 ## Testing
 
 OAuth callback pages are difficult to test in isolation due to:

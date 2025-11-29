@@ -21,8 +21,6 @@ import { Skeleton } from '@/components/ui/skeleton';
  * - Error state for invalid/expired tokens
  * - Responsive design
  *
- * Requirements: 4.2, 4.3, 4.4, 8.1
- *
  * @example
  * Navigate to: /auth/reset-password?token=abc123
  */
