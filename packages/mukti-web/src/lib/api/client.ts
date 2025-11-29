@@ -7,8 +7,6 @@
  * - Request/response interceptors
  * - Consistent error handling
  * - CSRF token support
- *
- * Requirements: 9.3
  */
 
 import { config } from '@/lib/config';

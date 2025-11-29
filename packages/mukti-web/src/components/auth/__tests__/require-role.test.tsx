@@ -2,7 +2,6 @@
  * Tests for RequireRole component
  *
  * Tests role-based conditional rendering and role hierarchy
- * Requirements: 6.3, 6.5
  */
 
 import { render, screen } from '@testing-library/react';

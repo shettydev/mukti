@@ -184,9 +184,7 @@ interface AuthState {
 }
 ```
 
-## Requirements
+## Guarantees
 
-This store satisfies the following requirements:
-
-- **Requirement 3.2**: Session persistence across browser restarts (user data persisted)
-- **Requirement 9.1**: Access tokens stored in memory only (not localStorage)
+- Session persists across browser restarts (user data persisted)
+- Access tokens are kept in memory only (not localStorage)

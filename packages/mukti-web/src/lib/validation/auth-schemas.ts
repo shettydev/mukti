@@ -2,7 +2,7 @@
  * Authentication form validation schemas
  *
  * Centralized Zod schemas for all authentication forms.
- * These schemas enforce security requirements and provide
+ * These schemas enforce security rules and provide
  * consistent validation across the application.
  */
 
@@ -21,7 +21,7 @@ const PASSWORD_PATTERNS = {
 /**
  * Custom password strength validator
  *
- * Validates that password meets all security requirements:
+ * Validates that password meets all security criteria:
  * - At least 8 characters
  * - Contains lowercase letter
  * - Contains uppercase letter

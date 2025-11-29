@@ -6,8 +6,6 @@
  * - User-friendly error messages
  * - Error logging
  * - Toast notifications
- *
- * Requirements: All
  */
 
 import { toast } from 'sonner';

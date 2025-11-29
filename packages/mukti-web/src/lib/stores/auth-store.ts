@@ -6,8 +6,6 @@
  * - Access tokens are stored in memory only (not persisted)
  * - User data is persisted to localStorage for better UX
  * - Refresh tokens are handled via httpOnly cookies (backend)
- *
- * Requirements: 3.2, 9.1
  */
 
 import { create } from 'zustand';

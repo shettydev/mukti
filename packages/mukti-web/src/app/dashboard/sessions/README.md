@@ -10,13 +10,11 @@ This page allows users to view and manage their active sessions across all devic
 - **Logout from All Devices**: Revoke all sessions except the current one
 - **Real-time Updates**: Optimistic updates with TanStack Query for instant feedback
 
-## Requirements
+## Capabilities
 
-Implements requirements:
-
-- 7.1: Session listing with device and location info
-- 7.2: Session revocation
-- 7.3: Logout from all devices
+- Session listing with device and location info
+- Session revocation
+- Logout from all devices
 
 ## Components
 

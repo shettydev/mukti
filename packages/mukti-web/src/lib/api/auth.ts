@@ -8,8 +8,6 @@
  * - Password reset flow
  * - Email verification
  * - OAuth authentication (Google, Apple)
- *
- * Requirements: 1.1, 2.1, 3.1, 3.4, 4.1, 4.2, 5.2, 5.4
  */
 
 import type {
@@ -38,8 +36,6 @@ export const authApi = {
    * @returns Authentication response with user data and tokens
    * @throws {ApiClientError} If OAuth authentication fails
    *
-   * Requirements: 1.5, 2.4
-   *
    * @example
    * ```typescript
    * // After Apple OAuth redirect
@@ -57,8 +53,6 @@ export const authApi = {
    * @param dto - Email address to send reset link
    * @returns void
    * @throws {ApiClientError} If request fails
-   *
-   * Requirements: 4.1
    *
    * @example
    * ```typescript
@@ -78,8 +72,6 @@ export const authApi = {
    * @returns List of active sessions with device and location info
    * @throws {ApiClientError} If request fails
    *
-   * Requirements: 7.1
-   *
    * @example
    * ```typescript
    * const response = await authApi.getSessions();
@@ -96,8 +88,6 @@ export const authApi = {
    * @param dto - OAuth authorization code from Google
    * @returns Authentication response with user data and tokens
    * @throws {ApiClientError} If OAuth authentication fails
-   *
-   * Requirements: 1.4, 2.3
    *
    * @example
    * ```typescript
@@ -117,8 +107,6 @@ export const authApi = {
    * @returns Authentication response with user data and tokens
    * @throws {ApiClientError} If credentials are invalid
    *
-   * Requirements: 2.1
-   *
    * @example
    * ```typescript
    * const response = await authApi.login({
@@ -137,8 +125,6 @@ export const authApi = {
    * @returns void
    * @throws {ApiClientError} If logout fails
    *
-   * Requirements: 3.4
-   *
    * @example
    * ```typescript
    * await authApi.logout();
@@ -155,8 +141,6 @@ export const authApi = {
    *
    * @returns New access token
    * @throws {ApiClientError} If refresh token is invalid or expired
-   *
-   * Requirements: 3.1
    *
    * @example
    * ```typescript
@@ -175,8 +159,6 @@ export const authApi = {
    * @param dto - Registration data (email, password, firstName, lastName, phone)
    * @returns Authentication response with user data and tokens
    * @throws {ApiClientError} If registration fails (e.g., duplicate email)
-   *
-   * Requirements: 1.1
    *
    * @example
    * ```typescript
@@ -205,8 +187,6 @@ export const authApi = {
    * @returns void
    * @throws {ApiClientError} If request fails
    *
-   * Requirements: 5.4
-   *
    * @example
    * ```typescript
    * await authApi.resendVerification({
@@ -224,8 +204,6 @@ export const authApi = {
    * @param dto - Reset token and new password
    * @returns void
    * @throws {ApiClientError} If token is invalid or expired
-   *
-   * Requirements: 4.2
    *
    * @example
    * ```typescript
@@ -245,8 +223,6 @@ export const authApi = {
    * @returns void
    * @throws {ApiClientError} If revocation fails
    *
-   * Requirements: 7.3
-   *
    * @example
    * ```typescript
    * await authApi.revokeAllSessions();
@@ -264,8 +240,6 @@ export const authApi = {
    * @returns void
    * @throws {ApiClientError} If session not found or revocation fails
    *
-   * Requirements: 7.2
-   *
    * @example
    * ```typescript
    * await authApi.revokeSession('session-id-123');
@@ -281,8 +255,6 @@ export const authApi = {
    * @param dto - Verification token
    * @returns void
    * @throws {ApiClientError} If token is invalid or expired
-   *
-   * Requirements: 5.2
    *
    * @example
    * ```typescript
