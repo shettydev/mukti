@@ -80,11 +80,17 @@ export const phoneSchema = z
  *
  * Validates first and last names with reasonable length constraints
  */
-export const nameSchema = z
-  .string()
-  .min(2, 'Name must be at least 2 characters')
-  .max(50, 'Name must be less than 50 characters')
-  .regex(/^[a-zA-Z\s'-]+$/, 'Name can only contain letters, spaces, hyphens, and apostrophes');
+const createNameSchema = (label: string) =>
+  z
+    .string()
+    .min(2, `${label} must be at least 2 characters`)
+    .max(50, `${label} must be less than 50 characters`)
+    .regex(
+      /^[a-zA-Z\s'-]+$/,
+      `${label} can only contain letters, spaces, hyphens, and apostrophes`
+    );
+
+export const nameSchema = createNameSchema('Name');
 
 /**
  * Registration form validation schema
@@ -98,8 +104,8 @@ export const nameSchema = z
  */
 export const registerSchema = z.object({
   email: emailSchema,
-  firstName: nameSchema,
-  lastName: nameSchema,
+  firstName: createNameSchema('First name'),
+  lastName: createNameSchema('Last name'),
   password: passwordSchema,
   phone: phoneSchema,
 });

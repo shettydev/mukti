@@ -21,6 +21,11 @@ jest.mock('@/lib/stores/auth-store', () => ({
 describe('ApiClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    apiClient.configureRetry({
+      maxRetries: 0,
+      retryDelay: 0,
+      useExponentialBackoff: false,
+    });
   });
 
   describe('GET requests', () => {
