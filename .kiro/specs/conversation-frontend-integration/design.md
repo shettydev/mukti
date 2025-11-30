@@ -75,12 +75,12 @@ User Action → Component → Query Hook → API Client → Backend API
 
 ```
 Page (Server Component)
-  └── ConversationList (Client Component)
+  └── ConversationList (Client Component with Infinite Scroll)
       ├── ConversationFilters
-      ├── ConversationCard[]
+      ├── ConversationCard[] (Virtualized)
       │   ├── ConversationActions
       │   └── TechniqueBadge
-      └── PaginationControls
+      └── InfiniteScrollTrigger
 
 ConversationDetail (Client Component)
   ├── ConversationHeader
@@ -100,7 +100,7 @@ ConversationDetail (Client Component)
 
 #### 1. ConversationList (Client Component)
 
-**Purpose**: Display paginated, filterable list of conversations
+**Purpose**: Display infinite-scrolling, filterable list of conversations with virtualization
 
 **Props**:
 ```typescript
@@ -111,15 +111,19 @@ interface ConversationListProps {
 ```
 
 **State Management**:
-- Uses `useConversations()` hook for data fetching
+- Uses `useInfiniteConversations()` hook for infinite scroll data fetching
+- Uses `@tanstack/react-virtual` for virtualization of large lists
 - Local state for filter UI
 - URL search params for filter persistence
 
 **Key Features**:
+- Infinite scroll with automatic page loading
+- Virtualization for performance with large lists
 - Skeleton loading during fetch
 - Empty state with create CTA
 - Error state with retry
 - Optimistic delete
+- Filter changes reset to page 1
 
 
 #### 2. ConversationDetail (Client Component)
@@ -1102,12 +1106,21 @@ import type {
 } from '@/types/conversation.types';
 
 /**
- * Fetch all conversations with filters
+ * Fetch all conversations with filters using infinite scroll
  */
-export function useConversations(filters?: ConversationFilters) {
-  return useQuery({
+export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'page'>) {
+  return useInfiniteQuery({
     queryKey: conversationKeys.list(filters || {}),
-    queryFn: () => conversationsApi.getAll(filters),
+    queryFn: ({ pageParam = 1 }) =>
+      conversationsApi.getAll({ ...filters, page: pageParam }),
+    getNextPageParam: (lastPage) => {
+      // If we have more pages, return the next page number
+      if (lastPage.meta.page < lastPage.meta.totalPages) {
+        return lastPage.meta.page + 1;
+      }
+      return undefined; // No more pages
+    },
+    initialPageParam: 1,
     staleTime: 30000, // 30 seconds
   });
 }
@@ -1341,23 +1354,70 @@ export function useSendMessage(conversationId: string) {
 // components/conversations/conversation-list.tsx
 'use client';
 
-import { useState } from 'react';
-import { useConversations } from '@/lib/hooks/use-conversations';
+import { useState, useRef, useEffect } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useInfiniteConversations } from '@/lib/hooks/use-conversations';
 import { ConversationCard } from './conversation-card';
 import { ConversationFilters } from './conversation-filters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import type { ConversationFilters as Filters } from '@/types/conversation.types';
 
 export function ConversationList() {
-  const [filters, setFilters] = useState<Filters>({
-    page: 1,
+  const [filters, setFilters] = useState<Omit<Filters, 'page'>>({
     limit: 20,
     sort: 'updatedAt',
   });
 
-  const { data, isLoading, error, refetch } = useConversations(filters);
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useInfiniteConversations(filters);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // Flatten all pages into a single array
+  const allConversations = data?.pages.flatMap((page) => page.data) ?? [];
+
+  // Virtualize the list for performance
+  const rowVirtualizer = useVirtualizer({
+    count: allConversations.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 140, // Estimated height of conversation card
+    overscan: 5,
+  });
+
+  // Infinite scroll: fetch next page when scrolling near bottom
+  useEffect(() => {
+    const [lastItem] = [...rowVirtualizer.getVirtualItems()].reverse();
+
+    if (!lastItem) return;
+
+    if (
+      lastItem.index >= allConversations.length - 1 &&
+      hasNextPage &&
+      !isFetchingNextPage
+    ) {
+      fetchNextPage();
+    }
+  }, [
+    hasNextPage,
+    fetchNextPage,
+    allConversations.length,
+    isFetchingNextPage,
+    rowVirtualizer.getVirtualItems(),
+  ]);
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = (newFilters: Omit<Filters, 'page'>) => {
+    setFilters(newFilters);
+  };
 
   if (isLoading) {
     return (
@@ -1378,7 +1438,7 @@ export function ConversationList() {
     );
   }
 
-  if (!data || data.data.length === 0) {
+  if (allConversations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
@@ -1395,35 +1455,45 @@ export function ConversationList() {
 
   return (
     <div className="space-y-6">
-      <ConversationFilters filters={filters} onChange={setFilters} />
-      
-      <div className="space-y-4">
-        {data.data.map((conversation) => (
-          <ConversationCard key={conversation.id} conversation={conversation} />
-        ))}
-      </div>
+      <ConversationFilters filters={filters} onChange={handleFilterChange} />
 
-      {data.meta.totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button
-            variant="outline"
-            disabled={filters.page === 1}
-            onClick={() => setFilters({ ...filters, page: (filters.page || 1) - 1 })}
-          >
-            Previous
-          </Button>
-          <span className="flex items-center px-4">
-            Page {filters.page} of {data.meta.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            disabled={filters.page === data.meta.totalPages}
-            onClick={() => setFilters({ ...filters, page: (filters.page || 1) + 1 })}
-          >
-            Next
-          </Button>
+      <div
+        ref={parentRef}
+        className="h-[calc(100vh-200px)] overflow-auto"
+      >
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const conversation = allConversations[virtualRow.index];
+            return (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <ConversationCard conversation={conversation} />
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {isFetchingNextPage && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1557,11 +1627,12 @@ export function MessageInput({ conversationId }: MessageInputProps) {
 
 ### Optimizations
 
-1. **Virtualization**: Use `@tanstack/react-virtual` for long conversation lists
-2. **Code Splitting**: Lazy load conversation detail page
-3. **Image Optimization**: Use Next.js Image for any avatars or media
-4. **Debouncing**: Debounce filter changes to reduce API calls
-5. **Pagination**: Limit list size to 20 items per page
+1. **Virtualization**: Use `@tanstack/react-virtual` for rendering only visible conversation cards (improves performance with 1000+ conversations)
+2. **Infinite Scroll**: Use `useInfiniteQuery` with URL-based pagination for seamless loading
+3. **Code Splitting**: Lazy load conversation detail page
+4. **Image Optimization**: Use Next.js Image for any avatars or media
+5. **Debouncing**: Debounce filter changes to reduce API calls
+6. **Page Size**: Fetch 20 items per page to balance performance and UX
 
 ### Example Prefetching
 

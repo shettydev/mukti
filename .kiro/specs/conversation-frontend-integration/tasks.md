@@ -1,28 +1,28 @@
 # Implementation Plan
 
-- [ ] 1. Set up TypeScript types and API client foundation
+- [-] 1. Set up TypeScript types and API client foundation
   - Create TypeScript types matching backend DTOs
   - Implement conversation API client with all endpoints
   - Create query key factory for cache management
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 1.1 Write property test for API client configuration usage
+- [x] 1.1 Write property test for API client configuration usage
   - **Property 1: Configuration usage**
   - **Validates: Requirements 1.1**
 
-- [ ] 1.2 Write property test for response parsing
+- [x] 1.2 Write property test for response parsing
   - **Property 2: Response parsing consistency**
   - **Validates: Requirements 1.2**
 
-- [ ] 1.3 Write property test for error transformation
+- [x] 1.3 Write property test for error transformation
   - **Property 3: Error transformation**
   - **Validates: Requirements 1.3**
 
-- [ ] 1.4 Write property test for auth header injection
+- [x] 1.4 Write property test for auth header injection
   - **Property 4: Auth header injection**
   - **Validates: Requirements 1.4**
 
-- [ ] 1.5 Write property tests for query key factory
+- [x] 1.5 Write property tests for query key factory
   - **Property 5: Query key hierarchy**
   - **Property 6: Filter inclusion in keys**
   - **Property 7: ID inclusion in detail keys**
@@ -30,21 +30,21 @@
   - **Property 9: Cache invalidation scope**
   - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
 
-- [ ] 1.6 Write unit tests for API client
+- [x] 1.6 Write unit tests for API client
   - Test all conversation endpoints (getAll, getById, create, update, delete, sendMessage, getArchivedMessages)
   - Test query parameter construction
   - Test error handling for all error types
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
 - [ ] 2. Implement TanStack Query hooks with optimistic updates
-  - Create useConversations hook for list fetching
+  - Create useInfiniteConversations hook for infinite scroll list fetching
   - Create useConversation hook for detail fetching
   - Create useArchivedMessages hook with infinite scroll
   - Create useCreateConversation hook with optimistic update
   - Create useUpdateConversation hook with optimistic update
   - Create useDeleteConversation hook with optimistic update
   - Create useSendMessage hook with optimistic update
-  - _Requirements: 4.4, 4.5, 4.7, 7.2, 7.5, 7.6, 8.2, 8.3, 8.4, 8.7, 8.8, 9.2, 9.4, 9.5_
+  - _Requirements: 4.4, 4.5, 4.7, 5.5, 5.6, 7.2, 7.5, 7.6, 8.2, 8.3, 8.4, 8.7, 8.8, 9.2, 9.4, 9.5_
 
 - [ ] 2.1 Write property tests for form validation
   - **Property 10: Title validation**
@@ -78,15 +78,17 @@
   - Test useSendMessage success and error cases
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 3. Build conversation list components
+- [ ] 3. Build conversation list components with infinite scroll
   - Create ConversationCard component with all metadata
   - Create ConversationFilters component with technique, tags, archived, favorite filters
-  - Create ConversationList component with pagination
+  - Create ConversationList component with infinite scroll using @tanstack/react-virtual
+  - Implement virtualization for performance with large lists
+  - Implement automatic page loading on scroll
   - Implement skeleton loading states
   - Implement empty state with create CTA
   - Implement error state with retry
   - Add prefetching on card hover
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 10.1_
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 10.1_
 
 - [ ] 3.1 Write property tests for data integrity
   - **Property 22: Message ordering**
@@ -105,9 +107,10 @@
   - Test ConversationCard rendering with various data
   - Test ConversationFilters state management
   - Test ConversationList with data, loading, error, and empty states
-  - Test pagination controls
+  - Test infinite scroll behavior (fetchNextPage on scroll)
+  - Test virtualization rendering
   - Test prefetching behavior
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9_
 
 - [ ] 4. Build conversation detail and messaging components
   - Create ConversationDetail component with header and actions

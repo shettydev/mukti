@@ -78,17 +78,19 @@ This document outlines the requirements for integrating the conversation backend
 
 ### Requirement 5
 
-**User Story:** As a user, I want to view a paginated list of my conversations with filtering and sorting, so that I can find specific dialogues.
+**User Story:** As a user, I want to view an infinite-scrolling list of my conversations with filtering and sorting, so that I can find specific dialogues.
 
 #### Acceptance Criteria
 
 1. WHEN the conversation list loads THEN the system SHALL display skeleton loading matching the final layout
 2. WHEN conversations are loaded THEN the system SHALL display conversation cards with title, technique, last message preview, and timestamp
-3. WHEN the user changes filter options THEN the system SHALL update the query parameters and refetch
-4. WHEN the user changes sort order THEN the system SHALL update the query parameters and refetch
-5. WHEN the user navigates to next page THEN the system SHALL fetch the next page while maintaining filters
-6. WHEN the conversation list is empty THEN the system SHALL display an empty state with create conversation CTA
-7. WHEN the conversation list fails to load THEN the system SHALL display error state with retry button
+3. WHEN the user changes filter options THEN the system SHALL update the query parameters and refetch from page 1
+4. WHEN the user changes sort order THEN the system SHALL update the query parameters and refetch from page 1
+5. WHEN the user scrolls to the bottom of the list THEN the system SHALL automatically fetch the next page while maintaining filters
+6. WHEN fetching additional pages THEN the system SHALL append new conversations to the existing list
+7. WHEN the conversation list is empty THEN the system SHALL display an empty state with create conversation CTA
+8. WHEN the conversation list fails to load THEN the system SHALL display error state with retry button
+9. WHEN all conversations are loaded THEN the system SHALL not attempt to fetch additional pages
 
 ### Requirement 6
 
