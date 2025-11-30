@@ -61,7 +61,9 @@ function DashboardContent() {
   };
 
   const handleSendMessage = () => {
-    if (!message.trim()) {return;}
+    if (!message.trim()) {
+      return;
+    }
     // TODO: Implement message sending logic
     console.log('Sending message:', message);
     setMessage('');
@@ -69,8 +71,12 @@ function DashboardContent() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) {return 'Good Morning';}
-    if (hour < 18) {return 'Good Afternoon';}
+    if (hour < 12) {
+      return 'Good Morning';
+    }
+    if (hour < 18) {
+      return 'Good Afternoon';
+    }
     return 'Good Evening';
   };
 
@@ -105,7 +111,10 @@ function DashboardContent() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white" size="sm">
+            <Button
+              className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white"
+              size="sm"
+            >
               <FileText className="w-4 h-4 mr-2" />
               Export Report
             </Button>
