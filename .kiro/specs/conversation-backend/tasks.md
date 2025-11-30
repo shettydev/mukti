@@ -424,7 +424,7 @@
   - Return 200 OK with paginated archived messages
   - _Requirements: 3.2, 3.3_
 
-- [ ] 10. Create DTOs and Swagger documentation
+- [x] 10. Create DTOs and Swagger documentation
   - Create DTO classes with validation decorators
   - Create Swagger documentation file in dto folder
   - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
