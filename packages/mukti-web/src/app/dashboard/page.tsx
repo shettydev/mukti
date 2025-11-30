@@ -65,7 +65,6 @@ function DashboardContent() {
       return;
     }
     // TODO: Implement message sending logic
-    console.log('Sending message:', message);
     setMessage('');
   };
 

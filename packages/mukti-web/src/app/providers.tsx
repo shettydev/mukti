@@ -3,6 +3,11 @@
  *
  * Wraps the app with necessary context providers:
  * - TanStack Query for data fetching and caching
+ *
+ * Performance optimizations:
+ * - Centralized cache configuration from config.ts
+ * - Background refetch on window focus for data freshness
+ * - Optimized stale times and cache times
  */
 
 'use client';
@@ -11,6 +16,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { AuthInitializer } from '@/components/auth/auth-initializer';
+import { config } from '@/lib/config';
 
 /**
  * Props for Providers component
@@ -34,9 +40,16 @@ export function Providers({ children }: ProvidersProps) {
             retry: 1,
           },
           queries: {
-            refetchOnWindowFocus: false,
+            // Use centralized config for cache settings
+            gcTime: config.cache.defaultCacheTime, // 5 minutes (garbage collection time)
+            // Only refetch stale queries on window focus
+            refetchOnMount: 'always',
+            // Enable background refetch on window focus for data freshness
+            refetchOnWindowFocus: true,
+            // Retry failed queries once
             retry: 1,
-            staleTime: 60 * 1000, // 1 minute
+            // Use centralized config for stale time
+            staleTime: config.cache.defaultStaleTime, // 1 minute
           },
         },
       })
