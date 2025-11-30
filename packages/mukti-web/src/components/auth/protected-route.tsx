@@ -67,7 +67,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({
   children,
   loadingComponent,
-  redirectTo = '/',
+  redirectTo = '/auth',
 }: ProtectedRouteProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();

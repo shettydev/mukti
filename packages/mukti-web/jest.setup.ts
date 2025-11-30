@@ -52,6 +52,9 @@ global.IntersectionObserver = class IntersectionObserver {
   unobserve() {}
 } as any;
 
+// Mock scrollIntoView
+Element.prototype.scrollIntoView = jest.fn();
+
 // Mock ResizeObserver used by some UI components
 if (!global.ResizeObserver) {
   class ResizeObserver {

@@ -106,7 +106,7 @@ function AuthContent() {
         )}
       >
         {/* Logo/Title */}
-        <div className="text-center mb-6 sm:mb-8">
+        <div className="text-center mb-6 sm:mb-8" suppressHydrationWarning>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
             Welcome to Mukti
           </h1>
