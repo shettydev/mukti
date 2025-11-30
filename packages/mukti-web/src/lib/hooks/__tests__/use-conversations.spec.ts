@@ -157,7 +157,8 @@ describe('useInfiniteConversations', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data?.pages[0]).toEqual(mockData);
-    expect(conversationsApi.getAll).toHaveBeenCalledWith({ page: 1 });
+    // Default pagination limit (20) is now included from centralized config
+    expect(conversationsApi.getAll).toHaveBeenCalledWith({ limit: 20, page: 1 });
   });
 });
 
@@ -291,9 +292,10 @@ describe('useArchivedMessages', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data?.pages[0]).toEqual(mockMessages);
+    // Uses centralized pagination config (20 items per page)
     expect(conversationsApi.getArchivedMessages).toHaveBeenCalledWith('507f1f77bcf86cd799439011', {
       beforeSequence: undefined,
-      limit: 50,
+      limit: 20,
     });
   });
 });

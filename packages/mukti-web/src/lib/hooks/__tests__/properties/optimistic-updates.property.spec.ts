@@ -40,10 +40,21 @@ const techniqueArbitrary = fc.constantFrom<SocraticTechnique>(
 );
 
 /**
+ * Arbitrary for generating valid ISO date strings
+ * Uses integer timestamps to avoid invalid date edge cases
+ */
+const validDateArbitrary = fc
+  .integer({
+    max: new Date('2030-12-31').getTime(),
+    min: new Date('2020-01-01').getTime(),
+  })
+  .map((timestamp) => new Date(timestamp).toISOString());
+
+/**
  * Arbitrary for generating valid conversation data
  */
 const conversationArbitrary = fc.record({
-  createdAt: fc.date().map((d) => d.toISOString()),
+  createdAt: validDateArbitrary,
   hasArchivedMessages: fc.boolean(),
   id: fc.string({ maxLength: 24, minLength: 24 }),
   isArchived: fc.boolean(),
@@ -58,14 +69,14 @@ const conversationArbitrary = fc.record({
       content: fc.string({ maxLength: 500, minLength: 1 }),
       role: fc.constantFrom('assistant', 'user'),
       sequence: fc.integer({ max: 1000, min: 1 }),
-      timestamp: fc.date().map((d) => d.toISOString()),
+      timestamp: validDateArbitrary,
     }),
     { maxLength: 10 }
   ),
   tags: fc.array(fc.string({ maxLength: 20, minLength: 1 }), { maxLength: 5 }),
   technique: techniqueArbitrary,
   title: fc.string({ maxLength: 100, minLength: 1 }),
-  updatedAt: fc.date().map((d) => d.toISOString()),
+  updatedAt: validDateArbitrary,
   userId: fc.string({ maxLength: 24, minLength: 24 }),
 });
 
