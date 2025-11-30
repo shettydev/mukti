@@ -55,7 +55,6 @@ function ConversationDetailContent({ conversationId }: ConversationDetailContent
       <Sidebar
         collapsed={sidebarCollapsed}
         mobileOpen={mobileMenuOpen}
-        onCollapsedChange={setSidebarCollapsed}
         onMobileClose={() => setMobileMenuOpen(false)}
       />
 
