@@ -58,6 +58,7 @@ export function GradientBackground({ children, className }: GradientBackgroundPr
         'p-4 sm:p-6 md:p-8',
         className
       )}
+      suppressHydrationWarning
     >
       {children}
     </div>

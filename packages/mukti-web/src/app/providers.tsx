@@ -10,6 +10,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { AuthInitializer } from '@/components/auth/auth-initializer';
+
 /**
  * Props for Providers component
  */
@@ -40,5 +42,10 @@ export function Providers({ children }: ProvidersProps) {
       })
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthInitializer />
+      {children}
+    </QueryClientProvider>
+  );
 }

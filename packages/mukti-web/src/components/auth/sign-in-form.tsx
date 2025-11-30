@@ -75,11 +75,11 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      // Note: rememberMe is handled by the backend via refresh token expiration
-      // We pass it in the request but the actual implementation is server-side
+      // Pass rememberMe to the backend to handle cookie expiration
       await loginMutation.mutateAsync({
         email: data.email,
         password: data.password,
+        rememberMe: data.rememberMe,
       });
       showSuccessToast('Welcome back!');
 
