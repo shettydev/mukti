@@ -78,7 +78,7 @@
   - Test useSendMessage success and error cases
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 3. Build conversation list components with infinite scroll
+- [x] 3. Build conversation list components with infinite scroll
   - Create ConversationCard component with all metadata
   - Create ConversationFilters component with technique, tags, archived, favorite filters
   - Create ConversationList component with infinite scroll using @tanstack/react-virtual
@@ -90,20 +90,20 @@
   - Add prefetching on card hover
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 10.1_
 
-- [ ] 3.1 Write property tests for data integrity
+- [x] 3.1 Write property tests for data integrity
   - **Property 22: Message ordering**
   - **Property 23: Archived message prepending**
   - **Property 24: Filter preservation during pagination**
   - **Property 25: Conversation card completeness**
   - **Validates: Requirements 5.2, 5.5, 6.2, 6.5**
 
-- [ ] 3.2 Write property tests for query behavior
+- [x] 3.2 Write property tests for query behavior
   - **Property 26: Filter change triggers refetch**
   - **Property 27: Sort change triggers refetch**
   - **Property 28: Archived message pagination**
   - **Validates: Requirements 5.3, 5.4, 6.4**
 
-- [ ] 3.3 Write unit tests for conversation list components
+- [x] 3.3 Write unit tests for conversation list components
   - Test ConversationCard rendering with various data
   - Test ConversationFilters state management
   - Test ConversationList with data, loading, error, and empty states
@@ -112,7 +112,7 @@
   - Test prefetching behavior
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9_
 
-- [ ] 4. Build conversation detail and messaging components
+- [x] 4. Build conversation detail and messaging components
   - Create ConversationDetail component with header and actions
   - Create MessageList component with chronological ordering
   - Create Message component for user and assistant messages
@@ -121,7 +121,7 @@
   - Implement error and 404 states
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 10.2_
 
-- [ ] 4.1 Write unit tests for conversation detail components
+- [x] 4.1 Write unit tests for conversation detail components
   - Test ConversationDetail rendering
   - Test MessageList with various message arrays
   - Test Message component for both roles
@@ -129,7 +129,7 @@
   - Test error and 404 states
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-- [ ] 5. Build message input and sending functionality
+- [x] 5. Build message input and sending functionality
   - Create MessageInput component with auto-resize textarea
   - Implement send button with loading state
   - Add keyboard shortcuts (Enter to send, Shift+Enter for newline)
@@ -138,7 +138,7 @@
   - Clear input after successful send
   - _Requirements: 7.1, 7.2, 7.3, 7.8, 10.3_
 
-- [ ] 5.1 Write unit tests for message input
+- [x] 5.1 Write unit tests for message input
   - Test textarea auto-resize
   - Test send button enable/disable logic
   - Test keyboard shortcuts
@@ -146,7 +146,7 @@
   - Test input clearing after send
   - _Requirements: 7.1, 7.2, 7.3, 7.8_
 
-- [ ] 6. Implement error handling and rate limiting UI
+- [x] 6. Implement error handling and rate limiting UI
   - Create ErrorState component with typed error messages
   - Create RateLimitBanner component with countdown
   - Implement error message mapping for all error codes
@@ -154,14 +154,14 @@
   - Display rate limit errors with retry-after time
   - _Requirements: 7.7, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
-- [ ] 6.1 Write unit tests for error handling components
+- [x] 6.1 Write unit tests for error handling components
   - Test ErrorState with various error types
   - Test RateLimitBanner countdown
   - Test error message display
   - Test retry button functionality
   - _Requirements: 7.7, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
-- [ ] 7. Build conversation creation and management dialogs
+- [x] 7. Build conversation creation and management dialogs
   - Create CreateConversationDialog with form validation
   - Create TechniqueSelector with descriptions
   - Create TagInput component
@@ -170,7 +170,7 @@
   - Implement technique change confirmation
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 5.1, 5.2, 5.3, 5.4, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 9.1, 9.3_
 
-- [ ] 7.1 Write unit tests for dialog components
+- [x] 7.1 Write unit tests for dialog components
   - Test CreateConversationDialog form validation
   - Test TechniqueSelector selection
   - Test TagInput add/remove
@@ -178,7 +178,7 @@
   - Test UpdateConversationDialog validation
   - _Requirements: 4.1, 4.2, 8.1, 8.5, 8.6, 9.1_
 
-- [ ] 8. Create conversation pages with Next.js App Router
+- [x] 8. Create conversation pages with Next.js App Router
   - Create /dashboard/conversations page (list view)
   - Create /dashboard/conversations/[id] page (detail view)
   - Create /dashboard/conversations/new page (creation flow)
@@ -187,14 +187,14 @@
   - Add error.tsx for each route
   - _Requirements: 4.6, 9.6_
 
-- [ ] 8.1 Write integration tests for page navigation
+- [x] 8.1 Write integration tests for page navigation
   - Test navigation from list to detail
   - Test navigation after creation
   - Test navigation after deletion
   - Test back button behavior
   - _Requirements: 4.6, 9.6_
 
-- [ ] 9. Implement responsive design and accessibility
+- [x] 9. Implement responsive design and accessibility
   - Add mobile-first responsive styles to all components
   - Implement single-column layout for mobile
   - Implement sidebar layout for desktop
@@ -205,14 +205,14 @@
   - Ensure 44x44px touch targets on mobile
   - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 15.1, 15.2, 15.3, 15.4, 15.5_
 
-- [ ] 9.1 Write accessibility tests
+- [x] 9.1 Write accessibility tests
   - Test keyboard navigation
   - Test ARIA labels
   - Test focus management
   - Test semantic HTML structure
   - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
 
-- [ ] 10. Optimize performance and caching
+- [x] 10. Optimize performance and caching
   - Configure TanStack Query stale times and cache times
   - Implement prefetching on conversation card hover
   - Add background refetch on window focus
@@ -220,7 +220,7 @@
   - Add pagination limits (20 items per page)
   - _Requirements: 5.3, 5.4, 5.5_
 
-- [ ] 11. Final integration and polish
+- [x] 11. Final integration and polish
   - Connect all components to pages
   - Test complete user flows (create, read, update, delete, message)
   - Verify error handling across all operations
@@ -230,5 +230,5 @@
   - Verify accessibility with screen reader
   - _Requirements: All requirements_
 
-- [ ] 12. Checkpoint - Ensure all tests pass
+- [x] 12. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
