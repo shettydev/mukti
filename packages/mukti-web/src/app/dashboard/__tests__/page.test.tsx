@@ -96,7 +96,7 @@ describe('DashboardPage', () => {
     // The button doesn't have accessible text, so we check for its presence by other means
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBeGreaterThan(0);
-    
+
     // Verify user info is displayed (which means the page loaded correctly)
     expect(screen.getByText(/test@example.com/i)).toBeInTheDocument();
   });
