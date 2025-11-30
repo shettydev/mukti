@@ -66,9 +66,7 @@ export function DeleteConversationDialog({
             </div>
             <div>
               <DialogTitle>Delete Conversation</DialogTitle>
-              <DialogDescription>
-                This action cannot be undone.
-              </DialogDescription>
+              <DialogDescription>This action cannot be undone.</DialogDescription>
             </div>
           </div>
         </DialogHeader>

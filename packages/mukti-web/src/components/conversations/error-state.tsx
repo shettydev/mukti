@@ -75,24 +75,15 @@ export function ErrorState({
       data-testid="error-state"
       role="alert"
     >
-      <div
-        className="mb-4 rounded-full bg-destructive/10 p-3"
-        data-testid="error-icon"
-      >
+      <div className="mb-4 rounded-full bg-destructive/10 p-3" data-testid="error-icon">
         <Icon aria-hidden="true" className="h-8 w-8 text-destructive" />
       </div>
 
-      <h3
-        className="mb-2 text-lg font-semibold"
-        data-testid="error-title"
-      >
+      <h3 className="mb-2 text-lg font-semibold" data-testid="error-title">
         {errorTitle}
       </h3>
 
-      <p
-        className="mb-6 max-w-md text-muted-foreground"
-        data-testid="error-message"
-      >
+      <p className="mb-6 max-w-md text-muted-foreground" data-testid="error-message">
         {errorMessage}
       </p>
 
@@ -110,12 +101,7 @@ export function ErrorState({
         )}
 
         {shouldShowBack && onBack && (
-          <Button
-            aria-label="Go back"
-            data-testid="back-button"
-            onClick={onBack}
-            variant="outline"
-          >
+          <Button aria-label="Go back" data-testid="back-button" onClick={onBack} variant="outline">
             <ArrowLeft aria-hidden="true" className="mr-2 h-4 w-4" />
             Go Back
           </Button>

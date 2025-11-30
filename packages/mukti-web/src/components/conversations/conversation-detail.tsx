@@ -48,24 +48,27 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const { mutate: updateConversation } = useUpdateConversation(conversationId);
   const { isPending: isDeleting, mutate: deleteConversation } = useDeleteConversation();
   const { isPending: isSending, mutateAsync: sendMessage } = useSendMessage(conversationId);
-  
+
   // Rate limit state
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<null | number>(null);
-  
+
   // Handle sending messages
-  const handleSendMessage = useCallback(async (content: string) => {
-    try {
-      await sendMessage({ content });
-    } catch (err) {
-      // Check if it's a rate limit error
-      if (isRateLimitError(err)) {
-        const retryAfter = getRetryAfter(err);
-        setRateLimitRetryAfter(retryAfter);
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      try {
+        await sendMessage({ content });
+      } catch (err) {
+        // Check if it's a rate limit error
+        if (isRateLimitError(err)) {
+          const retryAfter = getRetryAfter(err);
+          setRateLimitRetryAfter(retryAfter);
+        }
+        throw err; // Re-throw to let MessageInput handle the error state
       }
-      throw err; // Re-throw to let MessageInput handle the error state
-    }
-  }, [sendMessage]);
-  
+    },
+    [sendMessage]
+  );
+
   // Handle rate limit banner dismiss
   const handleRateLimitDismiss = useCallback(() => {
     setRateLimitRetryAfter(null);
@@ -145,7 +148,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   };
 
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+    if (
+      confirm('Are you sure you want to delete this conversation? This action cannot be undone.')
+    ) {
       deleteConversation(conversationId);
     }
   };
@@ -177,7 +182,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
               <span>{conversation.metadata.messageCount} messages</span>
               {conversation.tags.length > 0 && (
                 <>
-                  <span aria-hidden="true" className="hidden sm:inline">•</span>
+                  <span aria-hidden="true" className="hidden sm:inline">
+                    •
+                  </span>
                   <span className="hidden sm:inline">{conversation.tags.join(', ')}</span>
                 </>
               )}
@@ -212,10 +219,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="min-h-[44px]"
-                  onClick={handleToggleArchive}
-                >
+                <DropdownMenuItem className="min-h-[44px]" onClick={handleToggleArchive}>
                   <Archive aria-hidden="true" className="mr-2 h-4 w-4" />
                   {conversation.isArchived ? 'Unarchive' : 'Archive'}
                 </DropdownMenuItem>
@@ -240,17 +244,14 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         hasArchivedMessages={conversation.hasArchivedMessages}
         recentMessages={conversation.recentMessages}
       />
-      
+
       {/* Rate Limit Banner */}
       {rateLimitRetryAfter !== null && (
         <div className="px-4 pb-2">
-          <RateLimitBanner
-            onDismiss={handleRateLimitDismiss}
-            retryAfter={rateLimitRetryAfter}
-          />
+          <RateLimitBanner onDismiss={handleRateLimitDismiss} retryAfter={rateLimitRetryAfter} />
         </div>
       )}
-      
+
       {/* Message Input */}
       <MessageInput
         conversationId={conversationId}

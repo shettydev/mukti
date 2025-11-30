@@ -101,7 +101,10 @@ export function ConversationList({ className, initialFilters }: ConversationList
     return (
       <div aria-live="polite" className={className} role="alert">
         <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center px-4">
-          <AlertCircle aria-hidden="true" className="h-10 w-10 md:h-12 md:w-12 text-destructive mb-4" />
+          <AlertCircle
+            aria-hidden="true"
+            className="h-10 w-10 md:h-12 md:w-12 text-destructive mb-4"
+          />
           <h3 className="text-base md:text-lg font-semibold mb-2">Failed to load conversations</h3>
           <p className="text-sm md:text-base text-muted-foreground mb-6 max-w-md">
             {error.message || 'An error occurred while loading your conversations.'}

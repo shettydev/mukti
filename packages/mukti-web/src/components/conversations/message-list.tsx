@@ -50,9 +50,7 @@ export function MessageList({
     return (
       <div className="flex flex-1 items-center justify-center text-center">
         <div className="space-y-2">
-          <p className="text-muted-foreground">
-            No messages yet. Start the conversation!
-          </p>
+          <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
         </div>
       </div>
     );

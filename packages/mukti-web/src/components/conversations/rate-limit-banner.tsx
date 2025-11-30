@@ -91,16 +91,10 @@ export function RateLimitBanner({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p
-          className="text-sm font-medium text-destructive"
-          data-testid="rate-limit-title"
-        >
+        <p className="text-sm font-medium text-destructive" data-testid="rate-limit-title">
           Rate Limit Exceeded
         </p>
-        <p
-          className="text-sm text-muted-foreground"
-          data-testid="rate-limit-message"
-        >
+        <p className="text-sm text-muted-foreground" data-testid="rate-limit-message">
           {message}
         </p>
       </div>
@@ -134,7 +128,9 @@ export function RateLimitBanner({
  * Formats seconds into a human-readable time string
  */
 function formatTimeRemaining(seconds: number): string {
-  if (seconds <= 0) {return '0 seconds';}
+  if (seconds <= 0) {
+    return '0 seconds';
+  }
 
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;

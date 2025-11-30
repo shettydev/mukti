@@ -105,11 +105,7 @@ export function TagInput({
       onClick={handleContainerClick}
     >
       {value.map((tag) => (
-        <Badge
-          className="gap-1 pr-1"
-          key={tag}
-          variant="secondary"
-        >
+        <Badge className="gap-1 pr-1" key={tag} variant="secondary">
           {tag}
           {!disabled && (
             <button

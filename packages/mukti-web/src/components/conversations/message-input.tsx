@@ -59,7 +59,9 @@ export function MessageInput({
    * Handle sending message
    */
   const handleSend = useCallback(async () => {
-    if (!canSend || isOverLimit) {return;}
+    if (!canSend || isOverLimit) {
+      return;
+    }
 
     const trimmedContent = content.trim();
     setIsSending(true);
@@ -137,11 +139,7 @@ export function MessageInput({
           size="icon"
           type="button"
         >
-          {isSending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
+          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
 

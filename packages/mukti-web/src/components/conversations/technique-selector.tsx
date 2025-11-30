@@ -14,10 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import {
-  SOCRATIC_TECHNIQUES,
-  TECHNIQUE_DESCRIPTIONS,
-} from '@/lib/validation/conversation-schemas';
+import { SOCRATIC_TECHNIQUES, TECHNIQUE_DESCRIPTIONS } from '@/lib/validation/conversation-schemas';
 
 interface TechniqueSelectorProps {
   className?: string;
@@ -104,7 +101,9 @@ export function TechniqueSelector({
                   <div
                     className={cn(
                       'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
-                      isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'
+                      isSelected
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-muted'
                     )}
                   >
                     {isSelected && <Check className="h-3 w-3" />}

@@ -186,10 +186,7 @@ export function UpdateConversationDialog({
                   <FormItem>
                     <FormLabel>Technique</FormLabel>
                     <FormControl>
-                      <TechniqueSelector
-                        onChange={handleTechniqueChange}
-                        value={field.value}
-                      />
+                      <TechniqueSelector onChange={handleTechniqueChange} value={field.value} />
                     </FormControl>
                     <FormDescription>
                       Changing the technique may affect how future responses are generated.
@@ -206,10 +203,7 @@ export function UpdateConversationDialog({
                   <FormItem>
                     <FormLabel>Tags</FormLabel>
                     <FormControl>
-                      <TagInput
-                        onChange={field.onChange}
-                        value={field.value || []}
-                      />
+                      <TagInput onChange={field.onChange} value={field.value || []} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -251,9 +245,7 @@ export function UpdateConversationDialog({
               </div>
               <div>
                 <DialogTitle>Change Technique?</DialogTitle>
-                <DialogDescription>
-                  This conversation has existing messages.
-                </DialogDescription>
+                <DialogDescription>This conversation has existing messages.</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -268,7 +260,8 @@ export function UpdateConversationDialog({
               <span className="font-medium text-foreground">
                 {pendingTechnique && TECHNIQUE_DESCRIPTIONS[pendingTechnique].name}
               </span>{' '}
-              will affect how future AI responses are generated. Existing messages will remain unchanged.
+              will affect how future AI responses are generated. Existing messages will remain
+              unchanged.
             </p>
           </div>
 

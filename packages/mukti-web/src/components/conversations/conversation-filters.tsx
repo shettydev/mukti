@@ -65,14 +65,16 @@ export function ConversationFilters({
   onFiltersChange,
 }: ConversationFiltersProps) {
   const [tagInput, setTagInput] = useState('');
-  
+
   // Pending filters for debouncing
   const [pendingFilters, setPendingFilters] = useState<Filters | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Debounced filter change handler
   useEffect(() => {
-    if (pendingFilters === null) {return;}
+    if (pendingFilters === null) {
+      return;
+    }
 
     // Clear existing timer
     if (debounceTimerRef.current) {
@@ -162,7 +164,11 @@ export function ConversationFilters({
     (filters.tags && filters.tags.length > 0);
 
   return (
-    <div aria-label="Conversation filters" className={cn('flex flex-col gap-3 md:gap-4', className)} role="group">
+    <div
+      aria-label="Conversation filters"
+      className={cn('flex flex-col gap-3 md:gap-4', className)}
+      role="group"
+    >
       {/* Scrollable filter buttons on mobile */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 -mb-2 scrollbar-hide">
         {/* Technique Filter */}
@@ -235,7 +241,10 @@ export function ConversationFilters({
           size="sm"
           variant={filters.isFavorite ? 'default' : 'outline'}
         >
-          <Heart aria-hidden="true" className={cn('h-4 w-4', filters.isFavorite && 'fill-current')} />
+          <Heart
+            aria-hidden="true"
+            className={cn('h-4 w-4', filters.isFavorite && 'fill-current')}
+          />
           <span className="hidden sm:inline ml-1">Favorites</span>
         </Button>
 
@@ -269,7 +278,11 @@ export function ConversationFilters({
 
       {/* Active Tags */}
       {filters.tags && filters.tags.length > 0 && (
-        <div aria-label="Active tag filters" className="flex flex-wrap items-center gap-2" role="list">
+        <div
+          aria-label="Active tag filters"
+          className="flex flex-wrap items-center gap-2"
+          role="list"
+        >
           <span className="text-xs md:text-sm text-muted-foreground">Tags:</span>
           {filters.tags.map((tag) => (
             <Badge className="gap-1" key={tag} role="listitem" variant="secondary">

@@ -14,24 +14,14 @@ interface LoadOlderButtonProps {
   onLoad: () => void;
 }
 
-export function LoadOlderButton({
-  hasMore,
-  isLoading,
-  onLoad,
-}: LoadOlderButtonProps) {
+export function LoadOlderButton({ hasMore, isLoading, onLoad }: LoadOlderButtonProps) {
   if (!hasMore) {
     return null;
   }
 
   return (
     <div className="flex justify-center py-4">
-      <Button
-        className="gap-2"
-        disabled={isLoading}
-        onClick={onLoad}
-        size="sm"
-        variant="outline"
-      >
+      <Button className="gap-2" disabled={isLoading} onClick={onLoad} size="sm" variant="outline">
         {isLoading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />

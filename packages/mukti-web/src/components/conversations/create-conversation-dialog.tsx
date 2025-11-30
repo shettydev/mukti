@@ -118,14 +118,9 @@ export function CreateConversationDialog({
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="What would you like to explore?"
-                      {...field}
-                    />
+                    <Input placeholder="What would you like to explore?" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    A brief description of your inquiry topic.
-                  </FormDescription>
+                  <FormDescription>A brief description of your inquiry topic.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -138,14 +133,9 @@ export function CreateConversationDialog({
                 <FormItem>
                   <FormLabel>Technique</FormLabel>
                   <FormControl>
-                    <TechniqueSelector
-                      onChange={field.onChange}
-                      value={field.value}
-                    />
+                    <TechniqueSelector onChange={field.onChange} value={field.value} />
                   </FormControl>
-                  <FormDescription>
-                    The Socratic method to guide your dialogue.
-                  </FormDescription>
+                  <FormDescription>The Socratic method to guide your dialogue.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -164,9 +154,7 @@ export function CreateConversationDialog({
                       value={field.value || []}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Press Enter or comma to add tags. Max 10 tags.
-                  </FormDescription>
+                  <FormDescription>Press Enter or comma to add tags. Max 10 tags.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
