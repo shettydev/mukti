@@ -36,7 +36,7 @@
   - Test error handling for all error types
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2. Implement TanStack Query hooks with optimistic updates
+- [x] 2. Implement TanStack Query hooks with optimistic updates
   - Create useInfiniteConversations hook for infinite scroll list fetching
   - Create useConversation hook for detail fetching
   - Create useArchivedMessages hook with infinite scroll
@@ -46,13 +46,13 @@
   - Create useSendMessage hook with optimistic update
   - _Requirements: 4.4, 4.5, 4.7, 5.5, 5.6, 7.2, 7.5, 7.6, 8.2, 8.3, 8.4, 8.7, 8.8, 9.2, 9.4, 9.5_
 
-- [ ] 2.1 Write property tests for form validation
+- [x] 2.1 Write property tests for form validation
   - **Property 10: Title validation**
   - **Property 11: Tag validation**
   - **Property 12: Message content validation**
   - **Validates: Requirements 4.1, 7.1, 8.1, 8.6**
 
-- [ ] 2.2 Write property tests for optimistic updates
+- [x] 2.2 Write property tests for optimistic updates
   - **Property 13: Optimistic creation**
   - **Property 14: Optimistic update rollback**
   - **Property 15: Optimistic message sending**
@@ -60,7 +60,7 @@
   - **Property 17: Optimistic toggle**
   - **Validates: Requirements 4.4, 4.5, 7.2, 7.6, 8.2, 8.3, 8.4, 8.7, 9.2, 9.5**
 
-- [ ] 2.3 Write property tests for cache invalidation
+- [x] 2.3 Write property tests for cache invalidation
   - **Property 18: Post-creation invalidation**
   - **Property 19: Post-update invalidation**
   - **Property 20: Post-deletion invalidation**
@@ -68,7 +68,7 @@
   - **Validates: Requirements 4.7, 7.5, 8.8, 9.4**
 
 
-- [ ] 2.4 Write unit tests for query hooks
+- [x] 2.4 Write unit tests for query hooks
   - Test useConversations with various filters
   - Test useConversation with valid/invalid IDs
   - Test useArchivedMessages infinite scroll
