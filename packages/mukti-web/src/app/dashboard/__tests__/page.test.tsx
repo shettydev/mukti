@@ -7,6 +7,7 @@ let queryClient: QueryClient;
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
+  usePathname: () => '/dashboard',
   useRouter: () => ({
     push: jest.fn(),
   }),
