@@ -286,9 +286,15 @@ export class AuthController {
     // Reset rate limit on successful login
     await this.authService.resetLoginRateLimit(ip);
 
+    // Calculate expiration based on rememberMe
+    const rememberMe = dto.rememberMe ?? false;
+    const expirationTime = rememberMe
+      ? 30 * 24 * 60 * 60 * 1000 // 30 days
+      : 24 * 60 * 60 * 1000; // 1 day
+
     // Create session record
     const deviceInfo = req.headers['user-agent'] ?? 'Unknown device';
-    const refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const refreshTokenExpires = new Date(Date.now() + expirationTime);
 
     await this.sessionService.createSession({
       deviceInfo,
@@ -302,7 +308,7 @@ export class AuthController {
     // Set refresh token in httpOnly cookie
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: expirationTime,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
     });
