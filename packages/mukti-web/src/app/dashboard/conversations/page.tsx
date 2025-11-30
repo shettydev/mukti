@@ -59,7 +59,6 @@ function ConversationsContent() {
       <Sidebar
         collapsed={sidebarCollapsed}
         mobileOpen={mobileMenuOpen}
-        onCollapsedChange={setSidebarCollapsed}
         onMobileClose={() => setMobileMenuOpen(false)}
       />
 
