@@ -3,7 +3,6 @@
  */
 
 import type {
-  Conversation,
   CreateConversationDto,
   Message,
   PaginatedConversations,
@@ -111,18 +110,29 @@ describe('conversationsApi', () => {
 
   describe('getById', () => {
     it('should fetch conversation by ID', async () => {
-      const mockConversation: Partial<Conversation> = {
-        id: '507f1f77bcf86cd799439011',
+      // Mock backend response format (with _id)
+      const mockBackendResponse = {
+        _id: '507f1f77bcf86cd799439011',
+        createdAt: '2024-01-01T00:00:00Z',
+        hasArchivedMessages: false,
+        isArchived: false,
+        isFavorite: false,
+        metadata: { estimatedCost: 0, messageCount: 0, totalTokens: 0 },
+        recentMessages: [],
         tags: [],
         technique: 'elenchus',
         title: 'Test Conversation',
+        updatedAt: '2024-01-01T00:00:00Z',
+        userId: 'user123',
       };
-      (apiClient.get as jest.Mock).mockResolvedValue(mockConversation);
+      (apiClient.get as jest.Mock).mockResolvedValue(mockBackendResponse);
 
       const result = await conversationsApi.getById('507f1f77bcf86cd799439011');
 
       expect(apiClient.get).toHaveBeenCalledWith('/conversations/507f1f77bcf86cd799439011');
-      expect(result).toEqual(mockConversation);
+      expect(result.id).toBe('507f1f77bcf86cd799439011');
+      expect(result.title).toBe('Test Conversation');
+      expect(result.technique).toBe('elenchus');
     });
 
     it('should throw error for non-existent conversation', async () => {
@@ -135,13 +145,22 @@ describe('conversationsApi', () => {
 
   describe('create', () => {
     it('should create conversation with valid data', async () => {
-      const mockConversation: Partial<Conversation> = {
-        id: '507f1f77bcf86cd799439011',
+      // Mock backend response format (with _id)
+      const mockBackendResponse = {
+        _id: '507f1f77bcf86cd799439011',
+        createdAt: '2024-01-01T00:00:00Z',
+        hasArchivedMessages: false,
+        isArchived: false,
+        isFavorite: false,
+        metadata: { estimatedCost: 0, messageCount: 0, totalTokens: 0 },
+        recentMessages: [],
         tags: [],
         technique: 'elenchus',
         title: 'New Conversation',
+        updatedAt: '2024-01-01T00:00:00Z',
+        userId: 'user123',
       };
-      (apiClient.post as jest.Mock).mockResolvedValue(mockConversation);
+      (apiClient.post as jest.Mock).mockResolvedValue(mockBackendResponse);
 
       const dto: CreateConversationDto = {
         tags: [],
@@ -151,66 +170,108 @@ describe('conversationsApi', () => {
       const result = await conversationsApi.create(dto);
 
       expect(apiClient.post).toHaveBeenCalledWith('/conversations', dto);
-      expect(result).toEqual(mockConversation);
+      expect(result.id).toBe('507f1f77bcf86cd799439011');
+      expect(result.title).toBe('New Conversation');
+      expect(result.technique).toBe('elenchus');
     });
 
     it('should create conversation with tags', async () => {
-      const mockConversation: Partial<Conversation> = {
-        id: '507f1f77bcf86cd799439011',
+      const mockBackendResponse = {
+        _id: '507f1f77bcf86cd799439011',
+        createdAt: '2024-01-01T00:00:00Z',
+        hasArchivedMessages: false,
+        isArchived: false,
+        isFavorite: false,
+        metadata: { estimatedCost: 0, messageCount: 0, totalTokens: 0 },
+        recentMessages: [],
         tags: ['react', 'performance'],
         technique: 'dialectic',
         title: 'React Performance',
+        updatedAt: '2024-01-01T00:00:00Z',
+        userId: 'user123',
       };
-      (apiClient.post as jest.Mock).mockResolvedValue(mockConversation);
+      (apiClient.post as jest.Mock).mockResolvedValue(mockBackendResponse);
 
       const dto: CreateConversationDto = {
         tags: ['react', 'performance'],
         technique: 'dialectic',
         title: 'React Performance',
       };
-      await conversationsApi.create(dto);
+      const result = await conversationsApi.create(dto);
 
       expect(apiClient.post).toHaveBeenCalledWith('/conversations', dto);
+      expect(result.tags).toEqual(['react', 'performance']);
+      expect(result.technique).toBe('dialectic');
     });
   });
 
   describe('update', () => {
     it('should update conversation title', async () => {
-      const mockConversation: Partial<Conversation> = {
-        id: '507f1f77bcf86cd799439011',
+      // Mock backend response format (with _id)
+      const mockBackendResponse = {
+        _id: '507f1f77bcf86cd799439011',
+        createdAt: '2024-01-01T00:00:00Z',
+        hasArchivedMessages: false,
+        isArchived: false,
+        isFavorite: false,
+        metadata: { estimatedCost: 0, messageCount: 0, totalTokens: 0 },
+        recentMessages: [],
+        tags: [],
+        technique: 'elenchus',
         title: 'Updated Title',
+        updatedAt: '2024-01-01T00:00:00Z',
+        userId: 'user123',
       };
-      (apiClient.patch as jest.Mock).mockResolvedValue(mockConversation);
+      (apiClient.patch as jest.Mock).mockResolvedValue(mockBackendResponse);
 
       const dto: UpdateConversationDto = { title: 'Updated Title' };
       const result = await conversationsApi.update('507f1f77bcf86cd799439011', dto);
 
       expect(apiClient.patch).toHaveBeenCalledWith('/conversations/507f1f77bcf86cd799439011', dto);
-      expect(result).toEqual(mockConversation);
+      expect(result.id).toBe('507f1f77bcf86cd799439011');
+      expect(result.title).toBe('Updated Title');
     });
 
     it('should update conversation favorite status', async () => {
-      const mockConversation: Partial<Conversation> = {
-        id: '507f1f77bcf86cd799439011',
+      const mockBackendResponse = {
+        _id: '507f1f77bcf86cd799439011',
+        createdAt: '2024-01-01T00:00:00Z',
+        hasArchivedMessages: false,
+        isArchived: false,
         isFavorite: true,
+        metadata: { estimatedCost: 0, messageCount: 0, totalTokens: 0 },
+        recentMessages: [],
+        tags: [],
+        technique: 'elenchus',
+        title: 'Test',
+        updatedAt: '2024-01-01T00:00:00Z',
+        userId: 'user123',
       };
-      (apiClient.patch as jest.Mock).mockResolvedValue(mockConversation);
+      (apiClient.patch as jest.Mock).mockResolvedValue(mockBackendResponse);
 
       const dto: UpdateConversationDto = { isFavorite: true };
-      await conversationsApi.update('507f1f77bcf86cd799439011', dto);
+      const result = await conversationsApi.update('507f1f77bcf86cd799439011', dto);
 
       expect(apiClient.patch).toHaveBeenCalledWith('/conversations/507f1f77bcf86cd799439011', dto);
+      expect(result.isFavorite).toBe(true);
     });
 
     it('should update multiple fields', async () => {
-      const mockConversation: Partial<Conversation> = {
-        id: '507f1f77bcf86cd799439011',
+      const mockBackendResponse = {
+        _id: '507f1f77bcf86cd799439011',
+        createdAt: '2024-01-01T00:00:00Z',
+        hasArchivedMessages: false,
         isArchived: true,
         isFavorite: true,
+        metadata: { estimatedCost: 0, messageCount: 0, totalTokens: 0 },
+        recentMessages: [],
         tags: ['archived'],
+        technique: 'elenchus',
         title: 'Archived Conversation',
+        updatedAt: '2024-01-01T00:00:00Z',
+        userId: 'user123',
       };
-      (apiClient.patch as jest.Mock).mockResolvedValue(mockConversation);
+      (apiClient.patch as jest.Mock).mockResolvedValue(mockBackendResponse);
 
       const dto: UpdateConversationDto = {
         isArchived: true,
@@ -218,9 +279,13 @@ describe('conversationsApi', () => {
         tags: ['archived'],
         title: 'Archived Conversation',
       };
-      await conversationsApi.update('507f1f77bcf86cd799439011', dto);
+      const result = await conversationsApi.update('507f1f77bcf86cd799439011', dto);
 
       expect(apiClient.patch).toHaveBeenCalledWith('/conversations/507f1f77bcf86cd799439011', dto);
+      expect(result.isArchived).toBe(true);
+      expect(result.isFavorite).toBe(true);
+      expect(result.tags).toEqual(['archived']);
+      expect(result.title).toBe('Archived Conversation');
     });
   });
 
