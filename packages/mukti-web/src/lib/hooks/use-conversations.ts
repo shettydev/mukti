@@ -12,6 +12,11 @@
  *
  * All mutations implement optimistic updates for immediate UI feedback
  * with automatic rollback on errors.
+ *
+ * Performance optimizations:
+ * - Centralized cache configuration from config.ts
+ * - Pagination limits (20 items per page)
+ * - Optimized stale times for different data types
  */
 
 'use client';
@@ -33,6 +38,7 @@ import type {
 } from '@/types/conversation.types';
 
 import { conversationsApi } from '@/lib/api/conversations';
+import { config } from '@/lib/config';
 import { conversationKeys } from '@/lib/query-keys';
 
 /**
@@ -55,6 +61,8 @@ export function useArchivedMessages(conversationId: string) {
     number | undefined
   >({
     enabled: !!conversationId,
+    // Use centralized cache time
+    gcTime: config.cache.defaultCacheTime,
     getNextPageParam: (lastPage: Message[]) => {
       if (lastPage.length === 0) {
         return undefined;
@@ -66,10 +74,12 @@ export function useArchivedMessages(conversationId: string) {
     queryFn: ({ pageParam }) =>
       conversationsApi.getArchivedMessages(conversationId, {
         beforeSequence: pageParam,
-        limit: 50,
+        // Use pagination limit from config
+        limit: config.pagination.defaultPageSize,
       }),
     queryKey: conversationKeys.archivedMessages(conversationId, undefined),
-    staleTime: 60000, // 1 minute (archived messages don't change often)
+    // Archived messages don't change often, use longer stale time
+    staleTime: config.cache.defaultStaleTime * 2, // 2 minutes
   });
 }
 
@@ -87,10 +97,12 @@ export function useArchivedMessages(conversationId: string) {
 export function useConversation(id: string) {
   return useQuery({
     enabled: !!id,
-    gcTime: 300000,
+    // Use centralized cache time
+    gcTime: config.cache.defaultCacheTime,
     queryFn: () => conversationsApi.getById(id),
     queryKey: conversationKeys.detail(id),
-    staleTime: 30000,
+    // Use centralized stale time (conversation details may change frequently)
+    staleTime: config.cache.defaultStaleTime / 2, // 30 seconds
   });
 }
 
@@ -301,6 +313,12 @@ export function useDeleteConversation() {
  * ```
  */
 export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'page'>) {
+  // Apply default pagination limit from config
+  const filtersWithDefaults = {
+    ...filters,
+    limit: filters?.limit || config.pagination.defaultPageSize,
+  };
+
   return useInfiniteQuery<
     PaginatedConversations,
     Error,
@@ -308,7 +326,8 @@ export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'pa
     readonly unknown[],
     number
   >({
-    gcTime: 300000, // 5 minutes
+    // Use centralized cache time
+    gcTime: config.cache.defaultCacheTime,
     getNextPageParam: (lastPage: PaginatedConversations) => {
       // If we have more pages, return the next page number
       if (lastPage.meta.page < lastPage.meta.totalPages) {
@@ -317,9 +336,11 @@ export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'pa
       return undefined; // No more pages
     },
     initialPageParam: 1,
-    queryFn: ({ pageParam = 1 }) => conversationsApi.getAll({ ...filters, page: pageParam }),
-    queryKey: conversationKeys.list(filters || {}),
-    staleTime: 30000, // 30 seconds
+    queryFn: ({ pageParam = 1 }) =>
+      conversationsApi.getAll({ ...filtersWithDefaults, page: pageParam }),
+    queryKey: conversationKeys.list(filtersWithDefaults),
+    // Use centralized stale time
+    staleTime: config.cache.defaultStaleTime / 2, // 30 seconds
   });
 }
 

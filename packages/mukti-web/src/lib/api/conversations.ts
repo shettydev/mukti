@@ -7,6 +7,7 @@
  * - Message sending and retrieval
  * - Archived message pagination
  * - Filtering and sorting
+ * - Response transformation from backend format to frontend types
  */
 
 import type {
@@ -21,6 +22,89 @@ import type {
 } from '@/types/conversation.types';
 
 import { apiClient } from './client';
+
+/**
+ * Backend conversation response format (with _id instead of id)
+ */
+interface BackendConversation {
+  _id: string;
+  createdAt: string;
+  hasArchivedMessages: boolean;
+  isArchived: boolean;
+  isFavorite: boolean;
+  isShared?: boolean;
+  metadata: {
+    estimatedCost: number;
+    lastMessageAt?: string;
+    messageCount: number;
+    totalTokens: number;
+  };
+  recentMessages: Array<{
+    content: string;
+    metadata?: {
+      completionTokens?: number;
+      latencyMs?: number;
+      model?: string;
+      promptTokens?: number;
+      totalTokens?: number;
+    };
+    role: 'assistant' | 'user';
+    timestamp: string;
+  }>;
+  tags: string[];
+  technique: string;
+  title: string;
+  totalMessageCount?: number;
+  updatedAt: string;
+  userId: string;
+}
+
+/**
+ * Transform backend conversation to frontend format
+ * Handles both _id and id fields, and provides defaults for missing fields
+ */
+function transformConversation(backend: BackendConversation | Conversation): Conversation {
+  // Handle case where data is already in frontend format (has 'id' instead of '_id')
+  const id = '_id' in backend ? backend._id : (backend as Conversation).id;
+
+  // Handle metadata - might be undefined in some responses
+  const metadata = backend.metadata || {
+    estimatedCost: 0,
+    messageCount: 0,
+    totalTokens: 0,
+  };
+
+  // Handle recentMessages - might be undefined
+  // Cast to backend format since we're transforming from backend response
+  const backendMessages = (backend.recentMessages || []) as BackendConversation['recentMessages'];
+  const recentMessages = backendMessages.map((msg, index) => ({
+    content: msg.content,
+    role: msg.role as 'assistant' | 'user',
+    sequence: index + 1, // Backend doesn't return sequence, so we generate it
+    timestamp: msg.timestamp,
+    tokens: msg.metadata?.totalTokens,
+  }));
+
+  return {
+    createdAt: backend.createdAt,
+    hasArchivedMessages: backend.hasArchivedMessages ?? false,
+    id,
+    isArchived: backend.isArchived ?? false,
+    isFavorite: backend.isFavorite ?? false,
+    metadata: {
+      estimatedCost: metadata.estimatedCost ?? 0,
+      lastMessageAt: metadata.lastMessageAt,
+      messageCount: metadata.messageCount ?? 0,
+      totalTokens: metadata.totalTokens ?? 0,
+    },
+    recentMessages,
+    tags: backend.tags || [],
+    technique: (backend.technique || 'elenchus') as Conversation['technique'],
+    title: backend.title || '',
+    updatedAt: backend.updatedAt,
+    userId: backend.userId,
+  };
+}
 
 /**
  * Conversation API endpoints
@@ -43,7 +127,8 @@ export const conversationsApi = {
    * ```
    */
   create: async (dto: CreateConversationDto): Promise<Conversation> => {
-    return apiClient.post<Conversation>('/conversations', dto);
+    const response = await apiClient.post<BackendConversation>('/conversations', dto);
+    return transformConversation(response);
   },
 
   /**
@@ -105,7 +190,63 @@ export const conversationsApi = {
     }
 
     const query = params.toString();
-    return apiClient.get<PaginatedConversations>(`/conversations${query ? `?${query}` : ''}`);
+
+    // The API client already unwraps the response, so we get the inner structure directly
+    // Response format: { data: [...], meta: {...}, success: true }
+    // After apiClient unwraps: { data: [...], meta: {...} } (the inner data field content)
+    // But actually the backend returns data as the array and meta separately at the same level
+    // So apiClient.get returns the whole { data: [], meta: {} } object
+    const response = await apiClient.get<{
+      data: BackendConversation[];
+      meta: {
+        limit: number;
+        page: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/conversations${query ? `?${query}` : ''}`);
+
+    // Handle both wrapped and unwrapped response formats
+    // The API client extracts .data from { success: true, data: X }
+    // For paginated endpoints, backend returns { success: true, data: [...], meta: {...} }
+    // So apiClient returns just the array [...] (the value of .data)
+    let conversations: BackendConversation[];
+    let meta: { limit: number; page: number; total: number; totalPages: number };
+
+    if (Array.isArray(response)) {
+      // Response was unwrapped - we got the array directly
+      conversations = response as unknown as BackendConversation[];
+      meta = {
+        limit: filters?.limit || 20,
+        page: filters?.page || 1,
+        total: conversations.length,
+        totalPages: Math.ceil(conversations.length / (filters?.limit || 20)) || 1,
+      };
+    } else if (response && typeof response === 'object' && 'data' in response) {
+      // Response has data property (wasn't unwrapped)
+      conversations = response.data || [];
+      meta = response.meta || {
+        limit: filters?.limit || 20,
+        page: filters?.page || 1,
+        total: 0,
+        totalPages: 0,
+      };
+    } else {
+      // Fallback for unexpected response format
+      conversations = [];
+      meta = {
+        limit: filters?.limit || 20,
+        page: filters?.page || 1,
+        total: 0,
+        totalPages: 0,
+      };
+    }
+
+    // Transform backend response to frontend format
+    return {
+      data: conversations.map(transformConversation),
+      meta,
+    };
   },
 
   /**
@@ -155,7 +296,8 @@ export const conversationsApi = {
    * ```
    */
   getById: async (id: string): Promise<Conversation> => {
-    return apiClient.get<Conversation>(`/conversations/${id}`);
+    const response = await apiClient.get<BackendConversation>(`/conversations/${id}`);
+    return transformConversation(response);
   },
 
   /**
@@ -196,6 +338,7 @@ export const conversationsApi = {
    * ```
    */
   update: async (id: string, dto: UpdateConversationDto): Promise<Conversation> => {
-    return apiClient.patch<Conversation>(`/conversations/${id}`, dto);
+    const response = await apiClient.patch<BackendConversation>(`/conversations/${id}`, dto);
+    return transformConversation(response);
   },
 };
