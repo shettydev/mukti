@@ -30,7 +30,6 @@ interface ConversationCardProps {
  * - Touch-friendly targets (44x44px minimum)
  * - Accessible with proper ARIA labels
  *
- * Requirements: 5.2, 14.4, 15.2
  *
  * @param conversation - The conversation to display
  * @param className - Optional additional CSS classes

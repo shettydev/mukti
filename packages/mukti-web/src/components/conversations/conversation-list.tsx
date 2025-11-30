@@ -33,7 +33,6 @@ interface ConversationListProps {
  * - Responsive grid (1 column mobile, 2 tablet, 3 desktop)
  * - Touch-friendly targets
  *
- * Requirements: 5.1-5.9, 14.1, 14.4, 15.2
  */
 export function ConversationList({ className, initialFilters }: ConversationListProps) {
   const [filters, setFilters] = useState<ConversationFilters>(

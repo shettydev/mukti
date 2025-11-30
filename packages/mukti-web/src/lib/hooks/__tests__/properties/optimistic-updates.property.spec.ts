@@ -82,7 +82,6 @@ const conversationArbitrary = fc.record({
 
 /**
  * Feature: conversation-frontend-integration, Property 13: Optimistic creation
- * Validates: Requirements 4.4
  *
  * For any conversation creation, the new conversation should appear in the cache
  * before the server responds
@@ -182,7 +181,6 @@ describe('Property 13: Optimistic creation', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 14: Optimistic update rollback
- * Validates: Requirements 4.5, 7.6, 8.7, 9.5
  *
  * For any failed mutation, the cache should revert to its pre-mutation state
  */
@@ -252,7 +250,6 @@ describe('Property 14: Optimistic update rollback', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 15: Optimistic message sending
- * Validates: Requirements 7.2
  *
  * For any message send operation, the message should appear in the conversation
  * before the server responds
@@ -324,7 +321,6 @@ describe('Property 15: Optimistic message sending', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 16: Optimistic deletion
- * Validates: Requirements 9.2
  *
  * For any conversation deletion, the conversation should be removed from the list
  * before the server responds
@@ -399,7 +395,6 @@ describe('Property 16: Optimistic deletion', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 17: Optimistic toggle
- * Validates: Requirements 8.3, 8.4
  *
  * For any boolean field toggle (favorite, archived), the UI should update immediately
  * before server confirmation

@@ -6,7 +6,6 @@
  * - Cmd/Ctrl+N: Open new conversation dialog
  * - Escape: Close open dialogs
  *
- * Requirements: 15.1, 15.2, 15.3
  */
 
 'use client';

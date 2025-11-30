@@ -363,7 +363,7 @@ describe('AuthStore', () => {
   });
 
   describe('Security Requirements', () => {
-    it('should not persist access token (Requirement 9.1)', () => {
+    it('should not persist access token)', () => {
       const mockUser = createMockUser();
       const store = useAuthStore.getState();
 
@@ -378,7 +378,7 @@ describe('AuthStore', () => {
       expect(JSON.stringify(parsed)).not.toContain('sensitive-token');
     });
 
-    it('should persist user data for UX (Requirement 3.2)', () => {
+    it('should persist user data for UX', () => {
       const mockUser = createMockUser();
       const store = useAuthStore.getState();
 

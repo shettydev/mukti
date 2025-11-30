@@ -2,7 +2,6 @@
  * Integration tests for conversation page navigation
  * Tests navigation between list, detail, and creation pages
  *
- * Requirements: 4.6, 9.6
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

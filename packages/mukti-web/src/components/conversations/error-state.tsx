@@ -6,7 +6,6 @@
  * Displays user-friendly error messages with appropriate icons
  * and optional retry/back buttons based on error type.
  *
- * Requirements: 7.7, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6
  */
 
 import { AlertCircle, ArrowLeft, FileQuestion, Lock, RefreshCw, WifiOff } from 'lucide-react';

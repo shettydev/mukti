@@ -26,7 +26,6 @@ interface ConversationDetailPageProps {
  * - Keyboard shortcuts
  * - Accessible navigation
  *
- * Requirements: 6.1-6.7, 9.6, 14.1, 14.2, 14.3, 15.1, 15.2
  */
 export default function ConversationDetailPage({ params }: ConversationDetailPageProps) {
   const { id } = use(params);

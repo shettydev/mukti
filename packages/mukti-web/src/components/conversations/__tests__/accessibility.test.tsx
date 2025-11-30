@@ -4,7 +4,6 @@
  * Tests keyboard navigation, ARIA labels, focus management,
  * and semantic HTML structure.
  *
- * Requirements: 15.1, 15.2, 15.3, 15.4, 15.5
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -45,7 +44,7 @@ function createWrapper() {
 }
 
 describe('Accessibility Tests', () => {
-  describe('Keyboard Navigation (Requirement 15.1, 15.4, 15.5)', () => {
+  describe('Keyboard Navigation', () => {
     it('should allow Enter to send message in MessageInput', async () => {
       const user = userEvent.setup();
       const mockOnSend = jest.fn().mockResolvedValue(undefined);
@@ -142,7 +141,7 @@ describe('Accessibility Tests', () => {
     });
   });
 
-  describe('ARIA Labels (Requirement 15.2)', () => {
+  describe('ARIA Labels', () => {
     it('should have aria-label on MessageInput textarea', () => {
       render(<MessageInput conversationId="test-id" onSend={jest.fn()} />);
 
@@ -217,7 +216,7 @@ describe('Accessibility Tests', () => {
     });
   });
 
-  describe('Focus Management (Requirement 15.3)', () => {
+  describe('Focus Management', () => {
     it('should clear input and maintain focus after sending message', async () => {
       const user = userEvent.setup();
       const mockOnSend = jest.fn().mockResolvedValue(undefined);
@@ -293,7 +292,7 @@ describe('Accessibility Tests', () => {
     });
   });
 
-  describe('Semantic HTML Structure (Requirement 15.4)', () => {
+  describe('Semantic HTML Structure', () => {
     it('should use dialog role for modals', () => {
       render(<CreateConversationDialog onOpenChange={jest.fn()} open />, {
         wrapper: createWrapper(),
@@ -355,7 +354,7 @@ describe('Accessibility Tests', () => {
     });
   });
 
-  describe('Touch Targets (Requirement 14.5)', () => {
+  describe('Touch Targets', () => {
     it('should have minimum touch target size for send button', () => {
       render(<MessageInput conversationId="test-id" onSend={jest.fn()} />);
 

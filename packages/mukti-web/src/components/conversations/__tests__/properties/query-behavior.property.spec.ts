@@ -13,7 +13,6 @@ import type { ConversationFilters } from '@/types/conversation.types';
 
 /**
  * Feature: conversation-frontend-integration, Property 26: Filter change triggers refetch
- * Validates: Requirements 5.3
  *
  * For any filter change, the conversation list query should refetch with new parameters
  */
@@ -152,7 +151,6 @@ describe('Property 26: Filter change triggers refetch', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 27: Sort change triggers refetch
- * Validates: Requirements 5.4
  *
  * For any sort order change, the conversation list query should refetch with new sort parameter
  */
@@ -236,7 +234,6 @@ describe('Property 27: Sort change triggers refetch', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 28: Archived message pagination
- * Validates: Requirements 6.4
  *
  * For any "Load older messages" action, archived messages should be fetched with correct beforeSequence parameter
  */

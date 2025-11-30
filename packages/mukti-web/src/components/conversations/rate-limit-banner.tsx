@@ -6,7 +6,6 @@
  * Shows a banner when the user hits rate limits, with a countdown timer
  * showing when they can retry.
  *
- * Requirements: 7.7, 11.4
  */
 
 import { AlertCircle, Clock, X } from 'lucide-react';

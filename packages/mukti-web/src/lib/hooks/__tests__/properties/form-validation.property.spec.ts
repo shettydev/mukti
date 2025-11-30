@@ -12,7 +12,6 @@ import * as fc from 'fast-check';
 
 /**
  * Feature: conversation-frontend-integration, Property 10: Title validation
- * Validates: Requirements 4.1, 8.1
  *
  * For any conversation title input that is empty or only whitespace,
  * validation should fail
@@ -76,7 +75,6 @@ describe('Property 10: Title validation', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 11: Tag validation
- * Validates: Requirements 8.6
  *
  * For any tag array, all tags should be non-empty strings after trimming
  */
@@ -180,7 +178,6 @@ describe('Property 11: Tag validation', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 12: Message content validation
- * Validates: Requirements 7.1
  *
  * For any message content that is empty or only whitespace,
  * the send button should be disabled

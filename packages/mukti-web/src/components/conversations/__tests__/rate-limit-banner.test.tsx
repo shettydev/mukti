@@ -7,7 +7,6 @@
  * - Dismiss button functionality
  * - Auto-dismiss on countdown completion
  *
- * Requirements: 7.7, 11.4
  */
 
 import { act, render, screen } from '@testing-library/react';

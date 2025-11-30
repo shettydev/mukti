@@ -15,7 +15,6 @@ interface ErrorProps {
  * Error boundary for new conversation page
  * Displays error state with retry and back options
  *
- * Requirements: 11.5
  */
 export default function NewConversationError({ error, reset }: ErrorProps) {
   useEffect(() => {

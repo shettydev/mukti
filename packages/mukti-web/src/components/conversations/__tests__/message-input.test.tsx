@@ -8,7 +8,6 @@
  * - Input validation (no empty/whitespace messages)
  * - Input clearing after send
  *
- * Requirements: 7.1, 7.2, 7.3, 7.8
  */
 
 import { render, screen, waitFor } from '@testing-library/react';

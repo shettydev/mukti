@@ -72,7 +72,6 @@ const conversationArbitrary = fc.record({
 
 /**
  * Feature: conversation-frontend-integration, Property 18: Post-creation invalidation
- * Validates: Requirements 4.7
  *
  * For any successful conversation creation, the conversation list query should be invalidated
  */
@@ -180,7 +179,6 @@ describe('Property 18: Post-creation invalidation', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 19: Post-update invalidation
- * Validates: Requirements 8.8
  *
  * For any successful conversation update, related queries (detail and list) should be invalidated
  */
@@ -226,7 +224,6 @@ describe('Property 19: Post-update invalidation', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 20: Post-deletion invalidation
- * Validates: Requirements 9.4
  *
  * For any successful conversation deletion, the conversation list query should be invalidated
  */
@@ -288,7 +285,6 @@ describe('Property 20: Post-deletion invalidation', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 21: Post-message invalidation
- * Validates: Requirements 7.5
  *
  * For any completed message processing, the conversation detail query should be refetched
  */

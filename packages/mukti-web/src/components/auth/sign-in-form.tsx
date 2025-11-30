@@ -83,7 +83,6 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
       });
       showSuccessToast('Welcome back!');
 
-      // Automatic redirect to dashboard on success (Requirement 8.6)
       router.push('/dashboard');
 
       // Call onSuccess callback if provided

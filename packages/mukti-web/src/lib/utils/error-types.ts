@@ -4,7 +4,6 @@
  * Provides typed error codes and user-friendly error messages
  * for all API error scenarios.
  *
- * Requirements: 7.7, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6
  */
 
 import { ApiClientError } from '@/lib/api/client';

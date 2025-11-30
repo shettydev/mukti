@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
  * New conversation page
  * Displays the create conversation dialog in a full page context
  *
- * Requirements: 4.1-4.7, 9.6
  */
 export default function NewConversationPage() {
   return (

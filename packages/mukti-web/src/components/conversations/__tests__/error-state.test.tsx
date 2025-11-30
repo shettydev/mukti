@@ -8,7 +8,6 @@
  * - Back button functionality
  * - Icon display based on error type
  *
- * Requirements: 7.7, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6
  */
 
 import { render, screen } from '@testing-library/react';

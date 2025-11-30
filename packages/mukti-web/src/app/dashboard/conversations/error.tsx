@@ -14,7 +14,6 @@ interface ErrorProps {
  * Error boundary for conversations list page
  * Displays error state with retry option
  *
- * Requirements: 11.5
  */
 export default function ConversationsError({ error, reset }: ErrorProps) {
   useEffect(() => {

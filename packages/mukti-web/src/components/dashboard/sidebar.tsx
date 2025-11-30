@@ -72,7 +72,6 @@ export function MobileMenuButton({
  * - Responsive design with mobile drawer
  * - Accessible navigation with proper ARIA labels
  *
- * Requirements: 14.1, 14.2, 15.1, 15.2
  */
 export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();

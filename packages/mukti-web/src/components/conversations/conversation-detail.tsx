@@ -9,7 +9,6 @@
  * - Message sending with optimistic updates
  * - Rate limit handling with banner
  *
- * Requirements: 6.1-6.7, 7.1-7.8, 14.3, 15.2
  */
 
 'use client';

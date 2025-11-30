@@ -20,7 +20,6 @@ const dateArbitrary = () =>
 
 /**
  * Feature: conversation-frontend-integration, Property 22: Message ordering
- * Validates: Requirements 5.2, 6.2
  *
  * For any conversation with messages, messages should be displayed in ascending order by sequence number
  */
@@ -86,7 +85,6 @@ describe('Property 22: Message ordering', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 23: Archived message prepending
- * Validates: Requirements 6.5
  *
  * For any archived message fetch, new messages should be prepended while maintaining chronological order
  */
@@ -142,7 +140,6 @@ describe('Property 23: Archived message prepending', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 24: Filter preservation during pagination
- * Validates: Requirements 5.5
  *
  * For any page navigation, the active filters should be maintained in the query
  */
@@ -198,7 +195,6 @@ describe('Property 24: Filter preservation during pagination', () => {
 
 /**
  * Feature: conversation-frontend-integration, Property 25: Conversation card completeness
- * Validates: Requirements 5.2
  *
  * For any rendered conversation card, it should display title, technique, last message preview, and timestamp
  */

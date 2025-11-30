@@ -4,7 +4,6 @@ import { Skeleton } from '@/components/ui/skeleton';
  * Loading state for new conversation page
  * Displays skeleton UI matching the final layout
  *
- * Requirements: 10.1
  */
 export default function NewConversationLoading() {
   return (

@@ -39,7 +39,6 @@ describe('Conversation API Properties', () => {
 
   /**
    * Feature: conversation-frontend-integration, Property 1: Configuration usage
-   * Validates: Requirements 1.1
    */
   describe('Property 1: Configuration usage', () => {
     it('should use centralized config for base URL in all API calls', async () => {
@@ -105,7 +104,6 @@ describe('Conversation API Properties', () => {
 
   /**
    * Feature: conversation-frontend-integration, Property 2: Response parsing consistency
-   * Validates: Requirements 1.2
    */
   describe('Property 2: Response parsing consistency', () => {
     it('should parse standardized response format correctly', async () => {
@@ -222,7 +220,6 @@ describe('Conversation API Properties', () => {
 
   /**
    * Feature: conversation-frontend-integration, Property 3: Error transformation
-   * Validates: Requirements 1.3
    */
   describe('Property 3: Error transformation', () => {
     it('should throw ApiClientError with code, message, status, and details', async () => {
@@ -290,7 +287,6 @@ describe('Conversation API Properties', () => {
 
   /**
    * Feature: conversation-frontend-integration, Property 4: Auth header injection
-   * Validates: Requirements 1.4
    */
   describe('Property 4: Auth header injection', () => {
     it('should use apiClient which handles auth header injection', async () => {
@@ -361,7 +357,6 @@ describe('Conversation API Properties', () => {
 
   /**
    * Feature: conversation-frontend-integration, Property 5-9: Query key properties
-   * Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5
    */
   describe('Query Key Properties', () => {
     /**

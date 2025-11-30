@@ -57,7 +57,6 @@ const SORT_OPTIONS: { label: string; value: 'createdAt' | 'lastMessageAt' | 'upd
  * - Touch-friendly targets (44x44px minimum)
  * - Accessible with proper ARIA labels
  *
- * Requirements: 5.3, 5.4, 14.4, 14.5, 15.2
  */
 export function ConversationFilters({
   className,

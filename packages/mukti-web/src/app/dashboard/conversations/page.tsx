@@ -19,7 +19,6 @@ import { formatShortcut, useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-s
  * - Keyboard shortcuts (Cmd/Ctrl+K search, Cmd/Ctrl+N new)
  * - Accessible navigation
  *
- * Requirements: 4.6, 5.1-5.9, 14.1, 14.2, 15.1, 15.2
  */
 export default function ConversationsPage() {
   return (

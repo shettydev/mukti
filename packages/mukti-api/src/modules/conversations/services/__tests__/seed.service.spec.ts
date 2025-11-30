@@ -149,13 +149,10 @@ describe('SeedService', () => {
           ];
 
           for (const technique of mockTechniques) {
-            // Property 23: Check isBuiltIn is true (Requirement 7.2)
             expect(technique.isBuiltIn).toBe(true);
 
-            // Property 23: Check status is 'approved' (Requirement 7.3)
             expect(technique.status).toBe('approved');
 
-            // Property 23: Check template has all required fields (Requirement 7.4)
             expect(technique.template).toBeDefined();
             expect(technique.template.systemPrompt).toBeDefined();
             expect(typeof technique.template.systemPrompt).toBe('string');
