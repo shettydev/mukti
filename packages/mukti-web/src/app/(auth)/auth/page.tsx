@@ -117,7 +117,10 @@ function AuthContent() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 sm:mb-8 p-1 bg-white/5 rounded-lg sm:rounded-xl border border-white/10" suppressHydrationWarning>
+        <div
+          className="flex gap-2 mb-6 sm:mb-8 p-1 bg-white/5 rounded-lg sm:rounded-xl border border-white/10"
+          suppressHydrationWarning
+        >
           <button
             className={cn(
               'flex-1 py-2.5 sm:py-3 px-4 rounded-md sm:rounded-lg',
