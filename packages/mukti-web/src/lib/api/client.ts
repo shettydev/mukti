@@ -289,6 +289,12 @@ class ApiClient {
    */
   private async refreshAccessToken(): Promise<string> {
     try {
+      // Check if user is authenticated before attempting refresh
+      const authState = useAuthStore.getState();
+      if (!authState.isAuthenticated || !authState.user) {
+        throw new Error('Not authenticated');
+      }
+
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         credentials: 'include', // Include httpOnly cookie
         headers: {
@@ -499,6 +505,13 @@ class ApiClient {
     if (response.url.includes('/auth/refresh')) {
       // Clear auth state on refresh failure
       useAuthStore.getState().clearAuth();
+      return response;
+    }
+
+    // Check if user is authenticated before attempting refresh
+    const authState = useAuthStore.getState();
+    if (!authState.isAuthenticated || !authState.user) {
+      // Not authenticated, don't attempt refresh
       return response;
     }
 

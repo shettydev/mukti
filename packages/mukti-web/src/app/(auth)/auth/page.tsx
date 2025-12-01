@@ -63,12 +63,10 @@ function AuthContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') as AuthTab | null;
 
-  // Initialize tab from URL parameter or default to signin
-  const [activeTab, setActiveTab] = useState<AuthTab>(
-    tabParam === 'signup' || tabParam === 'signin' ? tabParam : 'signin'
-  );
+  // Initialize with default value to avoid hydration mismatch
+  const [activeTab, setActiveTab] = useState<AuthTab>('signin');
 
-  // Update tab when URL parameter changes
+  // Sync tab from URL parameter after hydration
   useEffect(() => {
     if (tabParam === 'signup' || tabParam === 'signin') {
       setActiveTab(tabParam);
@@ -104,6 +102,7 @@ function AuthContent() {
           // Animation
           'animate-in fade-in-0 zoom-in-95 duration-300'
         )}
+        suppressHydrationWarning
       >
         {/* Logo/Title */}
         <div className="text-center mb-6 sm:mb-8" suppressHydrationWarning>
@@ -118,7 +117,7 @@ function AuthContent() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 sm:mb-8 p-1 bg-white/5 rounded-lg sm:rounded-xl border border-white/10">
+        <div className="flex gap-2 mb-6 sm:mb-8 p-1 bg-white/5 rounded-lg sm:rounded-xl border border-white/10" suppressHydrationWarning>
           <button
             className={cn(
               'flex-1 py-2.5 sm:py-3 px-4 rounded-md sm:rounded-lg',
@@ -152,7 +151,7 @@ function AuthContent() {
         </div>
 
         {/* Form Content with smooth transition */}
-        <div className="relative">
+        <div className="relative" suppressHydrationWarning>
           {/* Sign In Form */}
           <div
             className={cn(

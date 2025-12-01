@@ -266,9 +266,16 @@ export function useLogout() {
 export function useRefreshToken() {
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return useMutation({
-    mutationFn: () => authApi.refresh(),
+    mutationFn: () => {
+      // Only attempt refresh if authenticated
+      if (!isAuthenticated) {
+        throw new Error('Not authenticated');
+      }
+      return authApi.refresh();
+    },
     onError: () => {
       // If refresh fails, clear auth state
       clearAuth();
