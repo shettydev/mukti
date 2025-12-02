@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [-] 1. Set up foundational types and utilities
+- [x] 1. Set up foundational types and utilities
   - Create WebSocket type definitions for client/server events
   - Create layout state type definitions
   - Create connection status types
@@ -10,7 +10,7 @@
   - **Property 1: WebSocket message ordering preservation**
   - **Validates: Requirements 1.3, 18.2**
 
-- [ ] 2. Implement DashboardLayout component system
+- [x] 2. Implement DashboardLayout component system
   - Create reusable DashboardLayout component with sidebar, navbar, and content area
   - Implement responsive behavior (mobile drawer, desktop fixed sidebar)
   - Add sidebar collapse/expand functionality
@@ -29,7 +29,7 @@
   - **Property 5: Layout consistency**
   - **Validates: Requirements 6.1, 6.2, 6.3, 13.4**
 
-- [ ] 3. Create ComingSoon component
+- [x] 3. Create ComingSoon component
   - Implement ComingSoon component with feature name, description, and timeline
   - Add icon support
   - Add "Back to Dashboard" button
@@ -43,7 +43,7 @@
   - Test icon rendering
   - _Requirements: 8.8, 8.9, 9.1-9.5_
 
-- [ ] 3.2 Create DashboardLayoutSkeleton component
+- [x] 3.2 Create DashboardLayoutSkeleton component
   - Implement skeleton component matching DashboardLayout structure
   - Add skeleton sidebar, navbar, and content area
   - Support custom content skeleton via children prop
@@ -56,14 +56,14 @@
   - Test responsive behavior
   - _Requirements: 19.1-19.4_
 
-- [ ] 4. Migrate existing dashboard pages to DashboardLayout
+- [x] 4. Migrate existing dashboard pages to DashboardLayout
   - Update /dashboard/page.tsx to use DashboardLayout
   - Update /dashboard/conversations/page.tsx to use DashboardLayout
   - Update /dashboard/conversations/[id]/page.tsx to use DashboardLayout
   - Remove duplicate sidebar and navbar code from individual pages
   - _Requirements: 7.1, 13.1, 13.2, 13.3, 13.4, 13.5_
 
-- [ ] 5. Move "New Conversation" button to navbar
+- [x] 5. Move "New Conversation" button to navbar
   - Add "New Conversation" button to DashboardLayout navbar
   - Implement dialog trigger from navbar button
   - Add keyboard shortcut (Cmd/Ctrl+N) for new conversation
@@ -81,26 +81,26 @@
   - **Property 6: Dialog state isolation**
   - **Validates: Requirements 3.4, 5.4**
 
-- [ ] 6. Remove duplicate "New Conversation" UI elements
+- [x] 6. Remove duplicate "New Conversation" UI elements
   - Remove "New Conversation" button from conversations list page header
   - Keep "Create Conversation" button in empty state
   - Update empty state button to open dialog instead of navigating
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 7. Delete /dashboard/conversations/new route
+- [x] 7. Delete /dashboard/conversations/new route
   - Delete /dashboard/conversations/new/page.tsx file
   - Add redirect from /new to /conversations with dialog auto-open
   - Update any internal links pointing to /new route
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 8. Reorganize sessions routes to avoid confusion
+- [x] 8. Reorganize sessions routes to avoid confusion
   - Move /dashboard/sessions/page.tsx to /dashboard/security/page.tsx (auth sessions management)
   - Update sidebar to show "Security" instead of "Inquiry Sessions" for auth sessions
   - Create new /dashboard/sessions/page.tsx with ComingSoon for inquiry sessions
   - Update sidebar link for "Inquiry Sessions" to point to /dashboard/sessions
   - _Requirements: 21.1, 21.2, 21.3, 21.4, 21.5_
 
-- [ ] 8.1 Create Coming Soon pages for incomplete features
+- [x] 8.1 Create Coming Soon pages for incomplete features
   - Create /dashboard/community/page.tsx with ComingSoon component
   - Create /dashboard/resources/page.tsx with ComingSoon component
   - Create /dashboard/sessions/page.tsx with ComingSoon component (inquiry sessions)
@@ -111,7 +111,7 @@
   - Wrap each page with DashboardLayout
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9_
 
-- [ ] 8.2 Update loading states to use DashboardLayoutSkeleton
+- [x] 8.2 Update loading states to use DashboardLayoutSkeleton
   - Update /dashboard/loading.tsx to use DashboardLayoutSkeleton
   - Update /dashboard/conversations/loading.tsx to use DashboardLayoutSkeleton
   - Update /dashboard/conversations/[id]/loading.tsx to use DashboardLayoutSkeleton
@@ -119,7 +119,7 @@
   - Delete /dashboard/conversations/new/loading.tsx (entire folder will be deleted)
   - _Requirements: 19.5, 20.1, 20.2, 20.3, 20.4_
 
-- [ ] 9. Checkpoint - Ensure all layout and navigation changes work correctly
+- [x] 9. Checkpoint - Ensure all layout and navigation changes work correctly
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Set up WebSocket infrastructure
