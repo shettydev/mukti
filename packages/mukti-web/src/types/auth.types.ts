@@ -7,6 +7,9 @@ import type { User } from './user.types';
 
 /**
  * Authentication response (login/register)
+ * @property {string} accessToken - JWT access token
+ * @property {string} refreshToken - JWT refresh token
+ * @property {User} user - Authenticated user data
  */
 export interface AuthResponse {
   accessToken: string;
@@ -16,6 +19,7 @@ export interface AuthResponse {
 
 /**
  * Forgot password request payload
+ * @property {string} email - User email address
  */
 export interface ForgotPasswordDto {
   email: string;
@@ -23,6 +27,9 @@ export interface ForgotPasswordDto {
 
 /**
  * Login request payload
+ * @property {string} email - User email address
+ * @property {string} password - User password
+ * @property {boolean} [rememberMe] - Keep user logged in
  */
 export interface LoginDto {
   email: string;
@@ -32,6 +39,7 @@ export interface LoginDto {
 
 /**
  * OAuth authentication request payload
+ * @property {string} code - OAuth authorization code
  */
 export interface OAuthDto {
   code: string;
@@ -39,6 +47,11 @@ export interface OAuthDto {
 
 /**
  * Registration request payload
+ * @property {string} email - User email address
+ * @property {string} firstName - User's first name
+ * @property {string} lastName - User's last name
+ * @property {string} password - User password
+ * @property {string} [phone] - User phone number
  */
 export interface RegisterDto {
   email: string;
@@ -50,6 +63,7 @@ export interface RegisterDto {
 
 /**
  * Resend verification email request payload
+ * @property {string} email - User email address
  */
 export interface ResendVerificationDto {
   email: string;
@@ -57,6 +71,8 @@ export interface ResendVerificationDto {
 
 /**
  * Reset password request payload
+ * @property {string} newPassword - New password
+ * @property {string} token - Password reset token
  */
 export interface ResetPasswordDto {
   newPassword: string;
@@ -65,6 +81,17 @@ export interface ResetPasswordDto {
 
 /**
  * Session data structure
+ * @property {Date} createdAt - Session creation timestamp
+ * @property {string} deviceInfo - Device information
+ * @property {Date} expiresAt - Session expiration timestamp
+ * @property {string} id - Unique session identifier
+ * @property {string} ipAddress - IP address of session
+ * @property {boolean} isActive - Whether session is active
+ * @property {boolean} [isCurrent] - Whether this is the current session
+ * @property {Date} lastActivityAt - Last activity timestamp
+ * @property {string} [location] - Geographic location
+ * @property {string} userAgent - Browser user agent
+ * @property {string} userId - Associated user ID
  */
 export interface Session {
   createdAt: Date;
@@ -82,6 +109,7 @@ export interface Session {
 
 /**
  * Sessions list response
+ * @property {Session[]} sessions - Array of user sessions
  */
 export interface SessionsResponse {
   sessions: Session[];
@@ -89,6 +117,7 @@ export interface SessionsResponse {
 
 /**
  * Token refresh response
+ * @property {string} accessToken - New JWT access token
  */
 export interface TokenResponse {
   accessToken: string;
@@ -96,6 +125,7 @@ export interface TokenResponse {
 
 /**
  * Email verification request payload
+ * @property {string} token - Email verification token
  */
 export interface VerifyEmailDto {
   token: string;
