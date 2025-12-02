@@ -28,6 +28,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
+  // Scenario 3: Redirect /dashboard/conversations/new to /dashboard/conversations with dialog auto-open
+  if (pathname === '/dashboard/conversations/new') {
+    const url = new URL('/dashboard/conversations', request.url);
+    url.searchParams.set('openDialog', 'true');
+    return NextResponse.redirect(url);
+  }
+
   // Allow the request to proceed
   return NextResponse.next();
 }
