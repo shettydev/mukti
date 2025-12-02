@@ -49,15 +49,10 @@ export function useRevokeAllSessions() {
 
       // Optimistically update by keeping only current session
       queryClient.setQueryData(sessionKeys.lists(), (old: unknown) => {
-        if (!old || typeof old !== 'object' || !('sessions' in old)) {
+        if (!Array.isArray(old)) {
           return old;
         }
-        return {
-          ...old,
-          sessions: (old.sessions as Array<{ isCurrent?: boolean }>).filter(
-            (session) => session.isCurrent
-          ),
-        };
+        return (old as Array<{ isCurrent?: boolean }>).filter((session) => session.isCurrent);
       });
 
       return { previous };
@@ -100,15 +95,10 @@ export function useRevokeSession() {
 
       // Optimistically update by removing the session
       queryClient.setQueryData(sessionKeys.lists(), (old: unknown) => {
-        if (!old || typeof old !== 'object' || !('sessions' in old)) {
+        if (!Array.isArray(old)) {
           return old;
         }
-        return {
-          ...old,
-          sessions: (old.sessions as Array<{ id: string }>).filter(
-            (session) => session.id !== sessionId
-          ),
-        };
+        return (old as Array<{ id: string }>).filter((session) => session.id !== sessionId);
       });
 
       return { previous };

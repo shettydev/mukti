@@ -1,9 +1,10 @@
 /**
- * Keyboard shortcuts hook for conversation navigation
+ * Keyboard shortcuts hook for dashboard navigation
  *
  * Provides global keyboard shortcuts:
  * - Cmd/Ctrl+K: Open conversation search
  * - Cmd/Ctrl+N: Open new conversation dialog
+ * - Cmd/Ctrl+B: Toggle sidebar collapse
  * - Escape: Close open dialogs
  *
  */
@@ -21,6 +22,8 @@ interface KeyboardShortcutsOptions {
   onNewConversation?: () => void;
   /** Callback when Cmd/Ctrl+K is pressed (search) */
   onSearch?: () => void;
+  /** Callback when Cmd/Ctrl+B is pressed (toggle sidebar) */
+  onToggleSidebar?: () => void;
 }
 
 /**
@@ -53,6 +56,7 @@ export function useKeyboardShortcuts({
   onEscape,
   onNewConversation,
   onSearch,
+  onToggleSidebar,
 }: KeyboardShortcutsOptions) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -79,6 +83,13 @@ export function useKeyboardShortcuts({
         return;
       }
 
+      // Cmd/Ctrl+B - Toggle sidebar (works even in input fields)
+      if ((event.metaKey || event.ctrlKey) && event.key === 'b') {
+        event.preventDefault();
+        onToggleSidebar?.();
+        return;
+      }
+
       // Escape - Close dialogs (only when not in input fields)
       if (event.key === 'Escape' && !isInputField) {
         event.preventDefault();
@@ -86,7 +97,7 @@ export function useKeyboardShortcuts({
         return;
       }
     },
-    [enabled, onSearch, onNewConversation, onEscape]
+    [enabled, onSearch, onNewConversation, onToggleSidebar, onEscape]
   );
 
   useEffect(() => {

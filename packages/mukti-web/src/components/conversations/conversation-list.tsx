@@ -1,7 +1,6 @@
 'use client';
 
 import { AlertCircle, Loader2, Plus } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import type { ConversationFilters } from '@/types/conversation.types';
@@ -17,6 +16,7 @@ import { ConversationFilters as Filters } from './conversation-filters';
 interface ConversationListProps {
   className?: string;
   initialFilters?: ConversationFilters;
+  onCreateClick?: () => void;
 }
 
 /**
@@ -34,7 +34,11 @@ interface ConversationListProps {
  * - Touch-friendly targets
  *
  */
-export function ConversationList({ className, initialFilters }: ConversationListProps) {
+export function ConversationList({
+  className,
+  initialFilters,
+  onCreateClick,
+}: ConversationListProps) {
   const [filters, setFilters] = useState<ConversationFilters>(
     initialFilters || {
       // Use centralized pagination config (20 items per page)
@@ -134,11 +138,9 @@ export function ConversationList({ className, initialFilters }: ConversationList
           <p className="text-sm md:text-base text-muted-foreground mb-6 max-w-md">
             Start your first Socratic dialogue to explore ideas through structured inquiry.
           </p>
-          <Button asChild className="min-h-[44px]">
-            <Link href="/dashboard/conversations/new">
-              <Plus aria-hidden="true" className="h-4 w-4 mr-2" />
-              Create Conversation
-            </Link>
+          <Button className="min-h-[44px]" onClick={onCreateClick}>
+            <Plus aria-hidden="true" className="h-4 w-4 mr-2" />
+            Create Conversation
           </Button>
         </div>
       </div>
@@ -156,12 +158,6 @@ export function ConversationList({ className, initialFilters }: ConversationList
               {totalCount} {totalCount === 1 ? 'conversation' : 'conversations'}
             </p>
           </div>
-          <Button asChild className="min-h-[44px] w-full sm:w-auto">
-            <Link href="/dashboard/conversations/new">
-              <Plus aria-hidden="true" className="h-4 w-4 mr-2" />
-              New Conversation
-            </Link>
-          </Button>
         </div>
         <Filters filters={filters} onFiltersChange={handleFiltersChange} />
       </div>

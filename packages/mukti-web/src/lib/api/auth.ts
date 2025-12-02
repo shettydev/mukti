@@ -75,11 +75,16 @@ export const authApi = {
    * @example
    * ```typescript
    * const response = await authApi.getSessions();
-   * console.log(response.sessions);
+   * console.log(response);
    * ```
    */
   getSessions: async (): Promise<SessionsResponse> => {
-    return apiClient.get<SessionsResponse>('/auth/sessions');
+    const sessions = await apiClient.get<Array<Record<string, unknown>>>('/auth/sessions');
+    // Transform _id to id for frontend compatibility
+    return sessions.map((session) => ({
+      ...session,
+      id: session._id as string,
+    })) as SessionsResponse;
   },
 
   /**

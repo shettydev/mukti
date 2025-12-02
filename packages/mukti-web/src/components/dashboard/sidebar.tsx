@@ -6,10 +6,12 @@ import {
   FileText,
   HelpCircle,
   LayoutDashboard,
+  LogOut,
   Mail,
   Menu,
   MessageSquare,
   Settings,
+  Shield,
   Sparkles,
   Users,
   X,
@@ -18,6 +20,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/lib/hooks/use-auth';
 import { cn } from '@/lib/utils';
 
 /**
@@ -75,6 +84,7 @@ export function MobileMenuButton({
  */
 export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const { logout, user } = useAuth();
 
   return (
     <>
@@ -181,6 +191,13 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
             icon={<FileText aria-hidden="true" className="w-4 h-4" />}
             label="Reports & Analytics"
           />
+          <NavItem
+            active={pathname?.startsWith('/dashboard/security')}
+            collapsed={collapsed}
+            href="/dashboard/security"
+            icon={<Shield aria-hidden="true" className="w-4 h-4" />}
+            label="Security"
+          />
 
           {!collapsed && (
             <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 mt-6">
@@ -200,6 +217,52 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
             label="Help & Support"
           />
         </nav>
+
+        {/* User Profile */}
+        <div className="border-t border-white/10 p-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className={cn(
+                  'w-full justify-start p-2 h-auto hover:bg-white/5',
+                  collapsed && 'justify-center px-2'
+                )}
+                variant="ghost"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 text-white">
+                    {user?.firstName?.[0]}
+                    {user?.lastName?.[0]}
+                  </div>
+                  {!collapsed && (
+                    <div className="flex flex-col items-start text-sm truncate overflow-hidden">
+                      <span className="font-medium truncate w-full text-left text-white">
+                        {user?.firstName} {user?.lastName}
+                      </span>
+                      <span className="text-xs text-white/60 truncate w-full text-left">
+                        {user?.email}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="w-56 bg-[#1A1A1A] border-white/10 text-white"
+              side="top"
+              sideOffset={10}
+            >
+              <DropdownMenuItem
+                className="text-red-400 focus:text-red-400 focus:bg-red-900/10 cursor-pointer"
+                onClick={() => logout()}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </aside>
     </>
   );

@@ -1119,8 +1119,31 @@ Follow project ESLint rules:
 ### Code Comments
 
 - **TSDoc for functions** - Document public APIs
+- **Type/interface JSDoc** - Use a single block with `@property` tags; do not add separate docblocks on each property
 - **Inline comments** - Explain complex logic
 - **TODO comments** - Track future improvements
+
+```typescript
+/**
+ * Sidebar navigation item
+ * @property {number | string} [badge] - Badge content (e.g., count)
+ * @property {boolean} [disabled] - Whether item is disabled
+ * @property {string} href - Navigation path
+ * @property {ReactNode} icon - Icon component
+ * @property {boolean} [isActive] - Whether item is active
+ * @property {string} label - Display label
+ */
+export interface SidebarNavItem {
+  badge?: number | string;
+  disabled?: boolean;
+  href: string;
+  icon: ReactNode;
+  isActive?: boolean;
+  label: string;
+}
+```
+
+Avoid per-property docblocks inside the interface (e.g., separate `/** ... */` blocks above each field).
 
 ````typescript
 /**
