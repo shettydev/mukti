@@ -1,12 +1,12 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Plus, Search } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { ConversationList, CreateConversationDialog } from '@/components/conversations';
-import { MobileMenuButton, Sidebar } from '@/components/dashboard/sidebar';
+import { DashboardLayout } from '@/components/layouts/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { formatShortcut, useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 
@@ -30,15 +30,24 @@ export default function ConversationsPage() {
 
 function ConversationsContent() {
   const router = useRouter();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const searchParams = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  // Auto-open dialog if redirected from /new route
+  useEffect(() => {
+    if (searchParams.get('openDialog') === 'true') {
+      setCreateDialogOpen(true);
+      // Clean up the URL by removing the query parameter
+      const url = new URL(window.location.href);
+      url.searchParams.delete('openDialog');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onEscape: () => {
       setCreateDialogOpen(false);
-      setMobileMenuOpen(false);
     },
     onNewConversation: () => {
       setCreateDialogOpen(true);
@@ -53,75 +62,41 @@ function ConversationsContent() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden">
-      {/* Sidebar - hidden on mobile, visible on desktop */}
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden" role="main">
-        {/* Header */}
-        <header className="bg-[#111111] border-b border-white/10 px-4 md:px-6 py-3 md:py-4 flex items-center gap-2">
-          {/* Mobile menu button */}
-          <MobileMenuButton onClick={() => setMobileMenuOpen(true)} />
-
-          {/* Desktop collapse button */}
+    <DashboardLayout
+      actions={
+        <>
+          {/* Search button with shortcut hint */}
           <Button
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden md:flex min-h-[44px] min-w-[44px]"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            size="icon"
-            variant="ghost"
+            aria-label={`Search conversations (${formatShortcut('K')})`}
+            className="hidden sm:flex items-center gap-2 min-h-[44px]"
+            size="sm"
+            variant="outline"
           >
-            {sidebarCollapsed ? (
-              <ChevronRight aria-hidden="true" className="w-5 h-5" />
-            ) : (
-              <ChevronLeft aria-hidden="true" className="w-5 h-5" />
-            )}
+            <Search aria-hidden="true" className="w-4 h-4" />
+            <span className="hidden md:inline">Search</span>
+            <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+              {formatShortcut('K')}
+            </kbd>
           </Button>
 
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
-            {/* Search button with shortcut hint */}
-            <Button
-              aria-label={`Search conversations (${formatShortcut('K')})`}
-              className="hidden sm:flex items-center gap-2 min-h-[44px]"
-              size="sm"
-              variant="outline"
-            >
-              <Search aria-hidden="true" className="w-4 h-4" />
-              <span className="hidden md:inline">Search</span>
-              <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                {formatShortcut('K')}
-              </kbd>
-            </Button>
-
-            {/* New conversation button */}
-            <Button
-              aria-label={`Create new conversation (${formatShortcut('N')})`}
-              className="min-h-[44px] gap-2"
-              onClick={() => setCreateDialogOpen(true)}
-              size="sm"
-            >
-              <Plus aria-hidden="true" className="w-4 h-4" />
-              <span className="hidden sm:inline">New</span>
-            </Button>
-          </div>
-        </header>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-6xl mx-auto">
-            <ConversationList />
-          </div>
-        </div>
-      </main>
+          {/* New conversation button */}
+          <Button
+            aria-label={`Create new conversation (${formatShortcut('N')})`}
+            className="min-h-[44px] gap-2"
+            onClick={() => setCreateDialogOpen(true)}
+            size="sm"
+          >
+            <Plus aria-hidden="true" className="w-4 h-4" />
+            <span className="hidden sm:inline">New</span>
+          </Button>
+        </>
+      }
+      contentClassName="p-4 md:p-6"
+      title="Conversations"
+    >
+      <div className="max-w-6xl mx-auto">
+        <ConversationList onCreateClick={() => setCreateDialogOpen(true)} />
+      </div>
 
       {/* Create Conversation Dialog */}
       <CreateConversationDialog
@@ -129,6 +104,6 @@ function ConversationsContent() {
         onSuccess={handleConversationCreated}
         open={createDialogOpen}
       />
-    </div>
+    </DashboardLayout>
   );
 }
