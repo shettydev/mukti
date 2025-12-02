@@ -109,11 +109,9 @@ export interface Session {
 
 /**
  * Sessions list response
- * @property {Session[]} sessions - Array of user sessions
+ * API returns array of sessions directly after client unwraps the data field
  */
-export interface SessionsResponse {
-  sessions: Session[];
-}
+export type SessionsResponse = Session[];
 
 /**
  * Token refresh response
