@@ -185,7 +185,7 @@ describe('ConversationList', () => {
 
     expect(screen.getByText('No conversations yet')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /create conversation/i, hidden: true })
+      screen.queryByRole('button', { hidden: true, name: /create conversation/i })
     ).not.toBeInTheDocument();
   });
 
