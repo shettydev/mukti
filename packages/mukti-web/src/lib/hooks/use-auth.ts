@@ -75,7 +75,11 @@ export function useAuth() {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  const { data: currentUser, isLoading } = useUser();
+  const { data: currentUser, isLoading: isUserLoading } = useUser();
+
+  const isRestoringSession = !!user && !isAuthenticated;
+  const isLoading = isUserLoading || isRestoringSession;
+
   const loginMutation = useLogin();
   const registerMutation = useRegister();
   const logoutMutation = useLogout();

@@ -18,6 +18,7 @@ import {
 } from '../../../schemas/usage-event.schema';
 import { MessageService } from './message.service';
 import { OpenRouterService } from './openrouter.service';
+import { StreamService } from './stream.service';
 
 /**
  * Job data structure for conversation request processing in BullMQ.
@@ -51,8 +52,6 @@ export interface ConversationRequestJobResult {
  * - Job status tracking and monitoring
  * - Queue health metrics
  * - Worker processor for handling queued requests
- *
- * Requirements: 2.4, 2.5, 2.6, 2.14, 9.2, 9.3
  */
 @Injectable()
 @Processor('conversation-requests')
@@ -73,6 +72,7 @@ export class QueueService extends WorkerHost {
     private usageEventModel: Model<UsageEventDocument>,
     private readonly messageService: MessageService,
     private readonly openRouterService: OpenRouterService,
+    private readonly streamService: StreamService,
   ) {
     super();
     this.setupEventListeners();
@@ -94,8 +94,6 @@ export class QueueService extends WorkerHost {
    * - Free tier: Priority 1 (lower priority)
    *
    * Jobs are processed FIFO within the same priority level.
-   *
-   * Requirements: 2.4, 2.5
    *
    * @example
    * ```typescript
@@ -200,8 +198,6 @@ export class QueueService extends WorkerHost {
    * - failed: Job failed after all retries
    * - delayed: Job is scheduled for future processing
    *
-   * Requirements: 2.5
-   *
    * @example
    * ```typescript
    * const status = await queueService.getJobStatus('job-123');
@@ -264,8 +260,6 @@ export class QueueService extends WorkerHost {
    * - active: Jobs currently being processed by workers
    * - completed: Successfully completed jobs (within retention period)
    * - failed: Failed jobs (within retention period)
-   *
-   * Requirements: Monitoring
    *
    * @example
    * ```typescript
@@ -372,8 +366,6 @@ export class QueueService extends WorkerHost {
    * - Throws errors to trigger BullMQ retry mechanism
    * - BullMQ automatically retries with exponential backoff
    * - After max attempts, job moves to failed state
-   *
-   * Requirements: 2.6, 2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, 2.14, 2.15, 9.2, 9.3
    */
   async process(
     job: Job<ConversationRequestJobData, ConversationRequestJobResult>,
@@ -387,6 +379,15 @@ export class QueueService extends WorkerHost {
     );
 
     try {
+      // Emit processing started event
+      this.streamService.emitToConversation(conversationId, {
+        data: {
+          jobId: job.id!,
+          status: 'started',
+        },
+        type: 'processing',
+      });
+
       // 1. Load conversation context
       const conversation =
         await this.conversationModel.findById(conversationId);
@@ -412,6 +413,15 @@ export class QueueService extends WorkerHost {
         techniqueDoc.template,
       );
 
+      // Emit progress event - building prompt
+      this.streamService.emitToConversation(conversationId, {
+        data: {
+          jobId: job.id!,
+          status: 'Building prompt...',
+        },
+        type: 'progress',
+      });
+
       // 3. Build prompt and call OpenRouter
       const model = this.openRouterService.selectModel(subscriptionTier);
       const messages = this.openRouterService.buildPrompt(
@@ -423,6 +433,15 @@ export class QueueService extends WorkerHost {
         })),
         message,
       );
+
+      // Emit progress event - calling AI
+      this.streamService.emitToConversation(conversationId, {
+        data: {
+          jobId: job.id!,
+          status: 'AI is thinking...',
+        },
+        type: 'progress',
+      });
 
       const response = await this.openRouterService.sendChatCompletion(
         messages,
@@ -445,6 +464,34 @@ export class QueueService extends WorkerHost {
             totalTokens: response.totalTokens,
           },
         );
+
+      // Get the sequence numbers for the messages
+      const userMessageSequence = updatedConversation.recentMessages.length - 1;
+      const assistantMessageSequence =
+        updatedConversation.recentMessages.length;
+
+      // Emit message event for user message
+      this.streamService.emitToConversation(conversationId, {
+        data: {
+          content: message,
+          role: 'user',
+          sequence: userMessageSequence,
+          timestamp: new Date().toISOString(),
+        },
+        type: 'message',
+      });
+
+      // Emit message event for AI response
+      this.streamService.emitToConversation(conversationId, {
+        data: {
+          content: response.content,
+          role: 'assistant',
+          sequence: assistantMessageSequence,
+          timestamp: new Date().toISOString(),
+          tokens: response.totalTokens,
+        },
+        type: 'message',
+      });
 
       // 5. Archive if needed
       if (updatedConversation.recentMessages.length > 50) {
@@ -474,6 +521,17 @@ export class QueueService extends WorkerHost {
         `Job ${job.id} completed successfully in ${latency}ms. Tokens: ${response.totalTokens}, Cost: ${response.cost}`,
       );
 
+      // Emit complete event
+      this.streamService.emitToConversation(conversationId, {
+        data: {
+          cost: response.cost,
+          jobId: job.id!,
+          latency,
+          tokens: response.totalTokens,
+        },
+        type: 'complete',
+      });
+
       // 7. Return job result
       return {
         cost: response.cost,
@@ -486,6 +544,16 @@ export class QueueService extends WorkerHost {
         `Job ${job.id} failed: ${this.getErrorMessage(error)}`,
         this.getErrorStack(error),
       );
+
+      // Emit error event
+      this.streamService.emitToConversation(conversationId, {
+        data: {
+          code: 'PROCESSING_ERROR',
+          message: this.getErrorMessage(error),
+          retriable: true,
+        },
+        type: 'error',
+      });
 
       // Throw error to trigger BullMQ retry mechanism
       throw error;
@@ -519,8 +587,6 @@ export class QueueService extends WorkerHost {
    *
    * Note: BullMQ workers use lifecycle hooks rather than queue events.
    * The actual event handling is done through the WorkerHost lifecycle methods.
-   *
-   * Requirements: 9.3, 9.4
    */
   private setupEventListeners(): void {
     this.logger.log(

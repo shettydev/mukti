@@ -5,7 +5,7 @@
 import { apiClient, ApiClientError } from '../client';
 
 // Mock fetch globally
-global.fetch = jest.fn();
+global.fetch = jest.fn() as unknown as typeof fetch;
 
 // Mock auth store
 jest.mock('@/lib/stores/auth-store', () => ({
@@ -36,7 +36,7 @@ describe('ApiClient', () => {
         success: true,
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => mockResponse,
         ok: true,
@@ -60,7 +60,7 @@ describe('ApiClient', () => {
         success: true,
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => mockResponse,
         ok: true,
@@ -69,7 +69,7 @@ describe('ApiClient', () => {
 
       await apiClient.get('/test');
 
-      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      const fetchCall = (global.fetch as unknown as jest.Mock).mock.calls[0];
       const headers = fetchCall[1].headers as Headers;
 
       expect(headers.get('Authorization')).toBe('Bearer mock-access-token');
@@ -84,7 +84,7 @@ describe('ApiClient', () => {
         success: true,
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => mockResponse,
         ok: true,
@@ -125,13 +125,13 @@ describe('ApiClient', () => {
         url: 'http://localhost:3000/api/v1/test',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce(mockResponse);
 
       await expect(apiClient.get('/test')).rejects.toThrow(ApiClientError);
     });
 
     it('should handle network errors', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      (global.fetch as unknown as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 
       await expect(apiClient.get('/test')).rejects.toThrow(ApiClientError);
     });
@@ -139,7 +139,7 @@ describe('ApiClient', () => {
 
   describe('Request methods', () => {
     beforeEach(() => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as unknown as jest.Mock).mockResolvedValue({
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({ data: {}, success: true }),
         ok: true,
@@ -186,7 +186,7 @@ describe('ApiClient', () => {
       const mockInterceptor = jest.fn((url, options) => ({ options, url }));
       apiClient.addRequestInterceptor(mockInterceptor);
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({ data: {}, success: true }),
         ok: true,
@@ -202,7 +202,7 @@ describe('ApiClient', () => {
       const mockInterceptor = jest.fn((response) => response);
       apiClient.addResponseInterceptor(mockInterceptor);
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({ data: {}, success: true }),
         ok: true,
@@ -224,7 +224,7 @@ describe('ApiClient', () => {
         url: 'http://localhost:3000/api/v1/test',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce(mockResponse);
 
       const result = await apiClient.delete('/test');
 

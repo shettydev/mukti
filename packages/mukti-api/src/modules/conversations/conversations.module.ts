@@ -24,6 +24,7 @@ import { MessageService } from './services/message.service';
 import { OpenRouterService } from './services/openrouter.service';
 import { QueueService } from './services/queue.service';
 import { SeedService } from './services/seed.service';
+import { StreamService } from './services/stream.service';
 
 /**
  * Conversations module implementing the Thinking Workspace paradigm.
@@ -46,6 +47,7 @@ import { SeedService } from './services/seed.service';
     MessageService,
     OpenRouterService,
     QueueService,
+    StreamService,
   ],
   imports: [
     ConfigModule,
@@ -96,6 +98,7 @@ import { SeedService } from './services/seed.service';
     MessageService,
     OpenRouterService,
     QueueService,
+    StreamService,
   ],
 })
 export class ConversationsModule {}

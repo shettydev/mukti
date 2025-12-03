@@ -3,7 +3,14 @@
  * Runs before each test file
  */
 
-import '@testing-library/jest-dom';
+// Import React before testing library to ensure proper initialization
+const React = require('react');
+require('@testing-library/jest-dom');
+
+// Ensure React is available globally
+if (typeof global.React === 'undefined') {
+  global.React = React;
+}
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
@@ -50,7 +57,7 @@ global.IntersectionObserver = class IntersectionObserver {
     return [];
   }
   unobserve() {}
-} as any;
+};
 
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = jest.fn();
@@ -67,17 +74,17 @@ if (!global.ResizeObserver) {
 
 // Mock localStorage
 const localStorageMock = (() => {
-  let store: Record<string, string> = {};
+  let store = {};
 
   return {
     clear: () => {
       store = {};
     },
-    getItem: (key: string) => store[key] || null,
-    removeItem: (key: string) => {
+    getItem: (key) => store[key] || null,
+    removeItem: (key) => {
       delete store[key];
     },
-    setItem: (key: string, value: string) => {
+    setItem: (key, value) => {
       store[key] = value.toString();
     },
   };

@@ -5,6 +5,7 @@ import { ConversationController } from '../conversation.controller';
 import { ConversationService } from '../services/conversation.service';
 import { MessageService } from '../services/message.service';
 import { QueueService } from '../services/queue.service';
+import { StreamService } from '../services/stream.service';
 
 // Avoid importing the ESM build of @openrouter/sdk during tests
 jest.mock('@openrouter/sdk', () => ({
@@ -18,6 +19,18 @@ describe('ConversationController', () => {
   let conversationService: jest.Mocked<ConversationService>;
   let messageService: jest.Mocked<MessageService>;
   let queueService: jest.Mocked<QueueService>;
+
+  // Mock authenticated user
+  const mockUser = {
+    _id: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    email: 'test@example.com',
+    emailVerified: true,
+    name: 'Test User',
+    role: 'user' as const,
+    subscription: {
+      tier: 'free' as const,
+    },
+  };
 
   const mockConversationService = {
     createConversation: jest.fn(),
@@ -40,21 +53,34 @@ describe('ConversationController', () => {
     processJob: jest.fn(),
   };
 
+  const mockStreamService = {
+    addConnection: jest.fn(),
+    cleanupConversation: jest.fn(),
+    emitToConversation: jest.fn(),
+    emitToUser: jest.fn(),
+    getConversationStream: jest.fn(),
+    removeConnection: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ConversationController],
       providers: [
         {
           provide: ConversationService,
-          useValue: mockConversationService,
+          useValue: mockConversationService as unknown as ConversationService,
         },
         {
           provide: MessageService,
-          useValue: mockMessageService,
+          useValue: mockMessageService as unknown as MessageService,
         },
         {
           provide: QueueService,
-          useValue: mockQueueService,
+          useValue: mockQueueService as unknown as QueueService,
+        },
+        {
+          provide: StreamService,
+          useValue: mockStreamService as unknown as StreamService,
         },
       ],
     }).compile();
@@ -106,7 +132,7 @@ describe('ConversationController', () => {
       );
 
       // Act
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, mockUser as any);
 
       // Assert
       expect(result.success).toBe(true);
@@ -114,7 +140,7 @@ describe('ConversationController', () => {
       expect(result.meta).toHaveProperty('timestamp');
       expect(result.meta).toHaveProperty('requestId');
       expect(conversationService.createConversation).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        mockUser._id,
         createDto.title,
         createDto.technique,
         createDto.tags,
@@ -149,12 +175,12 @@ describe('ConversationController', () => {
       );
 
       // Act
-      const result = await controller.create(createDto as any);
+      const result = await controller.create(createDto, mockUser as any);
 
       // Assert
       expect(result.success).toBe(true);
       expect(conversationService.createConversation).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        mockUser._id,
         createDto.title,
         createDto.technique,
         undefined,
@@ -195,14 +221,14 @@ describe('ConversationController', () => {
       );
 
       // Act
-      const result = await controller.findAll();
+      const result = await controller.findAll(mockUser as any);
 
       // Assert
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockConversations);
       expect(result.meta).toEqual(mockResult.meta);
       expect(conversationService.findUserConversations).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        mockUser._id,
         {},
         'updatedAt',
         1,
@@ -228,6 +254,7 @@ describe('ConversationController', () => {
 
       // Act
       await controller.findAll(
+        mockUser as any,
         'elenchus',
         'react,performance',
         'false',
@@ -239,7 +266,7 @@ describe('ConversationController', () => {
 
       // Assert
       expect(conversationService.findUserConversations).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        mockUser._id,
         {
           isArchived: false,
           isFavorite: true,
@@ -270,6 +297,7 @@ describe('ConversationController', () => {
 
       // Act
       await controller.findAll(
+        mockUser as any,
         undefined,
         undefined,
         undefined,
@@ -281,7 +309,7 @@ describe('ConversationController', () => {
 
       // Assert
       expect(conversationService.findUserConversations).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        mockUser._id,
         {},
         'updatedAt',
         3,
@@ -313,7 +341,10 @@ describe('ConversationController', () => {
       );
 
       // Act
-      const result = await controller.findOne(conversationId.toString());
+      const result = await controller.findOne(
+        conversationId.toString(),
+        mockUser as any,
+      );
 
       // Assert
       expect(result.success).toBe(true);
@@ -322,7 +353,7 @@ describe('ConversationController', () => {
       expect(result.meta).toHaveProperty('requestId');
       expect(conversationService.findConversationById).toHaveBeenCalledWith(
         conversationId.toString(),
-        expect.any(Types.ObjectId),
+        mockUser._id,
       );
     });
   });
@@ -365,6 +396,9 @@ describe('ConversationController', () => {
       // Act
       const result = await controller.getArchivedMessages(
         conversationId.toString(),
+        mockUser as any,
+        undefined,
+        undefined,
       );
 
       // Assert
@@ -397,6 +431,7 @@ describe('ConversationController', () => {
       // Act
       await controller.getArchivedMessages(
         conversationId.toString(),
+        mockUser as any,
         '100',
         '50',
       );
@@ -419,13 +454,16 @@ describe('ConversationController', () => {
       mockConversationService.deleteConversation.mockResolvedValue(undefined);
 
       // Act
-      const result = await controller.remove(conversationId.toString());
+      const result = await controller.remove(
+        conversationId.toString(),
+        mockUser as any,
+      );
 
       // Assert
       expect(result).toBeUndefined();
       expect(conversationService.deleteConversation).toHaveBeenCalledWith(
         conversationId.toString(),
-        expect.any(Types.ObjectId),
+        mockUser._id,
       );
     });
   });
@@ -458,6 +496,7 @@ describe('ConversationController', () => {
       const result = await controller.sendMessage(
         conversationId.toString(),
         sendMessageDto,
+        mockUser as any,
       );
 
       // Assert
@@ -466,7 +505,7 @@ describe('ConversationController', () => {
       expect(result.meta).toHaveProperty('timestamp');
       expect(result.meta).toHaveProperty('requestId');
       expect(queueService.enqueueRequest).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        mockUser._id,
         conversationId.toString(),
         sendMessageDto.content,
         'free',
@@ -500,6 +539,7 @@ describe('ConversationController', () => {
       const result = await controller.update(
         conversationId.toString(),
         updateDto,
+        mockUser as any,
       );
 
       // Assert
@@ -509,7 +549,7 @@ describe('ConversationController', () => {
       expect(result.meta).toHaveProperty('requestId');
       expect(conversationService.updateConversation).toHaveBeenCalledWith(
         conversationId.toString(),
-        expect.any(Types.ObjectId),
+        mockUser._id,
         updateDto,
       );
     });
@@ -539,13 +579,14 @@ describe('ConversationController', () => {
       const result = await controller.update(
         conversationId.toString(),
         updateDto,
+        mockUser as any,
       );
 
       // Assert
       expect(result.success).toBe(true);
       expect(conversationService.updateConversation).toHaveBeenCalledWith(
         conversationId.toString(),
-        expect.any(Types.ObjectId),
+        mockUser._id,
         updateDto,
       );
     });

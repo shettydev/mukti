@@ -30,15 +30,3 @@ export type {
 
 // User types
 export type { User, UserPreferences } from './user.types';
-
-// WebSocket types
-export type {
-  ClientToServerEvents,
-  ConnectionStatus,
-  MessageProcessingEvent,
-  QueuedMessage,
-  ServerToClientEvents,
-  TypingEvent,
-  WebSocketError,
-  WebSocketMessage,
-} from './websocket.types';

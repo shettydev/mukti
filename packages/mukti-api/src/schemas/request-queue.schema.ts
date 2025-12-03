@@ -167,7 +167,7 @@ RequestQueueSchema.statics.getQueuePosition = async function (
   requestId: Types.ObjectId,
 ) {
   const request = await this.findById(requestId);
-  if (!request || request.status !== 'pending') {
+  if (request?.status !== 'pending') {
     return 0;
   }
 
