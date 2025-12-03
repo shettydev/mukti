@@ -141,9 +141,9 @@ function parseCommitMessages(aiResponse) {
       return parsed.map(msg => ({
         type: msg.type,
         scope: msg.scope || '',
-        subject: msg.subject,
+        subject: msg.subject.charAt(0).toUpperCase() + msg.subject.slice(1),
         body: wrapText(msg.body || '', 100),
-        full: `${msg.type}${msg.scope ? `(${msg.scope})` : ''}: ${msg.subject}`
+        full: `${msg.type}${msg.scope ? `(${msg.scope})` : ''}: ${msg.subject.charAt(0).toUpperCase() + msg.subject.slice(1)}`
       }));
     }
   } catch (error) {
@@ -160,14 +160,14 @@ function parseCommitMessages(aiResponse) {
 
     if (commitLines.length > 0) {
       return commitLines.slice(0, 3).map(line => ({
-        full: line.replace(/^\d+\.\s*/, '').trim(),
+        full: line.replace(/^\d+\.\s*/, '').trim().replace(/^([^:]+:\s*)(.)(.*)$/, (match, prefix, first, rest) => prefix + first.toUpperCase() + rest),
         body: ''
       }));
     }
 
     // Last resort: just take first 3 non-empty lines
     return lines.slice(0, 3).map(line => ({
-      full: line.replace(/^\d+\.\s*/, '').trim(),
+      full: line.replace(/^\d+\.\s*/, '').trim().replace(/^([^:]+:\s*)(.)(.*)$/, (match, prefix, first, rest) => prefix + first.toUpperCase() + rest),
       body: ''
     }));
   } catch {
