@@ -184,7 +184,9 @@ describe('ConversationList', () => {
     render(<ConversationList />, { wrapper: createWrapper() });
 
     expect(screen.getByText('No conversations yet')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /create conversation/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { hidden: true, name: /create conversation/i })
+    ).not.toBeInTheDocument();
   });
 
   it('should render conversation cards when data is loaded', () => {
@@ -314,7 +316,7 @@ describe('ConversationList', () => {
     expect(screen.getByRole('button', { name: /sort/i })).toBeInTheDocument();
   });
 
-  it('should render new conversation button', () => {
+  it('should not render a standalone new conversation button', () => {
     jest.spyOn(useConversationsHook, 'useInfiniteConversations').mockReturnValue({
       data: {
         pageParams: [1],
@@ -330,8 +332,7 @@ describe('ConversationList', () => {
 
     render(<ConversationList />, { wrapper: createWrapper() });
 
-    const newButton = screen.getByRole('link', { name: /new/i });
-    expect(newButton).toBeInTheDocument();
-    expect(newButton).toHaveAttribute('href', '/dashboard/conversations/new');
+    expect(screen.queryByRole('link', { name: /new/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /new/i })).not.toBeInTheDocument();
   });
 });
