@@ -25,9 +25,6 @@ const config = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^react$': '<rootDir>/node_modules/react',
-    '^react-dom$': '<rootDir>/node_modules/react-dom',
-    '^react-dom/(.*)$': '<rootDir>/node_modules/react-dom/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testEnvironment: 'jsdom',
