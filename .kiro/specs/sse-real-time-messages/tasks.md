@@ -81,7 +81,7 @@
 - [x] 7. Checkpoint - Ensure all backend tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Frontend: Create useConversationStream hook
+- [x] 8. Frontend: Create useConversationStream hook
   - Create `packages/mukti-web/src/lib/hooks/use-conversation-stream.ts`
   - Implement SSE connection establishment using EventSource API
   - Add connection state management (isConnected, error)
@@ -96,7 +96,7 @@
   - **Property 5: Reconnection Idempotency**
   - **Validates: Requirements 1.5, 7.2**
 
-- [ ] 9. Frontend: Integrate TanStack Query cache updates in hook
+- [x] 9. Frontend: Integrate TanStack Query cache updates in hook
   - Update conversation detail query when "message" event is received
   - Add new message to recentMessages array in cache
   - Update conversation metadata (messageCount, lastMessageAt)
@@ -105,7 +105,7 @@
   - Prevent duplicate messages in cache
   - _Requirements: 1.3_
 
-- [ ] 10. Frontend: Implement error handling in useConversationStream
+- [x] 10. Frontend: Implement error handling in useConversationStream
   - Handle connection establishment errors
   - Implement exponential backoff for reconnection (1s, 2s, 4s, 8s, max 30s)
   - Handle authentication errors (401) - don't retry, redirect to login
@@ -116,7 +116,7 @@
   - Add error callback for custom error handling
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 11. Frontend: Add event type handlers in useConversationStream
+- [x] 11. Frontend: Add event type handlers in useConversationStream
   - Handle "processing" event - set loading state
   - Handle "message" event - update conversation with new message
   - Handle "complete" event - clear loading state, update metadata
@@ -125,7 +125,7 @@
   - Add custom event handler callback for component-specific logic
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 12. Frontend: Integrate useConversationStream into ConversationDetail
+- [x] 12. Frontend: Integrate useConversationStream into ConversationDetail
   - Import and use useConversationStream hook in ConversationDetail component
   - Pass conversationId to the hook
   - Enable SSE connection when component mounts
@@ -139,7 +139,7 @@
   - **Property 10: Stream Closure on Navigation**
   - **Validates: Requirements 1.4**
 
-- [ ] 13. Frontend: Implement auto-scroll behavior for new messages
+- [x] 13. Frontend: Implement auto-scroll behavior for new messages
   - Detect when user is scrolled to bottom of message list
   - Auto-scroll to bottom when new message arrives and user is at bottom
   - Preserve scroll position when user is scrolled up reading old messages
@@ -152,7 +152,7 @@
   - **Property 8: Auto-scroll Preservation**
   - **Validates: Requirements 6.1, 6.2**
 
-- [ ] 14. Frontend: Create LoadingMessage component
+- [x] 14. Frontend: Create LoadingMessage component
   - Create `packages/mukti-web/src/components/conversations/loading-message.tsx`
   - Implement message bubble with AI avatar
   - Add animated typing indicator (three pulsing dots)
@@ -164,7 +164,7 @@
   - Respect prefers-reduced-motion for animations
   - _Requirements: 3.1, 3.2, 3.7, 3.8, 3.9, 9.1, 9.2, 9.3, 9.4, 9.6, 9.7_
 
-- [ ] 15. Frontend: Add Tailwind animations for loading states
+- [x] 15. Frontend: Add Tailwind animations for loading states
   - Add custom animations to Tailwind config or CSS
   - Implement pulse-dot animation for typing indicator
   - Implement pulse-border animation for message bubble
@@ -174,7 +174,7 @@
   - Ensure animations respect prefers-reduced-motion
   - _Requirements: 3.9, 3.10, 9.2, 9.5, 9.7_
 
-- [ ] 16. Frontend: Integrate LoadingMessage into MessageList
+- [x] 16. Frontend: Integrate LoadingMessage into MessageList
   - Import LoadingMessage component in MessageList
   - Show LoadingMessage when processing state is active
   - Position LoadingMessage at the end of message list
@@ -184,7 +184,7 @@
   - Ensure smooth transition from loading to actual message
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.8, 8.1, 8.2, 8.3_
 
-- [ ] 17. Frontend: Add message arrival animations
+- [x] 17. Frontend: Add message arrival animations
   - Implement fade-in animation when new message arrives
   - Add brief highlight effect to new message (subtle glow)
   - Ensure highlight fades out smoothly over 1 second
@@ -192,7 +192,7 @@
   - Respect prefers-reduced-motion preference
   - _Requirements: 3.10, 9.5, 9.10_
 
-- [ ] 18. Frontend: Enhance loading state with progressive disclosure
+- [x] 18. Frontend: Enhance loading state with progressive disclosure
   - Update status text after 5 seconds: "Still working on it..."
   - Update status text after 10 seconds: "This is taking longer than usual..."
   - Show queue position when available: "You're #X in queue"
@@ -200,7 +200,7 @@
   - Ensure text updates are smooth and non-jarring
   - _Requirements: 3.8, 8.4, 8.7, 9.8, 9.9_
 
-- [ ] 19. Frontend: Update message sending flow to work with SSE
+- [x] 19. Frontend: Update message sending flow to work with SSE
   - Keep existing POST /conversations/:id/messages endpoint call
   - Don't wait for response to complete before showing optimistic update
   - Rely on SSE events to update UI with actual response
