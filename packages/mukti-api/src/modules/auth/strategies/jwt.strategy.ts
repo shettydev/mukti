@@ -14,7 +14,8 @@ import { User, UserDocument } from '../../../schemas/user.schema';
  *
  * @remarks
  * This strategy:
- * - Extracts JWT from Authorization header (Bearer token)
+ * - Extracts JWT from Authorization header (Bearer token) OR query parameter (token)
+ * - Query parameter support is needed for SSE connections (EventSource doesn't support custom headers)
  * - Verifies token signature and expiration
  * - Validates user exists and is active
  * - Attaches user object to request for use in guards and controllers
@@ -23,11 +24,17 @@ import { User, UserDocument } from '../../../schemas/user.schema';
  *
  * @example
  * ```typescript
- * // In controller
+ * // In controller with Authorization header
  * @UseGuards(JwtAuthGuard)
  * @Get('profile')
  * getProfile(@CurrentUser() user: User) {
  *   return user;
+ * }
+ *
+ * // SSE endpoint with query parameter
+ * @Sse(':id/stream')
+ * streamConversation(@Param('id') id: string, @CurrentUser() user: User) {
+ *   // Token extracted from ?token=xxx query parameter
  * }
  * ```
  */
@@ -41,7 +48,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   ) {
     super({
       ignoreExpiration: false,
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // Support both Authorization header and query parameter for SSE connections
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ExtractJwt.fromUrlQueryParameter('token'),
+      ]),
       secretOrKey:
         configService.get<string>('JWT_SECRET') ?? 'development-secret',
     });
