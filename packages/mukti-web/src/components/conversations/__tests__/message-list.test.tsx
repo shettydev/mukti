@@ -235,4 +235,142 @@ describe('MessageList', () => {
     expect(screen.getByText('Archived message 1')).toBeInTheDocument();
     expect(screen.getByText('Archived message 2')).toBeInTheDocument();
   });
+
+  describe('LoadingMessage integration', () => {
+    it('should show LoadingMessage when processing state is active', () => {
+      (useConversationsHook.useArchivedMessages as jest.Mock).mockReturnValue({
+        data: undefined,
+        fetchNextPage: jest.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      } as any);
+
+      render(
+        <MessageList
+          conversationId="test-id"
+          hasArchivedMessages={false}
+          processingState={{
+            isProcessing: true,
+            status: 'AI is thinking...',
+          }}
+          recentMessages={mockRecentMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      // LoadingMessage should be visible
+      expect(screen.getByRole('status')).toBeInTheDocument();
+      expect(screen.getByText('AI is thinking...')).toBeInTheDocument();
+    });
+
+    it('should not show LoadingMessage when processing state is inactive', () => {
+      (useConversationsHook.useArchivedMessages as jest.Mock).mockReturnValue({
+        data: undefined,
+        fetchNextPage: jest.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      } as any);
+
+      render(
+        <MessageList
+          conversationId="test-id"
+          hasArchivedMessages={false}
+          processingState={{
+            isProcessing: false,
+            status: '',
+          }}
+          recentMessages={mockRecentMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      // LoadingMessage should not be visible
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('should pass queue position to LoadingMessage', () => {
+      (useConversationsHook.useArchivedMessages as jest.Mock).mockReturnValue({
+        data: undefined,
+        fetchNextPage: jest.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      } as any);
+
+      render(
+        <MessageList
+          conversationId="test-id"
+          hasArchivedMessages={false}
+          processingState={{
+            isProcessing: true,
+            queuePosition: 3,
+            status: 'Processing your message...',
+          }}
+          recentMessages={mockRecentMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.getByRole('status')).toBeInTheDocument();
+      expect(screen.getByText('Processing your message...')).toBeInTheDocument();
+    });
+
+    it('should position LoadingMessage at the end of message list', () => {
+      (useConversationsHook.useArchivedMessages as jest.Mock).mockReturnValue({
+        data: undefined,
+        fetchNextPage: jest.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      } as any);
+
+      const { container } = render(
+        <MessageList
+          conversationId="test-id"
+          hasArchivedMessages={false}
+          processingState={{
+            isProcessing: true,
+            status: 'AI is thinking...',
+          }}
+          recentMessages={mockRecentMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      // Find the message container
+      const messageContainer = container.querySelector('.space-y-1');
+      expect(messageContainer).toBeInTheDocument();
+
+      // LoadingMessage should be after all regular messages
+      const loadingMessage = screen.getByRole('status');
+
+      // Verify LoadingMessage comes after messages in DOM order
+      const allElements = Array.from(messageContainer?.children || []);
+      const loadingIndex = allElements.findIndex((el) => el.contains(loadingMessage));
+      const lastMessageIndex = allElements.findIndex((el) =>
+        el.textContent?.includes('Recent message 2')
+      );
+
+      expect(loadingIndex).toBeGreaterThan(lastMessageIndex);
+    });
+
+    it('should not show LoadingMessage when processingState is undefined', () => {
+      (useConversationsHook.useArchivedMessages as jest.Mock).mockReturnValue({
+        data: undefined,
+        fetchNextPage: jest.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      } as unknown);
+
+      render(
+        <MessageList
+          conversationId="test-id"
+          hasArchivedMessages={false}
+          recentMessages={mockRecentMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      // LoadingMessage should not be visible
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+  });
 });

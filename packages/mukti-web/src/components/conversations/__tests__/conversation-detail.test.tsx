@@ -26,6 +26,13 @@ jest.mock('@/lib/hooks/use-conversations', () => ({
   useUpdateConversation: jest.fn(),
 }));
 
+jest.mock('@/lib/hooks/use-conversation-stream', () => ({
+  useConversationStream: jest.fn(() => ({
+    error: null,
+    isConnected: false,
+  })),
+}));
+
 describe('ConversationDetail', () => {
   const mockConversation: Conversation = {
     createdAt: '2024-01-01T12:00:00Z',
