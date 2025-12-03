@@ -3,7 +3,14 @@
  * Runs before each test file
  */
 
+// Import React before testing library to ensure proper initialization
+import * as React from 'react';
 import '@testing-library/jest-dom';
+
+// Ensure React is available globally
+if (typeof global.React === 'undefined') {
+  global.React = React;
+}
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
