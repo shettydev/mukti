@@ -13,6 +13,7 @@ import { UsageEvent } from '../../../../schemas/usage-event.schema';
 import { MessageService } from '../message.service';
 import { OpenRouterService } from '../openrouter.service';
 import { QueueService } from '../queue.service';
+import { StreamService } from '../stream.service';
 
 describe('QueueService', () => {
   interface MockQueue {
@@ -98,6 +99,16 @@ describe('QueueService', () => {
       sendChatCompletion: jest.fn(),
     };
 
+    const mockStreamService = {
+      addConnection: jest.fn(),
+      cleanupConversation: jest.fn(),
+      emitToConversation: jest.fn(),
+      emitToUser: jest.fn(),
+      getConnectionCount: jest.fn(),
+      getConversationConnectionCount: jest.fn(),
+      removeConnection: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [],
       providers: [
@@ -121,6 +132,10 @@ describe('QueueService', () => {
         {
           provide: OpenRouterService,
           useValue: mockOpenRouterService,
+        },
+        {
+          provide: StreamService,
+          useValue: mockStreamService,
         },
         {
           provide: getQueueToken('conversation-requests'),
