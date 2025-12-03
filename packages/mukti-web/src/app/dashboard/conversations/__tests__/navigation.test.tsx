@@ -13,6 +13,7 @@ import type { Conversation, PaginatedConversations } from '@/types/conversation.
 // Mock next/navigation
 const mockPush = jest.fn();
 const mockBack = jest.fn();
+let mockSearchParams = new URLSearchParams();
 
 jest.mock('next/navigation', () => ({
   usePathname: () => '/dashboard/conversations',
@@ -21,7 +22,7 @@ jest.mock('next/navigation', () => ({
     push: mockPush,
     replace: jest.fn(),
   }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }));
 
 // Mock auth hooks
@@ -49,7 +50,6 @@ jest.mock('@/lib/hooks/use-conversations', () => ({
   useUpdateConversation: () => mockUseUpdateConversation(),
 }));
 
-import NewConversationPage from '../new/page';
 // Import pages after mocks
 import ConversationsPage from '../page';
 
@@ -107,6 +107,7 @@ const mockPaginatedConversations: PaginatedConversations = {
 describe('Conversation Page Navigation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
 
     // Default auth mock - authenticated user
     mockUseAuth.mockReturnValue({
@@ -174,44 +175,72 @@ describe('Conversation Page Navigation', () => {
     });
   });
 
-  describe('Navigation after creation', () => {
-    it('should navigate to conversation detail after successful creation', async () => {
-      const mockMutateAsync = jest.fn().mockResolvedValue(mockConversation);
-
-      mockUseCreateConversation.mockReturnValue({
-        isPending: false,
-        mutateAsync: mockMutateAsync,
-      });
-
-      render(<NewConversationPage />, { wrapper: createWrapper() });
-
-      // The dialog should be open by default - use getAllByText since there are multiple
-      await waitFor(() => {
-        const elements = screen.getAllByText('Create New Conversation');
-        expect(elements.length).toBeGreaterThan(0);
+  describe('Create dialog behavior', () => {
+    beforeEach(() => {
+      mockUseInfiniteConversations.mockReturnValue({
+        data: {
+          pageParams: [1],
+          pages: [mockPaginatedConversations],
+        },
+        error: null,
+        fetchNextPage: jest.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+        isLoading: false,
+        refetch: jest.fn(),
       });
     });
 
-    it('should navigate back to list when dialog is closed', async () => {
+    it('should open the create dialog when the New button is clicked', async () => {
       mockUseCreateConversation.mockReturnValue({
         isPending: false,
         mutateAsync: jest.fn(),
       });
 
-      render(<NewConversationPage />, { wrapper: createWrapper() });
+      render(<ConversationsPage />, { wrapper: createWrapper() });
 
-      // Dialog should be visible - use getAllByText since there are multiple
+      const newButton = screen.getByRole('button', { name: /new/i });
+      await userEvent.click(newButton);
+
       await waitFor(() => {
-        const elements = screen.getAllByText('Create New Conversation');
-        expect(elements.length).toBeGreaterThan(0);
+        expect(screen.getByText('Create New Conversation')).toBeInTheDocument();
+      });
+    });
+
+    it('should open the create dialog when openDialog query param is present', async () => {
+      mockUseCreateConversation.mockReturnValue({
+        isPending: false,
+        mutateAsync: jest.fn(),
+      });
+      mockSearchParams = new URLSearchParams('openDialog=true');
+
+      render(<ConversationsPage />, { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(screen.getByText('Create New Conversation')).toBeInTheDocument();
+      });
+    });
+
+    it('should close the dialog when cancel is clicked without navigating', async () => {
+      mockUseCreateConversation.mockReturnValue({
+        isPending: false,
+        mutateAsync: jest.fn(),
+      });
+      mockSearchParams = new URLSearchParams('openDialog=true');
+
+      render(<ConversationsPage />, { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      // Find and click cancel button
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       await userEvent.click(cancelButton);
 
-      // Should navigate back to conversations list
-      expect(mockPush).toHaveBeenCalledWith('/dashboard/conversations');
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 
@@ -249,43 +278,6 @@ describe('Conversation Page Navigation', () => {
       // The delete functionality is tested through the ConversationDetail component
       // which is already covered in conversation-detail.test.tsx
       expect(mockUseDeleteConversation).toBeDefined();
-    });
-  });
-
-  describe('Back button behavior', () => {
-    it('should have back link in new conversation page header (hidden behind dialog)', async () => {
-      mockUseCreateConversation.mockReturnValue({
-        isPending: false,
-        mutateAsync: jest.fn(),
-      });
-
-      render(<NewConversationPage />, { wrapper: createWrapper() });
-
-      // The back link exists but is hidden behind the dialog
-      // We can verify it exists by checking with hidden: true option
-      const backLink = screen.getByRole('link', { hidden: true, name: /back to conversations/i });
-      expect(backLink).toHaveAttribute('href', '/dashboard/conversations');
-    });
-
-    it('should navigate to conversations list when cancel is clicked', async () => {
-      mockUseCreateConversation.mockReturnValue({
-        isPending: false,
-        mutateAsync: jest.fn(),
-      });
-
-      render(<NewConversationPage />, { wrapper: createWrapper() });
-
-      // Wait for dialog to be visible
-      await waitFor(() => {
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-      });
-
-      // Click cancel button
-      const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      await userEvent.click(cancelButton);
-
-      // Should navigate back
-      expect(mockPush).toHaveBeenCalledWith('/dashboard/conversations');
     });
   });
 
