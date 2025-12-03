@@ -564,3 +564,137 @@ export const ApiGetArchivedMessages = () =>
       status: 404,
     }),
   );
+
+/**
+ * Swagger documentation for SSE stream endpoint
+ */
+export const ApiStreamConversation = () =>
+  applyDecorators(
+    ApiOperation({
+      description:
+        'Establishes a Server-Sent Events (SSE) connection for real-time conversation updates. ' +
+        'The connection streams events including message processing status, new messages, completion, and errors. ' +
+        'The stream remains open until the client disconnects or navigates away.',
+      summary: 'Stream conversation updates via SSE',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      description: 'Conversation ID',
+      example: '507f1f77bcf86cd799439011',
+      name: 'id',
+    }),
+    ApiResponse({
+      description:
+        'SSE connection established successfully. Events will be streamed in text/event-stream format.',
+      schema: {
+        example: {
+          description:
+            'Server-Sent Events stream. Example events:\n\n' +
+            'event: message\n' +
+            'data: {"type":"processing","data":{"jobId":"job-123","status":"started"},"conversationId":"507f1f77bcf86cd799439011","timestamp":"2026-01-01T00:00:00Z"}\n\n' +
+            'event: message\n' +
+            'data: {"type":"message","data":{"role":"assistant","content":"What do you mean?","timestamp":"2026-01-01T00:00:05Z","sequence":5},"conversationId":"507f1f77bcf86cd799439011","timestamp":"2026-01-01T00:00:05Z"}\n\n' +
+            'event: message\n' +
+            'data: {"type":"complete","data":{"jobId":"job-123","tokens":200,"cost":0.0004,"latency":5000},"conversationId":"507f1f77bcf86cd799439011","timestamp":"2026-01-01T00:00:10Z"}\n\n',
+          eventTypes: {
+            complete: {
+              data: {
+                cost: 0.0004,
+                jobId: 'job-123',
+                latency: 5000,
+                tokens: 200,
+              },
+              description: 'Message processing completed successfully',
+              type: 'complete',
+            },
+            error: {
+              data: {
+                code: 'PROCESSING_ERROR',
+                message: 'Failed to generate response',
+                retriable: true,
+              },
+              description: 'An error occurred during processing',
+              type: 'error',
+            },
+            message: {
+              data: {
+                content: 'What do you mean by that?',
+                role: 'assistant',
+                sequence: 5,
+                timestamp: '2026-01-01T00:00:05Z',
+                tokens: 50,
+              },
+              description: 'New message received (user or assistant)',
+              type: 'message',
+            },
+            processing: {
+              data: {
+                jobId: 'job-123',
+                status: 'started',
+              },
+              description: 'Message processing has started',
+              type: 'processing',
+            },
+            progress: {
+              data: {
+                jobId: 'job-123',
+                position: 3,
+                status: 'Generating response...',
+              },
+              description: 'Progress update during processing',
+              type: 'progress',
+            },
+          },
+        },
+      },
+      status: 200,
+    }),
+    ApiResponse({
+      description: 'Unauthorized - JWT token missing or invalid',
+      schema: {
+        example: {
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+          meta: {
+            timestamp: '2026-01-01T00:00:00Z',
+          },
+          success: false,
+        },
+      },
+      status: 401,
+    }),
+    ApiResponse({
+      description: 'Forbidden - User does not own this conversation',
+      schema: {
+        example: {
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You do not have permission to access this conversation',
+          },
+          meta: {
+            timestamp: '2026-01-01T00:00:00Z',
+          },
+          success: false,
+        },
+      },
+      status: 403,
+    }),
+    ApiResponse({
+      description: 'Conversation not found',
+      schema: {
+        example: {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Conversation with ID 507f1f77bcf86cd799439011 not found',
+          },
+          meta: {
+            timestamp: '2026-01-01T00:00:00Z',
+          },
+          success: false,
+        },
+      },
+      status: 404,
+    }),
+  );
