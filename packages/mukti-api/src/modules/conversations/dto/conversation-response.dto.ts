@@ -56,6 +56,87 @@ export class ConversationMetadataDto {
 }
 
 /**
+ * Message metadata for AI responses.
+ */
+export class MessageMetadataDto {
+  @ApiProperty({
+    description: 'Completion tokens used',
+    example: 50,
+    required: false,
+  })
+  @Expose()
+  completionTokens?: number;
+
+  @ApiProperty({
+    description: 'Latency in milliseconds',
+    example: 1200,
+    required: false,
+  })
+  @Expose()
+  latencyMs?: number;
+
+  @ApiProperty({
+    description: 'AI model used',
+    example: 'gpt-5-mini',
+    required: false,
+  })
+  @Expose()
+  model?: string;
+
+  @ApiProperty({
+    description: 'Prompt tokens used',
+    example: 150,
+    required: false,
+  })
+  @Expose()
+  promptTokens?: number;
+
+  @ApiProperty({
+    description: 'Total tokens used',
+    example: 200,
+    required: false,
+  })
+  @Expose()
+  totalTokens?: number;
+}
+
+/**
+ * Recent message in a conversation.
+ */
+export class RecentMessageDto {
+  @ApiProperty({
+    description: 'Message content',
+    example: 'How can I optimize React component rendering?',
+  })
+  @Expose()
+  content: string;
+
+  @ApiProperty({
+    description: 'Message metadata',
+    required: false,
+    type: () => MessageMetadataDto,
+  })
+  @Expose()
+  @Type(() => MessageMetadataDto)
+  metadata?: MessageMetadataDto;
+
+  @ApiProperty({
+    description: 'Message role',
+    enum: ['assistant', 'system', 'user'],
+    example: 'user',
+  })
+  @Expose()
+  role: 'assistant' | 'system' | 'user';
+
+  @ApiProperty({
+    description: 'Message timestamp',
+    example: '2026-01-01T00:30:00Z',
+  })
+  @Expose()
+  timestamp: Date;
+}
+
+/**
  * DTO for conversation response.
  *
  * @remarks
@@ -223,51 +304,6 @@ export class ConversationResponseDto {
 }
 
 /**
- * Message metadata for AI responses.
- */
-export class MessageMetadataDto {
-  @ApiProperty({
-    description: 'Completion tokens used',
-    example: 50,
-    required: false,
-  })
-  @Expose()
-  completionTokens?: number;
-
-  @ApiProperty({
-    description: 'Latency in milliseconds',
-    example: 1200,
-    required: false,
-  })
-  @Expose()
-  latencyMs?: number;
-
-  @ApiProperty({
-    description: 'AI model used',
-    example: 'gpt-5-mini',
-    required: false,
-  })
-  @Expose()
-  model?: string;
-
-  @ApiProperty({
-    description: 'Prompt tokens used',
-    example: 150,
-    required: false,
-  })
-  @Expose()
-  promptTokens?: number;
-
-  @ApiProperty({
-    description: 'Total tokens used',
-    example: 200,
-    required: false,
-  })
-  @Expose()
-  totalTokens?: number;
-}
-
-/**
  * DTO for paginated conversation list response.
  */
 export class PaginatedConversationsResponseDto {
@@ -296,40 +332,4 @@ export class PaginatedConversationsResponseDto {
     total: number;
     totalPages: number;
   };
-}
-
-/**
- * Recent message in a conversation.
- */
-export class RecentMessageDto {
-  @ApiProperty({
-    description: 'Message content',
-    example: 'How can I optimize React component rendering?',
-  })
-  @Expose()
-  content: string;
-
-  @ApiProperty({
-    description: 'Message metadata',
-    required: false,
-    type: () => MessageMetadataDto,
-  })
-  @Expose()
-  @Type(() => MessageMetadataDto)
-  metadata?: MessageMetadataDto;
-
-  @ApiProperty({
-    description: 'Message role',
-    enum: ['assistant', 'system', 'user'],
-    example: 'user',
-  })
-  @Expose()
-  role: 'assistant' | 'system' | 'user';
-
-  @ApiProperty({
-    description: 'Message timestamp',
-    example: '2026-01-01T00:30:00Z',
-  })
-  @Expose()
-  timestamp: Date;
 }
