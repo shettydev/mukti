@@ -16,7 +16,6 @@ import { ConversationFilters as Filters } from './conversation-filters';
 interface ConversationListProps {
   className?: string;
   initialFilters?: ConversationFilters;
-  onCreateClick?: () => void;
 }
 
 /**
@@ -34,11 +33,7 @@ interface ConversationListProps {
  * - Touch-friendly targets
  *
  */
-export function ConversationList({
-  className,
-  initialFilters,
-  onCreateClick,
-}: ConversationListProps) {
+export function ConversationList({ className, initialFilters }: ConversationListProps) {
   const [filters, setFilters] = useState<ConversationFilters>(
     initialFilters || {
       // Use centralized pagination config (20 items per page)
@@ -138,10 +133,9 @@ export function ConversationList({
           <p className="text-sm md:text-base text-muted-foreground mb-6 max-w-md">
             Start your first Socratic dialogue to explore ideas through structured inquiry.
           </p>
-          <Button className="min-h-[44px]" onClick={onCreateClick}>
-            <Plus aria-hidden="true" className="h-4 w-4 mr-2" />
-            Create Conversation
-          </Button>
+          <div className="text-sm text-muted-foreground">
+            Use the New button in the header to start your first conversation.
+          </div>
         </div>
       </div>
     );

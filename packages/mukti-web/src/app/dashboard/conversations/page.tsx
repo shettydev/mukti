@@ -95,7 +95,7 @@ function ConversationsContent() {
       title="Conversations"
     >
       <div className="max-w-6xl mx-auto">
-        <ConversationList onCreateClick={() => setCreateDialogOpen(true)} />
+        <ConversationList />
       </div>
 
       {/* Create Conversation Dialog */}
