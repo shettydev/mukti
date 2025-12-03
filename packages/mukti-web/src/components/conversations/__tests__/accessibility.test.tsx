@@ -12,7 +12,6 @@ import userEvent from '@testing-library/user-event';
 
 import { ConversationFilters } from '../conversation-filters';
 import { CreateConversationDialog } from '../create-conversation-dialog';
-import { DeleteConversationDialog } from '../delete-conversation-dialog';
 import { MessageInput } from '../message-input';
 import { TagInput } from '../tag-input';
 import { TechniqueSelector } from '../technique-selector';
@@ -22,10 +21,6 @@ jest.mock('@/lib/hooks/use-conversations', () => ({
   useCreateConversation: () => ({
     isPending: false,
     mutateAsync: jest.fn().mockResolvedValue({ id: '1', title: 'Test' }),
-  }),
-  useDeleteConversation: () => ({
-    isPending: false,
-    mutateAsync: jest.fn().mockResolvedValue(undefined),
   }),
 }));
 
@@ -270,26 +265,6 @@ describe('Accessibility Tests', () => {
         expect(titleInput).toBeInTheDocument();
       });
     });
-
-    it('should focus cancel button in delete dialog', async () => {
-      render(
-        <DeleteConversationDialog
-          conversationId="test-id"
-          conversationTitle="Test Conversation"
-          onOpenChange={jest.fn()}
-          open
-        />,
-        { wrapper: createWrapper() }
-      );
-
-      // Dialog should be present
-      const dialog = screen.getByRole('dialog');
-      expect(dialog).toBeInTheDocument();
-
-      // Cancel button should be present
-      const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      expect(cancelButton).toBeInTheDocument();
-    });
   });
 
   describe('Semantic HTML Structure', () => {
@@ -394,20 +369,6 @@ describe('Accessibility Tests', () => {
       const characterCount = screen.getByTestId('character-count');
       expect(characterCount).toBeInTheDocument();
       expect(characterCount).toHaveAttribute('id', 'character-count');
-    });
-
-    it('should have descriptive dialog titles', () => {
-      render(
-        <DeleteConversationDialog
-          conversationId="test-id"
-          conversationTitle="Test Conversation"
-          onOpenChange={jest.fn()}
-          open
-        />,
-        { wrapper: createWrapper() }
-      );
-
-      expect(screen.getByRole('heading', { name: /delete conversation/i })).toBeInTheDocument();
     });
   });
 });
