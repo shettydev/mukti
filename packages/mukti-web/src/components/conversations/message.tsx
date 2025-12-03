@@ -1,8 +1,11 @@
 /**
  * Message component for displaying user and assistant messages
+ * with smooth arrival animations
  */
 
 'use client';
+
+import { useEffect, useRef, useState } from 'react';
 
 import type { Message as MessageType } from '@/types/conversation.types';
 
@@ -14,13 +17,47 @@ interface MessageProps {
 
 export function Message({ message }: MessageProps) {
   const isUser = message.role === 'user';
+  const [isNew, setIsNew] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Mark message as "new" for 1 second to trigger highlight animation
+  useEffect(() => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Set message as new
+    setIsNew(true);
+
+    // Remove "new" status after 1 second (duration of highlight animation)
+    timeoutRef.current = setTimeout(() => {
+      setIsNew(false);
+    }, 1000);
+
+    // Cleanup on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [message.timestamp]); // Re-run when message timestamp changes
 
   return (
-    <div className={cn('flex w-full gap-3 py-4', isUser ? 'justify-end' : 'justify-start')}>
+    <div
+      className={cn(
+        'flex w-full gap-3 py-4',
+        isUser ? 'justify-end' : 'justify-start',
+        // Fade-in animation on mount
+        'animate-fade-in'
+      )}
+    >
       <div
         className={cn(
-          'max-w-[80%] rounded-lg px-4 py-3',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+          'max-w-[80%] rounded-lg px-4 py-3 transition-all duration-300',
+          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+          // Add highlight animation for new messages
+          isNew && 'animate-highlight'
         )}
       >
         <div className="flex items-start gap-2">

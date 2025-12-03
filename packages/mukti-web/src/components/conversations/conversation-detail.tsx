@@ -13,6 +13,7 @@
 
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { Archive, ArrowLeft, MoreVertical, Star, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
@@ -26,12 +27,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useConversationStream } from '@/lib/hooks/use-conversation-stream';
 import {
   useConversation,
   useDeleteConversation,
   useSendMessage,
   useUpdateConversation,
 } from '@/lib/hooks/use-conversations';
+import { conversationKeys } from '@/lib/query-keys';
 import { getRetryAfter, isRateLimitError } from '@/lib/utils/error-types';
 
 import { MessageInput } from './message-input';
@@ -43,6 +46,7 @@ interface ConversationDetailProps {
 }
 
 export function ConversationDetail({ conversationId }: ConversationDetailProps) {
+  const queryClient = useQueryClient();
   const { data: conversation, error, isLoading } = useConversation(conversationId);
   const { mutate: updateConversation } = useUpdateConversation(conversationId);
   const { isPending: isDeleting, mutate: deleteConversation } = useDeleteConversation();
@@ -50,6 +54,76 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   // Rate limit state
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<null | number>(null);
+
+  // Processing state for loading indicators
+  const [processingState, setProcessingState] = useState<{
+    isProcessing: boolean;
+    queuePosition?: number;
+    status: string;
+  }>({
+    isProcessing: false,
+    status: '',
+  });
+
+  // SSE error state (separate from query error)
+  const [sseError, setSseError] = useState<null | string>(null);
+  const [showManualRefresh, setShowManualRefresh] = useState(false);
+
+  // Establish SSE connection for real-time updates
+  const { isConnected } = useConversationStream({
+    conversationId,
+    enabled: !!conversation && !conversation.isArchived, // Only connect if conversation exists and not archived
+    onComplete: (_event) => {
+      // Clear loading state when processing completes
+      setProcessingState({
+        isProcessing: false,
+        status: '',
+      });
+      setSseError(null);
+      setShowManualRefresh(false);
+    },
+    onError: (err) => {
+      // Handle SSE connection errors
+      // Don't show errors for authentication/authorization issues (handled by auth system)
+      if (err.type !== 'authentication' && err.type !== 'authorization') {
+        setSseError(err.message);
+        // Show manual refresh option if connection fails
+        setShowManualRefresh(true);
+      }
+    },
+    onErrorEvent: (event) => {
+      // Handle error events from the server
+      setSseError(event.data.message);
+      setProcessingState({
+        isProcessing: false,
+        status: '',
+      });
+      // Show manual refresh option on error
+      setShowManualRefresh(true);
+    },
+    onProcessing: (event) => {
+      // Set loading state when processing starts
+      setProcessingState({
+        isProcessing: true,
+        queuePosition: event.data.position,
+        status: 'AI is thinking...',
+      });
+      setSseError(null);
+      setShowManualRefresh(false);
+    },
+    onProgress: (event) => {
+      // Update status and queue position during processing
+      setProcessingState((prev) => ({
+        ...prev,
+        queuePosition: event.data.position,
+        status: event.data.status,
+      }));
+    },
+    onRateLimit: (retryAfter) => {
+      // Handle rate limit from SSE connection
+      setRateLimitRetryAfter(retryAfter || 60);
+    },
+  });
 
   // Handle sending messages
   const handleSendMessage = useCallback(
@@ -72,6 +146,15 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const handleRateLimitDismiss = useCallback(() => {
     setRateLimitRetryAfter(null);
   }, []);
+
+  // Handle manual refresh when SSE fails
+  const handleManualRefresh = useCallback(() => {
+    // Invalidate the conversation query to trigger a refetch
+    // This provides a fallback when SSE is not working
+    queryClient.invalidateQueries({ queryKey: conversationKeys.detail(conversationId) });
+    setSseError(null);
+    setShowManualRefresh(false);
+  }, [conversationId, queryClient]);
 
   // Loading state
   if (isLoading) {
@@ -174,7 +257,22 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
           {/* Title and metadata - responsive text */}
           <div className="flex-1 min-w-0">
-            <h1 className="truncate text-lg md:text-xl font-semibold">{conversation.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-lg md:text-xl font-semibold">{conversation.title}</h1>
+              {/* Connection status indicator (optional) */}
+              {isConnected && (
+                <div
+                  className="flex items-center gap-1 text-xs text-muted-foreground"
+                  title="Real-time updates active"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                  </span>
+                  <span className="hidden sm:inline">Live</span>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-muted-foreground flex-wrap">
               <span className="capitalize">{conversation.technique}</span>
               <span aria-hidden="true">•</span>
@@ -241,8 +339,53 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       <MessageList
         conversationId={conversationId}
         hasArchivedMessages={conversation.hasArchivedMessages}
+        processingState={processingState}
         recentMessages={conversation.recentMessages}
       />
+
+      {/* SSE Error Banner */}
+      {sseError && (
+        <div className="px-4 pb-2">
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+            <div className="flex items-start gap-2">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-destructive">Connection Error</p>
+                <p className="text-sm text-destructive/90">{sseError}</p>
+                {showManualRefresh && (
+                  <p className="mt-2 text-xs text-destructive/80">
+                    Real-time updates are unavailable. You can manually refresh to check for new
+                    messages.
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {showManualRefresh && (
+                  <Button
+                    className="h-auto px-2 py-1 text-xs text-destructive hover:text-destructive"
+                    onClick={handleManualRefresh}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    Refresh
+                  </Button>
+                )}
+                <Button
+                  className="h-auto p-1 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    setSseError(null);
+                    setShowManualRefresh(false);
+                  }}
+                  size="sm"
+                  variant="ghost"
+                >
+                  <span className="sr-only">Dismiss</span>
+                  <span aria-hidden="true">×</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rate Limit Banner */}
       {rateLimitRetryAfter !== null && (
