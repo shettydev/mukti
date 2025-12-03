@@ -121,6 +121,9 @@
   --color-3: oklch(69.6% 0.165 251);
   --color-4: oklch(80.2% 0.134 225);
   --color-5: oklch(90.7% 0.231 133);
+
+  /* RGB values for animations */
+  --primary-rgb: 53, 53, 54;
 }
 
 .dark {
@@ -160,6 +163,9 @@
   --color-3: oklch(69.6% 0.165 251);
   --color-4: oklch(80.2% 0.134 225);
   --color-5: oklch(90.7% 0.231 133);
+
+  /* RGB values for animations */
+  --primary-rgb: 234, 234, 235;
 }
 
 @layer base {
@@ -189,6 +195,26 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulseBorder {
+  0%,
+  100% {
+    border-color: hsl(var(--muted));
+  }
+  50% {
+    border-color: hsl(var(--primary) / 0.3);
   }
 }
 
@@ -223,6 +249,30 @@
   }
 }
 
+@keyframes highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.4);
+    background-color: transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(var(--primary-rgb), 0.1);
+    background-color: rgba(var(--primary-rgb), 0.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0);
+    background-color: transparent;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.6s ease-out;
 }
@@ -244,8 +294,88 @@
   animation: shine var(--animation-duration, 5s) ease-in-out infinite;
 }
 
+.animate-pulse-dot {
+  animation: pulseDot 1.4s ease-in-out infinite;
+}
+
+.animate-pulse-border {
+  animation: pulseBorder 2s ease-in-out infinite;
+}
+
+.animate-highlight {
+  animation: highlight 1s ease-out;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  background-size: 200% 100%;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-dot,
+  .animate-pulse-border,
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-float,
+  .animate-gradient,
+  .animate-shine,
+  .animate-highlight,
+  .animate-shimmer {
+    animation: none;
+  }
+
+  /* Use simple opacity transitions instead */
+  .animate-fade-in,
+  .animate-fade-in-up {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Disable shimmer effect */
+  .animate-shimmer {
+    background: none;
+  }
+
+  /* Use simple background change for highlight */
+  .animate-highlight {
+    background-color: rgba(var(--primary-rgb), 0.05);
+    transition: background-color 0.3s ease-out;
+  }
+}
+
+.animation-delay-0 {
+  animation-delay: 0ms;
+}
+
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
 .animation-delay-200 {
   animation-delay: 0.2s;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
 }
 
 .animation-delay-400 {
