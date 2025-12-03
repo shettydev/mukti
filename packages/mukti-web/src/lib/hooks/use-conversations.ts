@@ -348,7 +348,7 @@ export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'pa
  * Send message with optimistic update
  *
  * Optimistically adds the user message to the conversation before server confirmation.
- * Automatically rolls back on error and refetches to get AI response.
+ * Automatically rolls back on error. AI response is delivered via SSE, so no manual refetch is needed.
  *
  * @param conversationId - Conversation ID to send message to
  * @returns Mutation result with send function
@@ -421,9 +421,8 @@ export function useSendMessage(conversationId: string) {
     },
 
     onSuccess: () => {
-      // Refetch to get AI response
-      // In future, this could be replaced with WebSocket for real-time updates
-      queryClient.invalidateQueries({ queryKey: conversationKeys.detail(conversationId) });
+      // No need to refetch - SSE will deliver the AI response in real-time
+      // The useConversationStream hook automatically updates the cache when messages arrive
     },
   });
 }
