@@ -393,7 +393,7 @@ function generateLayout(
 
 ### Frontend Error Handling
 
-1. **Session Not Found**: Display a friendly not-found page with link to create new canvas
+1. **Session Not Found**: Display a friendly not-found page with link to canvas listing page
 2. **Load Failure**: Show error state with retry button
 3. **Position Save Failure**: Queue failed updates for retry, show subtle error indicator
 4. **React Flow Errors**: Wrap canvas in error boundary, show fallback UI

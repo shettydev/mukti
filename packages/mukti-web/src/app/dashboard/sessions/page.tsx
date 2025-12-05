@@ -19,7 +19,7 @@ export default function InquirySessionsPage() {
         description="Manage your Socratic inquiry sessions, track conversation progress, and review past dialogues. This feature will help you organize and reflect on your cognitive journey."
         feature="Inquiry Sessions"
         icon={<MessageSquare className="w-16 h-16 md:w-20 md:h-20" />}
-        timeline="Q2 2024"
+        timeline="Q2 2026"
       />
     </DashboardLayout>
   );

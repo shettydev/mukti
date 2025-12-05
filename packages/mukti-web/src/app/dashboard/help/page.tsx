@@ -19,7 +19,7 @@ export default function HelpPage() {
         description="Get help when you need it. Access comprehensive documentation, FAQs, tutorials, and contact our support team for assistance with any questions or issues."
         feature="Help & Support"
         icon={<HelpCircle className="w-16 h-16 md:w-20 md:h-20" />}
-        timeline="Q2 2024"
+        timeline="Q2 2026"
       />
     </DashboardLayout>
   );

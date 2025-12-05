@@ -19,7 +19,7 @@ export default function ResourcesPage() {
         description="Access curated learning materials, guides, and resources to enhance your critical thinking skills. Explore articles, videos, and exercises designed to deepen your understanding of the Socratic method."
         feature="Resources"
         icon={<FileText className="w-16 h-16 md:w-20 md:h-20" />}
-        timeline="Q3 2024"
+        timeline="Q3 2026"
       />
     </DashboardLayout>
   );

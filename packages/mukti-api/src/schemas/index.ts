@@ -1,6 +1,9 @@
 export * from './archived-message.schema';
+export * from './canvas-session.schema';
 export * from './conversation.schema';
 export * from './daily-usage-aggregate.schema';
+export * from './dialogue-message.schema';
+export * from './node-dialogue.schema';
 export * from './rate-limit.schema';
 export * from './refresh-token.schema';
 export * from './request-queue.schema';
@@ -18,11 +21,17 @@ import {
   ArchivedMessage,
   ArchivedMessageSchema,
 } from './archived-message.schema';
+import { CanvasSession, CanvasSessionSchema } from './canvas-session.schema';
 import { Conversation, ConversationSchema } from './conversation.schema';
 import {
   DailyUsageAggregate,
   DailyUsageAggregateSchema,
 } from './daily-usage-aggregate.schema';
+import {
+  DialogueMessage,
+  DialogueMessageSchema,
+} from './dialogue-message.schema';
+import { NodeDialogue, NodeDialogueSchema } from './node-dialogue.schema';
 import { RateLimit, RateLimitSchema } from './rate-limit.schema';
 import { RefreshToken, RefreshTokenSchema } from './refresh-token.schema';
 import { RequestQueue, RequestQueueSchema } from './request-queue.schema';
@@ -41,7 +50,10 @@ export const ALL_SCHEMAS = [
   { name: User.name, schema: UserSchema },
   { name: Subscription.name, schema: SubscriptionSchema },
   { name: Conversation.name, schema: ConversationSchema },
+  { name: CanvasSession.name, schema: CanvasSessionSchema },
   { name: ArchivedMessage.name, schema: ArchivedMessageSchema },
+  { name: DialogueMessage.name, schema: DialogueMessageSchema },
+  { name: NodeDialogue.name, schema: NodeDialogueSchema },
   { name: Resource.name, schema: ResourceSchema },
   { name: Technique.name, schema: TechniqueSchema },
   { name: Vote.name, schema: VoteSchema },

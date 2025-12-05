@@ -19,7 +19,7 @@ export default function CommunityPage() {
         description="Connect with other users, share insights, and collaborate on inquiries. Join a community of critical thinkers exploring ideas through the Socratic method."
         feature="Community"
         icon={<Users className="w-16 h-16 md:w-20 md:h-20" />}
-        timeline="Q2 2024"
+        timeline="Q2 2026"
       />
     </DashboardLayout>
   );
