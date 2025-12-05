@@ -62,6 +62,7 @@ interface SignInFormProps {
 export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: SignInFormProps) {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const loginMutation = useLogin();
 
   const form = useForm<LoginFormData>({
@@ -83,6 +84,7 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
       });
       showSuccessToast('Welcome back!');
 
+      setIsRedirecting(true);
       router.push('/dashboard');
 
       // Call onSuccess callback if provided
@@ -92,6 +94,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
       showErrorToast(error);
     }
   };
+
+  const isLoading = loginMutation.isPending || isRedirecting;
 
   return (
     <Form {...form}>
@@ -108,8 +112,9 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 <FormControl>
                   <Input
                     {...field}
+                    disabled={isLoading}
                     autoComplete="email"
-                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
+                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base disabled:opacity-50"
                     placeholder="john@example.com"
                     type="email"
                   />
@@ -131,15 +136,17 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 <FormControl>
                   <Input
                     {...field}
+                    disabled={isLoading}
                     autoComplete="current-password"
-                    className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
+                    className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base disabled:opacity-50"
                     placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
                   />
                 </FormControl>
                 <button
+                  disabled={isLoading}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation disabled:opacity-50"
                   onClick={() => setShowPassword(!showPassword)}
                   type="button"
                 >
@@ -161,7 +168,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 <FormControl>
                   <Checkbox
                     checked={field.value}
-                    className="border-white/20 data-[state=checked]:bg-white data-[state=checked]:text-purple-600 touch-manipulation"
+                    disabled={isLoading}
+                    className="border-white/20 data-[state=checked]:bg-white data-[state=checked]:text-purple-600 touch-manipulation disabled:opacity-50"
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
@@ -173,7 +181,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
           />
 
           <button
-            className="text-xs sm:text-sm text-white/70 hover:text-white transition-colors touch-manipulation"
+            disabled={isLoading}
+            className="text-xs sm:text-sm text-white/70 hover:text-white transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => {
               if (onForgotPassword) {
                 onForgotPassword();
@@ -200,15 +209,19 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
 
         {/* Submit Button - blue gradient, touch-friendly */}
         <Button
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium touch-manipulation h-11 sm:h-12 text-sm sm:text-base shadow-lg shadow-blue-500/20"
-          disabled={loginMutation.isPending}
+          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium touch-manipulation h-11 sm:h-12 text-sm sm:text-base shadow-lg shadow-blue-500/20 disabled:opacity-70"
+          disabled={isLoading}
           type="submit"
         >
-          {loginMutation.isPending ? (
+          {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="hidden xs:inline">Signing in...</span>
-              <span className="xs:hidden">Signing in...</span>
+              <span className="hidden xs:inline">
+                {isRedirecting ? 'Redirecting...' : 'Signing in...'}
+              </span>
+              <span className="xs:hidden">
+                {isRedirecting ? 'Redirecting...' : 'Signing in...'}
+              </span>
             </>
           ) : (
             <>
@@ -223,7 +236,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
           <p className="text-xs sm:text-sm text-white/70">
             Don&apos;t have an account?{' '}
             <button
-              className="text-white font-medium hover:underline touch-manipulation"
+              disabled={isLoading}
+              className="text-white font-medium hover:underline touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={onSwitchToSignUp}
               type="button"
             >
