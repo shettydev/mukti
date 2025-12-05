@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 
 import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import * as fc from 'fast-check';
 
 import type { Conversation } from '@/types/conversation.types';
@@ -114,6 +114,12 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
     jest.clearAllTimers();
   });
 
+  const resetPropertyState = () => {
+    cleanup();
+    MockEventSource.reset();
+    jest.clearAllTimers();
+  };
+
   /**
    * Reconnection Idempotency
    *
@@ -139,6 +145,7 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
             messagesBeforeDisconnect,
             reconnectionCycles,
           }) => {
+            resetPropertyState();
             // Set up initial conversation in cache
             const initialConversation: Conversation = {
               createdAt: new Date().toISOString(),
@@ -314,6 +321,7 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
             reconnectionCycles: fc.integer({ max: 4, min: 2 }),
           }),
           async ({ conversationId, initialMessageCount, messagesPerCycle, reconnectionCycles }) => {
+            resetPropertyState();
             // Set up initial conversation with some messages
             const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
               content: `Initial message ${i}`,
@@ -472,6 +480,7 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
             reconnectionCycles: fc.integer({ max: 3, min: 1 }),
           }),
           async ({ conversationId, reconnectionCycles }) => {
+            resetPropertyState();
             const initialConversation: Conversation = {
               createdAt: new Date().toISOString(),
               hasArchivedMessages: false,
@@ -635,6 +644,7 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
             rapidReconnections: fc.integer({ max: 5, min: 3 }),
           }),
           async ({ conversationId, messagesPerConnection, rapidReconnections }) => {
+            resetPropertyState();
             const initialConversation: Conversation = {
               createdAt: new Date().toISOString(),
               hasArchivedMessages: false,
