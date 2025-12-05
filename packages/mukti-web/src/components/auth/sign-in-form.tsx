@@ -112,9 +112,9 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 <FormControl>
                   <Input
                     {...field}
-                    disabled={isLoading}
                     autoComplete="email"
                     className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base disabled:opacity-50"
+                    disabled={isLoading}
                     placeholder="john@example.com"
                     type="email"
                   />
@@ -136,17 +136,17 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 <FormControl>
                   <Input
                     {...field}
-                    disabled={isLoading}
                     autoComplete="current-password"
                     className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base disabled:opacity-50"
+                    disabled={isLoading}
                     placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
                   />
                 </FormControl>
                 <button
-                  disabled={isLoading}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation disabled:opacity-50"
+                  disabled={isLoading}
                   onClick={() => setShowPassword(!showPassword)}
                   type="button"
                 >
@@ -168,8 +168,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 <FormControl>
                   <Checkbox
                     checked={field.value}
-                    disabled={isLoading}
                     className="border-white/20 data-[state=checked]:bg-white data-[state=checked]:text-purple-600 touch-manipulation disabled:opacity-50"
+                    disabled={isLoading}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
@@ -181,8 +181,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
           />
 
           <button
-            disabled={isLoading}
             className="text-xs sm:text-sm text-white/70 hover:text-white transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
             onClick={() => {
               if (onForgotPassword) {
                 onForgotPassword();
@@ -236,8 +236,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
           <p className="text-xs sm:text-sm text-white/70">
             Don&apos;t have an account?{' '}
             <button
-              disabled={isLoading}
               className="text-white font-medium hover:underline touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
               onClick={onSwitchToSignUp}
               type="button"
             >
