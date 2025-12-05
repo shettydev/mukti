@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
  * <ComingSoon
  *   feature="Community"
  *   description="Connect with other users, share insights, and collaborate on inquiries."
- *   timeline="Q2 2024"
+ *   timeline="Q2 2026"
  *   icon={<Users className="w-12 h-12" />}
  * />
  * ```

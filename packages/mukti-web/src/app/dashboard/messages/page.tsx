@@ -19,7 +19,7 @@ export default function MessagesPage() {
         description="Stay connected with direct messaging, notifications, and updates. Receive feedback on your inquiries and communicate with mentors and peers."
         feature="Messages"
         icon={<Mail className="w-16 h-16 md:w-20 md:h-20" />}
-        timeline="Q3 2024"
+        timeline="Q3 2026"
       />
     </DashboardLayout>
   );

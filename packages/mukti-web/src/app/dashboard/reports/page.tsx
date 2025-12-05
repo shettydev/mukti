@@ -19,7 +19,7 @@ export default function ReportsPage() {
         description="Track your progress, analyze conversation patterns, and gain insights into your cognitive development. Visualize your learning journey with detailed analytics and reports."
         feature="Reports & Analytics"
         icon={<BarChart className="w-16 h-16 md:w-20 md:h-20" />}
-        timeline="Q4 2024"
+        timeline="Q4 2026"
       />
     </DashboardLayout>
   );

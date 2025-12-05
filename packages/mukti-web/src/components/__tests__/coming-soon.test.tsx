@@ -30,9 +30,9 @@ describe('ComingSoon', () => {
   });
 
   it('renders timeline when provided', () => {
-    render(<ComingSoon description="Test description" feature="Test Feature" timeline="Q2 2024" />);
+    render(<ComingSoon description="Test description" feature="Test Feature" timeline="Q2 2026" />);
 
-    expect(screen.getByText(/Q2 2024/i)).toBeInTheDocument();
+    expect(screen.getByText(/Q2 2026/i)).toBeInTheDocument();
   });
 
   it('does not render timeline when not provided', () => {
