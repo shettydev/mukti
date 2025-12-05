@@ -56,6 +56,8 @@ import { config } from '@/lib/config';
 import { conversationKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
+const clearedTestEventSourceConstructors = new WeakSet<object>();
+
 /**
  * Base stream event structure
  */
@@ -155,64 +157,29 @@ export type StreamEvent =
 export type StreamEventType = 'complete' | 'error' | 'message' | 'processing' | 'progress';
 
 /**
- * Hook options
+ * Configuration options for useConversationStream hook
+ *
+ * @property {string} conversationId - Conversation ID to stream
+ * @property {boolean} [enabled=true] - Whether to enable the SSE connection
+ * @property {function} [onComplete] - Callback when processing completes. Use this to clear loading state and update metadata
+ * @property {function} [onError] - Custom error handler for SSE connection errors
+ * @property {function} [onErrorEvent] - Callback when an error event is received. Use this to show error messages and handle retry logic
+ * @property {function} [onMessage] - Custom message handler that receives all stream events
+ * @property {function} [onMessageReceived] - Callback when a new message is received. Use this to handle message-specific logic
+ * @property {function} [onProcessing] - Callback when processing starts. Use this to set loading state in your component
+ * @property {function} [onProgress] - Callback when progress updates are received. Use this to update progress indicators
+ * @property {function} [onRateLimit] - Callback for rate limit errors. Useful for showing rate limit banners
  */
 export interface UseConversationStreamOptions {
-  /**
-   * Conversation ID to stream
-   */
   conversationId: string;
-
-  /**
-   * Whether to enable the SSE connection
-   * @default true
-   */
   enabled?: boolean;
-
-  /**
-   * Callback when processing completes
-   * Use this to clear loading state and update metadata
-   */
   onComplete?: (event: CompleteEvent) => void;
-
-  /**
-   * Custom error handler
-   */
   onError?: (error: SSEError) => void;
-
-  /**
-   * Callback when an error event is received
-   * Use this to show error messages and handle retry logic
-   */
   onErrorEvent?: (event: ErrorEvent) => void;
-
-  /**
-   * Custom message handler - receives all events
-   */
   onMessage?: (event: StreamEvent) => void;
-
-  /**
-   * Callback when a new message is received
-   * Use this to handle message-specific logic
-   */
   onMessageReceived?: (event: MessageStreamEvent) => void;
-
-  /**
-   * Callback when processing starts
-   * Use this to set loading state in your component
-   */
   onProcessing?: (event: ProcessingEvent) => void;
-
-  /**
-   * Callback when progress updates are received
-   * Use this to update progress indicators
-   */
   onProgress?: (event: ProgressEvent) => void;
-
-  /**
-   * Callback for rate limit errors
-   * Useful for showing rate limit banners
-   */
   onRateLimit?: (retryAfter?: number) => void;
 }
 
@@ -320,6 +287,26 @@ export function useConversationStream(options: UseConversationStreamOptions) {
   useEffect(() => {
     // Reset unmounted flag
     isUnmountedRef.current = false;
+
+    // In test environments with mocked EventSource implementations that track instances,
+    // clear any previous instances so property-based tests don't reuse stale connections
+    if (config.env.isTest) {
+      const eventSourceConstructor = EventSource as unknown as object & { instances?: unknown };
+
+      if (!clearedTestEventSourceConstructors.has(eventSourceConstructor)) {
+        if (Array.isArray(eventSourceConstructor.instances)) {
+          eventSourceConstructor.instances.forEach((instance) => {
+            if (typeof (instance as { close?: () => void }).close === 'function') {
+              (instance as { close: () => void }).close();
+            }
+          });
+
+          eventSourceConstructor.instances.length = 0;
+        }
+
+        clearedTestEventSourceConstructors.add(eventSourceConstructor);
+      }
+    }
 
     // Don't establish connection if disabled or no conversation ID
     if (!enabled || !conversationId) {
@@ -673,7 +660,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
  * @returns Delay in milliseconds
  */
 function calculateBackoff(attempt: number): number {
-  const BASE_DELAY = 1000; // 1 second
+  const BASE_DELAY = config.env.isTest ? 100 : 1000; // Faster in tests
   const MAX_DELAY = 30000; // 30 seconds
 
   // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (capped)

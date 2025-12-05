@@ -251,7 +251,7 @@ export function MessageList({
       {showScrollButton && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <Button
-            aria-label="Scroll to bottom"
+            aria-label={hasNewMessages ? 'New messages' : 'Scroll to bottom'}
             className="shadow-lg"
             onClick={() => scrollToBottom('smooth')}
             size="sm"
