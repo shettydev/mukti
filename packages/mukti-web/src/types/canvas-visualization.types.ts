@@ -28,7 +28,17 @@ export type CanvasNode = Node<CanvasNodeData, NodeType>;
 /**
  * Union type for all node data types
  */
-export type CanvasNodeData = RootNodeData | SeedNodeData | SoilNodeData;
+export type CanvasNodeData = InsightNodeData | RootNodeData | SeedNodeData | SoilNodeData;
+
+/**
+ * Data for Insight nodes (dialogue discoveries)
+ * @property isExplored - Whether node has been explored in dialogue
+ * @property label - Insight text
+ * @property parentNodeId - ID of the parent node this insight emerged from
+ */
+export interface InsightNodeData extends BaseNodeData {
+  parentNodeId: string;
+}
 
 /**
  * Configuration for auto-layout algorithm
@@ -57,7 +67,7 @@ export interface LayoutConfig {
 /**
  * Node type identifier for canvas nodes
  */
-export type NodeType = 'root' | 'seed' | 'soil';
+export type NodeType = 'insight' | 'root' | 'seed' | 'soil';
 
 /**
  * Position coordinates for nodes
@@ -104,11 +114,15 @@ export interface SoilNodeData extends BaseNodeData {
 
 /**
  * Base node data with index signature for React Flow compatibility
+ * @property isExplored - Whether node has been explored in dialogue
+ * @property label - Node text content
+ * @property messageCount - Number of dialogue messages for this node
  */
 interface BaseNodeData {
   [key: string]: unknown;
   isExplored?: boolean;
   label: string;
+  messageCount?: number;
 }
 
 /**
@@ -139,6 +153,16 @@ export const DEFAULT_LAYOUT: LayoutConfig = {
  */
 export interface CanvasLegendProps {
   showExplorationStatus?: boolean;
+}
+
+/**
+ * Props for InsightNode component
+ * @property data - Insight node data
+ * @property selected - Whether node is currently selected
+ */
+export interface InsightNodeProps {
+  data: InsightNodeData;
+  selected: boolean;
 }
 
 /**
