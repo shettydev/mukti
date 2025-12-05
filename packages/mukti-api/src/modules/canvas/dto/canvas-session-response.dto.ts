@@ -4,6 +4,32 @@ import { Expose, Type } from 'class-transformer';
 import type { CanvasSession } from '../../../schemas/canvas-session.schema';
 
 /**
+ * Node position DTO for API responses.
+ */
+export class NodePositionResponseDto {
+  @ApiProperty({
+    description: 'Unique identifier for the node',
+    example: 'seed',
+  })
+  @Expose()
+  nodeId: string;
+
+  @ApiProperty({
+    description: 'X coordinate on the canvas',
+    example: 0,
+  })
+  @Expose()
+  x: number;
+
+  @ApiProperty({
+    description: 'Y coordinate on the canvas',
+    example: 0,
+  })
+  @Expose()
+  y: number;
+}
+
+/**
  * Problem structure DTO for API responses.
  */
 export class ProblemStructureDto {
@@ -55,6 +81,30 @@ export class CanvasSessionResponseDto {
   createdAt: Date;
 
   @ApiProperty({
+    description: 'Node IDs that have been explored through dialogue',
+    example: ['seed', 'root-0'],
+    isArray: true,
+    required: false,
+    type: [String],
+  })
+  @Expose()
+  exploredNodes?: string[];
+
+  @ApiProperty({
+    description: 'Custom node positions on the canvas',
+    example: [
+      { nodeId: 'seed', x: 0, y: 0 },
+      { nodeId: 'soil-0', x: -200, y: -100 },
+    ],
+    isArray: true,
+    required: false,
+    type: [NodePositionResponseDto],
+  })
+  @Expose()
+  @Type(() => NodePositionResponseDto)
+  nodePositions?: NodePositionResponseDto[];
+
+  @ApiProperty({
     description: 'The problem structure containing Seed, Soil, and Roots',
     type: ProblemStructureDto,
   })
@@ -91,6 +141,8 @@ export class CanvasSessionResponseDto {
       seed: session.problemStructure.seed,
       soil: session.problemStructure.soil ?? [],
     };
+    dto.nodePositions = session.nodePositions ?? [];
+    dto.exploredNodes = session.exploredNodes ?? [];
     dto.createdAt = session.createdAt;
     dto.updatedAt = session.updatedAt;
     return dto;
