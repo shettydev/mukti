@@ -39,6 +39,13 @@ export function AuthInitializer() {
         // If refresh fails (e.g., no cookie or expired), clear auth state
         // We don't show an error here as it's expected for unauthenticated users
         clearAuth();
+
+        // Ensure cookies are cleared to prevent middleware redirect loops
+        try {
+          await authApi.logout();
+        } catch {
+          // Ignore logout errors (e.g. if already logged out)
+        }
       }
     };
 
