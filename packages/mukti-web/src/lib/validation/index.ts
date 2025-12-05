@@ -5,4 +5,5 @@
  */
 
 export * from './auth-schemas';
+export * from './canvas-schemas';
 export * from './conversation-schemas';

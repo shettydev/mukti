@@ -32,6 +32,46 @@
 import type { ConversationFilters } from '@/types/conversation.types';
 
 /**
+ * Canvas query keys factory
+ *
+ * Query Key Hierarchy:
+ * - canvasKeys.all: ['canvas']
+ * - canvasKeys.sessions(): ['canvas', 'sessions']
+ * - canvasKeys.session(id): ['canvas', 'sessions', id]
+ *
+ * Usage:
+ * ```typescript
+ * import { canvasKeys } from '@/lib/query-keys';
+ *
+ * // Invalidate all canvas queries
+ * queryClient.invalidateQueries({ queryKey: canvasKeys.all });
+ *
+ * // Invalidate specific session
+ * queryClient.invalidateQueries({ queryKey: canvasKeys.session(id) });
+ * ```
+ */
+export const canvasKeys = {
+  /**
+   * Base key for all canvas queries
+   * Use this to invalidate ALL canvas-related queries
+   */
+  all: ['canvas'] as const,
+
+  /**
+   * Key for specific canvas session detail
+   *
+   * @param id - Canvas session ID
+   * @returns Query key for canvas session detail
+   */
+  session: (id: string) => [...canvasKeys.sessions(), id] as const,
+
+  /**
+   * Base key for all canvas session queries
+   */
+  sessions: () => [...canvasKeys.all, 'sessions'] as const,
+};
+
+/**
  * Conversation query keys factory
  */
 export const conversationKeys = {
