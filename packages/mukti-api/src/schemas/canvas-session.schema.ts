@@ -4,6 +4,18 @@ import { Document, Types } from 'mongoose';
 export type CanvasSessionDocument = CanvasSession & Document;
 
 /**
+ * Node position for persisting custom node positions on the canvas.
+ */
+export interface NodePosition {
+  /** Unique identifier for the node (e.g., 'seed', 'soil-0', 'root-1') */
+  nodeId: string;
+  /** X coordinate on the canvas */
+  x: number;
+  /** Y coordinate on the canvas */
+  y: number;
+}
+
+/**
  * Problem structure embedded document containing the three key elements
  * of a Thinking Canvas session: Seed, Soil, and Roots.
  */
@@ -28,6 +40,29 @@ export class CanvasSession {
   _id: Types.ObjectId;
 
   createdAt: Date;
+
+  /**
+   * Array of node IDs that have been explored through Socratic dialogue.
+   * Used for Phase 3 integration to track exploration progress.
+   */
+  @Prop({ default: [], type: [String] })
+  exploredNodes: string[];
+
+  /**
+   * Custom node positions set by the user through drag operations.
+   * If empty, auto-layout positions are used.
+   */
+  @Prop({
+    default: [],
+    type: [
+      {
+        nodeId: { required: true, type: String },
+        x: { required: true, type: Number },
+        y: { required: true, type: Number },
+      },
+    ],
+  })
+  nodePositions: NodePosition[];
 
   @Prop({
     required: true,

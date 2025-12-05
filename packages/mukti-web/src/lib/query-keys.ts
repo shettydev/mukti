@@ -32,6 +32,94 @@
 import type { ConversationFilters } from '@/types/conversation.types';
 
 /**
+ * Dialogue query keys factory
+ *
+ * Query Key Hierarchy:
+ * - dialogueKeys.all: ['dialogue']
+ * - dialogueKeys.sessions(): ['dialogue', 'sessions']
+ * - dialogueKeys.session(sessionId): ['dialogue', 'sessions', sessionId]
+ * - dialogueKeys.nodes(sessionId): ['dialogue', 'sessions', sessionId, 'nodes']
+ * - dialogueKeys.node(sessionId, nodeId): ['dialogue', 'sessions', sessionId, 'nodes', nodeId]
+ * - dialogueKeys.messages(sessionId, nodeId): ['dialogue', 'sessions', sessionId, 'nodes', nodeId, 'messages']
+ * - dialogueKeys.messagesPage(sessionId, nodeId, page): ['dialogue', 'sessions', sessionId, 'nodes', nodeId, 'messages', page]
+ *
+ * Usage:
+ * ```typescript
+ * import { dialogueKeys } from '@/lib/query-keys';
+ *
+ * // Query for node messages
+ * useQuery({
+ *   queryKey: dialogueKeys.messages('session-id', 'root-0'),
+ *   queryFn: () => dialogueApi.getMessages('session-id', 'root-0')
+ * });
+ *
+ * // Invalidate all dialogue queries for a session
+ * queryClient.invalidateQueries({ queryKey: dialogueKeys.session('session-id') });
+ *
+ * // Invalidate specific node dialogue
+ * queryClient.invalidateQueries({ queryKey: dialogueKeys.node('session-id', 'root-0') });
+ * ```
+ */
+export const dialogueKeys = {
+  /**
+   * Base key for all dialogue queries
+   * Use this to invalidate ALL dialogue-related queries
+   */
+  all: ['dialogue'] as const,
+
+  /**
+   * Key for messages of a specific node dialogue
+   *
+   * @param sessionId - Canvas session ID
+   * @param nodeId - Node identifier
+   * @returns Query key for node messages
+   */
+  messages: (sessionId: string, nodeId: string) =>
+    [...dialogueKeys.node(sessionId, nodeId), 'messages'] as const,
+
+  /**
+   * Key for paginated messages of a specific node dialogue
+   *
+   * @param sessionId - Canvas session ID
+   * @param nodeId - Node identifier
+   * @param page - Page number
+   * @returns Query key for paginated node messages
+   */
+  messagesPage: (sessionId: string, nodeId: string, page: number) =>
+    [...dialogueKeys.messages(sessionId, nodeId), page] as const,
+
+  /**
+   * Key for specific node dialogue
+   *
+   * @param sessionId - Canvas session ID
+   * @param nodeId - Node identifier
+   * @returns Query key for node dialogue
+   */
+  node: (sessionId: string, nodeId: string) => [...dialogueKeys.nodes(sessionId), nodeId] as const,
+
+  /**
+   * Key for all node dialogues in a session
+   *
+   * @param sessionId - Canvas session ID
+   * @returns Query key for session nodes
+   */
+  nodes: (sessionId: string) => [...dialogueKeys.session(sessionId), 'nodes'] as const,
+
+  /**
+   * Key for specific session's dialogues
+   *
+   * @param sessionId - Canvas session ID
+   * @returns Query key for session dialogues
+   */
+  session: (sessionId: string) => [...dialogueKeys.sessions(), sessionId] as const,
+
+  /**
+   * Base key for all session dialogue queries
+   */
+  sessions: () => [...dialogueKeys.all, 'sessions'] as const,
+};
+
+/**
  * Canvas query keys factory
  *
  * Query Key Hierarchy:
@@ -56,6 +144,15 @@ export const canvasKeys = {
    * Use this to invalidate ALL canvas-related queries
    */
   all: ['canvas'] as const,
+
+  /**
+   * Key for specific canvas session detail
+   * Alias for session() to maintain consistency with other query key patterns
+   *
+   * @param id - Canvas session ID
+   * @returns Query key for canvas session detail
+   */
+  detail: (id: string) => [...canvasKeys.sessions(), 'detail', id] as const,
 
   /**
    * Key for specific canvas session detail

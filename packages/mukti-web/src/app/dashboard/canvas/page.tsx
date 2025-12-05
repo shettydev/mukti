@@ -6,6 +6,7 @@
  */
 
 import { Brain, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
 import type { CanvasSession } from '@/types/canvas.types';
@@ -30,15 +31,18 @@ export default function CanvasListingPage() {
 }
 
 function CanvasContent() {
+  const router = useRouter();
   const [wizardOpen, setWizardOpen] = useState(false);
   const { data: sessions, isLoading, refetch } = useCanvasSessions();
 
   const handleWizardSuccess = useCallback(
-    (_session: CanvasSession) => {
+    (session: CanvasSession) => {
       // Refetch sessions list after successful creation
       refetch();
+      // Navigate to the newly created canvas session
+      router.push(`/dashboard/canvas/${session.id}`);
     },
-    [refetch]
+    [refetch, router]
   );
 
   return (

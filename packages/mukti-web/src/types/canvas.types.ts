@@ -6,14 +6,18 @@
 /**
  * Full canvas session object
  * @property createdAt - Creation timestamp
+ * @property exploredNodes - Array of node IDs that have been explored through dialogue
  * @property id - Canvas session ID
+ * @property nodePositions - Custom node positions set by user drag operations
  * @property problemStructure - The problem structure containing Seed, Soil, and Roots
  * @property updatedAt - Last update timestamp
  * @property userId - User ID who owns the canvas session
  */
 export interface CanvasSession {
   createdAt: string;
+  exploredNodes?: string[];
   id: string;
+  nodePositions?: NodePosition[];
   problemStructure: ProblemStructure;
   updatedAt: string;
   userId: string;
@@ -29,6 +33,18 @@ export interface CreateCanvasSessionDto {
   roots: string[];
   seed: string;
   soil: string[];
+}
+
+/**
+ * Node position for persisting custom node positions on the canvas
+ * @property nodeId - Unique identifier for the node (e.g., 'seed', 'soil-0', 'root-1')
+ * @property x - X coordinate on the canvas
+ * @property y - Y coordinate on the canvas
+ */
+export interface NodePosition {
+  nodeId: string;
+  x: number;
+  y: number;
 }
 
 /**
