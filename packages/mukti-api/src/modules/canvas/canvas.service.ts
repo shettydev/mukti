@@ -12,6 +12,7 @@ import {
   CanvasSessionDocument,
 } from '../../schemas/canvas-session.schema';
 import { CreateCanvasSessionDto } from './dto/create-canvas-session.dto';
+import { UpdateCanvasSessionDto } from './dto/update-canvas-session.dto';
 
 /**
  * Service for managing Thinking Canvas sessions.
@@ -131,5 +132,63 @@ export class CanvasService {
     }
 
     return session;
+  }
+
+  /**
+   * Updates a canvas session with new node positions or explored nodes.
+   *
+   * @param sessionId - The canvas session ID
+   * @param userId - The ID of the user requesting the update
+   * @param dto - The update data containing nodePositions and/or exploredNodes
+   * @returns The updated canvas session
+   * @throws {NotFoundException} If the session doesn't exist
+   * @throws {ForbiddenException} If the user doesn't own the session
+   *
+   * @example
+   * ```typescript
+   * const session = await canvasService.updateSession(sessionId, userId, {
+   *   nodePositions: [{ nodeId: 'seed', x: 0, y: 0 }],
+   *   exploredNodes: ['seed', 'root-0'],
+   * });
+   * ```
+   */
+  async updateSession(
+    sessionId: string,
+    userId: string | Types.ObjectId,
+    dto: UpdateCanvasSessionDto,
+  ): Promise<CanvasSession> {
+    const userIdStr = userId.toString();
+    this.logger.log(
+      `Updating canvas session ${sessionId} for user ${userIdStr}`,
+    );
+
+    // First validate ownership
+    await this.findSessionById(sessionId, userId);
+
+    // Build update object with only provided fields
+    const updateData: Partial<CanvasSession> = {};
+
+    if (dto.nodePositions !== undefined) {
+      updateData.nodePositions = dto.nodePositions;
+    }
+
+    if (dto.exploredNodes !== undefined) {
+      updateData.exploredNodes = dto.exploredNodes;
+    }
+
+    const updatedSession = await this.canvasSessionModel.findByIdAndUpdate(
+      sessionId,
+      { $set: updateData },
+      { new: true },
+    );
+
+    if (!updatedSession) {
+      throw new NotFoundException(
+        `Canvas session with ID ${sessionId} not found`,
+      );
+    }
+
+    this.logger.log(`Canvas session ${sessionId} updated successfully`);
+    return updatedSession;
   }
 }

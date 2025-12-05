@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -20,8 +21,10 @@ import {
   ApiCreateCanvasSession,
   ApiGetCanvasSessionById,
   ApiGetCanvasSessions,
+  ApiUpdateCanvasSession,
 } from './dto/canvas.swagger';
 import { CreateCanvasSessionDto } from './dto/create-canvas-session.dto';
+import { UpdateCanvasSessionDto } from './dto/update-canvas-session.dto';
 
 /**
  * Controller for canvas session management endpoints.
@@ -100,6 +103,38 @@ export class CanvasController {
   @Get('sessions/:id')
   async findOne(@Param('id') id: string, @CurrentUser() user: User) {
     const session = await this.canvasService.findSessionById(id, user._id);
+
+    return {
+      data: CanvasSessionResponseDto.fromDocument(session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Updates a canvas session with new node positions or explored nodes.
+   *
+   * @param id - The canvas session ID
+   * @param updateCanvasSessionDto - The update data
+   * @param user - The authenticated user from JWT token
+   * @returns The updated canvas session
+   */
+  @ApiUpdateCanvasSession()
+  @HttpCode(HttpStatus.OK)
+  @Patch('sessions/:id')
+  async updateSession(
+    @Param('id') id: string,
+    @Body() updateCanvasSessionDto: UpdateCanvasSessionDto,
+    @CurrentUser() user: User,
+  ) {
+    const session = await this.canvasService.updateSession(
+      id,
+      user._id,
+      updateCanvasSessionDto,
+    );
 
     return {
       data: CanvasSessionResponseDto.fromDocument(session),
