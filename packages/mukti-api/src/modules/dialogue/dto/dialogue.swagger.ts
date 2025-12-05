@@ -17,7 +17,7 @@ export const ApiSendNodeMessage = () =>
   applyDecorators(
     ApiOperation({
       description:
-        'Sends a message to a node dialogue and receives an AI-generated Socratic response. Creates the dialogue if it does not exist.',
+        'Sends a message to a node dialogue and enqueues it for AI processing. Returns immediately with job ID. Use the SSE stream endpoint to receive real-time updates.',
       summary: 'Send message to node dialogue',
     }),
     ApiBearerAuth(),
@@ -33,42 +33,12 @@ export const ApiSendNodeMessage = () =>
     }),
     ApiBody({ type: SendMessageDto }),
     ApiResponse({
-      description: 'Message sent and AI response received',
+      description: 'Message enqueued for processing',
       schema: {
         example: {
           data: {
-            aiResponse: {
-              content:
-                "That's an interesting perspective. What evidence do you have that supports this assumption? Have you considered alternative explanations?",
-              dialogueId: '507f1f77bcf86cd799439012',
-              id: '507f1f77bcf86cd799439014',
-              metadata: {
-                latencyMs: 1500,
-                model: 'gpt-4',
-                tokens: 45,
-              },
-              role: 'assistant',
-              sequence: 1,
-              timestamp: '2026-01-01T00:00:01Z',
-            },
-            dialogue: {
-              createdAt: '2026-01-01T00:00:00Z',
-              id: '507f1f77bcf86cd799439012',
-              lastMessageAt: '2026-01-01T00:00:01Z',
-              messageCount: 2,
-              nodeId: 'root-0',
-              nodeLabel: 'We need to hire more people',
-              nodeType: 'root',
-              sessionId: '507f1f77bcf86cd799439011',
-            },
-            userMessage: {
-              content: 'I believe this assumption is valid because...',
-              dialogueId: '507f1f77bcf86cd799439012',
-              id: '507f1f77bcf86cd799439013',
-              role: 'user',
-              sequence: 0,
-              timestamp: '2026-01-01T00:00:00Z',
-            },
+            jobId: 'job-123456',
+            position: 1,
           },
           meta: {
             requestId: 'uuid',
@@ -77,7 +47,7 @@ export const ApiSendNodeMessage = () =>
           success: true,
         },
       },
-      status: 201,
+      status: 202,
     }),
     ApiResponse({
       description: 'Invalid input data',
@@ -133,6 +103,62 @@ export const ApiSendNodeMessage = () =>
           success: false,
         },
       },
+      status: 404,
+    }),
+  );
+
+/**
+ * Swagger documentation for SSE stream endpoint
+ */
+export const ApiStreamNodeDialogue = () =>
+  applyDecorators(
+    ApiOperation({
+      description:
+        'Establishes a Server-Sent Events (SSE) connection for real-time dialogue updates. Events include: processing (started), progress (status updates), message (user/assistant messages), complete (job finished), error (processing failed).',
+      summary: 'Stream node dialogue events (SSE)',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      description: 'Canvas session ID',
+      example: '507f1f77bcf86cd799439011',
+      name: 'sessionId',
+    }),
+    ApiParam({
+      description: 'Node identifier (e.g., seed, soil-0, root-1, insight-0)',
+      example: 'root-0',
+      name: 'nodeId',
+    }),
+    ApiResponse({
+      description: 'SSE stream established. Events are sent as JSON objects.',
+      schema: {
+        example: {
+          data: {
+            content:
+              "That's an interesting perspective. What evidence supports this?",
+            role: 'assistant',
+            sequence: 1,
+            timestamp: '2026-01-01T00:00:01Z',
+            tokens: 45,
+          },
+          dialogueId: '507f1f77bcf86cd799439012',
+          nodeId: 'root-0',
+          sessionId: '507f1f77bcf86cd799439011',
+          timestamp: '2026-01-01T00:00:01Z',
+          type: 'message',
+        },
+      },
+      status: 200,
+    }),
+    ApiResponse({
+      description: 'Unauthorized - JWT token missing or invalid',
+      status: 401,
+    }),
+    ApiResponse({
+      description: 'Forbidden - User does not own this canvas session',
+      status: 403,
+    }),
+    ApiResponse({
+      description: 'Canvas session not found',
       status: 404,
     }),
   );

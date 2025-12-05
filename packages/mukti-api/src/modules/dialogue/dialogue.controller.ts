@@ -2,17 +2,23 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
+  MessageEvent,
+  NotFoundException,
   Param,
   Post,
   Query,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Observable } from 'rxjs';
 
 import type { NodeType } from '../../schemas/node-dialogue.schema';
+import type { Subscription } from '../../schemas/subscription.schema';
 import type { User } from '../../schemas/user.schema';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -26,23 +32,31 @@ import {
   ApiGetNodeMessages,
   ApiSendNodeMessage,
   ApiStartNodeDialogue,
+  ApiStreamNodeDialogue,
 } from './dto/dialogue.swagger';
 import { SendMessageDto } from './dto/send-message.dto';
+import { DialogueQueueService } from './services/dialogue-queue.service';
+import { DialogueStreamService } from './services/dialogue-stream.service';
 import { generateInitialQuestion } from './utils/prompt-builder';
 
 /**
  * Controller for node dialogue management endpoints.
- * Handles message sending, retrieval, and dialogue initialization.
+ * Handles message sending, retrieval, dialogue initialization, and real-time streaming.
  *
  * @remarks
  * All endpoints require JWT authentication and validate canvas session ownership.
  * Implements the Context-aware Chat feature for the Thinking Canvas.
+ * Uses queue-based processing with SSE for real-time AI response streaming.
  */
 @ApiTags('Dialogue')
 @Controller('canvas')
 @UseGuards(JwtAuthGuard)
 export class DialogueController {
-  constructor(private readonly dialogueService: DialogueService) {}
+  constructor(
+    private readonly dialogueQueueService: DialogueQueueService,
+    private readonly dialogueService: DialogueService,
+    private readonly dialogueStreamService: DialogueStreamService,
+  ) {}
 
   /**
    * Gets dialogue messages for a node with pagination.
@@ -112,16 +126,17 @@ export class DialogueController {
   }
 
   /**
-   * Sends a message to a node dialogue and receives an AI response.
+   * Sends a message to a node dialogue and enqueues it for AI processing.
+   * Returns immediately with job ID. Use SSE endpoint to receive real-time updates.
    *
    * @param sessionId - The canvas session ID
    * @param nodeId - The node identifier
    * @param sendMessageDto - The message content
    * @param user - The authenticated user
-   * @returns The user message and AI response
+   * @returns Job ID and queue position (202 Accepted)
    */
   @ApiSendNodeMessage()
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.ACCEPTED)
   @Post(':sessionId/nodes/:nodeId/messages')
   async sendMessage(
     @Param('sessionId') sessionId: string,
@@ -141,50 +156,27 @@ export class DialogueController {
       session.problemStructure,
     );
 
-    // Get or create dialogue
-    const dialogue = await this.dialogueService.getOrCreateDialogue(
+    // Get subscription tier from user
+    const userWithSubscription = user as User & { subscription?: Subscription };
+    const subscriptionTier: 'free' | 'paid' =
+      userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
+
+    // Enqueue request for processing
+    const result = await this.dialogueQueueService.enqueueRequest(
+      user._id,
       sessionId,
       nodeId,
       nodeType,
       nodeLabel,
-    );
-
-    // Add user message
-    const userMessage = await this.dialogueService.addMessage(
-      dialogue._id,
-      'user',
+      session.problemStructure,
       sendMessageDto.content,
-    );
-
-    // TODO: Integrate with AI service for actual response generation
-    // For now, generate a placeholder Socratic response
-    const aiResponseContent = this.generatePlaceholderResponse(
-      nodeType,
-      nodeLabel,
-      sendMessageDto.content,
-    );
-
-    const aiMessage = await this.dialogueService.addMessage(
-      dialogue._id,
-      'assistant',
-      aiResponseContent,
-      {
-        latencyMs: 0,
-        model: 'placeholder',
-      },
-    );
-
-    // Get updated dialogue info
-    const updatedDialogue = await this.dialogueService.getDialogue(
-      sessionId,
-      nodeId,
+      subscriptionTier,
     );
 
     return {
       data: {
-        aiResponse: DialogueMessageResponseDto.fromDocument(aiMessage),
-        dialogue: NodeDialogueResponseDto.fromDocument(updatedDialogue!),
-        userMessage: DialogueMessageResponseDto.fromDocument(userMessage),
+        jobId: result.jobId,
+        position: result.position,
       },
       meta: {
         requestId: this.generateRequestId(),
@@ -286,39 +278,65 @@ export class DialogueController {
   }
 
   /**
-   * Generates a placeholder Socratic response.
-   * TODO: Replace with actual AI service integration.
+   * Establishes a Server-Sent Events (SSE) connection for real-time dialogue updates.
+   * The connection streams events including message processing status, new messages, completion, and errors.
+   *
+   * @param sessionId - The canvas session ID
+   * @param nodeId - The node identifier
+   * @param user - The authenticated user
+   * @returns Observable stream of SSE MessageEvents
    */
-  private generatePlaceholderResponse(
-    nodeType: NodeType,
-    _nodeLabel: string,
-    _userMessage: string,
-  ): string {
-    const responses: Record<NodeType, string[]> = {
-      insight: [
-        'How does this insight change your understanding of the original problem?',
-        'What new questions does this discovery raise?',
-        'How might you apply this insight going forward?',
-      ],
-      root: [
-        "That's an interesting perspective. What evidence supports this assumption?",
-        'Have you considered what might happen if this assumption were incorrect?',
-        'What led you to believe this in the first place?',
-      ],
-      seed: [
-        'What do you think is the underlying cause of this problem?',
-        'How long has this been an issue, and what has changed?',
-        'What would success look like if this problem were solved?',
-      ],
-      soil: [
-        'Is this constraint truly fixed, or might there be flexibility?',
-        'What would change if this constraint were removed?',
-        'Have you explored ways to work within or around this limitation?',
-      ],
-    };
+  @ApiStreamNodeDialogue()
+  @Sse(':sessionId/nodes/:nodeId/stream')
+  async streamDialogue(
+    @Param('sessionId') sessionId: string,
+    @Param('nodeId') nodeId: string,
+    @CurrentUser() user: User,
+  ): Promise<Observable<MessageEvent>> {
+    // Validate session ownership
+    try {
+      await this.dialogueService.validateSessionOwnership(sessionId, user._id);
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(
+          `Canvas session with ID ${sessionId} not found`,
+        );
+      }
+      if (error instanceof ForbiddenException) {
+        throw new ForbiddenException(
+          'You do not have permission to access this canvas session',
+        );
+      }
+      throw error;
+    }
 
-    const nodeResponses = responses[nodeType] || responses.seed;
-    return nodeResponses[Math.floor(Math.random() * nodeResponses.length)];
+    // Create an Observable that manages the SSE connection
+    return new Observable<MessageEvent>((observer) => {
+      const connectionId = `conn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      // Register the connection with DialogueStreamService
+      this.dialogueStreamService.addConnection(
+        sessionId,
+        nodeId,
+        user._id.toString(),
+        connectionId,
+        (event) => {
+          observer.next({
+            data: event,
+            type: 'message',
+          } as MessageEvent);
+        },
+      );
+
+      // Handle client disconnect
+      return () => {
+        this.dialogueStreamService.removeConnection(
+          sessionId,
+          nodeId,
+          connectionId,
+        );
+      };
+    });
   }
 
   /**
