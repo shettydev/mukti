@@ -121,10 +121,8 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
    * cause duplicate message delivery or state inconsistency.
    */
   describe('Reconnection Idempotency', () => {
-    it(
-      'should not deliver duplicate messages after reconnection',
-      async () => {
-        await fc.assert(
+    it('should not deliver duplicate messages after reconnection', async () => {
+      await fc.assert(
         fc.asyncProperty(
           fc.record({
             conversationId: fc.uuid(),
@@ -230,9 +228,7 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
 
               // Wait for messages to be processed
               await waitFor(() => {
-                expect(receivedMessages.length).toBe(
-                  (cycle + 1) * messagesBeforeDisconnect
-                );
+                expect(receivedMessages.length).toBe((cycle + 1) * messagesBeforeDisconnect);
               });
 
               // Simulate disconnect (except on last cycle)
@@ -299,22 +295,16 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
             expect(cachedConversation?.recentMessages.length).toBe(totalMessagesSent);
 
             // Verify no duplicate messages in cache
-            const cachedSequences = cachedConversation?.recentMessages.map(
-              (msg) => msg.sequence
-            );
+            const cachedSequences = cachedConversation?.recentMessages.map((msg) => msg.sequence);
             const uniqueCachedSequences = new Set(cachedSequences);
             expect(uniqueCachedSequences.size).toBe(cachedSequences?.length);
           }
         ),
         { numRuns: 10 }
       );
-      },
-      30000
-    );
+    }, 30000);
 
-    it(
-      'should maintain consistent conversation state after multiple reconnections',
-      async () => {
+    it('should maintain consistent conversation state after multiple reconnections', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.record({
@@ -323,12 +313,7 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
             messagesPerCycle: fc.integer({ max: 5, min: 1 }),
             reconnectionCycles: fc.integer({ max: 4, min: 2 }),
           }),
-          async ({
-            conversationId,
-            initialMessageCount,
-            messagesPerCycle,
-            reconnectionCycles,
-          }) => {
+          async ({ conversationId, initialMessageCount, messagesPerCycle, reconnectionCycles }) => {
             // Set up initial conversation with some messages
             const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
               content: `Initial message ${i}`,
@@ -477,13 +462,9 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
         ),
         { numRuns: 10 }
       );
-      },
-      30000
-    );
+    }, 30000);
 
-    it(
-      'should not duplicate processing/complete events after reconnection',
-      async () => {
+    it('should not duplicate processing/complete events after reconnection', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.record({
@@ -643,13 +624,9 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
         ),
         { numRuns: 10 }
       );
-      },
-      30000
-    );
+    }, 30000);
 
-    it(
-      'should handle rapid reconnections without state corruption',
-      async () => {
+    it('should handle rapid reconnections without state corruption', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.record({
@@ -774,8 +751,6 @@ describe('useConversationStream - Reconnection Idempotency (Property-Based)', ()
         ),
         { numRuns: 10 }
       );
-      },
-      30000
-    );
+    }, 30000);
   });
 });
