@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { Geist, Geist_Mono } from 'next/font/google';
+import Script from 'next/script';
 
 import './globals.css';
 import { Providers } from '@/app/providers';
@@ -48,6 +49,25 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
+        <Script id="strip-extension-attrs" strategy="beforeInteractive">
+          {`
+            // Remove extension-injected attributes (e.g., bis_skin_checked) before React hydrates
+            (function () {
+              var attr = 'bis_skin_checked';
+              var clean = function () {
+                try {
+                  document
+                    .querySelectorAll('[' + attr + ']')
+                    .forEach(function (el) { el.removeAttribute(attr); });
+                } catch (e) {
+                  // ignore cleanup errors
+                }
+              };
+              clean();
+              document.addEventListener('DOMContentLoaded', clean);
+            })();
+          `}
+        </Script>
         <Providers>
           <ThemeProvider
             attribute="class"

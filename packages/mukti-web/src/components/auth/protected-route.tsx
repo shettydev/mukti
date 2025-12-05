@@ -83,8 +83,11 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       loadingComponent || (
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
+        // Some browser extensions inject attributes like `bis_skin_checked`
+        // which can cause hydration mismatches; suppress warnings on the
+        // loading UI to keep hydration stable.
+        <div className="flex min-h-screen items-center justify-center" suppressHydrationWarning>
+          <div className="text-center" suppressHydrationWarning>
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
             <p className="text-muted-foreground">Loading...</p>
           </div>

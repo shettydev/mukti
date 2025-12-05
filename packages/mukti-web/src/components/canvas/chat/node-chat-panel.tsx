@@ -161,13 +161,13 @@ export function NodeChatPanel({
         initialMessage = "Let's develop this insight further.";
         break;
       case 'root':
-        initialMessage = "I want to question this assumption.";
+        initialMessage = 'I want to question this assumption.';
         break;
       case 'seed':
         initialMessage = "I'd like to explore this problem more deeply.";
         break;
       case 'soil':
-        initialMessage = "Help me examine this context/constraint.";
+        initialMessage = 'Help me examine this context/constraint.';
         break;
       default:
         initialMessage = "Let's explore this together.";
