@@ -56,6 +56,7 @@ export function DashboardLayout({
   actions,
   children,
   contentClassName,
+  showNavbar = true,
   showSidebar = true,
   title,
 }: DashboardLayoutProps) {
@@ -134,42 +135,44 @@ export function DashboardLayout({
         {/* Main Content */}
         <main className="flex-1 flex flex-col overflow-hidden" role="main">
           {/* Navbar */}
-          <header className="bg-[#111111] border-b border-white/10 px-4 md:px-6 py-3 md:py-4 flex items-center gap-2">
-            {/* Mobile menu button */}
-            {showSidebar && <MobileMenuButton onClick={toggleMobileMenu} />}
+          {showNavbar && (
+            <header className="bg-[#111111] border-b border-white/10 px-4 md:px-6 py-3 md:py-4 flex items-center gap-2">
+              {/* Mobile menu button */}
+              {showSidebar && <MobileMenuButton onClick={toggleMobileMenu} />}
 
-            {/* Desktop collapse button */}
-            {showSidebar && (
-              <Button
-                aria-label={
-                  state.sidebarCollapsed
-                    ? `Expand sidebar (${formatShortcut('B')})`
-                    : `Collapse sidebar (${formatShortcut('B')})`
-                }
-                className="hidden md:flex min-h-[44px] min-w-[44px]"
-                onClick={toggleSidebar}
-                size="icon"
-                variant="ghost"
-              >
-                {state.sidebarCollapsed ? (
-                  <ChevronRight aria-hidden="true" className="w-5 h-5" />
-                ) : (
-                  <ChevronLeft aria-hidden="true" className="w-5 h-5" />
-                )}
-              </Button>
-            )}
+              {/* Desktop collapse button */}
+              {showSidebar && (
+                <Button
+                  aria-label={
+                    state.sidebarCollapsed
+                      ? `Expand sidebar (${formatShortcut('B')})`
+                      : `Collapse sidebar (${formatShortcut('B')})`
+                  }
+                  className="hidden md:flex min-h-[44px] min-w-[44px]"
+                  onClick={toggleSidebar}
+                  size="icon"
+                  variant="ghost"
+                >
+                  {state.sidebarCollapsed ? (
+                    <ChevronRight aria-hidden="true" className="w-5 h-5" />
+                  ) : (
+                    <ChevronLeft aria-hidden="true" className="w-5 h-5" />
+                  )}
+                </Button>
+              )}
 
-            {/* Page title */}
-            {state.pageTitle && (
-              <h1 className="text-lg md:text-xl font-semibold">{state.pageTitle}</h1>
-            )}
+              {/* Page title */}
+              {state.pageTitle && (
+                <h1 className="text-lg md:text-xl font-semibold">{state.pageTitle}</h1>
+              )}
 
-            {/* Spacer */}
-            <div className="flex-1" />
+              {/* Spacer */}
+              <div className="flex-1" />
 
-            {/* Custom actions */}
-            {actions && <div className="flex items-center gap-2">{actions}</div>}
-          </header>
+              {/* Custom actions */}
+              {actions && <div className="flex items-center gap-2">{actions}</div>}
+            </header>
+          )}
 
           {/* Content Area */}
           <div className={cn('flex-1 overflow-y-auto', contentClassName)}>{children}</div>

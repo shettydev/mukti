@@ -26,6 +26,7 @@ export interface ComingSoonProps {
  * @property {ReactNode} [actions] - Additional actions for navbar
  * @property {ReactNode} children - Page content
  * @property {string} [contentClassName] - Custom className for content area
+ * @property {boolean} [showNavbar] - Whether to show the navbar (default: true)
  * @property {boolean} [showSidebar] - Whether to show the sidebar
  * @property {string} [title] - Page title displayed in navbar
  */
@@ -33,6 +34,7 @@ export interface DashboardLayoutProps {
   actions?: ReactNode;
   children: ReactNode;
   contentClassName?: string;
+  showNavbar?: boolean;
   showSidebar?: boolean;
   title?: string;
 }

@@ -36,7 +36,7 @@ export default function ConversationDetailPage({ params }: ConversationDetailPag
 
 function ConversationDetailContent({ conversationId }: ConversationDetailContentProps) {
   return (
-    <DashboardLayout contentClassName="overflow-hidden">
+    <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar={false}>
       <ConversationDetail conversationId={conversationId} />
     </DashboardLayout>
   );

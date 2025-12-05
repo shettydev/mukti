@@ -159,8 +159,8 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex h-full flex-col">
-        <div className="border-b p-4">
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="shrink-0 border-b p-4">
           <div className="flex items-center gap-4">
             <Skeleton className="h-10 w-10" />
             <div className="flex-1 space-y-2">
@@ -169,7 +169,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
             </div>
           </div>
         </div>
-        <div className="flex-1 space-y-4 p-4">
+        <div className="flex-1 space-y-4 overflow-y-auto p-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton className="h-20 w-full" key={i} />
           ))}
@@ -183,7 +183,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     const is404 = error.message.includes('not found') || error.message.includes('404');
 
     return (
-      <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+      <div className="flex h-full min-h-0 flex-col items-center justify-center p-8 text-center">
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">
             {is404 ? 'Conversation Not Found' : 'Error Loading Conversation'}
@@ -207,7 +207,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   // No data state (shouldn't happen but handle it)
   if (!conversation) {
     return (
-      <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+      <div className="flex h-full min-h-0 flex-col items-center justify-center p-8 text-center">
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">Conversation Not Found</h2>
           <Button asChild>
@@ -238,9 +238,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Header - responsive padding and layout */}
-      <header className="border-b bg-background p-3 md:p-4" role="banner">
+      <header className="shrink-0 border-b bg-background p-3 md:p-4" role="banner">
         <div className="flex items-center gap-2 md:gap-4">
           {/* Back button with touch-friendly size */}
           <Button

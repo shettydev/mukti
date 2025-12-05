@@ -97,10 +97,14 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'mukti-auth-storage',
-      // Restore access token as null on hydration
+      // On rehydration, keep user but clear access token
+      // isAuthenticated stays false until token is refreshed
+      // The user presence indicates a session restoration is needed
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.accessToken = null;
+          // Keep isAuthenticated false - the useAuth hook will handle
+          // session restoration by checking if user exists
           state.isAuthenticated = false;
         }
       },
