@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 
 import {
+  Brain,
   FileText,
   HelpCircle,
   LayoutDashboard,
@@ -174,10 +175,11 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
             </div>
           )}
           <NavItem
+            active={pathname?.startsWith('/dashboard/canvas')}
             collapsed={collapsed}
-            href="/dashboard/sessions"
-            icon={<MessageSquare aria-hidden="true" className="w-4 h-4" />}
-            label="Inquiry Sessions"
+            href="/dashboard/canvas"
+            icon={<Brain aria-hidden="true" className="w-4 h-4" />}
+            label="Thinking Canvas"
           />
           <NavItem
             collapsed={collapsed}
