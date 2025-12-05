@@ -1,7 +1,7 @@
 # Implementation Plan
 
-- [ ] 1. Set up backend canvas session infrastructure
-  - [ ] 1.1 Create CanvasSession MongoDB schema
+- [x] 1. Set up backend canvas session infrastructure
+  - [x] 1.1 Create CanvasSession MongoDB schema
     - Create `packages/mukti-api/src/schemas/canvas-session.schema.ts`
     - Define problemStructure embedded document with seed, soil, roots fields
     - Add userId reference with index
@@ -11,18 +11,18 @@
     - **Property 9: Problem structure round-trip**
     - **Validates: Requirements 7.2**
     - Test that valid problem structures can be serialized and deserialized correctly
-  - [ ] 1.3 Create canvas module structure
+  - [x] 1.3 Create canvas module structure
     - Create `packages/mukti-api/src/modules/canvas/` directory
     - Create `canvas.module.ts` with schema registration
     - Create DTOs: `create-canvas-session.dto.ts`, `canvas-session-response.dto.ts`
     - Create `canvas.swagger.ts` for API documentation
     - _Requirements: 7.1, 7.2_
-  - [ ] 1.4 Implement CanvasService
+  - [x] 1.4 Implement CanvasService
     - Create `canvas.service.ts` with createSession, findSessionById methods
     - Implement user association on creation
     - Add logging for operations
     - _Requirements: 7.1, 7.5_
-  - [ ] 1.5 Implement CanvasController
+  - [x] 1.5 Implement CanvasController
     - Create `canvas.controller.ts` with POST /canvas/sessions endpoint
     - Add JWT authentication guard
     - Add validation pipe for DTOs
@@ -36,8 +36,8 @@
 - [ ] 2. Checkpoint - Ensure all backend tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Create frontend validation schemas
-  - [ ] 3.1 Create canvas validation schemas
+- [-] 3. Create frontend validation schemas
+  - [x] 3.1 Create canvas validation schemas
     - Create `packages/mukti-web/src/lib/validation/canvas-schemas.ts`
     - Implement seedSchema (10-500 chars, trim, whitespace check)
     - Implement soilItemSchema and soilSchema (0-10 items, 5-200 chars each)
@@ -61,28 +61,28 @@
     - **Validates: Requirements 3.4**
     - Test that validation accepts arrays with 1-8 items
 
-- [ ] 4. Create frontend types and API client
-  - [ ] 4.1 Create canvas types
+- [x] 4. Create frontend types and API client
+  - [x] 4.1 Create canvas types
     - Create `packages/mukti-web/src/types/canvas.types.ts`
     - Define CanvasSession, ProblemStructure, CreateCanvasSessionDto interfaces
     - _Requirements: 7.2_
-  - [ ] 4.2 Create canvas API client
+  - [x] 4.2 Create canvas API client
     - Create `packages/mukti-web/src/lib/api/canvas.ts`
     - Implement createSession function
     - Add response transformation
     - _Requirements: 7.1_
-  - [ ] 4.3 Add canvas query keys
+  - [x] 4.3 Add canvas query keys
     - Update `packages/mukti-web/src/lib/query-keys.ts`
     - Add canvasKeys factory for sessions
     - _Requirements: 7.1_
-  - [ ] 4.4 Create useCreateCanvasSession hook
+  - [x] 4.4 Create useCreateCanvasSession hook
     - Create `packages/mukti-web/src/lib/hooks/use-canvas.ts`
     - Implement TanStack Query mutation hook
     - Add optimistic updates pattern
     - _Requirements: 7.1, 7.4_
 
-- [ ] 5. Create wizard state management
-  - [ ] 5.1 Create wizard Zustand store
+- [x] 5. Create wizard state management
+  - [x] 5.1 Create wizard Zustand store
     - Create `packages/mukti-web/src/lib/stores/wizard-store.ts`
     - Implement state: seed, soil, roots, currentStep
     - Implement actions: setSeed, addSoilItem, removeSoilItem, addRootsItem, removeRootsItem, setStep, nextStep, prevStep, reset
@@ -99,15 +99,15 @@
 - [ ] 6. Checkpoint - Ensure all frontend store tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Build wizard step components
-  - [ ] 7.1 Create SeedStep component
+- [x] 7. Build wizard step components
+  - [x] 7.1 Create SeedStep component
     - Create `packages/mukti-web/src/components/canvas/seed-step.tsx`
     - Implement textarea input with character count
     - Add placeholder and helper text with examples
     - Add validation error display
     - Add Next button with disabled state
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 8.1_
-  - [ ] 7.2 Create SoilStep component
+  - [x] 7.2 Create SoilStep component
     - Create `packages/mukti-web/src/components/canvas/soil-step.tsx`
     - Implement input field for adding items
     - Display list of added items with remove buttons
@@ -115,7 +115,7 @@
     - Add helper text with examples
     - Add Back and Next buttons
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 8.2_
-  - [ ] 7.3 Create RootsStep component
+  - [x] 7.3 Create RootsStep component
     - Create `packages/mukti-web/src/components/canvas/roots-step.tsx`
     - Implement input field for adding assumptions
     - Display list of added assumptions with remove buttons
@@ -123,7 +123,7 @@
     - Add helper text explaining value of identifying assumptions
     - Add Back and Next buttons with validation (min 1 required)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 8.3_
-  - [ ] 7.4 Create ReviewStep component
+  - [x] 7.4 Create ReviewStep component
     - Create `packages/mukti-web/src/components/canvas/review-step.tsx`
     - Display complete problem structure (Seed, Soil, Roots)
     - Add edit buttons for each section to navigate back
@@ -135,15 +135,15 @@
     - **Validates: Requirements 4.1**
     - Test that all problem structure components are rendered correctly
 
-- [ ] 8. Build main wizard dialog
-  - [ ] 8.1 Create SetupWizardDialog component
+- [x] 8. Build main wizard dialog
+  - [x] 8.1 Create SetupWizardDialog component
     - Create `packages/mukti-web/src/components/canvas/setup-wizard-dialog.tsx`
     - Implement Dialog with semi-transparent backdrop
     - Add progress indicator showing current step (1-4)
     - Wire up step components with wizard store
     - Handle step navigation
     - _Requirements: 5.4, 6.1, 6.3_
-  - [ ] 8.2 Implement wizard submission flow
+  - [x] 8.2 Implement wizard submission flow
     - Connect ReviewStep confirm to useCreateCanvasSession mutation
     - Handle success: close dialog, call onSuccess callback
     - Handle error: display error message, allow retry
@@ -153,19 +153,40 @@
     - **Property 8: Problem structure persistence**
     - **Validates: Requirements 4.3, 4.4, 7.1, 7.5**
     - Test that API call includes complete structure and user ID
-  - [ ] 8.4 Create barrel export
+  - [x] 8.4 Create barrel export
     - Create `packages/mukti-web/src/components/canvas/index.ts`
     - Export SetupWizardDialog and step components
     - _Requirements: N/A (code organization)_
 
-- [ ] 9. Integrate wizard into conversations page
-  - [ ] 9.1 Add "New Canvas" button to conversations page
-    - Update `packages/mukti-web/src/app/dashboard/conversations/page.tsx`
-    - Add button to trigger SetupWizardDialog
-    - Handle success callback to navigate to new canvas
+- [x] 9. Create dedicated canvas page and integrate wizard
+  - [x] 9.1 Create canvas listing page structure
+    - Create `packages/mukti-web/src/app/dashboard/canvas/page.tsx`
+    - Add page layout with header and session list area
+    - Add "New Thinking Session" button to trigger SetupWizardDialog
     - _Requirements: 1.1_
-  - [ ] 9.2 Add responsive styling
-    - Ensure wizard works on mobile, tablet, desktop
+  - [x] 9.2 Create SessionCard component
+    - Create `packages/mukti-web/src/components/canvas/session-card.tsx`
+    - Display session seed (problem statement) as title
+    - Show creation date and soil/roots count summary
+    - Add click handler to navigate to canvas detail (`/dashboard/canvas/[id]`)
+    - _Requirements: 4.1_
+  - [x] 9.3 Create useCanvasSessions hook
+    - Create or update `packages/mukti-web/src/lib/hooks/use-canvas.ts`
+    - Add useCanvasSessions query hook to fetch user's sessions
+    - Add query key for sessions list
+    - _Requirements: 7.1_
+  - [x] 9.4 Implement sessions list on page
+    - Display list of SessionCard components
+    - Add loading skeleton state
+    - Add empty state with prompt to create first session
+    - Handle wizard success callback to refresh list
+    - _Requirements: 1.1, 6.2_
+  - [x] 9.5 Add canvas link to sidebar navigation
+    - Update `packages/mukti-web/src/components/dashboard/sidebar.tsx`
+    - Add "Thinking Canvas" navigation item with appropriate icon
+    - _Requirements: N/A (navigation)_
+  - [x] 9.6 Add responsive styling
+    - Ensure wizard and canvas page work on mobile, tablet, desktop
     - Test modal sizing and scrolling behavior
     - _Requirements: 6.4_
 

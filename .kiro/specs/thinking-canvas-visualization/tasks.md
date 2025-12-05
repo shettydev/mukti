@@ -184,7 +184,7 @@
     - _Requirements: 9.1_
   - [ ] 11.3 Create canvas not-found page
     - Create `packages/mukti-web/src/app/dashboard/canvas/[id]/not-found.tsx`
-    - Display friendly message with link to create new canvas
+    - Display friendly message with link to canvas listing page (`/dashboard/canvas`)
     - _Requirements: 10.3_
   - [ ]* 11.4 Write property test for canvas data loading
     - **Property 10: Canvas data loading**
