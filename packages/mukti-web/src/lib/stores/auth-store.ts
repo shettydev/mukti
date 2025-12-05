@@ -56,6 +56,16 @@ interface AuthState {
    * Persisted to localStorage
    */
   user: null | User;
+
+  /**
+   * Whether the store has been hydrated from storage
+   */
+  _hasHydrated: boolean;
+
+  /**
+   * Set hydration state
+   */
+  setHasHydrated: (state: boolean) => void;
 }
 
 /**
@@ -73,6 +83,8 @@ export const useAuthStore = create<AuthState>()(
           user: null,
         }),
       isAuthenticated: false,
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       setAccessToken: (token) =>
         set((state) => ({
@@ -106,6 +118,7 @@ export const useAuthStore = create<AuthState>()(
           // Keep isAuthenticated false - the useAuth hook will handle
           // session restoration by checking if user exists
           state.isAuthenticated = false;
+          state._hasHydrated = true;
         }
       },
       // Only persist user data, not access token

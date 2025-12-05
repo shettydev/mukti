@@ -15,6 +15,7 @@ export function AuthInitializer() {
   const initialized = useRef(false);
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const setHasHydrated = useAuthStore((state) => state.setHasHydrated);
 
   useEffect(() => {
     // Prevent double initialization in strict mode
@@ -22,6 +23,10 @@ export function AuthInitializer() {
       return;
     }
     initialized.current = true;
+
+    // Ensure hydration is marked as complete
+    // This is a safety fallback in case Zustand's persist onRehydrateStorage doesn't fire
+    setHasHydrated(true);
 
     const initAuth = async () => {
       try {
@@ -38,7 +43,7 @@ export function AuthInitializer() {
     };
 
     initAuth();
-  }, [setAccessToken, clearAuth]);
+  }, [setAccessToken, clearAuth, setHasHydrated]);
 
   // This component doesn't render anything
   return null;
