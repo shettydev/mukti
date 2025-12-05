@@ -232,6 +232,11 @@ describe('SignInForm', () => {
         updatedAt: new Date(),
       },
     });
+
+    // Wait for the redirect state to be reflected in the UI to avoid "act" warnings
+    await waitFor(() => {
+      expect(screen.getAllByText(/redirecting/i).length).toBeGreaterThan(0);
+    });
   });
 
   it('calls onSuccess when login is successful', async () => {
