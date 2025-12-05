@@ -1,0 +1,173 @@
+# Implementation Plan
+
+- [ ] 1. Set up backend canvas session infrastructure
+  - [ ] 1.1 Create CanvasSession MongoDB schema
+    - Create `packages/mukti-api/src/schemas/canvas-session.schema.ts`
+    - Define problemStructure embedded document with seed, soil, roots fields
+    - Add userId reference with index
+    - Add timestamps
+    - _Requirements: 7.2_
+  - [ ]* 1.2 Write property test for problem structure schema
+    - **Property 9: Problem structure round-trip**
+    - **Validates: Requirements 7.2**
+    - Test that valid problem structures can be serialized and deserialized correctly
+  - [ ] 1.3 Create canvas module structure
+    - Create `packages/mukti-api/src/modules/canvas/` directory
+    - Create `canvas.module.ts` with schema registration
+    - Create DTOs: `create-canvas-session.dto.ts`, `canvas-session-response.dto.ts`
+    - Create `canvas.swagger.ts` for API documentation
+    - _Requirements: 7.1, 7.2_
+  - [ ] 1.4 Implement CanvasService
+    - Create `canvas.service.ts` with createSession, findSessionById methods
+    - Implement user association on creation
+    - Add logging for operations
+    - _Requirements: 7.1, 7.5_
+  - [ ] 1.5 Implement CanvasController
+    - Create `canvas.controller.ts` with POST /canvas/sessions endpoint
+    - Add JWT authentication guard
+    - Add validation pipe for DTOs
+    - Wire up Swagger documentation
+    - _Requirements: 7.1, 7.3_
+  - [ ]* 1.6 Write unit tests for CanvasService
+    - Test createSession with valid data
+    - Test user association
+    - Test findSessionById
+
+- [ ] 2. Checkpoint - Ensure all backend tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 3. Create frontend validation schemas
+  - [ ] 3.1 Create canvas validation schemas
+    - Create `packages/mukti-web/src/lib/validation/canvas-schemas.ts`
+    - Implement seedSchema (10-500 chars, trim, whitespace check)
+    - Implement soilItemSchema and soilSchema (0-10 items, 5-200 chars each)
+    - Implement rootsItemSchema and rootsSchema (1-8 items, 5-200 chars each)
+    - Implement problemStructureSchema combining all
+    - _Requirements: 1.2, 1.3, 2.2, 2.4, 3.2, 3.4_
+  - [ ]* 3.2 Write property test for seed validation
+    - **Property 1: Seed validation**
+    - **Validates: Requirements 1.2, 1.3**
+    - Test that validation accepts strings with trimmed length 10-500
+  - [ ]* 3.3 Write property test for item validation
+    - **Property 2: Item validation**
+    - **Validates: Requirements 2.2, 3.2**
+    - Test that validation accepts strings with trimmed length 5-200
+  - [ ]* 3.4 Write property test for soil array constraints
+    - **Property 4: Soil array constraints**
+    - **Validates: Requirements 2.4**
+    - Test that validation accepts arrays with 0-10 items
+  - [ ]* 3.5 Write property test for roots array constraints
+    - **Property 5: Roots array constraints**
+    - **Validates: Requirements 3.4**
+    - Test that validation accepts arrays with 1-8 items
+
+- [ ] 4. Create frontend types and API client
+  - [ ] 4.1 Create canvas types
+    - Create `packages/mukti-web/src/types/canvas.types.ts`
+    - Define CanvasSession, ProblemStructure, CreateCanvasSessionDto interfaces
+    - _Requirements: 7.2_
+  - [ ] 4.2 Create canvas API client
+    - Create `packages/mukti-web/src/lib/api/canvas.ts`
+    - Implement createSession function
+    - Add response transformation
+    - _Requirements: 7.1_
+  - [ ] 4.3 Add canvas query keys
+    - Update `packages/mukti-web/src/lib/query-keys.ts`
+    - Add canvasKeys factory for sessions
+    - _Requirements: 7.1_
+  - [ ] 4.4 Create useCreateCanvasSession hook
+    - Create `packages/mukti-web/src/lib/hooks/use-canvas.ts`
+    - Implement TanStack Query mutation hook
+    - Add optimistic updates pattern
+    - _Requirements: 7.1, 7.4_
+
+- [ ] 5. Create wizard state management
+  - [ ] 5.1 Create wizard Zustand store
+    - Create `packages/mukti-web/src/lib/stores/wizard-store.ts`
+    - Implement state: seed, soil, roots, currentStep
+    - Implement actions: setSeed, addSoilItem, removeSoilItem, addRootsItem, removeRootsItem, setStep, nextStep, prevStep, reset
+    - _Requirements: 5.1, 5.2, 5.3_
+  - [ ]* 5.2 Write property test for navigation data preservation
+    - **Property 7: Navigation preserves data**
+    - **Validates: Requirements 5.2, 5.3**
+    - Test that navigating back and forward preserves all entered data
+  - [ ]* 5.3 Write property test for list management
+    - **Property 3: List management consistency**
+    - **Validates: Requirements 2.3, 3.3**
+    - Test that add/remove operations maintain correct list state
+
+- [ ] 6. Checkpoint - Ensure all frontend store tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Build wizard step components
+  - [ ] 7.1 Create SeedStep component
+    - Create `packages/mukti-web/src/components/canvas/seed-step.tsx`
+    - Implement textarea input with character count
+    - Add placeholder and helper text with examples
+    - Add validation error display
+    - Add Next button with disabled state
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 8.1_
+  - [ ] 7.2 Create SoilStep component
+    - Create `packages/mukti-web/src/components/canvas/soil-step.tsx`
+    - Implement input field for adding items
+    - Display list of added items with remove buttons
+    - Show item count (X/10)
+    - Add helper text with examples
+    - Add Back and Next buttons
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 8.2_
+  - [ ] 7.3 Create RootsStep component
+    - Create `packages/mukti-web/src/components/canvas/roots-step.tsx`
+    - Implement input field for adding assumptions
+    - Display list of added assumptions with remove buttons
+    - Show item count (X/8)
+    - Add helper text explaining value of identifying assumptions
+    - Add Back and Next buttons with validation (min 1 required)
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 8.3_
+  - [ ] 7.4 Create ReviewStep component
+    - Create `packages/mukti-web/src/components/canvas/review-step.tsx`
+    - Display complete problem structure (Seed, Soil, Roots)
+    - Add edit buttons for each section to navigate back
+    - Add Back and Confirm buttons
+    - Show loading state during submission
+    - _Requirements: 4.1, 4.2, 4.3_
+  - [ ]* 7.5 Write property test for review display
+    - **Property 6: Review displays complete structure**
+    - **Validates: Requirements 4.1**
+    - Test that all problem structure components are rendered correctly
+
+- [ ] 8. Build main wizard dialog
+  - [ ] 8.1 Create SetupWizardDialog component
+    - Create `packages/mukti-web/src/components/canvas/setup-wizard-dialog.tsx`
+    - Implement Dialog with semi-transparent backdrop
+    - Add progress indicator showing current step (1-4)
+    - Wire up step components with wizard store
+    - Handle step navigation
+    - _Requirements: 5.4, 6.1, 6.3_
+  - [ ] 8.2 Implement wizard submission flow
+    - Connect ReviewStep confirm to useCreateCanvasSession mutation
+    - Handle success: close dialog, call onSuccess callback
+    - Handle error: display error message, allow retry
+    - Reset wizard state on close
+    - _Requirements: 4.3, 4.4, 7.1, 7.4_
+  - [ ]* 8.3 Write property test for problem structure persistence
+    - **Property 8: Problem structure persistence**
+    - **Validates: Requirements 4.3, 4.4, 7.1, 7.5**
+    - Test that API call includes complete structure and user ID
+  - [ ] 8.4 Create barrel export
+    - Create `packages/mukti-web/src/components/canvas/index.ts`
+    - Export SetupWizardDialog and step components
+    - _Requirements: N/A (code organization)_
+
+- [ ] 9. Integrate wizard into conversations page
+  - [ ] 9.1 Add "New Canvas" button to conversations page
+    - Update `packages/mukti-web/src/app/dashboard/conversations/page.tsx`
+    - Add button to trigger SetupWizardDialog
+    - Handle success callback to navigate to new canvas
+    - _Requirements: 1.1_
+  - [ ] 9.2 Add responsive styling
+    - Ensure wizard works on mobile, tablet, desktop
+    - Test modal sizing and scrolling behavior
+    - _Requirements: 6.4_
+
+- [ ] 10. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
