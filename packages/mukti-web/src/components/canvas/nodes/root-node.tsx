@@ -14,7 +14,7 @@
  */
 
 import { Handle, Position } from '@xyflow/react';
-import { CheckCircle2, GitBranch } from 'lucide-react';
+import { CheckCircle2, GitBranch, MessageCircle } from 'lucide-react';
 
 import type { RootNodeProps } from '@/types/canvas-visualization.types';
 
@@ -32,13 +32,14 @@ import {
  * to be examined through Socratic dialogue. Uses tertiary colors
  * to differentiate from Seed and Soil nodes.
  *
- * @param data - Node data containing label, index, and exploration status
+ * @param data - Node data containing label, index, exploration status, and message count
  * @param selected - Whether the node is currently selected
  */
 export function RootNode({ data, selected }: RootNodeProps) {
-  const { index, isExplored, label } = data;
+  const { index, isExplored, label, messageCount = 0 } = data;
   const displayText = truncateText(label, SATELLITE_TRUNCATE_LENGTH);
   const needsTooltip = shouldTruncate(label, SATELLITE_TRUNCATE_LENGTH);
+  const hasMessages = messageCount > 0;
 
   return (
     <div
@@ -59,13 +60,27 @@ export function RootNode({ data, selected }: RootNodeProps) {
       )}
       title={needsTooltip ? label : undefined}
     >
-      {/* Exploration status indicator (Requirement 8.4) */}
-      {isExplored && (
+      {/* Exploration status indicator (Requirements 6.1, 6.2) */}
+      {(isExplored || hasMessages) && (
         <div
-          className="absolute -top-2 -right-2 rounded-full bg-green-500 p-1 shadow-sm"
-          title="Explored through dialogue"
+          className={cn(
+            'absolute -top-2 -right-2 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 shadow-sm',
+            isExplored ? 'bg-green-500' : 'bg-violet-500/80'
+          )}
+          title={
+            isExplored
+              ? `Explored through dialogue (${messageCount} messages)`
+              : `${messageCount} message${messageCount !== 1 ? 's' : ''}`
+          }
         >
-          <CheckCircle2 className="h-3 w-3 text-white" />
+          {isExplored ? (
+            <CheckCircle2 className="h-3 w-3 text-white" />
+          ) : (
+            <>
+              <MessageCircle className="h-2.5 w-2.5 text-white" />
+              <span className="text-[10px] font-medium text-white">{messageCount}</span>
+            </>
+          )}
         </div>
       )}
 

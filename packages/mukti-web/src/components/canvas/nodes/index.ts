@@ -6,11 +6,13 @@
 
 import type { NodeTypes } from '@xyflow/react';
 
+import { InsightNode } from './insight-node';
 import { RootNode } from './root-node';
 import { SeedNode } from './seed-node';
 import { SoilNode } from './soil-node';
 
 // Export individual node components
+export { InsightNode } from './insight-node';
 export { RootNode } from './root-node';
 export { SeedNode } from './seed-node';
 export { SoilNode } from './soil-node';
@@ -34,6 +36,7 @@ export { SoilNode } from './soil-node';
  * ```
  */
 export const nodeTypes: NodeTypes = {
+  insight: InsightNode,
   root: RootNode,
   seed: SeedNode,
   soil: SoilNode,
