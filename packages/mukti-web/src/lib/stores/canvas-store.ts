@@ -19,7 +19,12 @@ import { useShallow } from 'zustand/react/shallow';
 import type { CanvasEdge, CanvasNode, Position } from '@/types/canvas-visualization.types';
 import type { CanvasSession } from '@/types/canvas.types';
 
-import { generateLayout } from '@/lib/utils/canvas-layout';
+import {
+  calculateInsightPosition,
+  generateLayout,
+  getInsightNodeId,
+  getNextInsightIndex,
+} from '@/lib/utils/canvas-layout';
 import { DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '@/types/canvas-visualization.types';
 
 // ============================================================================
@@ -29,14 +34,15 @@ import { DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '@/types/canvas-visualization.t
 /**
  * Canvas state interface
  * @property edges - React Flow edges connecting nodes
- * @property nodes - React Flow nodes (Seed, Soil, Root)
+ * @property nodes - React Flow nodes (Seed, Soil, Root, Insight)
  * @property selectedNodeId - Currently selected node ID or null
  * @property viewport - Current viewport state (position and zoom)
  */
 interface CanvasState {
+  // Actions
+  createInsightNode: (parentNodeId: string, label: string) => null | string;
   // State
   edges: CanvasEdge[];
-  // Actions
   initializeFromSession: (session: CanvasSession) => void;
   nodes: CanvasNode[];
   // React Flow change handlers
@@ -112,6 +118,55 @@ function clampZoom(zoom: number): number {
  */
 export const useCanvasStore = create<CanvasState>()((set, get) => ({
   ...initialState,
+
+  /**
+   * Create a new insight node connected to a parent node
+   * @param parentNodeId - ID of the parent node
+   * @param label - Label for the new insight node
+   * @returns The ID of the created insight node, or null if parent not found
+   */
+  createInsightNode: (parentNodeId: string, label: string): null | string => {
+    const { edges, nodes } = get();
+
+    // Find the parent node
+    const parentNode = nodes.find((n) => n.id === parentNodeId);
+    if (!parentNode) {
+      return null;
+    }
+
+    // Get the next available insight index
+    const insightIndex = getNextInsightIndex(nodes);
+    const insightNodeId = getInsightNodeId(insightIndex);
+
+    // Calculate position relative to parent
+    const position = calculateInsightPosition(parentNode, nodes);
+
+    // Create the new insight node
+    const insightNode: CanvasNode = {
+      data: {
+        isExplored: false,
+        label,
+        parentNodeId,
+      },
+      id: insightNodeId,
+      position,
+      type: 'insight',
+    };
+
+    // Create edge connecting insight to parent
+    const insightEdge: CanvasEdge = {
+      id: `edge-${parentNodeId}-${insightNodeId}`,
+      source: parentNodeId,
+      target: insightNodeId,
+    };
+
+    set({
+      edges: [...edges, insightEdge],
+      nodes: [...nodes, insightNode],
+    });
+
+    return insightNodeId;
+  },
 
   /**
    * Initialize canvas from a session
@@ -286,6 +341,7 @@ export const useCanvasChangeHandlers = () =>
 export const useCanvasActions = () =>
   useCanvasStore(
     useShallow((state) => ({
+      createInsightNode: state.createInsightNode,
       initializeFromSession: state.initializeFromSession,
       selectNode: state.selectNode,
       setEdges: state.setEdges,
