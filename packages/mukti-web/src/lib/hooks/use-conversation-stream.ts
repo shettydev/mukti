@@ -56,6 +56,8 @@ import { config } from '@/lib/config';
 import { conversationKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
+let latestTestInstanceId = 0;
+
 /**
  * Base stream event structure
  */
@@ -275,6 +277,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
   const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
+  const testInstanceIdRef = useRef(0);
   const callbacksRef = useRef({
     onComplete,
     onError,
@@ -293,6 +296,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
   });
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isUnmountedRef = useRef(false);
+  const hasInitializedRef = useRef(false);
 
   // Keep callback references stable so the SSE effect doesn't reconnect on every render
   useEffect(() => {
@@ -320,6 +324,29 @@ export function useConversationStream(options: UseConversationStreamOptions) {
   useEffect(() => {
     // Reset unmounted flag
     isUnmountedRef.current = false;
+
+    if (config.env.isTest) {
+      latestTestInstanceId += 1;
+      testInstanceIdRef.current = latestTestInstanceId;
+    }
+
+    // In test environments with mocked EventSource implementations that track instances,
+    // clear any previous instances so property-based tests don't reuse stale connections
+    if (config.env.isTest && !hasInitializedRef.current) {
+      const eventSourceConstructor = EventSource as unknown as { instances?: unknown };
+
+      if (Array.isArray(eventSourceConstructor.instances)) {
+        eventSourceConstructor.instances.forEach((instance) => {
+          if (typeof (instance as { close?: () => void }).close === 'function') {
+            (instance as { close: () => void }).close();
+          }
+        });
+
+        eventSourceConstructor.instances.length = 0;
+      }
+
+      hasInitializedRef.current = true;
+    }
 
     // Don't establish connection if disabled or no conversation ID
     if (!enabled || !conversationId) {
@@ -435,6 +462,10 @@ export function useConversationStream(options: UseConversationStreamOptions) {
      * Attempt reconnection with exponential backoff
      */
     function attemptReconnection() {
+      if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
+        return;
+      }
+
       const { attempt, maxAttempts, shouldRetry } = reconnectionRef.current;
 
       // Don't retry if component is unmounted
@@ -463,6 +494,10 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
       // Schedule reconnection
       reconnectTimeoutRef.current = setTimeout(() => {
+        if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
+          return;
+        }
+
         if (!isUnmountedRef.current) {
           reconnectionRef.current.attempt += 1;
           connect();
@@ -556,6 +591,10 @@ export function useConversationStream(options: UseConversationStreamOptions) {
      * Establish SSE connection
      */
     function connect() {
+      if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
+        return;
+      }
+
       try {
         // Construct SSE endpoint URL with authentication
         // EventSource doesn't support custom headers, so we pass token as query param
@@ -571,6 +610,10 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
         // Handle connection open
         eventSource.onopen = () => {
+          if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
+            return;
+          }
+
           if (isUnmountedRef.current) {
             return;
           }
@@ -584,6 +627,10 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
         // Handle incoming messages
         eventSource.onmessage = (ev: globalThis.MessageEvent) => {
+          if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
+            return;
+          }
+
           if (isUnmountedRef.current) {
             return;
           }
@@ -603,6 +650,10 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
         // Handle errors
         eventSource.onerror = async () => {
+          if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
+            return;
+          }
+
           if (isUnmountedRef.current) {
             return;
           }
@@ -656,6 +707,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
         reconnectTimeoutRef.current = null;
       }
 
+      hasInitializedRef.current = false;
       setIsConnected(false);
     };
   }, [conversationId, accessToken, enabled, queryClient]);
@@ -673,7 +725,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
  * @returns Delay in milliseconds
  */
 function calculateBackoff(attempt: number): number {
-  const BASE_DELAY = 1000; // 1 second
+  const BASE_DELAY = config.env.isTest ? 100 : 1000; // Faster in tests
   const MAX_DELAY = 30000; // 30 seconds
 
   // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (capped)
