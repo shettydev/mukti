@@ -98,7 +98,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
  * API Client class with interceptor support
  */
 class ApiClient {
-  private csrfToken: string | null = null;
+  private csrfToken: null | string = null;
   private errorInterceptors: ErrorInterceptor[] = [];
   private isRefreshing = false;
   private refreshPromise: null | Promise<string> = null;
@@ -238,6 +238,28 @@ class ApiClient {
   }
 
   /**
+   * CSRF interceptor - adds X-CSRF-Token header
+   */
+  private async csrfInterceptor(
+    url: string,
+    options: RequestInit
+  ): Promise<{ options: RequestInit; url: string }> {
+    // Only add CSRF token for state-changing methods
+    if (['DELETE', 'PATCH', 'POST', 'PUT'].includes(options.method?.toUpperCase() || '')) {
+      const token = await this.fetchCsrfToken();
+      if (token) {
+        const headers = new Headers(options.headers);
+        headers.set('X-CSRF-Token', token);
+        return {
+          options: { ...options, headers },
+          url,
+        };
+      }
+    }
+    return { options, url };
+  }
+
+  /**
    * Execute error interceptors
    */
   private async executeErrorInterceptors(error: ApiClientError): Promise<never> {
@@ -289,6 +311,37 @@ class ApiClient {
   }
 
   /**
+   * Fetch CSRF token from the API
+   */
+  private async fetchCsrfToken(): Promise<string> {
+    if (this.csrfToken) {
+      return this.csrfToken;
+    }
+
+    try {
+      // Use internal fetch to avoid interceptors for this call
+      // We don't need the CSRF token to fetch the CSRF token (it's a GET)
+      const response = await fetch(`${API_BASE_URL}/auth/csrf-token`, {
+        credentials: 'include', // Important to get the _csrf cookie
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch CSRF token');
+      }
+
+      const data = await response.json();
+      this.csrfToken = data.csrfToken;
+      return this.csrfToken as string;
+    } catch (error) {
+      console.error('Error fetching CSRF token:', error);
+      return '';
+    }
+  }
+
+  /**
    * Refresh the access token using the refresh token (in httpOnly cookie)
    */
   private async refreshAccessToken(): Promise<string> {
@@ -326,57 +379,6 @@ class ApiClient {
       useAuthStore.getState().clearAuth();
       throw error;
     }
-  }
-
-  /**
-   * Fetch CSRF token from the API
-   */
-  private async fetchCsrfToken(): Promise<string> {
-    if (this.csrfToken) return this.csrfToken;
-
-    try {
-      // Use internal fetch to avoid interceptors for this call
-      // We don't need the CSRF token to fetch the CSRF token (it's a GET)
-      const response = await fetch(`${API_BASE_URL}/auth/csrf-token`, {
-        credentials: 'include', // Important to get the _csrf cookie
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch CSRF token');
-      }
-
-      const data = await response.json();
-      this.csrfToken = data.csrfToken;
-      return this.csrfToken as string;
-    } catch (error) {
-      console.error('Error fetching CSRF token:', error);
-      return '';
-    }
-  }
-
-  /**
-   * CSRF interceptor - adds X-CSRF-Token header
-   */
-  private async csrfInterceptor(
-    url: string,
-    options: RequestInit
-  ): Promise<{ options: RequestInit; url: string }> {
-    // Only add CSRF token for state-changing methods
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method?.toUpperCase() || '')) {
-      const token = await this.fetchCsrfToken();
-      if (token) {
-        const headers = new Headers(options.headers);
-        headers.set('X-CSRF-Token', token);
-        return {
-          options: { ...options, headers },
-          url,
-        };
-      }
-    }
-    return { options, url };
   }
 
   /**
