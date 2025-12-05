@@ -7,6 +7,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { CanvasModule } from './modules/canvas/canvas.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { DatabaseModule } from './modules/database/database.module';
+import { DialogueModule } from './modules/dialogue/dialogue.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { HealthModule } from './modules/health/health.module';
     AuthModule,
     CanvasModule,
     ConversationsModule,
+    DialogueModule,
     HealthModule,
   ],
   providers: [
