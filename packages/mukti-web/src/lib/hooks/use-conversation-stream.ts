@@ -56,7 +56,7 @@ import { config } from '@/lib/config';
 import { conversationKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
-let latestTestInstanceId = 0;
+const clearedTestEventSourceConstructors = new WeakSet<object>();
 
 /**
  * Base stream event structure
@@ -157,64 +157,29 @@ export type StreamEvent =
 export type StreamEventType = 'complete' | 'error' | 'message' | 'processing' | 'progress';
 
 /**
- * Hook options
+ * Configuration options for useConversationStream hook
+ *
+ * @property {string} conversationId - Conversation ID to stream
+ * @property {boolean} [enabled=true] - Whether to enable the SSE connection
+ * @property {function} [onComplete] - Callback when processing completes. Use this to clear loading state and update metadata
+ * @property {function} [onError] - Custom error handler for SSE connection errors
+ * @property {function} [onErrorEvent] - Callback when an error event is received. Use this to show error messages and handle retry logic
+ * @property {function} [onMessage] - Custom message handler that receives all stream events
+ * @property {function} [onMessageReceived] - Callback when a new message is received. Use this to handle message-specific logic
+ * @property {function} [onProcessing] - Callback when processing starts. Use this to set loading state in your component
+ * @property {function} [onProgress] - Callback when progress updates are received. Use this to update progress indicators
+ * @property {function} [onRateLimit] - Callback for rate limit errors. Useful for showing rate limit banners
  */
 export interface UseConversationStreamOptions {
-  /**
-   * Conversation ID to stream
-   */
   conversationId: string;
-
-  /**
-   * Whether to enable the SSE connection
-   * @default true
-   */
   enabled?: boolean;
-
-  /**
-   * Callback when processing completes
-   * Use this to clear loading state and update metadata
-   */
   onComplete?: (event: CompleteEvent) => void;
-
-  /**
-   * Custom error handler
-   */
   onError?: (error: SSEError) => void;
-
-  /**
-   * Callback when an error event is received
-   * Use this to show error messages and handle retry logic
-   */
   onErrorEvent?: (event: ErrorEvent) => void;
-
-  /**
-   * Custom message handler - receives all events
-   */
   onMessage?: (event: StreamEvent) => void;
-
-  /**
-   * Callback when a new message is received
-   * Use this to handle message-specific logic
-   */
   onMessageReceived?: (event: MessageStreamEvent) => void;
-
-  /**
-   * Callback when processing starts
-   * Use this to set loading state in your component
-   */
   onProcessing?: (event: ProcessingEvent) => void;
-
-  /**
-   * Callback when progress updates are received
-   * Use this to update progress indicators
-   */
   onProgress?: (event: ProgressEvent) => void;
-
-  /**
-   * Callback for rate limit errors
-   * Useful for showing rate limit banners
-   */
   onRateLimit?: (retryAfter?: number) => void;
 }
 
@@ -277,7 +242,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
   const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
-  const testInstanceIdRef = useRef(0);
   const callbacksRef = useRef({
     onComplete,
     onError,
@@ -296,7 +260,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
   });
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isUnmountedRef = useRef(false);
-  const hasInitializedRef = useRef(false);
 
   // Keep callback references stable so the SSE effect doesn't reconnect on every render
   useEffect(() => {
@@ -325,27 +288,24 @@ export function useConversationStream(options: UseConversationStreamOptions) {
     // Reset unmounted flag
     isUnmountedRef.current = false;
 
-    if (config.env.isTest) {
-      latestTestInstanceId += 1;
-      testInstanceIdRef.current = latestTestInstanceId;
-    }
-
     // In test environments with mocked EventSource implementations that track instances,
     // clear any previous instances so property-based tests don't reuse stale connections
-    if (config.env.isTest && !hasInitializedRef.current) {
-      const eventSourceConstructor = EventSource as unknown as { instances?: unknown };
+    if (config.env.isTest) {
+      const eventSourceConstructor = EventSource as unknown as object & { instances?: unknown };
 
-      if (Array.isArray(eventSourceConstructor.instances)) {
-        eventSourceConstructor.instances.forEach((instance) => {
-          if (typeof (instance as { close?: () => void }).close === 'function') {
-            (instance as { close: () => void }).close();
-          }
-        });
+      if (!clearedTestEventSourceConstructors.has(eventSourceConstructor)) {
+        if (Array.isArray(eventSourceConstructor.instances)) {
+          eventSourceConstructor.instances.forEach((instance) => {
+            if (typeof (instance as { close?: () => void }).close === 'function') {
+              (instance as { close: () => void }).close();
+            }
+          });
 
-        eventSourceConstructor.instances.length = 0;
+          eventSourceConstructor.instances.length = 0;
+        }
+
+        clearedTestEventSourceConstructors.add(eventSourceConstructor);
       }
-
-      hasInitializedRef.current = true;
     }
 
     // Don't establish connection if disabled or no conversation ID
@@ -462,10 +422,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
      * Attempt reconnection with exponential backoff
      */
     function attemptReconnection() {
-      if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
-        return;
-      }
-
       const { attempt, maxAttempts, shouldRetry } = reconnectionRef.current;
 
       // Don't retry if component is unmounted
@@ -494,10 +450,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
       // Schedule reconnection
       reconnectTimeoutRef.current = setTimeout(() => {
-        if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
-          return;
-        }
-
         if (!isUnmountedRef.current) {
           reconnectionRef.current.attempt += 1;
           connect();
@@ -591,10 +543,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
      * Establish SSE connection
      */
     function connect() {
-      if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
-        return;
-      }
-
       try {
         // Construct SSE endpoint URL with authentication
         // EventSource doesn't support custom headers, so we pass token as query param
@@ -610,10 +558,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
         // Handle connection open
         eventSource.onopen = () => {
-          if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
-            return;
-          }
-
           if (isUnmountedRef.current) {
             return;
           }
@@ -627,10 +571,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
         // Handle incoming messages
         eventSource.onmessage = (ev: globalThis.MessageEvent) => {
-          if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
-            return;
-          }
-
           if (isUnmountedRef.current) {
             return;
           }
@@ -650,10 +590,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
         // Handle errors
         eventSource.onerror = async () => {
-          if (config.env.isTest && testInstanceIdRef.current !== latestTestInstanceId) {
-            return;
-          }
-
           if (isUnmountedRef.current) {
             return;
           }
@@ -707,7 +643,6 @@ export function useConversationStream(options: UseConversationStreamOptions) {
         reconnectTimeoutRef.current = null;
       }
 
-      hasInitializedRef.current = false;
       setIsConnected(false);
     };
   }, [conversationId, accessToken, enabled, queryClient]);
