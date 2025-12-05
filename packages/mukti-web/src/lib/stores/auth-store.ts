@@ -15,6 +15,11 @@ import type { User } from '@/types/user.types';
 
 interface AuthState {
   /**
+   * Whether the store has been hydrated from storage
+   */
+  _hasHydrated: boolean;
+
+  /**
    * JWT access token for API authentication
    * Stored in memory only (not persisted for security)
    */
@@ -46,6 +51,11 @@ interface AuthState {
   setAuth: (user: User, accessToken: string) => void;
 
   /**
+   * Set hydration state
+   */
+  setHasHydrated: (state: boolean) => void;
+
+  /**
    * Set the current user
    * @param user - User object to store
    */
@@ -65,6 +75,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
+      _hasHydrated: false,
       accessToken: null,
       clearAuth: () =>
         set({
@@ -73,7 +84,6 @@ export const useAuthStore = create<AuthState>()(
           user: null,
         }),
       isAuthenticated: false,
-
       setAccessToken: (token) =>
         set((state) => ({
           accessToken: token,
@@ -86,6 +96,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           user,
         }),
+
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       setUser: (user) =>
         set((state) => ({
@@ -106,6 +118,7 @@ export const useAuthStore = create<AuthState>()(
           // Keep isAuthenticated false - the useAuth hook will handle
           // session restoration by checking if user exists
           state.isAuthenticated = false;
+          state._hasHydrated = true;
         }
       },
       // Only persist user data, not access token

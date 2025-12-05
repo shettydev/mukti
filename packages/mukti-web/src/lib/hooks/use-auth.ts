@@ -74,6 +74,7 @@ const REFRESH_BEFORE_EXPIRATION_MS = 2 * 60 * 1000; // 2 minutes
 export function useAuth() {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const setAuth = useAuthStore((state) => state.setAuth);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
@@ -116,8 +117,9 @@ export function useAuth() {
     }
   }, [user]);
 
-  // Loading state includes session restoration
-  const isLoading = isUserLoading || (!!user && !isAuthenticated && !refreshMutation.isError);
+  // Loading state includes session restoration and store hydration
+  const isLoading =
+    !hasHydrated || isUserLoading || (!!user && !isAuthenticated && !refreshMutation.isError);
 
   // Set up automatic token refresh before expiration
   useTokenRefreshTimer();

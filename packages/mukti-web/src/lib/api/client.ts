@@ -377,6 +377,14 @@ class ApiClient {
     } catch (error) {
       // Clear auth state on refresh failure
       useAuthStore.getState().clearAuth();
+
+      // Attempt to clear cookies via logout endpoint to prevent middleware loops
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+      } catch {
+        // Ignore errors
+      }
+
       throw error;
     }
   }
@@ -562,6 +570,14 @@ class ApiClient {
     if (response.url.includes('/auth/refresh')) {
       // Clear auth state on refresh failure
       useAuthStore.getState().clearAuth();
+
+      // Attempt to clear cookies via logout endpoint to prevent middleware loops
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+      } catch {
+        // Ignore errors
+      }
+
       return response;
     }
 
@@ -581,6 +597,14 @@ class ApiClient {
       } catch {
         // Refresh failed, clear auth and return original response
         useAuthStore.getState().clearAuth();
+
+        // Attempt to clear cookies via logout endpoint
+        try {
+          await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+        } catch {
+          // Ignore errors
+        }
+
         return response;
       }
     }
@@ -596,6 +620,14 @@ class ApiClient {
     } catch {
       // Refresh failed, clear auth and return original response
       useAuthStore.getState().clearAuth();
+
+      // Attempt to clear cookies via logout endpoint
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+      } catch {
+        // Ignore errors
+      }
+
       return response;
     } finally {
       this.isRefreshing = false;

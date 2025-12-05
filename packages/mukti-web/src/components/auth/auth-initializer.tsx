@@ -15,6 +15,7 @@ export function AuthInitializer() {
   const initialized = useRef(false);
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const setHasHydrated = useAuthStore((state) => state.setHasHydrated);
 
   useEffect(() => {
     // Prevent double initialization in strict mode
@@ -22,6 +23,10 @@ export function AuthInitializer() {
       return;
     }
     initialized.current = true;
+
+    // Ensure hydration is marked as complete
+    // This is a safety fallback in case Zustand's persist onRehydrateStorage doesn't fire
+    setHasHydrated(true);
 
     const initAuth = async () => {
       try {
@@ -34,11 +39,18 @@ export function AuthInitializer() {
         // If refresh fails (e.g., no cookie or expired), clear auth state
         // We don't show an error here as it's expected for unauthenticated users
         clearAuth();
+
+        // Ensure cookies are cleared to prevent middleware redirect loops
+        try {
+          await authApi.logout();
+        } catch {
+          // Ignore logout errors (e.g. if already logged out)
+        }
       }
     };
 
     initAuth();
-  }, [setAccessToken, clearAuth]);
+  }, [setAccessToken, clearAuth, setHasHydrated]);
 
   // This component doesn't render anything
   return null;
