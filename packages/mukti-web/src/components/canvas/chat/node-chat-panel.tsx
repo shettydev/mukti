@@ -152,21 +152,18 @@ export function NodeChatPanel({
 
   /**
    * Handle creating an insight node
+   * Opens the InsightNodeDialog via the onInsightCreate callback
    */
   const handleCreateInsight = useCallback(() => {
     if (!selectedNode || !onInsightCreate) {
       return;
     }
 
-    // For now, prompt user for insight label
-    // In a full implementation, this would open a dialog
-    const label = window.prompt('Enter your insight:');
-    if (label?.trim()) {
-      onInsightCreate({
-        label: label.trim(),
-        parentNodeId: selectedNode.id,
-      });
-    }
+    // Trigger the dialog by passing empty label - the dialog will collect the actual label
+    onInsightCreate({
+      label: '', // Empty label - the InsightNodeDialog will collect the actual label
+      parentNodeId: selectedNode.id,
+    });
   }, [selectedNode, onInsightCreate]);
 
   /**

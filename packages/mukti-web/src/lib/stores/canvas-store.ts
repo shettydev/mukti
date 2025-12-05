@@ -171,11 +171,14 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
   /**
    * Initialize canvas from a session
    * Generates layout from problem structure and applies any saved positions
+   * Preserves existing insight nodes when re-initializing
    * @param session - The canvas session to initialize from
    */
   initializeFromSession: (session: CanvasSession) => {
+    const currentState = get();
+
     // Generate initial layout from problem structure
-    const { edges, nodes: layoutNodes } = generateLayout(session.problemStructure);
+    const { edges: layoutEdges, nodes: layoutNodes } = generateLayout(session.problemStructure);
 
     // Apply any saved node positions
     const nodes = layoutNodes.map((node) => {
@@ -198,10 +201,23 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
       },
     }));
 
+    // Preserve existing insight nodes (they are created dynamically and not stored in session)
+    const existingInsightNodes = currentState.nodes.filter((node) => node.type === 'insight');
+    const existingInsightEdges = currentState.edges.filter((edge) =>
+      existingInsightNodes.some((node) => node.id === edge.target)
+    );
+
+    // Merge layout nodes with existing insight nodes
+    const finalNodes = [...nodesWithExploration, ...existingInsightNodes];
+    const finalEdges = [...layoutEdges, ...existingInsightEdges];
+
     set({
-      edges,
-      nodes: nodesWithExploration,
-      selectedNodeId: null,
+      edges: finalEdges,
+      nodes: finalNodes,
+      // Preserve selection if the selected node still exists
+      selectedNodeId: finalNodes.some((n) => n.id === currentState.selectedNodeId)
+        ? currentState.selectedNodeId
+        : null,
       viewport: initialViewport,
     });
   },

@@ -94,7 +94,7 @@ function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
   // Loading state
   if (isLoading) {
     return (
-      <DashboardLayout showNavbar={false} showSidebar={false}>
+      <DashboardLayout showNavbar showSidebar>
         <CanvasLoadingSkeleton />
       </DashboardLayout>
     );
@@ -103,7 +103,7 @@ function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
   // Error state (non-404 errors)
   if (error && !error.message.includes('not found') && !error.message.includes('404')) {
     return (
-      <DashboardLayout showNavbar={false} showSidebar={false}>
+      <DashboardLayout showNavbar showSidebar>
         <CanvasErrorState error={error} onRetry={() => refetch()} />
       </DashboardLayout>
     );
@@ -112,11 +112,7 @@ function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
   // Session loaded successfully
   if (session) {
     return (
-      <DashboardLayout
-        contentClassName="flex flex-col overflow-hidden p-0"
-        showNavbar={false}
-        showSidebar={false}
-      >
+      <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar showSidebar>
         <ThinkingCanvas
           className="h-full w-full"
           onPositionChange={handlePositionChange}
