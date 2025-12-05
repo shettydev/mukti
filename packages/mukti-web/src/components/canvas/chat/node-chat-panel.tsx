@@ -143,12 +143,38 @@ export function NodeChatPanel({
   );
 
   /**
-   * Handle starting a dialogue (sends initial greeting)
+   * Handle starting a dialogue
+   * Sends an initial message to trigger the AI to generate a Socratic opening question
    */
   const handleStartDialogue = useCallback(() => {
-    // The AI will generate the initial question when the first message is sent
-    // For now, we just focus the input - the user can start the conversation
-  }, []);
+    if (!selectedNode) {
+      return;
+    }
+
+    // Send an initial message to start the Socratic dialogue
+    // The AI will respond with a thought-provoking question based on the node content
+    const nodeType = selectedNode.type as string;
+    let initialMessage = '';
+
+    switch (nodeType) {
+      case 'insight':
+        initialMessage = "Let's develop this insight further.";
+        break;
+      case 'root':
+        initialMessage = "I want to question this assumption.";
+        break;
+      case 'seed':
+        initialMessage = "I'd like to explore this problem more deeply.";
+        break;
+      case 'soil':
+        initialMessage = "Help me examine this context/constraint.";
+        break;
+      default:
+        initialMessage = "Let's explore this together.";
+    }
+
+    sendMessage({ content: initialMessage });
+  }, [selectedNode, sendMessage]);
 
   /**
    * Handle creating an insight node
