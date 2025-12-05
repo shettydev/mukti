@@ -19,6 +19,7 @@ import { CanvasSessionResponseDto } from './dto/canvas-session-response.dto';
 import {
   ApiCreateCanvasSession,
   ApiGetCanvasSessionById,
+  ApiGetCanvasSessions,
 } from './dto/canvas.swagger';
 import { CreateCanvasSessionDto } from './dto/create-canvas-session.dto';
 
@@ -57,6 +58,29 @@ export class CanvasController {
 
     return {
       data: CanvasSessionResponseDto.fromDocument(session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Retrieves all canvas sessions for the authenticated user.
+   *
+   * @param user - The authenticated user from JWT token
+   * @returns Array of canvas sessions
+   */
+  @ApiGetCanvasSessions()
+  @Get('sessions')
+  async findAll(@CurrentUser() user: User) {
+    const sessions = await this.canvasService.findAllByUser(user._id);
+
+    return {
+      data: sessions.map((session) =>
+        CanvasSessionResponseDto.fromDocument(session),
+      ),
       meta: {
         requestId: this.generateRequestId(),
         timestamp: new Date().toISOString(),

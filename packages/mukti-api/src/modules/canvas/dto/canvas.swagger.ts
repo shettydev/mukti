@@ -75,6 +75,52 @@ export const ApiCreateCanvasSession = () =>
   );
 
 /**
+ * Swagger documentation for listing all canvas sessions for the authenticated user
+ */
+export const ApiGetCanvasSessions = () =>
+  applyDecorators(
+    ApiOperation({
+      description:
+        'Retrieves all canvas sessions for the authenticated user, sorted by creation date (newest first)',
+      summary: 'List all canvas sessions',
+    }),
+    ApiBearerAuth(),
+    ApiResponse({
+      description: 'Canvas sessions retrieved successfully',
+      schema: {
+        example: {
+          data: [
+            {
+              _id: '507f1f77bcf86cd799439011',
+              createdAt: '2026-01-01T00:00:00Z',
+              problemStructure: {
+                roots: [
+                  'We need to hire more people',
+                  'The workload is too high',
+                ],
+                seed: 'My team is burned out and productivity has dropped significantly',
+                soil: ['Budget is tight', 'Deadline in 2 weeks', 'Remote team'],
+              },
+              updatedAt: '2026-01-01T00:00:00Z',
+              userId: '507f1f77bcf86cd799439012',
+            },
+          ],
+          meta: {
+            requestId: 'uuid',
+            timestamp: '2026-01-01T00:00:00Z',
+          },
+          success: true,
+        },
+      },
+      status: 200,
+    }),
+    ApiResponse({
+      description: 'Unauthorized - JWT token missing or invalid',
+      status: 401,
+    }),
+  );
+
+/**
  * Swagger documentation for getting a canvas session by ID
  */
 export const ApiGetCanvasSessionById = () =>

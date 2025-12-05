@@ -66,6 +66,34 @@ export class CanvasService {
   }
 
   /**
+   * Finds all canvas sessions for a user.
+   *
+   * @param userId - The ID of the user
+   * @returns Array of canvas sessions owned by the user, sorted by creation date (newest first)
+   *
+   * @example
+   * ```typescript
+   * const sessions = await canvasService.findAllByUser(userId);
+   * ```
+   */
+  async findAllByUser(
+    userId: string | Types.ObjectId,
+  ): Promise<CanvasSession[]> {
+    const userIdStr = userId.toString();
+    this.logger.log(`Finding all canvas sessions for user ${userIdStr}`);
+
+    const sessions = await this.canvasSessionModel
+      .find({ userId: new Types.ObjectId(userIdStr) })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    this.logger.log(
+      `Found ${sessions.length} canvas sessions for user ${userIdStr}`,
+    );
+    return sessions;
+  }
+
+  /**
    * Finds a canvas session by ID with ownership validation.
    *
    * @param sessionId - The canvas session ID
