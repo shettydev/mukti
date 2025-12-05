@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.local
+.DS_Store
+packages/*/node_modules
+packages/*/dist
+packages/*/.next
+coverage
+.nx

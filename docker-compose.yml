@@ -1,4 +1,4 @@
-# Docker Compose stack for local databases
+# Docker Compose stack for local databases and applications
 services:
   mongodb:
     image: mongo:7
@@ -28,6 +28,50 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: packages/mukti-api/Dockerfile
+    container_name: mukti-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/mukti
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # Default fallbacks, but should be overridden by .env file
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-secret}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-30d}
+      - FRONTEND_URL=http://localhost:3001
+      - API_URL=http://localhost:3000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: packages/mukti-web/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+    container_name: mukti-web
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+    depends_on:
+      - api
 
 volumes:
   mongo_data:
