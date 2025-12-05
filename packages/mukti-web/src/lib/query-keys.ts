@@ -59,6 +59,15 @@ export const canvasKeys = {
 
   /**
    * Key for specific canvas session detail
+   * Alias for session() to maintain consistency with other query key patterns
+   *
+   * @param id - Canvas session ID
+   * @returns Query key for canvas session detail
+   */
+  detail: (id: string) => [...canvasKeys.sessions(), 'detail', id] as const,
+
+  /**
+   * Key for specific canvas session detail
    *
    * @param id - Canvas session ID
    * @returns Query key for canvas session detail
