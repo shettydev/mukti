@@ -1,6 +1,6 @@
 export default {
   provider: 'openrouter',
-  model: 'x-ai/grok-4.1-fast:free',
+  model: 'google/gemini-2.5-flash',
   // OpenRouter API configuration
   apiEndpoint: 'https://openrouter.ai/api/v1/chat/completions',
   // Will use OPENROUTER_API_KEY from environment
