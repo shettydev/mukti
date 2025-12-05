@@ -9,8 +9,8 @@ export function Navbar() {
         navItems={[
           { link: '#features', name: 'Features' },
           { link: '#how-it-works', name: 'How it Works' },
+          { link: '/dashboard', name: 'Dashboard' },
         ]}
-        signInHref="/auth?tab=signin"
         signUpHref="/auth?tab=signup"
       />
     </div>

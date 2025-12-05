@@ -62,7 +62,7 @@ export function Hero() {
 
           <AnimatedContent delay={1.2} direction="vertical" distance={30} duration={0.8}>
             <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:justify-center sm:items-center w-full sm:w-auto">
-              <Link className="w-full sm:w-auto" href="#waitlist">
+              <Link className="w-full sm:w-auto" href="/dashboard">
                 <ShimmerButton
                   className="text-base dark:text-white sm:text-lg px-6 sm:px-8 py-3 sm:py-4 w-full sm:w-auto group hover:border-blue-500/50 transition-all duration-300"
                   shimmerColor="#3B82F6"
