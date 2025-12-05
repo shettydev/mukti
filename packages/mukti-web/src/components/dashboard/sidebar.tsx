@@ -157,6 +157,18 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
             label="Conversations"
           />
           <NavItem
+            active={pathname?.startsWith('/dashboard/canvas')}
+            collapsed={collapsed}
+            href="/dashboard/canvas"
+            icon={<Brain aria-hidden="true" className="w-4 h-4" />}
+            label="Thinking Canvas"
+          />
+          {!collapsed && (
+            <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 mt-6">
+              Management
+            </div>
+          )}
+          <NavItem
             collapsed={collapsed}
             href="/dashboard/community"
             icon={<Users aria-hidden="true" className="w-4 h-4" />}
@@ -167,19 +179,6 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
             href="/dashboard/resources"
             icon={<FileText aria-hidden="true" className="w-4 h-4" />}
             label="Resources"
-          />
-
-          {!collapsed && (
-            <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 mt-6">
-              Management
-            </div>
-          )}
-          <NavItem
-            active={pathname?.startsWith('/dashboard/canvas')}
-            collapsed={collapsed}
-            href="/dashboard/canvas"
-            icon={<Brain aria-hidden="true" className="w-4 h-4" />}
-            label="Thinking Canvas"
           />
           <NavItem
             collapsed={collapsed}
