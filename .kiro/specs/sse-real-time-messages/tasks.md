@@ -11,7 +11,7 @@
   - Add proper logging for connection lifecycle events
   - _Requirements: 2.1, 2.4, 2.5_
 
-- [ ]* 1.1 Write property test for StreamService
+- [x] 1.1 Write property test for StreamService
   - **Property 9: Multiple Connection Support**
   - **Validates: Requirements 2.5**
 
@@ -25,11 +25,11 @@
   - Handle connection errors and return appropriate HTTP status codes
   - _Requirements: 2.1, 2.2, 4.1, 4.2, 4.3, 4.4_
 
-- [ ]* 2.1 Write property test for SSE endpoint authentication
+- [x] 2.1 Write property test for SSE endpoint authentication
   - **Property 1: Connection Ownership**
   - **Validates: Requirements 4.2**
 
-- [ ]* 2.2 Write property test for SSE endpoint authorization
+- [x] 2.2 Write property test for SSE endpoint authorization
   - **Property 6: Authentication Validation**
   - **Validates: Requirements 4.1**
 
@@ -53,11 +53,11 @@
   - Ensure events are emitted in correct order
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ]* 4.1 Write property test for event ordering
+- [x] 4.1 Write property test for event ordering
   - **Property 2: Event Delivery Order**
   - **Validates: Requirements 5.5**
 
-- [ ]* 4.2 Write property test for message persistence before event emission
+- [ ] 4.2 Write property test for message persistence before event emission
   - **Property 4: Message Persistence**
   - **Validates: Requirements 1.3**
 
@@ -74,7 +74,7 @@
   - Log connection cleanup events
   - _Requirements: 2.4, 3.5_
 
-- [ ]* 6.1 Write property test for connection cleanup
+- [x] 6.1 Write property test for connection cleanup
   - **Property 3: Connection Cleanup**
   - **Validates: Requirements 2.4**
 
@@ -92,7 +92,7 @@
   - Include authentication credentials in SSE request
   - _Requirements: 1.1, 1.5, 7.2, 7.3_
 
-- [ ]* 8.1 Write property test for reconnection idempotency
+- [x] 8.1 Write property test for reconnection idempotency
   - **Property 5: Reconnection Idempotency**
   - **Validates: Requirements 1.5, 7.2**
 
@@ -135,7 +135,7 @@
   - Show connection status indicator (optional)
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.1, 3.2, 3.3, 3.4_
 
-- [ ]* 12.1 Write property test for stream closure on navigation
+- [x] 12.1 Write property test for stream closure on navigation
   - **Property 10: Stream Closure on Navigation**
   - **Validates: Requirements 1.4**
 
@@ -148,7 +148,7 @@
   - Batch scroll updates for multiple rapid messages
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ]* 13.1 Write property test for auto-scroll preservation
+- [x] 13.1 Write property test for auto-scroll preservation
   - **Property 8: Auto-scroll Preservation**
   - **Validates: Requirements 6.1, 6.2**
 
@@ -220,7 +220,7 @@
 - [ ] 21. Checkpoint - Ensure all frontend tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 22. Integration: Test end-to-end SSE flow with UI/UX
+- [-] 22. Integration: Test end-to-end SSE flow with UI/UX
   - Start backend server
   - Start frontend development server
   - Send a message in a conversation
