@@ -245,12 +245,11 @@ export class AuthController {
     );
 
     // Set refresh token in httpOnly cookie
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.cookie(
+      'refreshToken',
+      result.refreshToken,
+      this.getCookieOptions(7 * 24 * 60 * 60 * 1000), // 7 days
+    );
 
     return result;
   }
@@ -306,12 +305,11 @@ export class AuthController {
     });
 
     // Set refresh token in httpOnly cookie
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      maxAge: expirationTime,
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.cookie(
+      'refreshToken',
+      result.refreshToken,
+      this.getCookieOptions(expirationTime),
+    );
 
     return result;
   }
@@ -343,7 +341,7 @@ export class AuthController {
     }
 
     // Clear refresh token cookie
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', this.getCookieOptions());
   }
 
   /**
@@ -375,7 +373,7 @@ export class AuthController {
     );
 
     // Clear refresh token cookie
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', this.getCookieOptions());
   }
 
   /**
@@ -443,12 +441,11 @@ export class AuthController {
     });
 
     // Set refresh token in httpOnly cookie
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.cookie(
+      'refreshToken',
+      result.refreshToken,
+      this.getCookieOptions(7 * 24 * 60 * 60 * 1000), // 7 days
+    );
 
     return result;
   }
@@ -547,5 +544,15 @@ export class AuthController {
     this.logger.log('Email verification attempt with token');
     await this.authService.verifyEmail(dto);
     return { message: 'Email verified successfully' };
+  }
+
+  private getCookieOptions(maxAge?: number) {
+    return {
+      domain: process.env.NODE_ENV === 'production' ? '.mukti.live' : undefined,
+      httpOnly: true,
+      maxAge,
+      sameSite: 'strict' as const,
+      secure: process.env.NODE_ENV === 'production',
+    };
   }
 }
