@@ -1,4 +1,4 @@
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1 AS base
 WORKDIR /app
 
 # Stage 1: Install all dependencies for build
