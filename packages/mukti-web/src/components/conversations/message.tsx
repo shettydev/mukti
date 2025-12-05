@@ -1,6 +1,6 @@
 /**
  * Message component for displaying user and assistant messages
- * with smooth arrival animations
+ * with smooth arrival animations and markdown rendering
  */
 
 'use client';
@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { Message as MessageType } from '@/types/conversation.types';
 
+import { Markdown } from '@/components/ui/markdown';
 import { cn } from '@/lib/utils';
 
 interface MessageProps {
@@ -62,7 +63,11 @@ export function Message({ message }: MessageProps) {
       >
         <div className="flex items-start gap-2">
           <div className="flex-1">
-            <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
+            {isUser ? (
+              <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
+            ) : (
+              <Markdown className="text-sm">{message.content}</Markdown>
+            )}
             <div className="mt-2 flex items-center gap-2 text-xs opacity-70">
               <time dateTime={message.timestamp}>
                 {new Date(message.timestamp).toLocaleTimeString([], {

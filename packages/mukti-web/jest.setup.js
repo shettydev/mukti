@@ -93,3 +93,14 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
+
+// Mock react-markdown and remark-gfm to avoid ESM issues
+jest.mock('react-markdown', () => ({
+  __esModule: true,
+  default: ({ children }) => <div data-testid="markdown-content">{children}</div>,
+}));
+
+jest.mock('remark-gfm', () => ({
+  __esModule: true,
+  default: () => {},
+}));

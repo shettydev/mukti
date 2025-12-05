@@ -21,6 +21,8 @@ jest.mock('@/lib/stores/auth-store', () => ({
 describe('ApiClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset CSRF token to ensure predictable test behavior
+    (apiClient as any).csrfToken = null;
     apiClient.configureRetry({
       maxRetries: 0,
       retryDelay: 0,
@@ -84,6 +86,15 @@ describe('ApiClient', () => {
         success: true,
       };
 
+      // Mock CSRF token response
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ csrfToken: 'mock-csrf-token' }),
+        ok: true,
+        status: 200,
+      });
+
+      // Mock API response
       (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => mockResponse,
@@ -223,6 +234,14 @@ describe('ApiClient', () => {
         status: 204,
         url: 'http://localhost:3000/api/v1/test',
       };
+
+      // Mock CSRF token response
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ csrfToken: 'mock-csrf-token' }),
+        ok: true,
+        status: 200,
+      });
 
       (global.fetch as unknown as jest.Mock).mockResolvedValueOnce(mockResponse);
 

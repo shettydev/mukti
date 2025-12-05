@@ -34,6 +34,9 @@ const config = {
     customExportConditions: [''],
   },
   testMatch: ['**/__tests__/**/*.test.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-markdown|rehype-raw|remark-gfm|vfile|vfile-message|unist-.*|unified|bail|is-plain-obj|trough|remark-.*|micromark.*|decode-named-character-reference|character-entities|property-information|hast-util-whitespace|space-separated-tokens|comma-separated-tokens|pretty-bytes|ccount|mdast-util-.*|micromark-extension-.*|estree-util-.*|zwitch|hast-.*|web-namespaces|html-void-elements|devlop)/)',
+  ],
   watchman: false,
 };
 
