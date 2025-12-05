@@ -46,6 +46,19 @@ export type {
   ProblemStructure,
 } from './canvas.types';
 
+// Dialogue types
+export type {
+  DialogueMessage,
+  DialogueMessageMetadata,
+  NodeType as DialogueNodeType,
+  DialoguePagination,
+  DialogueRole,
+  SendMessageResponse as DialogueSendMessageResponse,
+  NodeDialogue,
+  PaginatedMessagesResponse,
+  SendNodeMessageDto,
+} from './dialogue.types';
+
 // Layout types
 export type {
   ComingSoonProps,

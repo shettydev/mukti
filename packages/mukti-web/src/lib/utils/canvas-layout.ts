@@ -7,6 +7,7 @@ import type {
   CanvasEdge,
   CanvasNode,
   LayoutConfig,
+  Position,
   RootNodeData,
   SeedNodeData,
   SoilNodeData,
@@ -183,8 +184,100 @@ export function getSoilNodeId(index: number): string {
 }
 
 // ============================================================================
+// Insight Node Functions
+// ============================================================================
+
+/**
+ * Configuration for insight node positioning
+ */
+const INSIGHT_OFFSET = 150; // Distance from parent node
+const ANGLE_SPREAD = Math.PI / 4; // 45 degrees between insights
+
+/**
+ * Calculates the position for a new insight node relative to its parent
+ *
+ * Positions insight nodes in an arc below the parent node, spreading
+ * them out based on how many sibling insights already exist.
+ *
+ * @param parentNode - The parent node the insight is connected to
+ * @param existingInsights - Array of existing insight nodes
+ * @returns Position coordinates for the new insight node
+ *
+ * @example
+ * ```typescript
+ * const position = calculateInsightPosition(parentNode, existingInsights);
+ * // Returns { x: 150, y: 200 }
+ * ```
+ */
+export function calculateInsightPosition(
+  parentNode: CanvasNode,
+  existingInsights: CanvasNode[]
+): Position {
+  // Count existing insights for this parent
+  const siblingInsights = existingInsights.filter(
+    (n) => n.type === 'insight' && n.data.parentNodeId === parentNode.id
+  );
+  const siblingCount = siblingInsights.length;
+
+  // Calculate angle (spread below the parent)
+  // Base angle points downward (90 degrees = PI/2)
+  const baseAngle = Math.PI / 2;
+
+  // Spread insights evenly around the base angle
+  // For 0 siblings: place at base angle
+  // For 1+ siblings: spread them out
+  const angleOffset = siblingCount * ANGLE_SPREAD;
+  const angle = baseAngle + angleOffset - (siblingCount * ANGLE_SPREAD) / 2;
+
+  return {
+    x: parentNode.position.x + Math.cos(angle) * INSIGHT_OFFSET,
+    y: parentNode.position.y + Math.sin(angle) * INSIGHT_OFFSET,
+  };
+}
+
+/**
+ * Generates a unique ID for an Insight node based on its index
+ * @param index - Position in the insights array
+ * @returns Node ID in format 'insight-{index}'
+ */
+export function getInsightNodeId(index: number): string {
+  return `insight-${index}`;
+}
+
+/**
+ * Gets the next available insight index based on existing nodes
+ * @param nodes - Array of all canvas nodes
+ * @returns The next available index for an insight node
+ */
+export function getNextInsightIndex(nodes: CanvasNode[]): number {
+  const insightNodes = nodes.filter((n) => n.type === 'insight');
+  if (insightNodes.length === 0) {
+    return 0;
+  }
+
+  // Find the highest existing index and add 1
+  const maxIndex = Math.max(
+    ...insightNodes.map((n) => {
+      const parsed = parseNodeId(n.id);
+      return parsed?.index ?? 0;
+    })
+  );
+
+  return maxIndex + 1;
+}
+
+// ============================================================================
 // Node Type Checking Functions
 // ============================================================================
+
+/**
+ * Checks if a node ID represents an Insight node
+ * @param nodeId - The node ID to check
+ * @returns True if the node is an Insight node
+ */
+export function isInsightNode(nodeId: string): boolean {
+  return nodeId.startsWith('insight-');
+}
 
 /**
  * Checks if a node ID represents a Root node
@@ -220,9 +313,14 @@ export function isSoilNode(nodeId: string): boolean {
  */
 export function parseNodeId(
   nodeId: string
-): null | { index?: number; type: 'root' | 'seed' | 'soil' } {
+): null | { index?: number; type: 'insight' | 'root' | 'seed' | 'soil' } {
   if (nodeId === SEED_NODE_ID) {
     return { type: 'seed' };
+  }
+
+  const insightMatch = nodeId.match(/^insight-(\d+)$/);
+  if (insightMatch) {
+    return { index: parseInt(insightMatch[1], 10), type: 'insight' };
   }
 
   const rootMatch = nodeId.match(/^root-(\d+)$/);

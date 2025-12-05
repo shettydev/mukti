@@ -1,34 +1,34 @@
 # Implementation Plan
 
-- [ ] 1. Create backend dialogue data models
-  - [ ] 1.1 Create NodeDialogue schema
+- [x] 1. Create backend dialogue data models
+  - [x] 1.1 Create NodeDialogue schema
     - Create `packages/mukti-api/src/schemas/node-dialogue.schema.ts`
     - Define fields: sessionId, nodeId, nodeType, nodeLabel, messageCount, lastMessageAt
     - Add compound index on (sessionId, nodeId)
     - _Requirements: 9.1, 9.4_
-  - [ ] 1.2 Create DialogueMessage schema
+  - [x] 1.2 Create DialogueMessage schema
     - Create `packages/mukti-api/src/schemas/dialogue-message.schema.ts`
     - Define fields: dialogueId, role, content, sequence, metadata
     - Add index on (dialogueId, sequence) for pagination
     - _Requirements: 9.1, 9.4_
-  - [ ] 1.3 Register schemas in module
+  - [x] 1.3 Register schemas in module
     - Update canvas module to import new schemas
     - _Requirements: 9.1_
 
-- [ ] 2. Create dialogue module and service
-  - [ ] 2.1 Create dialogue module structure
+- [x] 2. Create dialogue module and service
+  - [x] 2.1 Create dialogue module structure
     - Create `packages/mukti-api/src/modules/dialogue/` directory
     - Create `dialogue.module.ts` with schema registration
     - Create DTOs: `send-message.dto.ts`, `dialogue-response.dto.ts`
     - Create `dialogue.swagger.ts` for API documentation
     - _Requirements: 9.1_
-  - [ ] 2.2 Implement DialogueService
+  - [x] 2.2 Implement DialogueService
     - Create `dialogue.service.ts`
     - Implement getOrCreateDialogue(sessionId, nodeId, nodeType, nodeLabel)
     - Implement getMessages(dialogueId, pagination)
     - Implement addMessage(dialogueId, role, content)
     - _Requirements: 4.4, 9.2, 9.3_
-  - [ ] 2.3 Implement AI prompt construction
+  - [x] 2.3 Implement AI prompt construction
     - Create `packages/mukti-api/src/modules/dialogue/utils/prompt-builder.ts`
     - Implement buildSystemPrompt(node, problemStructure, technique)
     - Implement getNodeSpecificPrompt(nodeType, nodeLabel)
@@ -42,7 +42,7 @@
     - **Property 2: AI context inclusion**
     - **Validates: Requirements 1.2, 2.2, 4.3**
     - Test that prompts include node content, problem structure, and history
-  - [ ] 2.6 Implement DialogueController
+  - [x] 2.6 Implement DialogueController
     - Create `dialogue.controller.ts`
     - POST /canvas/:sessionId/nodes/:nodeId/messages - send message
     - GET /canvas/:sessionId/nodes/:nodeId/messages - get history with pagination
@@ -57,21 +57,21 @@
 - [ ] 3. Checkpoint - Ensure backend dialogue API works
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Create frontend dialogue types and API
-  - [ ] 4.1 Create dialogue types
+- [x] 4. Create frontend dialogue types and API
+  - [x] 4.1 Create dialogue types
     - Create `packages/mukti-web/src/types/dialogue.types.ts`
     - Define NodeDialogue, DialogueMessage, SendNodeMessageDto interfaces
     - _Requirements: 4.1_
-  - [ ] 4.2 Create dialogue API client
+  - [x] 4.2 Create dialogue API client
     - Create `packages/mukti-web/src/lib/api/dialogue.ts`
     - Implement getMessages(sessionId, nodeId, pagination)
     - Implement sendMessage(sessionId, nodeId, content)
     - _Requirements: 4.1, 4.4_
-  - [ ] 4.3 Add dialogue query keys
+  - [x] 4.3 Add dialogue query keys
     - Update `packages/mukti-web/src/lib/query-keys.ts`
     - Add dialogueKeys factory for messages
     - _Requirements: 4.1_
-  - [ ] 4.4 Create useNodeDialogue hooks
+  - [x] 4.4 Create useNodeDialogue hooks
     - Create `packages/mukti-web/src/lib/hooks/use-dialogue.ts`
     - Implement useNodeMessages query hook with pagination
     - Implement useSendMessage mutation hook
@@ -81,8 +81,8 @@
     - **Validates: Requirements 9.2, 9.3**
     - Test lazy loading and pagination behavior
 
-- [ ] 5. Create chat state management
-  - [ ] 5.1 Create chat Zustand store
+- [-] 5. Create chat state management
+  - [x] 5.1 Create chat Zustand store
     - Create `packages/mukti-web/src/lib/stores/chat-store.ts`
     - Implement activeNodeId, messages map, panelWidth state
     - Implement setActiveNode, addMessage, setMessages, setPanelWidth actions
@@ -97,26 +97,26 @@
     - **Validates: Requirements 7.2**
     - Test that width is clamped between min and max
 
-- [ ] 6. Create chat panel components
-  - [ ] 6.1 Create ChatMessage component
+- [x] 6. Create chat panel components
+  - [x] 6.1 Create ChatMessage component
     - Create `packages/mukti-web/src/components/canvas/chat/chat-message.tsx`
     - Display message with role indicator (user/assistant)
     - Show timestamp
     - Style differently for user vs AI messages
     - _Requirements: 4.2_
-  - [ ] 6.2 Create ChatInput component
+  - [x] 6.2 Create ChatInput component
     - Create `packages/mukti-web/src/components/canvas/chat/chat-input.tsx`
     - Implement textarea with send button
     - Handle Enter to send, Shift+Enter for newline
     - Show loading state during send
     - _Requirements: 2.1_
-  - [ ] 6.3 Create DialogueHeader component
+  - [x] 6.3 Create DialogueHeader component
     - Create `packages/mukti-web/src/components/canvas/chat/dialogue-header.tsx`
     - Display node content as context
     - Show message count
     - Add "Start Dialogue" button for nodes without history
     - _Requirements: 1.2, 5.4_
-  - [ ] 6.4 Create NodeChatPanel component
+  - [x] 6.4 Create NodeChatPanel component
     - Create `packages/mukti-web/src/components/canvas/chat/node-chat-panel.tsx`
     - Integrate DialogueHeader, message list, ChatInput
     - Implement resizable panel with drag handle
@@ -127,7 +127,7 @@
     - **Property 3: Dialogue history display**
     - **Validates: Requirements 4.1, 4.2, 5.3**
     - Test chronological display with timestamps
-  - [ ] 6.6 Create chat components barrel export
+  - [x] 6.6 Create chat components barrel export
     - Create `packages/mukti-web/src/components/canvas/chat/index.ts`
     - Export all chat components
     - _Requirements: N/A (code organization)_
@@ -135,23 +135,23 @@
 - [ ] 7. Checkpoint - Ensure chat panel works
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Create insight node functionality
-  - [ ] 8.1 Create InsightNodeDialog component
+- [x] 8. Create insight node functionality
+  - [x] 8.1 Create InsightNodeDialog component
     - Create `packages/mukti-web/src/components/canvas/insight-node-dialog.tsx`
     - Implement form for insight label input
     - Show parent node context
     - _Requirements: 3.1, 3.2_
-  - [ ] 8.2 Create InsightNode component
+  - [x] 8.2 Create InsightNode component
     - Create `packages/mukti-web/src/components/canvas/nodes/insight-node.tsx`
     - Implement with distinct visual style (different from Seed/Soil/Root)
     - Add exploration indicator
     - _Requirements: 3.5_
-  - [ ] 8.3 Update node types and layout utilities
+  - [x] 8.3 Update node types and layout utilities
     - Update `packages/mukti-web/src/types/canvas-visualization.types.ts` to include 'insight' type
     - Update `packages/mukti-web/src/lib/utils/canvas-layout.ts` with calculateInsightPosition
     - Update nodeTypes map to include InsightNode
     - _Requirements: 3.3, 3.4_
-  - [ ] 8.4 Implement insight creation in canvas store
+  - [x] 8.4 Implement insight creation in canvas store
     - Update `packages/mukti-web/src/lib/stores/canvas-store.ts`
     - Add createInsightNode action
     - Handle edge creation to parent
@@ -161,17 +161,17 @@
     - **Validates: Requirements 3.3, 3.4**
     - Test positioning relative to parent and edge connection
 
-- [ ] 9. Create exploration tracking
-  - [ ] 9.1 Update node components with exploration indicators
+- [x] 9. Create exploration tracking
+  - [x] 9.1 Update node components with exploration indicators
     - Update SeedNode, SoilNode, RootNode, InsightNode components
     - Add badge showing message count or checkmark for explored
     - _Requirements: 6.1, 6.2_
-  - [ ] 9.2 Create exploration status utilities
+  - [x] 9.2 Create exploration status utilities
     - Create `packages/mukti-web/src/lib/utils/exploration-status.ts`
     - Implement isNodeExplored(nodeId, dialogues)
     - Implement calculateCompletionStatus(roots, dialogues)
     - _Requirements: 6.3_
-  - [ ] 9.3 Update CanvasLegend with exploration indicators
+  - [x] 9.3 Update CanvasLegend with exploration indicators
     - Update `packages/mukti-web/src/components/canvas/controls/canvas-legend.tsx`
     - Add exploration status legend items
     - _Requirements: 6.4_
@@ -180,14 +180,14 @@
     - **Validates: Requirements 6.1, 6.2, 6.3**
     - Test indicators and completion calculation
 
-- [ ] 10. Integrate chat panel with canvas
-  - [ ] 10.1 Update ThinkingCanvas to include chat panel
+- [x] 10. Integrate chat panel with canvas
+  - [x] 10.1 Update ThinkingCanvas to include chat panel
     - Update `packages/mukti-web/src/components/canvas/thinking-canvas.tsx`
     - Add NodeChatPanel as resizable side panel
     - Wire up node selection to open chat
     - Handle insight creation callback
     - _Requirements: 1.1, 5.1_
-  - [ ] 10.2 Implement panel size persistence
+  - [x] 10.2 Implement panel size persistence
     - Store panel width in localStorage
     - Restore on canvas load
     - _Requirements: 7.4_

@@ -4,12 +4,12 @@
  * CanvasLegend component for Thinking Canvas
  *
  * Displays a color key explaining the different node types
- * and optionally shows exploration status indicators.
+ * and shows exploration status indicators.
  *
- * @requirements 8.5
+ * @requirements 6.4, 8.5
  */
 
-import { CheckCircle2, GitBranch, Layers, Sparkles } from 'lucide-react';
+import { CheckCircle2, GitBranch, Layers, Lightbulb, MessageCircle, Sparkles } from 'lucide-react';
 
 import type { CanvasLegendProps } from '@/types/canvas-visualization.types';
 
@@ -47,13 +47,37 @@ const NODE_LEGEND_ITEMS: LegendItem[] = [
     icon: <GitBranch className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />,
     label: 'Assumption (Root)',
   },
+  {
+    color: 'bg-emerald-500/20 border-emerald-500/40',
+    description: 'Discoveries from dialogue',
+    icon: <Lightbulb className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />,
+    label: 'Insight',
+  },
+];
+
+/**
+ * Exploration status legend items
+ */
+const EXPLORATION_LEGEND_ITEMS: LegendItem[] = [
+  {
+    color: 'bg-green-500/20',
+    description: 'Node has been explored through dialogue',
+    icon: <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />,
+    label: 'Explored',
+  },
+  {
+    color: 'bg-muted/50',
+    description: 'Number of messages in dialogue',
+    icon: <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />,
+    label: 'Message count',
+  },
 ];
 
 /**
  * CanvasLegend - Node type color key
  *
  * Displays a legend explaining the meaning of different node colors
- * and icons. Optionally shows exploration status indicator.
+ * and icons. Shows exploration status indicators when enabled.
  *
  * @param showExplorationStatus - Whether to show exploration status legend
  */
@@ -67,7 +91,7 @@ export function CanvasLegend({ showExplorationStatus = true }: CanvasLegendProps
     >
       {/* Legend title */}
       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Legend
+        Node Types
       </span>
 
       {/* Node type items */}
@@ -84,15 +108,27 @@ export function CanvasLegend({ showExplorationStatus = true }: CanvasLegendProps
         ))}
       </div>
 
-      {/* Exploration status indicator */}
+      {/* Exploration status indicators */}
       {showExplorationStatus && (
         <>
           <div className="my-1 h-px bg-border" />
-          <div className="flex items-center gap-2" title="Node has been explored through dialogue">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500/20">
-              <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-            </div>
-            <span className="text-xs text-foreground/80">Explored</span>
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Exploration Status
+          </span>
+          <div className="flex flex-col gap-1.5">
+            {EXPLORATION_LEGEND_ITEMS.map((item) => (
+              <div className="flex items-center gap-2" key={item.label} title={item.description}>
+                <div
+                  className={cn(
+                    'flex h-6 w-6 items-center justify-center rounded-full',
+                    item.color
+                  )}
+                >
+                  {item.icon}
+                </div>
+                <span className="text-xs text-foreground/80">{item.label}</span>
+              </div>
+            ))}
           </div>
         </>
       )}

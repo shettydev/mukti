@@ -14,7 +14,7 @@
  */
 
 import { Handle, Position } from '@xyflow/react';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Sparkles } from 'lucide-react';
 
 import type { SeedNodeProps } from '@/types/canvas-visualization.types';
 
@@ -27,13 +27,14 @@ import { SEED_TRUNCATE_LENGTH, shouldTruncate, truncateText } from '@/lib/utils/
  * Displays the main problem/question at the center of the canvas.
  * Uses primary/accent colors to indicate its central importance.
  *
- * @param data - Node data containing label and exploration status
+ * @param data - Node data containing label, exploration status, and message count
  * @param selected - Whether the node is currently selected
  */
 export function SeedNode({ data, selected }: SeedNodeProps) {
-  const { isExplored, label } = data;
+  const { isExplored, label, messageCount = 0 } = data;
   const displayText = truncateText(label, SEED_TRUNCATE_LENGTH);
   const needsTooltip = shouldTruncate(label, SEED_TRUNCATE_LENGTH);
+  const hasMessages = messageCount > 0;
 
   return (
     <div
@@ -54,13 +55,27 @@ export function SeedNode({ data, selected }: SeedNodeProps) {
       )}
       title={needsTooltip ? label : undefined}
     >
-      {/* Exploration status indicator (Requirement 8.4) */}
-      {isExplored && (
+      {/* Exploration status indicator (Requirements 6.1, 6.2) */}
+      {(isExplored || hasMessages) && (
         <div
-          className="absolute -top-2 -right-2 rounded-full bg-green-500 p-1 shadow-sm"
-          title="Explored through dialogue"
+          className={cn(
+            'absolute -top-2 -right-2 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 shadow-sm',
+            isExplored ? 'bg-green-500' : 'bg-primary/80'
+          )}
+          title={
+            isExplored
+              ? `Explored through dialogue (${messageCount} messages)`
+              : `${messageCount} message${messageCount !== 1 ? 's' : ''}`
+          }
         >
-          <CheckCircle2 className="h-3 w-3 text-white" />
+          {isExplored ? (
+            <CheckCircle2 className="h-3 w-3 text-white" />
+          ) : (
+            <>
+              <MessageCircle className="h-2.5 w-2.5 text-white" />
+              <span className="text-[10px] font-medium text-white">{messageCount}</span>
+            </>
+          )}
         </div>
       )}
 

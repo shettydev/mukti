@@ -189,9 +189,9 @@ export function useUpdateCanvasSession() {
       return { previousSession };
     },
 
-    onSettled: (_data, _error, variables) => {
-      // Invalidate to ensure we have the latest data
-      queryClient.invalidateQueries({ queryKey: canvasKeys.detail(variables.id) });
+    onSuccess: (data, variables) => {
+      // Update cache with server response to ensure consistency
+      queryClient.setQueryData(canvasKeys.detail(variables.id), data);
     },
   });
 }

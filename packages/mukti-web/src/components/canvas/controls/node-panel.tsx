@@ -9,7 +9,15 @@
  * @requirements 5.4
  */
 
-import { CheckCircle2, GitBranch, Layers, MessageCircle, Sparkles, X } from 'lucide-react';
+import {
+  CheckCircle2,
+  GitBranch,
+  Layers,
+  Lightbulb,
+  MessageCircle,
+  Sparkles,
+  X,
+} from 'lucide-react';
 
 import type { NodePanelProps, NodeType } from '@/types/canvas-visualization.types';
 
@@ -43,7 +51,8 @@ export function NodePanel({ onClose, onStartDialogue, selectedNode }: NodePanelP
   const nodeType = selectedNode.type as NodeType;
   const config = getNodeTypeConfig(nodeType);
   const { isExplored, label } = selectedNode.data;
-  const index = 'index' in selectedNode.data ? selectedNode.data.index : undefined;
+  const index =
+    'index' in selectedNode.data ? (selectedNode.data.index as number | undefined) : undefined;
 
   return (
     <div
@@ -110,6 +119,12 @@ export function NodePanel({ onClose, onStartDialogue, selectedNode }: NodePanelP
  */
 function getNodeTypeConfig(type: NodeType): NodeTypeConfig {
   switch (type) {
+    case 'insight':
+      return {
+        color: 'text-emerald-600 dark:text-emerald-400',
+        icon: <Lightbulb className="h-4 w-4" />,
+        label: 'Insight',
+      };
     case 'root':
       return {
         color: 'text-violet-600 dark:text-violet-400',
