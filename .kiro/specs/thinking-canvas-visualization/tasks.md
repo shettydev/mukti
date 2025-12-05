@@ -1,25 +1,25 @@
 # Implementation Plan
 
-- [ ] 1. Install React Flow and extend backend schema
-  - [ ] 1.1 Install React Flow dependency
+- [x] 1. Install React Flow and extend backend schema
+  - [x] 1.1 Install React Flow dependency
     - Run `bun add @xyflow/react` in packages/mukti-web
     - Verify installation in package.json
     - _Requirements: N/A (setup)_
-  - [ ] 1.2 Extend CanvasSession schema for positions
+  - [x] 1.2 Extend CanvasSession schema for positions
     - Update `packages/mukti-api/src/schemas/canvas-session.schema.ts`
     - Add nodePositions array field (nodeId, x, y)
     - Add exploredNodes array field for Phase 3 integration
     - _Requirements: 7.3_
-  - [ ] 1.3 Create UpdateCanvasSessionDto
+  - [x] 1.3 Create UpdateCanvasSessionDto
     - Create `packages/mukti-api/src/modules/canvas/dto/update-canvas-session.dto.ts`
     - Add nodePositions and exploredNodes fields with validation
     - _Requirements: 7.3_
-  - [ ] 1.4 Add PATCH endpoint to CanvasController
+  - [x] 1.4 Add PATCH endpoint to CanvasController
     - Update `packages/mukti-api/src/modules/canvas/canvas.controller.ts`
     - Add updateSession method with ownership check
     - Add Swagger documentation
     - _Requirements: 7.3, 10.5_
-  - [ ] 1.5 Implement updateSession in CanvasService
+  - [x] 1.5 Implement updateSession in CanvasService
     - Update `packages/mukti-api/src/modules/canvas/canvas.service.ts`
     - Implement position and exploredNodes updates
     - _Requirements: 7.3_
@@ -27,13 +27,13 @@
 - [ ] 2. Checkpoint - Ensure backend changes work
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Create canvas types and layout utilities
-  - [ ] 3.1 Create canvas visualization types
+- [x] 3. Create canvas types and layout utilities
+  - [x] 3.1 Create canvas visualization types
     - Create `packages/mukti-web/src/types/canvas-visualization.types.ts`
     - Define CanvasNode, CanvasEdge, NodeType, Position interfaces
     - Define LayoutConfig interface with defaults
     - _Requirements: 1.1, 2.1, 3.1_
-  - [ ] 3.2 Create layout algorithm utility
+  - [x] 3.2 Create layout algorithm utility
     - Create `packages/mukti-web/src/lib/utils/canvas-layout.ts`
     - Implement generateLayout function for radial positioning
     - Implement node ID helper functions (SEED_NODE_ID, getSoilNodeId, getRootNodeId)
@@ -51,8 +51,8 @@
     - **Validates: Requirements 6.2, 6.3, 6.4, 6.5, 2.2, 3.2**
     - Test Seed at center, Soil in left hemisphere, Roots in right hemisphere, minimum spacing
 
-- [ ] 4. Create text truncation utility
-  - [ ] 4.1 Create truncation utility function
+- [x] 4. Create text truncation utility
+  - [x] 4.1 Create truncation utility function
     - Create `packages/mukti-web/src/lib/utils/text-truncation.ts`
     - Implement truncateText function with configurable threshold
     - Export SEED_TRUNCATE_LENGTH (100) and SATELLITE_TRUNCATE_LENGTH (50) constants
@@ -62,29 +62,29 @@
     - **Validates: Requirements 1.4, 2.5, 3.5**
     - Test truncation behavior at specified thresholds
 
-- [ ] 5. Create custom node components
-  - [ ] 5.1 Create SeedNode component
+- [x] 5. Create custom node components
+  - [x] 5.1 Create SeedNode component
     - Create `packages/mukti-web/src/components/canvas/nodes/seed-node.tsx`
     - Implement with primary/accent color styling
     - Add text truncation with tooltip for full text
     - Add selection highlight styling
     - Add exploration status indicator
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 5.5, 8.1, 8.4_
-  - [ ] 5.2 Create SoilNode component
+  - [x] 5.2 Create SoilNode component
     - Create `packages/mukti-web/src/components/canvas/nodes/soil-node.tsx`
     - Implement with secondary color styling
     - Add text truncation with tooltip
     - Add selection highlight styling
     - Add exploration status indicator
     - _Requirements: 2.1, 2.3, 2.5, 5.5, 8.2, 8.4_
-  - [ ] 5.3 Create RootNode component
+  - [x] 5.3 Create RootNode component
     - Create `packages/mukti-web/src/components/canvas/nodes/root-node.tsx`
     - Implement with tertiary color styling
     - Add text truncation with tooltip
     - Add selection highlight styling
     - Add exploration status indicator
     - _Requirements: 3.1, 3.3, 3.5, 5.5, 8.3, 8.4_
-  - [ ] 5.4 Create node components barrel export
+  - [x] 5.4 Create node components barrel export
     - Create `packages/mukti-web/src/components/canvas/nodes/index.ts`
     - Export all node components and nodeTypes map for React Flow
     - _Requirements: N/A (code organization)_
@@ -93,30 +93,30 @@
     - **Validates: Requirements 8.4**
     - Test that explored nodes display visual indicator
 
-- [ ] 6. Create canvas controls
-  - [ ] 6.1 Create ZoomControls component
+- [x] 6. Create canvas controls
+  - [x] 6.1 Create ZoomControls component
     - Create `packages/mukti-web/src/components/canvas/controls/zoom-controls.tsx`
     - Implement zoom in, zoom out, fit view buttons
     - Display current zoom percentage
     - _Requirements: 4.5_
-  - [ ] 6.2 Create CanvasLegend component
+  - [x] 6.2 Create CanvasLegend component
     - Create `packages/mukti-web/src/components/canvas/controls/canvas-legend.tsx`
     - Display color key for Seed, Soil, Root nodes
     - Optionally show exploration status legend
     - _Requirements: 8.5_
-  - [ ] 6.3 Create NodePanel component
+  - [x] 6.3 Create NodePanel component
     - Create `packages/mukti-web/src/components/canvas/controls/node-panel.tsx`
     - Display selected node details in side panel
     - Show full text content
     - Add placeholder for "Start Dialogue" button (Phase 3)
     - _Requirements: 5.4_
-  - [ ] 6.4 Create controls barrel export
+  - [x] 6.4 Create controls barrel export
     - Create `packages/mukti-web/src/components/canvas/controls/index.ts`
     - Export all control components
     - _Requirements: N/A (code organization)_
 
-- [ ] 7. Create canvas state management
-  - [ ] 7.1 Create canvas Zustand store
+- [x] 7. Create canvas state management
+  - [x] 7.1 Create canvas Zustand store
     - Create `packages/mukti-web/src/lib/stores/canvas-store.ts`
     - Implement nodes, edges, selectedNodeId, viewport state
     - Implement onNodesChange, onEdgesChange handlers
@@ -135,8 +135,8 @@
 - [ ] 8. Checkpoint - Ensure store and component tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Create main canvas component
-  - [ ] 9.1 Create ThinkingCanvas component
+- [x] 9. Create main canvas component
+  - [x] 9.1 Create ThinkingCanvas component
     - Create `packages/mukti-web/src/components/canvas/thinking-canvas.tsx`
     - Integrate React Flow with custom node types
     - Wire up canvas store for state management
@@ -145,22 +145,22 @@
     - Implement node drag with position updates
     - Add ZoomControls, CanvasLegend, NodePanel
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 5.1, 5.2, 5.3, 7.1, 7.2_
-  - [ ] 9.2 Create canvas component barrel export
+  - [x] 9.2 Create canvas component barrel export
     - Create `packages/mukti-web/src/components/canvas/index.ts`
     - Export ThinkingCanvas and all sub-components
     - _Requirements: N/A (code organization)_
 
-- [ ] 10. Create canvas API client and hooks
-  - [ ] 10.1 Extend canvas API client
+- [x] 10. Create canvas API client and hooks
+  - [x] 10.1 Extend canvas API client
     - Update `packages/mukti-web/src/lib/api/canvas.ts`
     - Add getSession function
     - Add updateSession function for position persistence
     - _Requirements: 10.2, 7.3_
-  - [ ] 10.2 Extend canvas query keys
+  - [x] 10.2 Extend canvas query keys
     - Update `packages/mukti-web/src/lib/query-keys.ts`
     - Add canvasKeys.detail(id) for session queries
     - _Requirements: 10.2_
-  - [ ] 10.3 Create useCanvasSession hook
+  - [x] 10.3 Create useCanvasSession hook
     - Update `packages/mukti-web/src/lib/hooks/use-canvas.ts`
     - Add useCanvasSession query hook
     - Add useUpdateCanvasSession mutation hook
@@ -170,19 +170,19 @@
     - **Validates: Requirements 7.3**
     - Test that saved positions are restored correctly
 
-- [ ] 11. Create canvas page route
-  - [ ] 11.1 Create canvas page component
+- [x] 11. Create canvas page route
+  - [x] 11.1 Create canvas page component
     - Create `packages/mukti-web/src/app/dashboard/canvas/[id]/page.tsx`
     - Implement data fetching with useCanvasSession
     - Handle loading state with skeleton
     - Handle error state with error boundary
     - Handle not-found state
     - _Requirements: 10.1, 10.2, 10.3_
-  - [ ] 11.2 Create canvas loading skeleton
+  - [x] 11.2 Create canvas loading skeleton
     - Create `packages/mukti-web/src/app/dashboard/canvas/[id]/loading.tsx`
     - Display canvas placeholder during load
     - _Requirements: 9.1_
-  - [ ] 11.3 Create canvas not-found page
+  - [x] 11.3 Create canvas not-found page
     - Create `packages/mukti-web/src/app/dashboard/canvas/[id]/not-found.tsx`
     - Display friendly message with link to canvas listing page (`/dashboard/canvas`)
     - _Requirements: 10.3_
@@ -195,8 +195,8 @@
     - **Validates: Requirements 10.5**
     - Test that users can only view their own sessions
 
-- [ ] 12. Wire up wizard to canvas navigation
-  - [ ] 12.1 Update SetupWizardDialog success handler
+- [x] 12. Wire up wizard to canvas navigation
+  - [x] 12.1 Update SetupWizardDialog success handler
     - Update `packages/mukti-web/src/components/canvas/setup-wizard-dialog.tsx`
     - Navigate to `/dashboard/canvas/[id]` on successful creation
     - _Requirements: 10.1_
