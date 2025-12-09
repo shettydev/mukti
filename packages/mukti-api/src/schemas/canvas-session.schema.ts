@@ -29,6 +29,19 @@ export interface ProblemStructure {
 }
 
 /**
+ * Relationship edge connecting an assumption (Root) to a constraint (Soil).
+ * Used to visualize logical relationships between beliefs and limitations.
+ */
+export interface RelationshipEdge {
+  /** Unique identifier for the relationship (e.g., 'rel-root-0-soil-1') */
+  id: string;
+  /** Source node ID - must be an assumption node (root-*) */
+  sourceNodeId: string;
+  /** Target node ID - must be a constraint node (soil-*) */
+  targetNodeId: string;
+}
+
+/**
  * Canvas Session schema for storing Thinking Canvas problem structures.
  *
  * @remarks
@@ -40,6 +53,14 @@ export class CanvasSession {
   _id: Types.ObjectId;
 
   createdAt: Date;
+
+  /**
+   * Array of node IDs that were added dynamically after the initial setup.
+   * Used to distinguish original setup nodes from user-added nodes.
+   * Original nodes cannot be deleted, while dynamic nodes can.
+   */
+  @Prop({ default: [], type: [String] })
+  dynamicNodeIds: string[];
 
   /**
    * Array of node IDs that have been explored through Socratic dialogue.
@@ -73,6 +94,22 @@ export class CanvasSession {
     },
   })
   problemStructure: ProblemStructure;
+
+  /**
+   * Array of relationship edges connecting assumptions (Roots) to constraints (Soil).
+   * Stored as embedded documents for efficient retrieval with the session.
+   */
+  @Prop({
+    default: [],
+    type: [
+      {
+        id: { required: true, type: String },
+        sourceNodeId: { required: true, type: String },
+        targetNodeId: { required: true, type: String },
+      },
+    ],
+  })
+  relationshipEdges: RelationshipEdge[];
 
   updatedAt: Date;
   @Prop({ index: true, ref: 'User', required: true, type: Types.ObjectId })
