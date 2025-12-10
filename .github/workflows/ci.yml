@@ -1,0 +1,62 @@
+name: Mukti
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: 'main'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Check Formatting
+        # Check formatting for affected projects
+        run: bun nx affected --target=format:check --parallel=3
+
+      - name: Lint
+        # Run linting for affected projects
+        run: bun nx affected --target=lint --parallel=3
+
+      - name: Type Check
+        # Run type checking for affected projects
+        run: bun nx affected --target=type-check --parallel=3
+
+      - name: Test
+        # Run tests for affected projects
+        run: bun nx affected --target=test --parallel=3
+
+      - name: Build
+        # Run build for affected projects
+        run: bun nx affected --target=build --parallel=3
