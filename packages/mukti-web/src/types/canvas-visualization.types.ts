@@ -117,12 +117,14 @@ export interface SoilNodeData extends BaseNodeData {
  * @property isExplored - Whether node has been explored in dialogue
  * @property label - Node text content
  * @property messageCount - Number of dialogue messages for this node
+ * @property relationshipCount - Number of relationships this node has
  */
 interface BaseNodeData {
   [key: string]: unknown;
   isExplored?: boolean;
   label: string;
   messageCount?: number;
+  relationshipCount?: number;
 }
 
 /**
