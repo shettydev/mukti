@@ -10,7 +10,6 @@ import { RelationshipEdge } from './relationship-edge';
 
 // Export individual edge components
 export { RelationshipEdge } from './relationship-edge';
-export type { RelationshipEdgeData } from './relationship-edge';
 
 /**
  * Edge types map for React Flow
