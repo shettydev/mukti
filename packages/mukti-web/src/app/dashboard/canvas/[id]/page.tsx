@@ -21,7 +21,12 @@ import { ThinkingCanvas } from '@/components/canvas';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCanvasSession, useUpdateCanvasSession } from '@/lib/hooks/use-canvas';
+import {
+  useCanvasInsights,
+  useCanvasSession,
+  useUpdateCanvasSession,
+  useUpdateInsight,
+} from '@/lib/hooks/use-canvas';
 
 // ============================================================================
 // Types
@@ -59,7 +64,9 @@ export default function CanvasDetailPage({ params }: CanvasDetailPageProps) {
 
 function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
   const { data: session, error, isLoading, refetch } = useCanvasSession(canvasId);
+  const { data: insights, isLoading: isLoadingInsights } = useCanvasInsights(canvasId);
   const { mutate: updateSession } = useUpdateCanvasSession();
+  const { mutate: updateInsight } = useUpdateInsight();
 
   // Handle not found - redirect to not-found page
   useEffect(() => {
@@ -77,6 +84,16 @@ function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
         return;
       }
 
+      // Check if it's an insight node
+      if (nodeId.startsWith('insight-')) {
+        updateInsight({
+          dto: { x: position.x, y: position.y },
+          nodeId,
+          sessionId: canvasId,
+        });
+        return;
+      }
+
       // Build updated positions array
       const existingPositions = session.nodePositions || [];
       const updatedPositions: NodePosition[] = existingPositions.filter((p) => p.nodeId !== nodeId);
@@ -88,11 +105,11 @@ function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
         id: canvasId,
       });
     },
-    [session, canvasId, updateSession]
+    [session, canvasId, updateSession, updateInsight]
   );
 
-  // Loading state
-  if (isLoading) {
+  // Loading state (Requirement 1.3 - load insights alongside session)
+  if (isLoading || isLoadingInsights) {
     return (
       <DashboardLayout showNavbar showSidebar>
         <CanvasLoadingSkeleton />
@@ -109,12 +126,13 @@ function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
     );
   }
 
-  // Session loaded successfully
+  // Session loaded successfully (Requirement 1.3 - initialize store with insights)
   if (session) {
     return (
       <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar showSidebar>
         <ThinkingCanvas
           className="h-full w-full"
+          insights={insights}
           onPositionChange={handlePositionChange}
           session={session}
         />
