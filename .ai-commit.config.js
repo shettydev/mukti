@@ -1,6 +1,6 @@
 export default {
   provider: 'openrouter',
-  model: 'google/gemini-2.5-flash',
+  model: 'deepseek/deepseek-v3.2',
   // OpenRouter API configuration
   apiEndpoint: 'https://openrouter.ai/api/v1/chat/completions',
   // Will use OPENROUTER_API_KEY from environment

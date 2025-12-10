@@ -1,0 +1,260 @@
+# Implementation Plan
+
+- [x] 1. Create InsightNode schema and extend CanvasSession
+  - [x] 1.1 Create InsightNode schema
+    - Create `packages/mukti-api/src/schemas/insight-node.schema.ts`
+    - Define fields: sessionId, nodeId, label, parentNodeId, position, isExplored
+    - Add index on sessionId for efficient queries
+    - _Requirements: 1.1, 1.2, 7.1, 7.4_
+  - [x] 1.2 Extend CanvasSession schema
+    - Update `packages/mukti-api/src/schemas/canvas-session.schema.ts`
+    - Add relationshipEdges array field
+    - Add dynamicNodeIds array field to track nodes added after setup
+    - _Requirements: 3.5, 7.2_
+  - [x] 1.3 Register InsightNode schema in canvas module
+    - Update `packages/mukti-api/src/modules/canvas/canvas.module.ts`
+    - Import and register InsightNode schema
+    - _Requirements: 7.1_
+
+- [x] 2. Create backend DTOs for node management
+  - [x] 2.1 Create CreateInsightNodeDto
+    - Create `packages/mukti-api/src/modules/canvas/dto/create-insight-node.dto.ts`
+    - Add validation for label (5-200 chars), parentNodeId, x, y
+    - _Requirements: 1.1, 1.2_
+  - [x] 2.2 Create AddAssumptionDto
+    - Create `packages/mukti-api/src/modules/canvas/dto/add-assumption.dto.ts`
+    - Add validation for assumption text (5-200 chars)
+    - _Requirements: 2.2_
+  - [x] 2.3 Create AddContextDto
+    - Create `packages/mukti-api/src/modules/canvas/dto/add-context.dto.ts`
+    - Add validation for context text (5-200 chars)
+    - _Requirements: 5.2_
+  - [x] 2.4 Create CreateRelationshipDto
+    - Create `packages/mukti-api/src/modules/canvas/dto/create-relationship.dto.ts`
+    - Add validation for sourceNodeId (root-*) and targetNodeId (soil-*)
+    - _Requirements: 3.3_
+  - [x] 2.5 Create DeleteNodeDto
+    - Create `packages/mukti-api/src/modules/canvas/dto/delete-node.dto.ts`
+    - Add nodeId and optional deleteDependents flag
+    - _Requirements: 6.1_
+
+- [-] 3. Implement insight node service methods
+  - [x] 3.1 Add insight node methods to CanvasService
+    - Update `packages/mukti-api/src/modules/canvas/canvas.service.ts`
+    - Implement createInsightNode with parent validation
+    - Implement getInsightsBySession
+    - Implement deleteInsightNode
+    - _Requirements: 1.1, 1.3, 1.5_
+  - [ ]* 3.2 Write property test for insight persistence round-trip
+    - **Property 1: Insight node persistence round-trip**
+    - **Validates: Requirements 1.1, 1.2, 1.3**
+  - [ ]* 3.3 Write property test for parent node validation
+    - **Property 3: Parent node validation**
+    - **Validates: Requirements 1.5**
+
+- [x] 4. Implement dynamic node service methods
+  - [x] 4.1 Add assumption management methods
+    - Update `packages/mukti-api/src/modules/canvas/canvas.service.ts`
+    - Implement addAssumption with limit check (max 8)
+    - Implement deleteAssumption with original node protection
+    - _Requirements: 2.3, 2.5, 2.6, 6.2_
+  - [x] 4.2 Add context management methods
+    - Update `packages/mukti-api/src/modules/canvas/canvas.service.ts`
+    - Implement addContext with limit check (max 10)
+    - Implement deleteContext with original node protection
+    - _Requirements: 5.3, 5.5, 5.6, 6.2_
+  - [ ]* 4.3 Write property test for node count limits
+    - **Property 7: Node count limits**
+    - **Validates: Requirements 2.6, 5.6**
+  - [ ]* 4.4 Write property test for original node deletion protection
+    - **Property 11: Original node deletion protection**
+    - **Validates: Requirements 6.2**
+
+- [x] 5. Implement relationship service methods
+  - [x] 5.1 Add relationship management methods
+    - Update `packages/mukti-api/src/modules/canvas/canvas.service.ts`
+    - Implement createRelationship
+    - Implement deleteRelationship
+    - Implement getRelationshipsBySession
+    - _Requirements: 3.3, 3.5, 3.6_
+  - [ ]* 5.2 Write property test for relationship edge creation
+    - **Property 8: Relationship edge creation**
+    - **Validates: Requirements 3.3, 3.4, 3.5**
+  - [ ]* 5.3 Write property test for multiple relationships to same constraint
+    - **Property 9: Multiple relationships to same constraint**
+    - **Validates: Requirements 3.6**
+
+- [x] 6. Checkpoint - Ensure backend service tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Create backend API endpoints
+  - [ ] 7.1 Add insight node endpoints to CanvasController
+    - Update `packages/mukti-api/src/modules/canvas/canvas.controller.ts`
+    - POST /canvas/sessions/:id/insights
+    - GET /canvas/sessions/:id/insights
+    - DELETE /canvas/sessions/:id/insights/:nodeId
+    - Add Swagger documentation
+    - _Requirements: 1.1, 1.3_
+  - [ ] 7.2 Add assumption endpoints
+    - POST /canvas/sessions/:id/assumptions
+    - DELETE /canvas/sessions/:id/assumptions/:index
+    - Add Swagger documentation
+    - _Requirements: 2.1, 2.3_
+  - [ ] 7.3 Add context endpoints
+    - POST /canvas/sessions/:id/context
+    - DELETE /canvas/sessions/:id/context/:index
+    - Add Swagger documentation
+    - _Requirements: 5.1, 5.3_
+  - [ ] 7.4 Add relationship endpoints
+    - POST /canvas/sessions/:id/relationships
+    - DELETE /canvas/sessions/:id/relationships/:id
+    - Add Swagger documentation
+    - _Requirements: 3.1, 3.3_
+  - [ ] 7.5 Add node deletion endpoint
+    - DELETE /canvas/sessions/:id/nodes/:nodeId
+    - Handle cascade deletion of dependent insights
+    - Add Swagger documentation
+    - _Requirements: 6.1, 6.3, 6.4_
+
+- [ ] 8. Checkpoint - Ensure backend API tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 9. Create frontend types and API client
+  - [x] 9.1 Extend canvas types
+    - Update `packages/mukti-web/src/types/canvas.types.ts`
+    - Add InsightNode interface
+    - Add RelationshipEdge interface
+    - Add CreateInsightNodeDto, AddAssumptionDto, AddContextDto, CreateRelationshipDto
+    - _Requirements: 1.1, 3.3_
+  - [x] 9.2 Extend canvas API client
+    - Update `packages/mukti-web/src/lib/api/canvas.ts`
+    - Add createInsight, getInsights, deleteInsight
+    - Add addAssumption, deleteAssumption
+    - Add addContext, deleteContext
+    - Add createRelationship, deleteRelationship
+    - Add deleteNode
+    - _Requirements: 1.1, 2.3, 3.3, 5.3, 6.1_
+  - [x] 9.3 Add query keys for new endpoints
+    - Update `packages/mukti-web/src/lib/query-keys.ts`
+    - Add canvasKeys.insights(sessionId)
+    - Add canvasKeys.relationships(sessionId)
+    - _Requirements: 1.3_
+  - [x] 9.4 Create useCanvasInsights hook
+    - Update `packages/mukti-web/src/lib/hooks/use-canvas.ts`
+    - Add useCanvasInsights query hook
+    - Add useCreateInsight, useDeleteInsight mutations
+    - _Requirements: 1.1, 1.3_
+
+- [x] 10. Extend canvas store for node management
+  - [x] 10.1 Add relationship and dynamic node state
+    - Update `packages/mukti-web/src/lib/stores/canvas-store.ts`
+    - Add relationshipEdges state
+    - Add dynamicNodeIds state
+    - Update initializeFromSession to load insights and relationships
+    - _Requirements: 3.3, 3.5_
+  - [x] 10.2 Add assumption management actions
+    - Implement addAssumption action with API call
+    - Implement deleteAssumption action
+    - Handle optimistic updates
+    - _Requirements: 2.3, 2.5_
+  - [x] 10.3 Add context management actions
+    - Implement addContext action with API call
+    - Implement deleteContext action
+    - Handle optimistic updates
+    - _Requirements: 5.3, 5.5_
+  - [x] 10.4 Add relationship management actions
+    - Implement createRelationship action
+    - Implement deleteRelationship action
+    - _Requirements: 3.3, 3.5_
+  - [x] 10.5 Add node deletion actions
+    - Implement deleteNode action with cascade handling
+    - Implement canDeleteNode helper
+    - Implement getDependentNodes helper
+    - _Requirements: 6.1, 6.3, 6.4_
+  - [x] 10.6 Update createInsightNode to persist
+    - Modify existing createInsightNode to call API
+    - Handle optimistic updates with rollback
+    - _Requirements: 1.1, 1.4_
+  - [ ]* 10.7 Write property test for insight edge creation
+    - **Property 2: Insight edge creation**
+    - **Validates: Requirements 1.4**
+  - [ ]* 10.8 Write property test for dynamic node positioning
+    - **Property 5: Dynamic node positioning**
+    - **Validates: Requirements 2.4, 5.4**
+  - [ ]* 10.9 Write property test for edge cleanup on deletion
+    - **Property 12: Edge cleanup on deletion**
+    - **Validates: Requirements 6.3**
+
+- [ ] 11. Checkpoint - Ensure store tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 12. Create node management dialogs
+  - [x] 12.1 Create AddAssumptionDialog component
+    - Create `packages/mukti-web/src/components/canvas/add-assumption-dialog.tsx`
+    - Implement form with text input and validation
+    - Show current count and max limit
+    - _Requirements: 2.1, 2.2, 2.6_
+  - [x] 12.2 Create AddContextDialog component
+    - Create `packages/mukti-web/src/components/canvas/add-context-dialog.tsx`
+    - Implement form with text input and validation
+    - Show current count and max limit
+    - _Requirements: 5.1, 5.2, 5.6_
+  - [x] 12.3 Create LinkConstraintDialog component
+    - Create `packages/mukti-web/src/components/canvas/link-constraint-dialog.tsx`
+    - Display available constraints for selection
+    - Show already linked constraints as disabled
+    - _Requirements: 3.1, 3.2_
+  - [x] 12.4 Create DeleteNodeDialog component
+    - Create `packages/mukti-web/src/components/canvas/delete-node-dialog.tsx`
+    - Show dependent nodes that will be deleted
+    - Confirm deletion with cascade option
+    - _Requirements: 6.1, 6.4_
+
+- [x] 13. Create relationship edge styling
+  - [x] 13.1 Create RelationshipEdge component
+    - Create `packages/mukti-web/src/components/canvas/edges/relationship-edge.tsx`
+    - Implement dashed line styling with muted color
+    - Add hover highlight for connected nodes
+    - _Requirements: 3.4, 4.1, 4.2_
+  - [x] 13.2 Update canvas legend
+    - Update `packages/mukti-web/src/components/canvas/controls/canvas-legend.tsx`
+    - Add relationship edge explanation
+    - _Requirements: 4.3_
+  - [x] 13.3 Add relationship count indicator to nodes
+    - Update SeedNode, SoilNode, RootNode, InsightNode components
+    - Display small badge showing relationship count
+    - _Requirements: 4.4_
+  - [ ]* 13.4 Write property test for relationship count indicator
+    - **Property 10: Relationship count indicator**
+    - **Validates: Requirements 4.4**
+
+- [x] 14. Integrate node management into canvas
+  - [x] 14.1 Add toolbar actions to ThinkingCanvas
+    - Update `packages/mukti-web/src/components/canvas/thinking-canvas.tsx`
+    - Add "Add Assumption" button
+    - Add "Add Context" button
+    - Wire up dialogs
+    - _Requirements: 2.1, 5.1_
+  - [x] 14.2 Add context menu actions for nodes
+    - Add "Link to Constraint" action for Root nodes
+    - Add "Delete" action for deletable nodes
+    - Wire up dialogs
+    - _Requirements: 3.1, 6.1_
+  - [x] 14.3 Register relationship edge type
+    - Update React Flow edge types to include RelationshipEdge
+    - Handle relationship edge rendering
+    - _Requirements: 3.4_
+  - [x] 14.4 Update canvas page to load insights
+    - Update `packages/mukti-web/src/app/dashboard/canvas/[id]/page.tsx`
+    - Fetch insights alongside session data
+    - Initialize store with insights
+    - _Requirements: 1.3_
+  - [ ]* 14.5 Write property test for dynamic node persistence
+    - **Property 6: Dynamic node persistence**
+    - **Validates: Requirements 2.5, 5.5**
+  - [ ]* 14.6 Write property test for deletion persistence
+    - **Property 13: Deletion persistence**
+    - **Validates: Requirements 6.5**
+
+- [ ] 15. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

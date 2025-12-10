@@ -11,6 +11,10 @@ import {
   DialogueMessageSchema,
 } from '../../schemas/dialogue-message.schema';
 import {
+  InsightNode,
+  InsightNodeSchema,
+} from '../../schemas/insight-node.schema';
+import {
   NodeDialogue,
   NodeDialogueSchema,
 } from '../../schemas/node-dialogue.schema';
@@ -36,6 +40,7 @@ import { CanvasService } from './canvas.service';
     MongooseModule.forFeature([
       { name: CanvasSession.name, schema: CanvasSessionSchema },
       { name: DialogueMessage.name, schema: DialogueMessageSchema },
+      { name: InsightNode.name, schema: InsightNodeSchema },
       { name: NodeDialogue.name, schema: NodeDialogueSchema },
       { name: User.name, schema: UserSchema },
     ]),

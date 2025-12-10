@@ -155,6 +155,23 @@ export const canvasKeys = {
   detail: (id: string) => [...canvasKeys.sessions(), 'detail', id] as const,
 
   /**
+   * Key for insight nodes of a specific canvas session
+   *
+   * @param sessionId - Canvas session ID
+   * @returns Query key for session insights
+   */
+  insights: (sessionId: string) => [...canvasKeys.session(sessionId), 'insights'] as const,
+
+  /**
+   * Key for relationship edges of a specific canvas session
+   *
+   * @param sessionId - Canvas session ID
+   * @returns Query key for session relationships
+   */
+  relationships: (sessionId: string) =>
+    [...canvasKeys.session(sessionId), 'relationships'] as const,
+
+  /**
    * Key for specific canvas session detail
    *
    * @param id - Canvas session ID

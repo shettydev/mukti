@@ -3,6 +3,7 @@ export * from './canvas-session.schema';
 export * from './conversation.schema';
 export * from './daily-usage-aggregate.schema';
 export * from './dialogue-message.schema';
+export * from './insight-node.schema';
 export * from './node-dialogue.schema';
 export * from './rate-limit.schema';
 export * from './refresh-token.schema';
@@ -31,6 +32,7 @@ import {
   DialogueMessage,
   DialogueMessageSchema,
 } from './dialogue-message.schema';
+import { InsightNode, InsightNodeSchema } from './insight-node.schema';
 import { NodeDialogue, NodeDialogueSchema } from './node-dialogue.schema';
 import { RateLimit, RateLimitSchema } from './rate-limit.schema';
 import { RefreshToken, RefreshTokenSchema } from './refresh-token.schema';
@@ -53,6 +55,7 @@ export const ALL_SCHEMAS = [
   { name: CanvasSession.name, schema: CanvasSessionSchema },
   { name: ArchivedMessage.name, schema: ArchivedMessageSchema },
   { name: DialogueMessage.name, schema: DialogueMessageSchema },
+  { name: InsightNode.name, schema: InsightNodeSchema },
   { name: NodeDialogue.name, schema: NodeDialogueSchema },
   { name: Resource.name, schema: ResourceSchema },
   { name: Technique.name, schema: TechniqueSchema },
