@@ -91,7 +91,7 @@
         "cwd": "packages/mukti-api"
       }
     },
-    "tsc": {
+    "type-check": {
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit",
