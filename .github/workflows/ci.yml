@@ -1,4 +1,4 @@
-name: CI
+name: Mukti
 
 on:
   push:
@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: CI Checks
+  quality-gate:
+    name: Quality Gate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
