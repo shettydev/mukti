@@ -54,5 +54,10 @@
     "commitizen": {
       "path": "@commitlint/cz-commitlint"
     }
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,css,md,html}": [
+      "bun prettier --write"
+    ]
   }
 }
