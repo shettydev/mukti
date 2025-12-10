@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -16,6 +17,13 @@ import type { User } from '../../schemas/user.schema';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CanvasService } from './canvas.service';
+import {
+  AddAssumptionDto,
+  AddContextDto,
+  CreateInsightNodeDto,
+  CreateRelationshipDto,
+  UpdateInsightNodeDto,
+} from './dto';
 import { CanvasSessionResponseDto } from './dto/canvas-session-response.dto';
 import {
   ApiCreateCanvasSession,
@@ -39,6 +47,111 @@ import { UpdateCanvasSessionDto } from './dto/update-canvas-session.dto';
 @UseGuards(JwtAuthGuard)
 export class CanvasController {
   constructor(private readonly canvasService: CanvasService) {}
+
+  /**
+   * Adds a new assumption (Root node) to a canvas session.
+   */
+  @HttpCode(HttpStatus.OK)
+  @Post('sessions/:id/assumptions')
+  async addAssumption(
+    @Param('id') id: string,
+    @Body() dto: AddAssumptionDto,
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.canvasService.addAssumption(id, user._id, dto);
+    return {
+      data: CanvasSessionResponseDto.fromDocument(result.session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Adds a new context item (Soil node) to a canvas session.
+   */
+  @HttpCode(HttpStatus.OK)
+  @Post('sessions/:id/context')
+  async addContext(
+    @Param('id') id: string,
+    @Body() dto: AddContextDto,
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.canvasService.addContext(id, user._id, dto);
+    return {
+      data: CanvasSessionResponseDto.fromDocument(result.session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Creates a new insight node.
+   */
+  @HttpCode(HttpStatus.CREATED)
+  @Post('sessions/:id/insights')
+  async createInsight(
+    @Param('id') id: string,
+    @Body() dto: CreateInsightNodeDto,
+    @CurrentUser() user: User,
+  ) {
+    const insight = await this.canvasService.createInsightNode(
+      id,
+      user._id,
+      dto,
+    );
+    return insight;
+  }
+
+  /**
+   * Updates an insight node.
+   */
+  @HttpCode(HttpStatus.OK)
+  @Patch('sessions/:id/insights/:nodeId')
+  async updateInsight(
+    @Param('id') id: string,
+    @Param('nodeId') nodeId: string,
+    @Body() dto: UpdateInsightNodeDto,
+    @CurrentUser() user: User,
+  ) {
+    const insight = await this.canvasService.updateInsightNode(
+      id,
+      nodeId,
+      user._id,
+      dto,
+    );
+    return insight;
+  }
+
+  /**
+   * Creates a relationship edge.
+   */
+  @HttpCode(HttpStatus.CREATED)
+  @Post('sessions/:id/relationships')
+  async createRelationship(
+    @Param('id') id: string,
+    @Body() dto: CreateRelationshipDto,
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.canvasService.createRelationship(
+      id,
+      user._id,
+      dto,
+    );
+    return {
+      data: CanvasSessionResponseDto.fromDocument(result.session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
 
   /**
    * Creates a new canvas session with the problem structure.
@@ -68,6 +181,105 @@ export class CanvasController {
       success: true,
     };
   }
+
+  // ============================================
+  // Dynamic Node Endpoints
+  // ============================================
+
+  /**
+   * Deletes a dynamically-added assumption.
+   */
+  @Delete('sessions/:id/assumptions/:index')
+  @HttpCode(HttpStatus.OK)
+  async deleteAssumption(
+    @Param('id') id: string,
+    @Param('index') index: number,
+    @CurrentUser() user: User,
+  ) {
+    const session = await this.canvasService.deleteAssumption(
+      id,
+      index,
+      user._id,
+    );
+    return {
+      data: CanvasSessionResponseDto.fromDocument(session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Deletes a dynamically-added context item.
+   */
+  @Delete('sessions/:id/context/:index')
+  @HttpCode(HttpStatus.OK)
+  async deleteContext(
+    @Param('id') id: string,
+    @Param('index') index: number,
+    @CurrentUser() user: User,
+  ) {
+    const session = await this.canvasService.deleteContext(id, index, user._id);
+    return {
+      data: CanvasSessionResponseDto.fromDocument(session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Deletes an insight node.
+   */
+  @Delete('sessions/:id/insights/:nodeId')
+  @HttpCode(HttpStatus.OK)
+  async deleteInsight(
+    @Param('id') id: string,
+    @Param('nodeId') nodeId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.canvasService.deleteInsightNode(id, nodeId, user._id);
+    return {
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Deletes a relationship edge.
+   */
+  @Delete('sessions/:id/relationships/:relationshipId')
+  @HttpCode(HttpStatus.OK)
+  async deleteRelationship(
+    @Param('id') id: string,
+    @Param('relationshipId') relationshipId: string,
+    @CurrentUser() user: User,
+  ) {
+    const session = await this.canvasService.deleteRelationship(
+      id,
+      relationshipId,
+      user._id,
+    );
+    return {
+      data: CanvasSessionResponseDto.fromDocument(session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  // ============================================
+  // Insight Node Endpoints
+  // ============================================
 
   /**
    * Retrieves all canvas sessions for the authenticated user.
@@ -113,6 +325,22 @@ export class CanvasController {
       success: true,
     };
   }
+
+  /**
+   * Gets all insight nodes for a session.
+   */
+  @Get('sessions/:id/insights')
+  async getInsights(@Param('id') id: string, @CurrentUser() user: User) {
+    const insights = await this.canvasService.getInsightsBySession(
+      id,
+      user._id,
+    );
+    return insights;
+  }
+
+  // ============================================
+  // Relationship Endpoints
+  // ============================================
 
   /**
    * Updates a canvas session with new node positions or explored nodes.
