@@ -9,7 +9,15 @@
  * @requirements 6.4, 8.5
  */
 
-import { CheckCircle2, GitBranch, Layers, Lightbulb, MessageCircle, Sparkles } from 'lucide-react';
+import {
+  CheckCircle2,
+  GitBranch,
+  Layers,
+  Lightbulb,
+  Link2,
+  MessageCircle,
+  Sparkles,
+} from 'lucide-react';
 
 import type { CanvasLegendProps } from '@/types/canvas-visualization.types';
 
@@ -52,6 +60,34 @@ const NODE_LEGEND_ITEMS: LegendItem[] = [
     description: 'Discoveries from dialogue',
     icon: <Lightbulb className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />,
     label: 'Insight',
+  },
+];
+
+/**
+ * Edge type legend items
+ */
+interface EdgeLegendItem {
+  color: string;
+  description: string;
+  icon: React.ReactNode;
+  label: string;
+  style: 'dashed' | 'solid';
+}
+
+const EDGE_LEGEND_ITEMS: EdgeLegendItem[] = [
+  {
+    color: 'bg-muted-foreground/50',
+    description: 'Structural connection between nodes',
+    icon: null,
+    label: 'Parent-Child',
+    style: 'solid',
+  },
+  {
+    color: 'bg-primary/50',
+    description: 'Assumption linked to constraint',
+    icon: <Link2 className="h-3 w-3 text-primary" />,
+    label: 'Relationship',
+    style: 'dashed',
   },
 ];
 
@@ -104,6 +140,36 @@ export function CanvasLegend({ showExplorationStatus = true }: CanvasLegendProps
               {item.icon}
             </div>
             <span className="text-xs text-foreground/80">{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Edge types section (Requirement 4.3) */}
+      <div className="my-1 h-px bg-border" />
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Edge Types
+      </span>
+      <div className="flex flex-col gap-1.5">
+        {EDGE_LEGEND_ITEMS.map((item) => (
+          <div className="flex items-center gap-2" key={item.label} title={item.description}>
+            <div className="flex h-6 w-10 items-center justify-center">
+              {/* Edge line visualization */}
+              <div
+                className={cn(
+                  'h-0.5 w-8',
+                  item.color,
+                  item.style === 'dashed' &&
+                    'border-t-2 border-dashed border-primary/50 bg-transparent'
+                )}
+                style={
+                  item.style === 'solid'
+                    ? { backgroundColor: 'hsl(var(--muted-foreground) / 0.5)' }
+                    : undefined
+                }
+              />
+            </div>
+            <span className="text-xs text-foreground/80">{item.label}</span>
+            {item.icon && <span className="ml-auto">{item.icon}</span>}
           </div>
         ))}
       </div>

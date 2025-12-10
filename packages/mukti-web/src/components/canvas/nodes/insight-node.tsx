@@ -14,7 +14,7 @@
  */
 
 import { Handle, Position } from '@xyflow/react';
-import { CheckCircle2, Lightbulb, MessageCircle } from 'lucide-react';
+import { CheckCircle2, Lightbulb, Link2, MessageCircle } from 'lucide-react';
 
 import type { InsightNodeProps } from '@/types/canvas-visualization.types';
 
@@ -36,10 +36,11 @@ import {
  * @param selected - Whether the node is currently selected
  */
 export function InsightNode({ data, selected }: InsightNodeProps) {
-  const { isExplored, label, messageCount = 0 } = data;
+  const { isExplored, label, messageCount = 0, relationshipCount = 0 } = data;
   const displayText = truncateText(label, SATELLITE_TRUNCATE_LENGTH);
   const needsTooltip = shouldTruncate(label, SATELLITE_TRUNCATE_LENGTH);
   const hasMessages = messageCount > 0;
+  const hasRelationships = relationshipCount > 0;
 
   return (
     <div
@@ -83,6 +84,17 @@ export function InsightNode({ data, selected }: InsightNodeProps) {
               <span className="text-[10px] font-medium text-white">{messageCount}</span>
             </>
           )}
+        </div>
+      )}
+
+      {/* Relationship count indicator (Requirement 4.4) */}
+      {hasRelationships && (
+        <div
+          className="absolute -bottom-2 -right-2 flex items-center gap-0.5 rounded-full bg-emerald-500/80 px-1.5 py-0.5 shadow-sm"
+          title={`${relationshipCount} relationship${relationshipCount !== 1 ? 's' : ''}`}
+        >
+          <Link2 className="h-2.5 w-2.5 text-white" />
+          <span className="text-[10px] font-medium text-white">{relationshipCount}</span>
         </div>
       )}
 
