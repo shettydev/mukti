@@ -34,7 +34,7 @@ const scopes = [
   'release',
 
   // kiro
-  'kiro'
+  'kiro',
 ];
 
 module.exports = {
@@ -45,30 +45,30 @@ module.exports = {
       2,
       'always',
       [
-        'feat',      // New feature
-        'fix',       // Bug fix
-        'docs',      // Documentation only
-        'style',     // Code style (formatting, missing semi-colons, etc.)
-        'refactor',  // Code refactoring
-        'perf',      // Performance improvement
-        'test',      // Adding/updating tests
-        'build',     // Build system or external dependencies
-        'ci',        // CI/CD changes
-        'chore',     // Other changes that don't modify src/test files
-        'revert',    // Revert previous commit
-        'wip',       // Work in progress (avoid in main branch)
-        'init'       // Initial commit
-      ]
+        'feat', // New feature
+        'fix', // Bug fix
+        'docs', // Documentation only
+        'style', // Code style (formatting, missing semi-colons, etc.)
+        'refactor', // Code refactoring
+        'perf', // Performance improvement
+        'test', // Adding/updating tests
+        'build', // Build system or external dependencies
+        'ci', // CI/CD changes
+        'chore', // Other changes that don't modify src/test files
+        'revert', // Revert previous commit
+        'wip', // Work in progress (avoid in main branch)
+        'init', // Initial commit
+      ],
     ],
     'subject-case': [2, 'always', 'sentence-case'],
     'header-max-length': [2, 'always', 100],
     'body-max-line-length': [2, 'always', 400],
-    'footer-max-line-length': [2, 'always', 100]
+    'footer-max-line-length': [2, 'always', 100],
   },
   prompt: {
     settings: {
       enableMultipleScopes: true,
-      scopeEnumSeparator: ','
+      scopeEnumSeparator: ',',
     },
     enableMultipleScopes: true,
     scopeEnumSeparator: ',',
@@ -78,7 +78,7 @@ module.exports = {
       min: '%d chars at least',
       emptyWarning: 'can not be empty',
       upperLimitWarning: 'over limit',
-      lowerLimitWarning: 'below limit'
+      lowerLimitWarning: 'below limit',
     },
     questions: {
       type: {
@@ -87,97 +87,99 @@ module.exports = {
           feat: {
             description: 'A new feature',
             title: 'Features',
-            emoji: '✨'
+            emoji: '✨',
           },
           fix: {
             description: 'A bug fix',
             title: 'Bug Fixes',
-            emoji: '🐛'
+            emoji: '🐛',
           },
           docs: {
             description: 'Documentation only changes',
             title: 'Documentation',
-            emoji: '📚'
+            emoji: '📚',
           },
           style: {
             description: 'Changes that do not affect the meaning of the code',
             title: 'Styles',
-            emoji: '💎'
+            emoji: '💎',
           },
           refactor: {
             description: 'A code change that neither fixes a bug nor adds a feature',
             title: 'Code Refactoring',
-            emoji: '📦'
+            emoji: '📦',
           },
           perf: {
             description: 'A code change that improves performance',
             title: 'Performance Improvements',
-            emoji: '🚀'
+            emoji: '🚀',
           },
           test: {
             description: 'Adding missing tests or correcting existing tests',
             title: 'Tests',
-            emoji: '🚨'
+            emoji: '🚨',
           },
           build: {
             description: 'Changes that affect the build system or external dependencies',
             title: 'Builds',
-            emoji: '🛠'
+            emoji: '🛠',
           },
           ci: {
             description: 'Changes to CI configuration files and scripts',
             title: 'Continuous Integrations',
-            emoji: '⚙️'
+            emoji: '⚙️',
           },
           chore: {
             description: "Other changes that don't modify src or test files",
             title: 'Chores',
-            emoji: '♻️'
+            emoji: '♻️',
           },
           revert: {
             description: 'Reverts a previous commit',
             title: 'Reverts',
-            emoji: '🗑'
+            emoji: '🗑',
           },
           wip: {
             description: 'Work in progress (avoid in main branch)',
             title: 'Work in Progress',
-            emoji: '🚧'
+            emoji: '🚧',
           },
           init: {
             description: 'Initial commit',
             title: 'Initial',
-            emoji: '🎉'
-          }
-        }
+            emoji: '🎉',
+          },
+        },
       },
       scope: {
-        description: 'What is the scope of this change (e.g. component or file name)?'
+        description: 'What is the scope of this change (e.g. component or file name)?',
       },
       subject: {
-        description: 'Write a short, imperative tense description of the change'
+        description: 'Write a short, imperative tense description of the change',
       },
       body: {
-        description: 'Provide a longer description of the change'
+        description: 'Provide a longer description of the change',
       },
       isBreaking: {
-        description: 'Are there any breaking changes?'
+        description: 'Are there any breaking changes?',
       },
       breakingBody: {
-        description: 'A BREAKING CHANGE commit requires a body. Please enter a longer description of the commit itself'
+        description:
+          'A BREAKING CHANGE commit requires a body. Please enter a longer description of the commit itself',
       },
       breaking: {
-        description: 'Describe the breaking changes'
+        description: 'Describe the breaking changes',
       },
       isIssueAffected: {
-        description: 'Does this change affect any open issues?'
+        description: 'Does this change affect any open issues?',
       },
       issuesBody: {
-        description: 'If issues are closed, the commit requires a body. Please enter a longer description of the commit itself'
+        description:
+          'If issues are closed, the commit requires a body. Please enter a longer description of the commit itself',
       },
       issues: {
-        description: 'Add issue references (e.g. "fix #123", "re #123".)'
-      }
-    }
-  }
+        description: 'Add issue references (e.g. "fix #123", "re #123".)',
+      },
+    },
+  },
 };
