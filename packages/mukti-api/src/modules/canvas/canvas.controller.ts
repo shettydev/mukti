@@ -26,10 +26,20 @@ import {
 } from './dto';
 import { CanvasSessionResponseDto } from './dto/canvas-session-response.dto';
 import {
+  ApiAddAssumption,
+  ApiAddContext,
   ApiCreateCanvasSession,
+  ApiCreateInsight,
+  ApiCreateRelationship,
+  ApiDeleteAssumption,
+  ApiDeleteContext,
+  ApiDeleteInsight,
+  ApiDeleteRelationship,
   ApiGetCanvasSessionById,
   ApiGetCanvasSessions,
+  ApiGetInsights,
   ApiUpdateCanvasSession,
+  ApiUpdateInsight,
 } from './dto/canvas.swagger';
 import { CreateCanvasSessionDto } from './dto/create-canvas-session.dto';
 import { UpdateCanvasSessionDto } from './dto/update-canvas-session.dto';
@@ -51,6 +61,7 @@ export class CanvasController {
   /**
    * Adds a new assumption (Root node) to a canvas session.
    */
+  @ApiAddAssumption()
   @HttpCode(HttpStatus.OK)
   @Post('sessions/:id/assumptions')
   async addAssumption(
@@ -72,6 +83,7 @@ export class CanvasController {
   /**
    * Adds a new context item (Soil node) to a canvas session.
    */
+  @ApiAddContext()
   @HttpCode(HttpStatus.OK)
   @Post('sessions/:id/context')
   async addContext(
@@ -93,6 +105,7 @@ export class CanvasController {
   /**
    * Creates a new insight node.
    */
+  @ApiCreateInsight()
   @HttpCode(HttpStatus.CREATED)
   @Post('sessions/:id/insights')
   async createInsight(
@@ -111,6 +124,7 @@ export class CanvasController {
   /**
    * Updates an insight node.
    */
+  @ApiUpdateInsight()
   @HttpCode(HttpStatus.OK)
   @Patch('sessions/:id/insights/:nodeId')
   async updateInsight(
@@ -131,6 +145,7 @@ export class CanvasController {
   /**
    * Creates a relationship edge.
    */
+  @ApiCreateRelationship()
   @HttpCode(HttpStatus.CREATED)
   @Post('sessions/:id/relationships')
   async createRelationship(
@@ -189,6 +204,7 @@ export class CanvasController {
   /**
    * Deletes a dynamically-added assumption.
    */
+  @ApiDeleteAssumption()
   @Delete('sessions/:id/assumptions/:index')
   @HttpCode(HttpStatus.OK)
   async deleteAssumption(
@@ -214,6 +230,7 @@ export class CanvasController {
   /**
    * Deletes a dynamically-added context item.
    */
+  @ApiDeleteContext()
   @Delete('sessions/:id/context/:index')
   @HttpCode(HttpStatus.OK)
   async deleteContext(
@@ -235,6 +252,7 @@ export class CanvasController {
   /**
    * Deletes an insight node.
    */
+  @ApiDeleteInsight()
   @Delete('sessions/:id/insights/:nodeId')
   @HttpCode(HttpStatus.OK)
   async deleteInsight(
@@ -255,6 +273,7 @@ export class CanvasController {
   /**
    * Deletes a relationship edge.
    */
+  @ApiDeleteRelationship()
   @Delete('sessions/:id/relationships/:relationshipId')
   @HttpCode(HttpStatus.OK)
   async deleteRelationship(
@@ -329,6 +348,7 @@ export class CanvasController {
   /**
    * Gets all insight nodes for a session.
    */
+  @ApiGetInsights()
   @Get('sessions/:id/insights')
   async getInsights(@Param('id') id: string, @CurrentUser() user: User) {
     const insights = await this.canvasService.getInsightsBySession(
