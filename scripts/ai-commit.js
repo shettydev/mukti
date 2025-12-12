@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { confirm, input, select } from '@inquirer/prompts';
+import { confirm, input, select, editor } from '@inquirer/prompts';
 import { execSync } from 'child_process';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -53,15 +53,13 @@ function getGitDiff() {
 
 // Call OpenRouter API
 async function callOpenRouter(diff, count = 3) {
-  const userPrompt = config.userPromptTemplate
-    .replace('{diff}', diff)
-    .replace('{count}', count);
+  const userPrompt = config.userPromptTemplate.replace('{diff}', diff).replace('{count}', count);
 
   const response = await fetch(config.apiEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       'HTTP-Referer': 'https://github.com/yourusername/mukti', // Optional
       'X-Title': 'Mukti AI Commit', // Optional
     },
@@ -69,7 +67,7 @@ async function callOpenRouter(diff, count = 3) {
       model: config.model,
       messages: [
         { role: 'system', content: config.systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
       max_tokens: 500,
@@ -138,12 +136,12 @@ function parseCommitMessages(aiResponse) {
     const parsed = JSON.parse(cleaned);
 
     if (Array.isArray(parsed)) {
-      return parsed.map(msg => ({
+      return parsed.map((msg) => ({
         type: msg.type,
         scope: msg.scope || '',
         subject: msg.subject.charAt(0).toUpperCase() + msg.subject.slice(1),
         body: wrapText(msg.body || '', 100),
-        full: `${msg.type}${msg.scope ? `(${msg.scope})` : ''}: ${msg.subject.charAt(0).toUpperCase() + msg.subject.slice(1)}`
+        full: `${msg.type}${msg.scope ? `(${msg.scope})` : ''}: ${msg.subject.charAt(0).toUpperCase() + msg.subject.slice(1)}`,
       }));
     }
   } catch (error) {
@@ -152,23 +150,37 @@ function parseCommitMessages(aiResponse) {
 
   // Fallback: parse text format
   try {
-    const lines = aiResponse.split('\n').filter(l => l.trim());
-    const commitLines = lines.filter(line => {
+    const lines = aiResponse.split('\n').filter((l) => l.trim());
+    const commitLines = lines.filter((line) => {
       // Look for lines that start with type (feat, fix, etc.)
-      return /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.*?\))?:/i.test(line);
+      return /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.*?\))?:/i.test(
+        line
+      );
     });
 
     if (commitLines.length > 0) {
-      return commitLines.slice(0, 3).map(line => ({
-        full: line.replace(/^\d+\.\s*/, '').trim().replace(/^([^:]+:\s*)(.)(.*)$/, (match, prefix, first, rest) => prefix + first.toUpperCase() + rest),
-        body: ''
+      return commitLines.slice(0, 3).map((line) => ({
+        full: line
+          .replace(/^\d+\.\s*/, '')
+          .trim()
+          .replace(
+            /^([^:]+:\s*)(.)(.*)$/,
+            (match, prefix, first, rest) => prefix + first.toUpperCase() + rest
+          ),
+        body: '',
       }));
     }
 
     // Last resort: just take first 3 non-empty lines
-    return lines.slice(0, 3).map(line => ({
-      full: line.replace(/^\d+\.\s*/, '').trim().replace(/^([^:]+:\s*)(.)(.*)$/, (match, prefix, first, rest) => prefix + first.toUpperCase() + rest),
-      body: ''
+    return lines.slice(0, 3).map((line) => ({
+      full: line
+        .replace(/^\d+\.\s*/, '')
+        .trim()
+        .replace(
+          /^([^:]+:\s*)(.)(.*)$/,
+          (match, prefix, first, rest) => prefix + first.toUpperCase() + rest
+        ),
+      body: '',
     }));
   } catch {
     return [];
@@ -186,9 +198,10 @@ async function main() {
 
   // Limit diff size (OpenRouter has token limits)
   const maxDiffLength = 4000;
-  const truncatedDiff = diff.length > maxDiffLength
-    ? diff.substring(0, maxDiffLength) + '\n... (diff truncated)'
-    : diff;
+  const truncatedDiff =
+    diff.length > maxDiffLength
+      ? diff.substring(0, maxDiffLength) + '\n... (diff truncated)'
+      : diff;
 
   // Generate commit messages
   console.log('🧠 Generating commit messages...\n');
@@ -215,21 +228,21 @@ async function main() {
       ...messages.map((msg, i) => ({
         name: msg.full,
         value: msg,
-        description: msg.body ? `Details: ${msg.body}` : undefined
+        description: msg.body ? `Details: ${msg.body}` : undefined,
       })),
       {
         name: '✏️  Write custom message',
-        value: 'custom'
+        value: 'custom',
       },
       {
         name: '🔄 Regenerate messages',
-        value: 'regenerate'
+        value: 'regenerate',
       },
       {
         name: '❌ Cancel',
-        value: 'cancel'
-      }
-    ]
+        value: 'cancel',
+      },
+    ],
   });
 
   if (selected === 'cancel') {
@@ -248,7 +261,7 @@ async function main() {
   if (selected === 'custom') {
     commitMessage = await input({
       message: 'Enter commit message:',
-      validate: (value) => value.length > 0 || 'Message cannot be empty'
+      validate: (value) => value.length > 0 || 'Message cannot be empty',
     });
   } else {
     commitMessage = selected.full;
@@ -259,45 +272,67 @@ async function main() {
   if (!commitBody) {
     const addBody = await confirm({
       message: 'Add detailed description (body)?',
-      default: false
+      default: false,
     });
 
     if (addBody) {
-      commitBody = await input({
-        message: 'Enter commit body (will be wrapped to 100 chars):'
+      commitBody = await editor({
+        message: 'Enter commit body (opens in your default editor):',
       });
       commitBody = wrapText(commitBody, 100);
     }
   }
 
-  // Confirm commit
-  console.log('\n📝 Commit message:');
-  console.log('─'.repeat(50));
-  console.log(commitMessage);
-  if (commitBody) {
-    console.log();
-    console.log(commitBody);
-  }
-  console.log('─'.repeat(50));
+  // Confirm or edit commit
+  while (true) {
+    console.log('\n📝 Commit message:');
+    console.log('─'.repeat(50));
+    console.log(commitMessage);
+    if (commitBody) {
+      console.log();
+      console.log(commitBody);
+    }
+    console.log('─'.repeat(50));
 
-  const shouldCommit = await confirm({
-    message: 'Create commit?',
-    default: true
-  });
+    const action = await select({
+      message: 'What would you like to do?',
+      choices: [
+        { name: '✅ Commit', value: 'commit' },
+        { name: '✏️  Edit message', value: 'edit' },
+        { name: '❌ Cancel', value: 'cancel' },
+      ],
+    });
 
-  if (!shouldCommit) {
-    console.log('❌ Commit cancelled');
-    process.exit(0);
+    if (action === 'cancel') {
+      console.log('❌ Commit cancelled');
+      process.exit(0);
+    }
+
+    if (action === 'commit') {
+      break;
+    }
+
+    if (action === 'edit') {
+      commitMessage = await input({
+        message: 'Edit subject:',
+        default: commitMessage,
+        validate: (value) => value.length > 0 || 'Message cannot be empty',
+      });
+
+      commitBody = await editor({
+        message: 'Edit body (opens in your default editor):',
+        default: commitBody,
+      });
+      commitBody = wrapText(commitBody, 100);
+    }
   }
 
   // Create commit
   try {
-    const fullMessage = commitBody
-      ? `${commitMessage}\n\n${commitBody}`
-      : commitMessage;
+    const fullMessage = commitBody ? `${commitMessage}\n\n${commitBody}` : commitMessage;
 
     execSync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, {
-      stdio: 'inherit'
+      stdio: 'inherit',
     });
 
     console.log('\n✅ Commit created successfully!');
@@ -308,7 +343,7 @@ async function main() {
 }
 
 // Run
-main().catch(error => {
+main().catch((error) => {
   console.error('❌ Unexpected error:', error);
   process.exit(1);
 });
