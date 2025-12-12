@@ -23,7 +23,7 @@ jobs:
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v4
         with:
-          main-branch-name: 'main'
+          main-branch-name: "main"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -78,7 +78,7 @@ jobs:
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v4
         with:
-          main-branch-name: 'main'
+          main-branch-name: "main"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -97,7 +97,8 @@ jobs:
         run: bun install
 
       - name: Debug Dokploy Connection
-        run: curl -v ${{ secrets.DOKPLOY_API_URL }}/api/project.all --header 'x-api-key: ${{ secrets.DOKPLOY_API_KEY }}' || true
+        run: |
+          curl -v ${{ secrets.DOKPLOY_API_URL }}/api/project.all --header 'x-api-key: ${{ secrets.DOKPLOY_API_KEY }}' || true
 
       - name: Deploy to Dokploy
         env:
