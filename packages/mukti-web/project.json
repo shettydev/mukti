@@ -62,6 +62,13 @@
         "command": "tsc --noEmit",
         "cwd": "packages/mukti-web"
       }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun ../../scripts/deploy-dokploy.ts 64e6zw6n2HSGyRtTi3qp- web",
+        "cwd": "packages/mukti-web"
+      }
     }
   }
 }

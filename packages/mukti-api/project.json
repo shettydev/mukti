@@ -97,6 +97,13 @@
         "command": "tsc --noEmit",
         "cwd": "packages/mukti-api"
       }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun ../../scripts/deploy-dokploy.ts P61XR8uMoGZ6x2sohbIJg api",
+        "cwd": "packages/mukti-api"
+      }
     }
   }
 }
