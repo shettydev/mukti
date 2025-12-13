@@ -7,27 +7,27 @@ export function Feature() {
   const features = [
     {
       description:
-        'Engage in deep Socratic dialogues that challenge your assumptions and foster independent thinking.',
+        'Stop accepting the first answer. Engage in rigorous dialogue that challenges your premises and uncovers the flaws in your logic.',
       icon: <MessageSquare className="w-6 h-6" />,
-      title: 'Intelligent Conversations',
+      title: 'Socratic Inquiry',
     },
     {
       description:
-        'Visual thinking space to map out arguments, evidence, and logical flows for better decision making.',
+        'Visualize the chaos of your mind. Map out complex arguments and logical flows in a space designed for deep, structural thinking.',
       icon: <Brain className="w-6 h-6" />,
-      title: 'Thinking Canvas',
+      title: 'Cartography of Thought',
     },
     {
       description:
-        'Access top-tier models like Claude 3.5 Sonnet, Opus, GPT-4, and Gemini Pro for diverse perspectives.',
+        "Don't rely on a single oracle. Switch between top-tier models like Claude 4.5 Sonnet and GPT-5.2 to stress-test your ideas against different intelligences.",
       icon: <Sparkles className="w-6 h-6" />,
-      title: 'Multi-Model Support',
+      title: 'Cognitive Diversity',
     },
     {
       description:
-        'Connect directly with your own OpenRouter API key for complete control and data privacy.',
+        'Your thoughts are yours alone. Bring your own OpenRouter API key and rest assured that your cognitive data remains under your control.',
       icon: <Key className="w-6 h-6" />,
-      title: 'BYO API Key',
+      title: 'Sovereign Data Control',
     },
   ];
 
@@ -52,11 +52,12 @@ export function Feature() {
             </div>
 
             <h2 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 text-white text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400">
-              Revolutionize Communication Now
+              Liberate Your Thinking
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl leading-relaxed">
-              Transform your communication and streamline your workflow with AI-driven automation
-              that enhances productivity and delivers seamless interactions.
+              {/* While most AI tools give you the answer. Mukti gives you the questions. <br /> */}
+              Mukti empowers you to think better, faster, and more independently through intelligent
+              conversations, visual thinking, and tailored insights.
             </p>
           </div>
         </div>
