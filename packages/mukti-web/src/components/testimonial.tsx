@@ -45,7 +45,7 @@ export function Testimonial() {
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4 text-center text-white">
           What Totally Real Users Are Saying
         </h2>
-        <p className="text-lg text-slate-400 italic text-center max-w-2xl italic">
+        <p className="text-lg text-slate-400 text-center max-w-2xl italic">
           Disclaimer: These testimonials are as real as unicorns.
         </p>
       </div>
