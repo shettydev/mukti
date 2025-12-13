@@ -15,6 +15,12 @@ async function bootstrap() {
     bodyParser: true, // Explicitly enable body parser
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
+
+  // Trust proxy is required when running behind a reverse proxy (e.g. Nginx, Cloudflare)
+  // This ensures that secure cookies and IP rate limiting work correctly
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
   const logger = new Logger('Bootstrap');
   const configService = app.get(ConfigService);
 
@@ -95,8 +101,9 @@ async function bootstrap() {
         cookie: {
           httpOnly: true,
           maxAge: 86400000, // 24 hours
-          sameSite: 'strict',
+          sameSite: 'lax',
           secure: true,
+          domain: isProduction ? 'mukti.live' : undefined,
         },
         ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
       }),

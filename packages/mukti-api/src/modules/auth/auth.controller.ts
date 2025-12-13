@@ -552,7 +552,7 @@ export class AuthController {
         process.env.NODE_ENV === 'production' ? 'mukti.live' : 'localhost',
       httpOnly: true,
       maxAge,
-      sameSite: 'strict' as const,
+      sameSite: 'lax' as const,
       secure: process.env.NODE_ENV === 'production',
     };
   }
