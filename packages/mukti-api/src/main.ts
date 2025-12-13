@@ -19,7 +19,7 @@ async function bootstrap() {
   // Trust proxy is required when running behind a reverse proxy (e.g. Nginx, Cloudflare)
   // This ensures that secure cookies and IP rate limiting work correctly
   const expressApp = app.getHttpAdapter().getInstance();
-  expressApp.set('trust proxy', 1);
+  expressApp.set('trust proxy', true);
 
   const logger = new Logger('Bootstrap');
   const configService = app.get(ConfigService);
@@ -93,17 +93,19 @@ async function bootstrap() {
       : (frontendUrl ?? 'http://localhost:3001'),
   });
 
+  // Ensure CORS middleware is registered before csurf
+  await app.init();
+
   // Security: CSRF protection (only for state-changing operations)
   // Skip CSRF for API documentation and health check endpoints
   if (isProduction) {
     app.use(
       csurf({
         cookie: {
+          domain: 'mukti.live',
           httpOnly: true,
           maxAge: 86400000, // 24 hours
-          sameSite: 'lax',
           secure: true,
-          domain: isProduction ? 'mukti.live' : undefined,
         },
         ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
       }),
