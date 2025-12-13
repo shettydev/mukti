@@ -549,7 +549,7 @@ export class AuthController {
   private getCookieOptions(maxAge?: number) {
     return {
       domain:
-        process.env.NODE_ENV === 'production' ? '.mukti.live' : 'localhost',
+        process.env.NODE_ENV === 'production' ? 'mukti.live' : 'localhost',
       httpOnly: true,
       maxAge,
       sameSite: 'strict' as const,
