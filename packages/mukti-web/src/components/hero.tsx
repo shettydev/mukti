@@ -26,7 +26,7 @@ export function Hero() {
           }}
           whileInView={{ opacity: 1, y: 0 }}
         >
-          Think for Yourself, <br /> Not Through AI
+          Take Back the Wheel
         </motion.h1>
 
         <motion.p
@@ -39,8 +39,9 @@ export function Hero() {
           }}
           whileInView={{ opacity: 1, y: 0 }}
         >
-          Mukti is your AI mentor that uses the Socratic method to guide you toward your own
-          insights. Break free from cognitive dependency.
+          AI should be your navigator, not your driver. <br />
+          Mukti forces you to think, question, and arrive at your own insights - manual mode for
+          your mind.
         </motion.p>
 
         <motion.div
