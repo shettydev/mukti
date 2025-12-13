@@ -8,7 +8,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
-import { SendMessageDto } from './send-message.dto';
+import { DialogueSendMessageDto } from './send-message.dto';
 
 /**
  * Swagger documentation for sending a message to a node dialogue
@@ -31,7 +31,7 @@ export const ApiSendNodeMessage = () =>
       example: 'root-0',
       name: 'nodeId',
     }),
-    ApiBody({ type: SendMessageDto }),
+    ApiBody({ type: DialogueSendMessageDto }),
     ApiResponse({
       description: 'Message enqueued for processing',
       schema: {

@@ -4,7 +4,7 @@ import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 /**
  * DTO for sending a message in a node dialogue.
  */
-export class SendMessageDto {
+export class DialogueSendMessageDto {
   @ApiProperty({
     description: 'The message content to send',
     example: 'I believe this assumption is valid because...',
