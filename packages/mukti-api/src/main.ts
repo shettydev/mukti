@@ -81,6 +81,25 @@ async function bootstrap() {
   // Security: CORS configuration
   const corsOrigins = configService.get<string>('CORS_ORIGINS');
   const frontendUrl = configService.get<string>('FRONTEND_URL');
+  const cookieDomain =
+    configService.get<string>('COOKIE_DOMAIN') ??
+    (isProduction ? 'mukti.live' : 'localhost');
+
+  const allowedOrigins = new Set<string>(
+    corsOrigins
+      ? corsOrigins
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean)
+      : [frontendUrl ?? 'http://localhost:3001'],
+  );
+
+  if (isProduction && cookieDomain !== 'localhost') {
+    const normalizedDomain = cookieDomain.replace(/^\./, '');
+    allowedOrigins.add(`https://${normalizedDomain}`);
+    allowedOrigins.add(`https://www.${normalizedDomain}`);
+    allowedOrigins.add(`https://api.${normalizedDomain}`);
+  }
 
   app.enableCors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
@@ -88,9 +107,7 @@ async function bootstrap() {
     exposedHeaders: ['X-CSRF-Token'],
     maxAge: 86400, // 24 hours
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    origin: corsOrigins
-      ? corsOrigins.split(',').map((origin) => origin.trim())
-      : (frontendUrl ?? 'http://localhost:3001'),
+    origin: Array.from(allowedOrigins),
   });
 
   // Ensure CORS middleware is registered before csurf
@@ -99,12 +116,20 @@ async function bootstrap() {
   // Security: CSRF protection (only for state-changing operations)
   // Skip CSRF for API documentation and health check endpoints
   if (isProduction) {
+    const normalizedCookieDomain =
+      cookieDomain === 'localhost'
+        ? cookieDomain
+        : cookieDomain.startsWith('.')
+          ? cookieDomain
+          : `.${cookieDomain}`;
+
     app.use(
       csurf({
         cookie: {
-          domain: 'mukti.live',
+          domain: normalizedCookieDomain,
           httpOnly: true,
           maxAge: 86400000, // 24 hours
+          sameSite: 'lax',
           secure: true,
         },
         ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],

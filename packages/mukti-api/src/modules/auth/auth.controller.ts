@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 
 import type {
   AuthResponseDto,
@@ -70,12 +71,17 @@ import { SessionService } from './services/session.service';
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
+  private readonly cookieDomain: string;
+  private readonly isProduction = process.env.NODE_ENV === 'production';
 
   constructor(
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
     private readonly oauthService: OAuthService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.cookieDomain = this.getCookieDomainFromConfig();
+  }
 
   /**
    * Changes the current user's password
@@ -546,14 +552,51 @@ export class AuthController {
     return { message: 'Email verified successfully' };
   }
 
+  private getCookieDomainFromConfig(): string {
+    const explicitDomain =
+      this.configService.get<string>('COOKIE_DOMAIN') ??
+      this.configService.get<string>('BASE_DOMAIN');
+
+    if (explicitDomain) {
+      return explicitDomain;
+    }
+
+    const corsOrigins = this.configService.get<string>('CORS_ORIGINS');
+    if (corsOrigins) {
+      for (const origin of corsOrigins
+        .split(',')
+        .map((value) => value.trim())) {
+        try {
+          const hostname = new URL(origin).hostname;
+          if (hostname) {
+            return hostname;
+          }
+        } catch {
+          // Ignore invalid origins from configuration
+        }
+      }
+    }
+
+    return this.isProduction ? 'mukti.live' : 'localhost';
+  }
+
+  private normalizeCookieDomain(): string {
+    if (this.cookieDomain === 'localhost') {
+      return this.cookieDomain;
+    }
+
+    return this.cookieDomain.startsWith('.')
+      ? this.cookieDomain
+      : `.${this.cookieDomain}`;
+  }
+
   private getCookieOptions(maxAge?: number) {
     return {
-      domain:
-        process.env.NODE_ENV === 'production' ? 'mukti.live' : 'localhost',
+      domain: this.normalizeCookieDomain(),
       httpOnly: true,
       maxAge,
       sameSite: 'lax' as const,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.isProduction,
     };
   }
 }
