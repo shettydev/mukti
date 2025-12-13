@@ -8,6 +8,7 @@ type SpotlightProps = {
   gradientSecond?: string;
   gradientThird?: string;
   height?: number;
+  side?: 'both' | 'left' | 'right';
   smallWidth?: number;
   translateY?: number;
   width?: number;
@@ -20,6 +21,7 @@ export const Spotlight = ({
   gradientSecond = 'radial-gradient(50% 50% at 50% 50%, hsla(210, 100%, 85%, .06) 0, hsla(210, 100%, 55%, .02) 80%, transparent 100%)',
   gradientThird = 'radial-gradient(50% 50% at 50% 50%, hsla(210, 100%, 85%, .04) 0, hsla(210, 100%, 45%, .02) 80%, transparent 100%)',
   height = 1380,
+  side = 'both',
   smallWidth = 240,
   translateY = -350,
   width = 560,
@@ -43,6 +45,9 @@ export const Spotlight = ({
           x: [0, xOffset, 0],
         }}
         className="absolute top-0 left-0 w-screen h-screen z-40 pointer-events-none"
+        style={{
+          opacity: side === 'left' || side === 'both' ? 1 : 0,
+        }}
         transition={{
           duration,
           ease: 'easeInOut',
@@ -86,6 +91,9 @@ export const Spotlight = ({
           x: [0, -xOffset, 0],
         }}
         className="absolute top-0 right-0 w-screen h-screen z-40 pointer-events-none"
+        style={{
+          opacity: side === 'right' || side === 'both' ? 1 : 0,
+        }}
         transition={{
           duration,
           ease: 'easeInOut',
