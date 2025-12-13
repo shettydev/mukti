@@ -135,12 +135,17 @@ export function Example() {
               <span className="text-primary">True Insight.</span>
             </h2>
 
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Most AI tools act like search engines, giving you direct answers that bypass critical
-              thinking. <hr className="py-2 border-0" />
-              Mukti acts like a mentor, challenging your assumptions and guiding you to discover the
-              solution yourself.
-            </p>
+            <div className="text-lg text-muted-foreground leading-relaxed space-y-4">
+              <p>
+                Most AI tools act like search engines, giving you direct answers that bypass
+                critical thinking.
+              </p>
+              <hr className="py-2 border-0" />
+              <p>
+                Mukti acts like a mentor, challenging your assumptions and guiding you to discover
+                the solution yourself.
+              </p>
+            </div>
 
             <div className="flex flex-col gap-4">
               <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm">
