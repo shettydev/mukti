@@ -30,12 +30,17 @@ async function bootstrap() {
   // Exclude API documentation endpoints from strict CSP
   const isProduction = configService.get<string>('NODE_ENV') === 'production';
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
+  const docsRoute = 'docs';
+  const referenceRoute = 'reference';
+  const prefixedDocsRoute = `/${apiPrefix}/${docsRoute}`;
+  const prefixedReferenceRoute = `/${apiPrefix}/${referenceRoute}`;
 
   app.use((req, res, next) => {
     // Skip Helmet CSP for documentation endpoints
     if (
       req.path.startsWith('/reference') ||
-      req.path.startsWith(`/${apiPrefix}/docs`)
+      req.path.startsWith(prefixedReferenceRoute) ||
+      req.path.startsWith(prefixedDocsRoute)
     ) {
       return next();
     }
@@ -110,6 +115,26 @@ async function bootstrap() {
     origin: Array.from(allowedOrigins),
   });
 
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Mukti API')
+    .setDescription('API documentation for the Mukti backend')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup(docsRoute, app, swaggerDocument, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+    useGlobalPrefix: true,
+  });
+
+  const referenceHandler = apiReference({
+    content: swaggerDocument,
+  });
+  app.use(`/${referenceRoute}`, referenceHandler);
+  app.use(prefixedReferenceRoute, referenceHandler);
+
   // Ensure CORS middleware is registered before csurf
   await app.init();
 
@@ -136,26 +161,6 @@ async function bootstrap() {
       }),
     );
   }
-
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Mukti API')
-    .setDescription('API documentation for the Mukti backend')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(`${apiPrefix}/docs`, app, swaggerDocument, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  });
-
-  app.use(
-    `/reference`,
-    apiReference({
-      content: swaggerDocument,
-    }),
-  );
 
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);
