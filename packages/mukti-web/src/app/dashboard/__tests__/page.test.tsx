@@ -69,8 +69,11 @@ describe('DashboardPage', () => {
 
     renderWithProviders(<DashboardPage />);
 
-    // Check for user profile content
-    expect(screen.getByText(/Hi, There/i)).toBeInTheDocument();
+    // Check for user profile content and hero section
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Test/i);
+    expect(
+      screen.getByRole('heading', { level: 2, name: /Unlock Your Potential/i })
+    ).toBeInTheDocument();
     expect(screen.getByText(/Test User/i)).toBeInTheDocument();
     expect(screen.getByText(/test@example.com/i)).toBeInTheDocument();
   });
