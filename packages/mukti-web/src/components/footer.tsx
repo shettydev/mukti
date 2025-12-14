@@ -1,15 +1,26 @@
-import { Brain } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export function Footer() {
   return (
-    <footer className="border-t bg-muted/50">
-      <div className="container mx-auto px-4 py-12">
+    <footer className="relative overflow-hidden border-t bg-muted/50">
+      <div className="container relative z-10 mx-auto px-4 py-12">
         <div className="grid gap-8 md:grid-cols-5">
           <div className="md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <Brain className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">mukti</span>
+              <div className="relative w-fit max-w-sm overflow-hidden rounded-3xl border border-border/60 bg-card shadow-md">
+                <Image
+                  alt="Mukti Logo"
+                  className="h-full w-72 object-cover rounded-3xl"
+                  height={378}
+                  priority
+                  quality={95}
+                  sizes="(min-width: 768px) 18rem, 85vw"
+                  src="/mukti-logo.png"
+                  width={672}
+                />
+              </div>
+              {/*<span className="text-xl font-bold">mukti</span>*/}
             </div>
             <p className="text-muted-foreground mb-4 max-w-md">
               Liberation from AI dependency through the power of guided self-discovery and the
@@ -98,7 +109,10 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link className="hover:text-foreground transition-colors" href="#">
+                <Link
+                  className="hover:text-foreground transition-colors"
+                  href="https://api.mukti.live/reference"
+                >
                   Documentation
                 </Link>
               </li>
@@ -143,6 +157,9 @@ export function Footer() {
             </Link>
           </p>
         </div>
+      </div>
+      <div className="pointer-events-none absolute bottom-0 left-0 flex w-full justify-center overflow-hidden opacity-5">
+        <span className="select-none text-[20vw] font-bold leading-none">mukti</span>
       </div>
     </footer>
   );
