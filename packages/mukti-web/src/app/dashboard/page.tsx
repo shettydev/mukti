@@ -1,19 +1,14 @@
 'use client';
 
-import { ArrowRight, Loader2, Mic, Paperclip, Smile, Sparkles } from 'lucide-react';
+import { ArrowRight, Brain, MessageSquare, MessageSquarePlus } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { conversationsApi } from '@/lib/api/conversations';
+import { Spotlight } from '@/components/ui/spotlight-new';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { useCreateConversation } from '@/lib/hooks/use-conversations';
 
 /**
  * Feature card component props
@@ -21,6 +16,7 @@ import { useCreateConversation } from '@/lib/hooks/use-conversations';
 interface FeatureCardProps {
   description: string;
   href: string;
+  icon: React.ReactNode;
   title: string;
 }
 
@@ -30,7 +26,6 @@ interface FeatureCardProps {
  * Features:
  * - Welcome section with personalized greeting
  * - Feature cards for quick actions
- * - Chat interface for Socratic inquiry (Quick Start)
  */
 export default function DashboardPage() {
   return (
@@ -45,47 +40,6 @@ export default function DashboardPage() {
  */
 function DashboardContent() {
   const { user } = useAuth();
-  const router = useRouter();
-  const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const createMutation = useCreateConversation();
-
-  const handleSendMessage = async () => {
-    if (!message.trim() || isSending) {
-      return;
-    }
-
-    setIsSending(true);
-
-    try {
-      // 1. Create a new conversation
-      const conversation = await createMutation.mutateAsync({
-        tags: [],
-        technique: 'elenchus',
-        title: message.slice(0, 50) + (message.length > 50 ? '...' : ''),
-      });
-
-      // 2. Send the message
-      await conversationsApi.sendMessage(conversation.id, {
-        content: message,
-      });
-
-      // 3. Redirect to the new conversation
-      router.push(`/dashboard/conversations/${conversation.id}`);
-      toast.success('Conversation started!');
-    } catch (error) {
-      console.error('Failed to start conversation:', error);
-      toast.error('Failed to start conversation. Please try again.');
-      setIsSending(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -99,95 +53,72 @@ function DashboardContent() {
   };
 
   return (
-    <DashboardLayout contentClassName="p-6" title={`${getGreeting()}, ${user?.firstName} 👋`}>
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Welcome Section */}
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl mb-2">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
-          <h2 className="text-3xl font-bold">Hi, There 👋</h2>
-          <p className="text-white/60 max-w-xl mx-auto">
-            Choose a prompt below or write your own to start chatting with Mukti AI.
-          </p>
-        </div>
-
-        {/* Feature Cards */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <FeatureCard
-            description="Start a new Socratic inquiry session. I'll guide you through structured questioning to help you discover your own solutions."
-            href="/dashboard/conversations?openDialog=true"
-            title="New Conversation"
-          />
-          <FeatureCard
-            description="Continue your ongoing inquiry sessions. Review past conversations and build upon your previous insights and discoveries."
-            href="/dashboard/conversations"
-            title="My Conversations"
-          />
-          <FeatureCard
-            description="Explore different Socratic techniques like Elenchus, Maieutics, and Dialectic to deepen your critical thinking skills."
-            href="/dashboard/conversations"
-            title="Inquiry Methods"
-          />
-        </div>
-
-        {/* Chat Input */}
-        <Card className="bg-[#111111] border-white/10 p-6">
-          <div className="space-y-4">
-            <div className="relative">
-              <Textarea
-                className="min-h-[100px] bg-transparent border-white/10 text-white placeholder:text-white/40 resize-none pr-12"
-                disabled={isSending}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask anything..."
-                value={message}
+    <DashboardLayout
+      contentClassName="p-0 relative overflow-hidden"
+      title={`${getGreeting()}, ${user?.firstName} 👋`}
+    >
+      <div className="h-full w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative overflow-hidden">
+        <Spotlight />
+        <div className="p-6 max-w-6xl mx-auto space-y-12 relative z-10">
+          {/* Welcome Section */}
+          <div className="text-center space-y-6 pt-8">
+            <div className="relative w-32 h-32 mx-auto mb-6">
+              <Image
+                alt="Mukti AI"
+                className="object-contain drop-shadow-[0_0_25px_rgba(59,130,246,0.3)]"
+                fill
+                priority
+                src="/mukti-logo-2.png"
               />
-              <div className="absolute bottom-3 left-3 text-xs text-white/40">
-                {message.length}/240
-              </div>
             </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Button disabled={isSending} size="icon" variant="ghost">
-                  <Paperclip className="w-4 h-4" />
-                </Button>
-                <Button disabled={isSending} size="icon" variant="ghost">
-                  <Smile className="w-4 h-4" />
-                </Button>
-                <Button disabled={isSending} size="icon" variant="ghost">
-                  <Mic className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <Button
-                className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white"
-                disabled={!message.trim() || isSending}
-                onClick={handleSendMessage}
-              >
-                {isSending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4 mr-2" />
-                )}
-                {isSending ? 'Starting...' : 'Send'}
-              </Button>
+            <div className="space-y-2">
+              <h2 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 bg-opacity-50">
+                Unlock Your Potential
+              </h2>
+              <p className="text-lg text-neutral-300 max-w-2xl mx-auto">
+                Engage in deep Socratic dialogue to explore ideas, challenge assumptions, and
+                discover solutions.
+              </p>
             </div>
           </div>
-        </Card>
+
+          {/* Feature Cards */}
+          <div className="grid md:grid-cols-3 gap-6">
+            <FeatureCard
+              description="Start a new Socratic inquiry session. I'll guide you through structured questioning to help you discover your own solutions."
+              href="/dashboard/conversations?openDialog=true"
+              icon={<MessageSquarePlus className="w-6 h-6 text-purple-400" />}
+              title="New Conversation"
+            />
+            <FeatureCard
+              description="Continue your ongoing inquiry sessions. Review past conversations and build upon your previous insights and discoveries."
+              href="/dashboard/conversations"
+              icon={<MessageSquare className="w-6 h-6 text-blue-400" />}
+              title="My Conversations"
+            />
+            <FeatureCard
+              description="Map out your thoughts visually. Create nodes, connections, and explore complex problems in a spatial canvas."
+              href="/dashboard/canvas"
+              icon={<Brain className="w-6 h-6 text-emerald-400" />}
+              title="Thinking Session"
+            />
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
 }
 
-function FeatureCard({ description, href, title }: FeatureCardProps) {
+function FeatureCard({ description, href, icon, title }: FeatureCardProps) {
   return (
     <Link className="block h-full group" href={href}>
-      <Card className="bg-[#111111] border-white/10 p-6 hover:border-purple-500/30 transition-colors cursor-pointer h-full">
-        <h3 className="font-semibold mb-2">{title}</h3>
-        <p className="text-sm text-white/60 mb-4">{description}</p>
-        <div className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1 group-hover:gap-2 transition-all">
+      <Card className="bg-[#111111]/50 backdrop-blur-sm border-white/10 p-6 hover:border-purple-500/30 hover:bg-white/[0.05] transition-all duration-300 cursor-pointer h-full flex flex-col">
+        <div className="mb-4 p-3 bg-white/5 w-fit rounded-xl group-hover:scale-110 transition-transform duration-300">
+          {icon}
+        </div>
+        <h3 className="font-semibold mb-2 text-lg text-neutral-200">{title}</h3>
+        <p className="text-sm text-neutral-400 mb-6 flex-grow leading-relaxed">{description}</p>
+        <div className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1 group-hover:gap-2 transition-all font-medium mt-auto">
           Try Now
           <ArrowRight className="w-4 h-4" />
         </div>

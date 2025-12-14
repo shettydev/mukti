@@ -1,7 +1,5 @@
 'use client';
 
-import type { ReactNode } from 'react';
-
 import {
   Brain,
   FileText,
@@ -11,12 +9,14 @@ import {
   Mail,
   Menu,
   MessageSquare,
+  PanelLeft,
+  PanelRight,
   Settings,
   Shield,
-  Sparkles,
   Users,
   X,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -37,7 +37,7 @@ interface NavItemProps {
   active?: boolean;
   collapsed: boolean;
   href: string;
-  icon: ReactNode;
+  icon: React.ReactNode;
   label: string;
 }
 
@@ -47,6 +47,8 @@ interface SidebarProps {
   mobileOpen?: boolean;
   /** Callback when mobile sidebar should close */
   onMobileClose?: () => void;
+  /** Callback to toggle sidebar collapse state */
+  onToggleCollapse?: () => void;
 }
 
 /**
@@ -83,7 +85,12 @@ export function MobileMenuButton({
  * - Accessible navigation with proper ARIA labels
  *
  */
-export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({
+  collapsed,
+  mobileOpen = false,
+  onMobileClose,
+  onToggleCollapse,
+}: SidebarProps) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
 
@@ -102,25 +109,50 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
       <aside
         aria-label="Main navigation"
         className={cn(
-          'bg-[#111111] border-r border-white/10 transition-all duration-300 flex flex-col',
+          'bg-[#000000] border-r border-white/10 transition-all duration-300 flex flex-col',
           // Desktop styles
           'hidden md:flex',
-          collapsed ? 'md:w-20' : 'md:w-64',
+          collapsed ? 'md:w-20' : 'md:w-[260px]',
           // Mobile styles - slide in from left
-          mobileOpen && 'fixed inset-y-0 left-0 z-50 flex w-64 md:relative md:z-auto'
+          mobileOpen && 'fixed inset-y-0 left-0 z-50 flex w-[260px] md:relative md:z-auto'
         )}
         role="navigation"
       >
-        {/* Logo and mobile close button */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Sparkles aria-hidden="true" className="w-5 h-5 text-white" />
-            </div>
-            {!collapsed && (
-              <span className="font-semibold text-lg whitespace-nowrap">Mukti AI</span>
+        {/* Logo and toggle/close button */}
+        <div
+          className={cn(
+            'p-3 mb-2 flex items-center',
+            collapsed ? 'justify-center' : 'justify-between'
+          )}
+        >
+          <div
+            className={cn(
+              'flex items-center gap-2 transition-opacity px-2',
+              collapsed && 'opacity-0 hidden'
             )}
+          >
+            <div className="relative w-8 h-8">
+              <Image alt="Mukti" className="object-contain" fill priority src="/mukti-logo-2.png" />
+            </div>
+            <span className="font-semibold text-sm whitespace-nowrap">Mukti AI</span>
           </div>
+
+          {/* Desktop collapse button */}
+          <Button
+            className={cn(
+              'hidden md:flex h-8 w-8 text-white/60 hover:text-white',
+              collapsed && 'flex mx-auto'
+            )}
+            onClick={onToggleCollapse}
+            size="icon"
+            variant="ghost"
+          >
+            {/*{collapsed ? <PanelRight className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}*/}
+            <PanelLeft
+              className={`w-4 h-4 text-white ${collapsed ? 'rotate-180' : ''} transition-all duration-800`}
+            />
+          </Button>
+
           {/* Mobile close button */}
           {mobileOpen && (
             <Button
@@ -136,12 +168,7 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
         </div>
 
         {/* Navigation */}
-        <nav aria-label="Dashboard navigation" className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {!collapsed && (
-            <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
-              Menu
-            </div>
-          )}
+        <nav aria-label="Dashboard navigation" className="flex-1 px-3 space-y-1 overflow-y-auto">
           <NavItem
             active={pathname === '/dashboard'}
             collapsed={collapsed}
@@ -163,11 +190,11 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
             icon={<Brain aria-hidden="true" className="w-4 h-4" />}
             label="Thinking Canvas"
           />
-          {!collapsed && (
-            <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 mt-6">
-              Management
-            </div>
-          )}
+          <div className={cn('pt-4 pb-2', collapsed && 'hidden')}>
+            <p className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
+              Workspace
+            </p>
+          </div>
           <NavItem
             collapsed={collapsed}
             href="/dashboard/community"
@@ -190,7 +217,7 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
             collapsed={collapsed}
             href="/dashboard/reports"
             icon={<FileText aria-hidden="true" className="w-4 h-4" />}
-            label="Reports & Analytics"
+            label="Reports"
           />
           <NavItem
             active={pathname?.startsWith('/dashboard/security')}
@@ -199,12 +226,6 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
             icon={<Shield aria-hidden="true" className="w-4 h-4" />}
             label="Security"
           />
-
-          {!collapsed && (
-            <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 mt-6">
-              Others
-            </div>
-          )}
           <NavItem
             collapsed={collapsed}
             href="/dashboard/settings"
@@ -220,12 +241,12 @@ export function Sidebar({ collapsed, mobileOpen = false, onMobileClose }: Sideba
         </nav>
 
         {/* User Profile */}
-        <div className="border-t border-white/10 p-3">
+        <div className="p-3 mt-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 className={cn(
-                  'w-full justify-start p-2 h-auto hover:bg-white/5',
+                  'w-full justify-start p-2 h-auto hover:bg-white/10 rounded-xl transition-all',
                   collapsed && 'justify-center px-2'
                 )}
                 variant="ghost"
@@ -275,11 +296,11 @@ function NavItem({ active, collapsed, href, icon, label }: NavItemProps) {
       aria-current={active ? 'page' : undefined}
       className={cn(
         'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-        'min-h-[44px]', // Touch target size
+        'min-h-[40px]',
         'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#111111]',
         active
           ? 'bg-white/10 text-white font-medium'
-          : 'text-white/60 hover:text-white hover:bg-white/5',
+          : 'text-white/80 hover:text-white hover:bg-white/5',
         collapsed && 'justify-center'
       )}
       href={href}

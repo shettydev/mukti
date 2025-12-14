@@ -1,6 +1,5 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -8,8 +7,7 @@ import type { DashboardLayoutProps, LayoutState } from '@/types/layout.types';
 
 import { CreateConversationDialog } from '@/components/conversations';
 import { MobileMenuButton, Sidebar } from '@/components/dashboard/sidebar';
-import { Button } from '@/components/ui/button';
-import { formatShortcut, useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
+import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { cn } from '@/lib/utils';
 
 /**
@@ -122,13 +120,14 @@ export function DashboardLayout({
 
   return (
     <LayoutContext.Provider value={contextValue}>
-      <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden">
+      <div className="flex h-screen bg-[#050505] text-white overflow-hidden">
         {/* Sidebar */}
         {showSidebar && (
           <Sidebar
             collapsed={state.sidebarCollapsed}
             mobileOpen={state.mobileMenuOpen}
             onMobileClose={closeMobileMenu}
+            onToggleCollapse={toggleSidebar}
           />
         )}
 
@@ -139,27 +138,6 @@ export function DashboardLayout({
             <header className="bg-[#111111] border-b border-white/10 px-4 md:px-6 py-3 md:py-4 flex items-center gap-2">
               {/* Mobile menu button */}
               {showSidebar && <MobileMenuButton onClick={toggleMobileMenu} />}
-
-              {/* Desktop collapse button */}
-              {showSidebar && (
-                <Button
-                  aria-label={
-                    state.sidebarCollapsed
-                      ? `Expand sidebar (${formatShortcut('B')})`
-                      : `Collapse sidebar (${formatShortcut('B')})`
-                  }
-                  className="hidden md:flex min-h-[44px] min-w-[44px]"
-                  onClick={toggleSidebar}
-                  size="icon"
-                  variant="ghost"
-                >
-                  {state.sidebarCollapsed ? (
-                    <ChevronRight aria-hidden="true" className="w-5 h-5" />
-                  ) : (
-                    <ChevronLeft aria-hidden="true" className="w-5 h-5" />
-                  )}
-                </Button>
-              )}
 
               {/* Page title */}
               {state.pageTitle && (
