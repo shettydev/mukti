@@ -33,7 +33,7 @@ export function Pricing() {
     {
       buttonText: 'Coming Soon',
       features: [
-        'Access to premium models (Claude 3.5, GPT-4)',
+        'Access to premium models (Claude 4.5, GPT-5.2)',
         'Create custom Socratic techniques',
         'Full Thinking Canvas editing',
         'Higher rate limits',

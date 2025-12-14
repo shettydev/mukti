@@ -109,7 +109,10 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link className="hover:text-foreground transition-colors" href="#">
+                <Link
+                  className="hover:text-foreground transition-colors"
+                  href="https://api.mukti.live/reference"
+                >
                   Documentation
                 </Link>
               </li>

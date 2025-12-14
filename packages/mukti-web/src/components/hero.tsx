@@ -54,19 +54,15 @@ export function Hero() {
           }}
           whileInView={{ opacity: 1, y: 0 }}
         >
-          <Link href="/dashboard">
-            <Button className="rounded-full px-8 py-6 text-base font-medium bg-white text-black hover:bg-slate-200 transition-colors">
-              Try Now
-            </Button>
-          </Link>
-          <Link href="#features">
-            <Button
-              className="rounded-full px-8 py-6 text-base font-medium border-slate-700 text-white hover:bg-slate-800 hover:text-white transition-colors bg-transparent backdrop-blur-sm"
-              variant="outline"
-            >
-              Learn More
-            </Button>
-          </Link>
+          <Button className="rounded-full px-8 py-6 text-base font-medium bg-white text-black hover:bg-slate-200 transition-colors">
+            <Link href="/dashboard">Try Now</Link>
+          </Button>
+          <Button
+            className="rounded-full px-8 py-6 text-base font-medium border-slate-700 text-white hover:bg-slate-800 hover:text-white transition-colors bg-transparent backdrop-blur-sm"
+            variant="outline"
+          >
+            <Link href="#features">Learn More</Link>
+          </Button>
         </motion.div>
 
         <motion.div
