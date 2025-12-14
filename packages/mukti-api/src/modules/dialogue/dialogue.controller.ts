@@ -34,7 +34,7 @@ import {
   ApiStartNodeDialogue,
   ApiStreamNodeDialogue,
 } from './dto/dialogue.swagger';
-import { SendMessageDto } from './dto/send-message.dto';
+import { DialogueSendMessageDto } from './dto/send-message.dto';
 import { DialogueQueueService } from './services/dialogue-queue.service';
 import { DialogueStreamService } from './services/dialogue-stream.service';
 import { generateInitialQuestion } from './utils/prompt-builder';
@@ -141,7 +141,7 @@ export class DialogueController {
   async sendMessage(
     @Param('sessionId') sessionId: string,
     @Param('nodeId') nodeId: string,
-    @Body() sendMessageDto: SendMessageDto,
+    @Body() sendMessageDto: DialogueSendMessageDto,
     @CurrentUser() user: User,
   ) {
     // Validate session ownership
