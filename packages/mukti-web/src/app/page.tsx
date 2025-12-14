@@ -6,9 +6,9 @@ import { Feature } from '@/components/feature';
 import { Footer } from '@/components/footer';
 import { Hero } from '@/components/hero';
 import { Navbar } from '@/components/navbar';
+import { Pricing } from '@/components/pricing';
 import { Proof } from '@/components/proof';
 import { Testimonial } from '@/components/testimonial';
-import { Waitlist } from '@/components/waitlist';
 
 // Alias FAQ to satisfy PascalCase linting
 const Faq = FAQ;
@@ -34,11 +34,11 @@ export default function Home() {
       {/* Enhanced Social Proof */}
       <Proof />
 
+      {/* Pricing Section */}
+      <Pricing />
+
       {/* FAQ Section */}
       <Faq />
-
-      {/* Waitlist Section */}
-      <Waitlist />
 
       {/* Footer */}
       <Footer />

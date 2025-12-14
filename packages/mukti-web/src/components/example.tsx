@@ -82,7 +82,7 @@ const SCENARIOS = [
 
 export function Example() {
   const [activeScenarioIndex, setActiveScenarioIndex] = useState(0);
-  const [visibleMessages, setVisibleMessages] = useState<any[]>([]);
+  const [visibleMessages, setVisibleMessages] = useState<Record<string, string>[]>([]);
 
   const scenario = SCENARIOS[activeScenarioIndex];
 
@@ -106,7 +106,7 @@ export function Example() {
     });
 
     return () => timeouts.forEach(clearTimeout);
-  }, [activeScenarioIndex]);
+  }, [activeScenarioIndex, scenario.conversation]);
 
   const handleNextScenario = () => {
     setActiveScenarioIndex((prev) => (prev + 1) % SCENARIOS.length);
