@@ -38,7 +38,7 @@ const testimonials = [
 export function Testimonial() {
   return (
     <section
-      className="min-h-screen w-full rounded-md flex flex-col antialiased bg-[#020617] items-center justify-center relative overflow-hidden"
+      className="min-h-screen w-full rounded-md flex flex-col antialiased bg-[#020617] items-center justify-center relative overflow-hidden pt-48 md:pt-64"
       id="testimonials"
     >
       <div className="container mx-auto px-4 relative z-10 flex flex-col items-center mb-12">
