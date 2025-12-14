@@ -10,7 +10,6 @@ import {
   Menu,
   MessageSquare,
   PanelLeft,
-  PanelRight,
   Settings,
   Shield,
   Users,
