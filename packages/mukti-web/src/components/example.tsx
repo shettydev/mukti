@@ -1,4 +1,5 @@
 'use client';
+
 import { Bot, RefreshCcw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
@@ -122,32 +123,32 @@ export function Example() {
       <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="container mx-auto px-4 z-10">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left Column: Context */}
-          <div className="space-y-8 max-w-xl">
+          <div className="space-y-6 lg:space-y-8 max-w-xl order-2 lg:order-1">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
               <RefreshCcw className="w-3 h-3" />
               <span>Experience the Difference</span>
             </div>
 
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground">
               Not Just Answers. <br />
               <span className="text-primary">True Insight.</span>
             </h2>
 
-            <div className="text-lg text-muted-foreground leading-relaxed space-y-4">
+            <div className="text-base lg:text-lg text-muted-foreground leading-relaxed space-y-4">
               <p>
                 Most AI tools act like search engines, giving you direct answers that bypass
                 critical thinking.
               </p>
-              <hr className="py-2 border-0" />
               <p>
                 Mukti acts like a mentor, challenging your assumptions and guiding you to discover
                 the solution yourself.
               </p>
             </div>
 
-            <div className="flex flex-col gap-4">
+            {/* Scenario Card - Hidden on mobile, shown on desktop */}
+            <div className="hidden lg:flex flex-col gap-4">
               <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm">
                 <h4 className="font-semibold text-foreground mb-1 flex items-center gap-2">
                   <Bot className="w-4 h-4 text-primary" />
@@ -157,7 +158,7 @@ export function Example() {
               </div>
 
               <Button
-                className="w-fit gap-2 mt-4 hover:scale-105 transition-transform"
+                className="w-fit gap-2 hover:scale-105 transition-transform"
                 onClick={handleNextScenario}
                 size="lg"
               >
@@ -166,9 +167,10 @@ export function Example() {
             </div>
           </div>
 
-          <div className="relative">
+          {/* Right Column: Phone + Mobile Controls */}
+          <div className="relative order-1 lg:order-2 flex flex-col items-center">
             {/* Device Mockup */}
-            <Iphone className="w-full max-w-[360px] mx-auto z-10">
+            <Iphone className="w-full max-w-[320px] sm:max-w-[360px] mx-auto z-10">
               <div className="flex flex-col h-full bg-[#0F1629] justify-center">
                 {/* Chat Area */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-none flex flex-col justify-center">
@@ -209,6 +211,25 @@ export function Example() {
 
             {/* Blob glow behind phone */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[80%] bg-blue-500/20 blur-[80px] -z-10 rounded-full opacity-50" />
+
+            {/* Mobile Controls - Below phone on mobile only */}
+            <div className="flex lg:hidden flex-col items-center gap-4 mt-8 w-full max-w-[320px]">
+              <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm w-full">
+                <h4 className="font-semibold text-foreground mb-1 flex items-center gap-2 text-sm">
+                  <Bot className="w-4 h-4 text-primary" />
+                  {scenario.title}
+                </h4>
+                <p className="text-xs text-muted-foreground">{scenario.description}</p>
+              </div>
+
+              <Button
+                className="w-full gap-2 hover:scale-105 transition-transform"
+                onClick={handleNextScenario}
+                size="lg"
+              >
+                Try Another Scenario <RefreshCcw className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

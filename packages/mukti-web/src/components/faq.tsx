@@ -1,3 +1,8 @@
+'use client';
+
+import { HelpCircle } from 'lucide-react';
+import { motion } from 'motion/react';
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 const faqs = [
@@ -35,33 +40,51 @@ const faqs = [
 
 export function FAQ() {
   return (
-    <section className="py-24">
+    <section className="py-24 md:py-32 bg-background">
       <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-2xl text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
+        <motion.div
+          className="mx-auto max-w-2xl text-center mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          whileInView={{ opacity: 1, y: 0 }}
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium mb-6">
+            <HelpCircle className="w-4 h-4" />
+            FAQ
+          </div>
+
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
             Frequently Asked Questions
           </h2>
           <p className="text-lg text-muted-foreground">
             Everything you need to know about Mukti and cognitive independence
           </p>
-        </div>
+        </motion.div>
 
-        <Accordion
-          className="mx-auto max-w-3xl rounded-2xl border bg-card/70 shadow-lg backdrop-blur"
-          collapsible
-          type="single"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+          viewport={{ once: true }}
+          whileInView={{ opacity: 1, y: 0 }}
         >
-          {faqs.map((item) => (
-            <AccordionItem className="px-6" key={item.value} value={item.value}>
-              <AccordionTrigger className="text-lg">
-                <span>{item.question}</span>
-              </AccordionTrigger>
-              <AccordionContent>
-                <p>{item.answer}</p>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+          <Accordion
+            className="mx-auto max-w-3xl rounded-2xl border bg-card/70 shadow-lg backdrop-blur"
+            collapsible
+            type="single"
+          >
+            {faqs.map((item) => (
+              <AccordionItem className="px-6" key={item.value} value={item.value}>
+                <AccordionTrigger className="text-base md:text-lg text-left">
+                  <span>{item.question}</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-muted-foreground leading-relaxed">{item.answer}</p>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </motion.div>
       </div>
     </section>
   );
