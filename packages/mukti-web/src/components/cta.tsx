@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 
 export function Cta() {
   return (
-    <section className="relative w-full py-32 bg-[#020617] overflow-hidden">
+    <section className="relative w-full py-64 bg-[#020617] overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
 
@@ -34,8 +34,7 @@ export function Cta() {
           </h2>
 
           <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of thinkers who are breaking free from AI dependency. Start your journey
-            toward cognitive liberation today.
+            Start your journey toward cognitive liberation today.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
