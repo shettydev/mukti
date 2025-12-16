@@ -1,5 +1,6 @@
 'use client';
 
+import { Cta } from '@/components/cta';
 import { Example } from '@/components/example';
 import { FAQ } from '@/components/faq';
 import { Feature } from '@/components/feature';
@@ -19,26 +20,29 @@ export default function Home() {
       {/* Navbar Section */}
       <Navbar />
 
-      {/* Hero Section */}
+      {/* Hero Section - Product showcase with carousel */}
       <Hero />
 
-      {/* Features Section */}
+      {/* Social Proof - The problem statement */}
+      <Proof />
+
+      {/* Features Section - The solution */}
       <Feature />
 
-      {/* How It Works Section */}
+      {/* How It Works Section - Interactive demo */}
       <Example />
 
       {/* Testimonials Section */}
       <Testimonial />
-
-      {/* Enhanced Social Proof */}
-      <Proof />
 
       {/* Pricing Section */}
       <Pricing />
 
       {/* FAQ Section */}
       <Faq />
+
+      {/* Final CTA */}
+      <Cta />
 
       {/* Footer */}
       <Footer />

@@ -1,5 +1,8 @@
 'use client';
 
+import { Quote } from 'lucide-react';
+import { motion } from 'motion/react';
+
 import { InfiniteMovingCards } from './ui/infinite-moving-cards';
 
 const testimonials = [
@@ -38,17 +41,31 @@ const testimonials = [
 export function Testimonial() {
   return (
     <section
-      className="min-h-screen w-full rounded-md flex flex-col antialiased bg-[#020617] items-center justify-center relative overflow-hidden pt-48 md:pt-64"
+      className="w-full py-24 md:py-32 flex flex-col antialiased bg-[#020617] items-center justify-center relative overflow-hidden"
       id="testimonials"
     >
-      <div className="container mx-auto px-4 relative z-10 flex flex-col items-center mb-12">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4 text-center text-white">
+      {/* Subtle background gradient */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+
+      <motion.div
+        className="container mx-auto px-4 relative z-10 flex flex-col items-center mb-16"
+        initial={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+        whileInView={{ opacity: 1, y: 0 }}
+      >
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium mb-6">
+          <Quote className="w-4 h-4" />
+          Testimonials
+        </div>
+
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4 text-center text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400">
           What Totally Real Users Are Saying
         </h2>
-        <p className="text-lg text-slate-400 text-center max-w-2xl italic">
-          Disclaimer: These testimonials are as real as unicorns.
+        <p className="text-base md:text-lg text-slate-500 text-center max-w-2xl italic">
+          Disclaimer: These testimonials are as real as unicorns. 🦄
         </p>
-      </div>
+      </motion.div>
 
       <InfiniteMovingCards
         className="w-full max-w-full"

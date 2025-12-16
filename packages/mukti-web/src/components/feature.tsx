@@ -1,5 +1,7 @@
 'use client';
+
 import { Brain, Key, MessageSquare, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
 
 import { Spotlight } from './ui/spotlight-new';
 
@@ -64,8 +66,16 @@ export function Feature() {
 
         {/* Feature Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-7xl mt-8">
-          {features.map((feature) => (
-            <FeatureCard key={feature.title} {...feature} />
+          {features.map((feature, index) => (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              key={feature.title}
+              transition={{ delay: index * 0.1, duration: 0.5 }}
+              viewport={{ once: true }}
+              whileInView={{ opacity: 1, y: 0 }}
+            >
+              <FeatureCard {...feature} />
+            </motion.div>
           ))}
         </div>
       </div>
