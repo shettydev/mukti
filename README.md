@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/shaiknoorullah/mukti">
-    <img src="packages/mukti-web/public/mukti-logo.png" alt="Mukti Logo" width="200" height="200">
+    <img src="packages/mukti-web/public/mukti-logo.png" alt="Mukti Logo" width="75%">
   </a>
 
   <h1 align="center">mukti</h1>
@@ -25,9 +25,9 @@
   <br />
 
   <div align="center">
-    <img src="packages/mukti-web/public/dashboard.png" alt="Mukti Dashboard" width="45%" />
+    <img src="packages/mukti-web/public/dashboard.png" alt="Mukti Dashboard" width="75%" />
     &nbsp;
-    <img src="packages/mukti-web/public/canvas.png" alt="Mukti Thinking Canvas" width="45%" />
+    <img src="packages/mukti-web/public/canvas.png" alt="Mukti Thinking Canvas" width="75%" />
   </div>
 </div>
 
