@@ -170,9 +170,10 @@ function AuthContent() {
                   onSuccess={handleAuthSuccess}
                   onSwitchToSignUp={() => handleTabChange('signup')}
                 />
-                <div className="mt-4 sm:mt-6">
+                {/* TODO: Enable once oauth configuration is complete */}
+                {/*<div className="mt-4 sm:mt-6">
                   <OAuthButtons />
-                </div>
+                </div>*/}
               </>
             )}
           </div>
@@ -192,9 +193,10 @@ function AuthContent() {
                   onSuccess={handleAuthSuccess}
                   onSwitchToSignIn={() => handleTabChange('signin')}
                 />
-                <div className="mt-4 sm:mt-6">
+                {/* TODO: Enable once oauth configuration is complete */}
+                {/*<div className="mt-4 sm:mt-6">
                   <OAuthButtons />
-                </div>
+                </div>*/}
               </>
             )}
           </div>
