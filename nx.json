@@ -20,19 +20,11 @@
     },
     "format": {
       "cache": true,
-      "inputs": [
-        "default",
-        "{workspaceRoot}/.prettierrc",
-        "{workspaceRoot}/.prettierignore"
-      ]
+      "inputs": ["default", "{workspaceRoot}/.prettierrc", "{workspaceRoot}/.prettierignore"]
     },
     "format:check": {
       "cache": true,
-      "inputs": [
-        "default",
-        "{workspaceRoot}/.prettierrc",
-        "{workspaceRoot}/.prettierignore"
-      ]
+      "inputs": ["default", "{workspaceRoot}/.prettierrc", "{workspaceRoot}/.prettierignore"]
     },
     "test": {
       "cache": true,
@@ -57,6 +49,26 @@
       "!{projectRoot}/test-setup.[jt]s"
     ],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
+  },
+  "release": {
+    "projects": ["packages/*"],
+    "projectsRelationship": "independent",
+    "changelog": {
+      "workspaceChangelog": false,
+      "projectChangelogs": true,
+      "createRelease": "github"
+    },
+    "git": {
+      "commit": true,
+      "tag": true,
+      "commitMessage": "chore(release): Publish [skip ci]"
+    },
+    "version": {
+      "generatorOptions": {
+        "currentVersionResolver": "git-tag",
+        "specifierSource": "conventional-commits"
+      }
+    }
   },
   "plugins": [
     {
