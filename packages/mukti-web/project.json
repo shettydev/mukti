@@ -69,6 +69,12 @@
         "command": "bun ../../scripts/deploy-dokploy.ts 64e6zw6n2HSGyRtTi3qp- web",
         "cwd": "packages/mukti-web"
       }
+    },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Skipping npm publish for private package @mukti/web'"
+      }
     }
   }
 }
