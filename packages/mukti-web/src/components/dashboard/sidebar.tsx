@@ -241,6 +241,20 @@ export function Sidebar({
 
         {/* User Profile */}
         <div className="p-3 mt-auto">
+          {!collapsed && (
+            <div className="mb-2 rounded-xl border border-white/5 bg-gradient-to-br from-purple-500/10 to-pink-500/10 p-3">
+              <div className="mb-1 flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-purple-500" />
+                </span>
+                <span className="text-xs font-medium text-white">mukti is in beta</span>
+              </div>
+              <p className="pl-4 text-[10px] leading-relaxed text-white/50">
+                We are still in active development.
+              </p>
+            </div>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
