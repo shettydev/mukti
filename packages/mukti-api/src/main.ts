@@ -135,9 +135,6 @@ async function bootstrap() {
   app.use(`/${referenceRoute}`, referenceHandler);
   app.use(prefixedReferenceRoute, referenceHandler);
 
-  // Ensure CORS middleware is registered before csurf
-  await app.init();
-
   // Security: CSRF protection (only for state-changing operations)
   // Skip CSRF for API documentation and health check endpoints
   if (isProduction) {
@@ -161,6 +158,9 @@ async function bootstrap() {
       }),
     );
   }
+
+  // Ensure CORS middleware is registered before csurf
+  await app.init();
 
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);
