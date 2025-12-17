@@ -22,6 +22,9 @@ export const metadata: Metadata = {
   authors: [{ name: 'Prathik Shetty' }],
   description:
     'Break free from cognitive dependency with Mukti, your AI mentor that uses the Socratic method to guide you toward your own insights and rediscover independent thinking.',
+  icons: {
+    icon: '/mukti-logo-2.png',
+  },
   keywords: ['AI', 'Socratic method', 'cognitive independence', 'critical thinking', 'learning'],
   openGraph: {
     description:
@@ -29,7 +32,7 @@ export const metadata: Metadata = {
     title: 'Mukti - Liberation from AI Dependency',
     type: 'website',
   },
-  title: 'Mukti - Liberation from AI Dependency',
+  title: 'mukti',
   twitter: {
     card: 'summary_large_image',
     description:
