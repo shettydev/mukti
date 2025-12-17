@@ -1,6 +1,37 @@
-# Mukti
+<div align="center">
+  <a href="https://github.com/shaiknoorullah/mukti">
+    <img src="packages/mukti-web/public/mukti-logo.png" alt="Mukti Logo" width="200" height="200">
+  </a>
 
-Mukti _(mook-tee /ˈmʊkti/)_, which translates to **Liberation** from the Hindi language.
+  <h1 align="center">mukti</h1>
+
+  <p align="center">
+    <strong>Liberation from AI Dependency</strong>
+    <br />
+    <em>Mukti (mook-tee /ˈmʊkti/) translates to <strong>Liberation</strong> from Hindi.</em>
+  </p>
+
+  <p align="center">
+    <a href="LICENSE">
+      <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
+    </a>
+    <img src="https://img.shields.io/badge/Built%20with-Nx-143055.svg" alt="Nx">
+    <img src="https://img.shields.io/badge/Backend-NestJS-E0234E.svg" alt="NestJS">
+    <img src="https://img.shields.io/badge/Frontend-Next.js-000000.svg" alt="Next.js">
+    <img src="https://img.shields.io/badge/Runtime-Bun-f472b6.svg" alt="Bun">
+    <img src="https://img.shields.io/badge/Language-TypeScript-3178c6.svg" alt="TypeScript">
+  </p>
+
+  <br />
+
+  <div align="center">
+    <img src="packages/mukti-web/public/dashboard.png" alt="Mukti Dashboard" width="45%" />
+    &nbsp;
+    <img src="packages/mukti-web/public/canvas.png" alt="Mukti Thinking Canvas" width="45%" />
+  </div>
+</div>
+
+<br />
 
 AI is everywhere—like glitter at a kid’s party. It’s fun until you realize it’s stuck to everything, including your critical thinking. Welcome to Mukti, where we hand out brooms, not blindfolds.
 
@@ -29,7 +60,7 @@ Take a look at this study conducted by MIT on users by assigning participants to
 
 Here is the link to the research paper: [Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task](https://arxiv.org/pdf/2506.08872)
 
-> TLDR; turns out, AI isn't making us more productive. It's making us cognitively bankrupt. 
+> TLDR; turns out, AI isn't making us more productive. It's making us cognitively bankrupt.
 
 > [!CAUTION]
 > Final Warning!: If you still think using AI as a crutch is peak productivity, Mukti isn’t for you. We’re here to build brains, not babysit them. Still with me? Good. Let’s get uncomfortable.
@@ -41,7 +72,6 @@ But this brings me to the next question:
 <br />
 
 How can we help people regain their ability to think for themselves? And more over, how can you not use AI, which is such an advanced and groundbreaking tool, said to shape the future of mankind and bring us closer to a utopian society?
-
 
 ## Approach
 
