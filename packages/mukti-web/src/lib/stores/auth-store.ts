@@ -38,6 +38,16 @@ interface AuthState {
   isAuthenticated: boolean;
 
   /**
+   * Whether authentication is initializing (checking session)
+   */
+  isInitializing: boolean;
+
+  /**
+   * Set initialization state
+   */
+  setInitializing: (state: boolean) => void;
+
+  /**
    * Set the access token
    * @param token - JWT access token
    */
@@ -84,6 +94,7 @@ export const useAuthStore = create<AuthState>()(
           user: null,
         }),
       isAuthenticated: false,
+      isInitializing: true,
       setAccessToken: (token) =>
         set((state) => ({
           accessToken: token,
@@ -98,6 +109,7 @@ export const useAuthStore = create<AuthState>()(
         }),
 
       setHasHydrated: (state) => set({ _hasHydrated: state }),
+      setInitializing: (state) => set({ isInitializing: state }),
 
       setUser: (user) =>
         set((state) => ({

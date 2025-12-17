@@ -22,6 +22,7 @@ import type {
   TokenResponse,
   VerifyEmailDto,
 } from '@/types/auth.types';
+import type { User } from '@/types/user.types';
 
 import { apiClient } from './client';
 
@@ -29,6 +30,21 @@ import { apiClient } from './client';
  * Authentication API endpoints
  */
 export const authApi = {
+  /**
+   * Get current authenticated user details
+   *
+   * @returns Current user data
+   * @throws {ApiClientError} If request fails
+   *
+   * @example
+   * ```typescript
+   * const user = await authApi.getMe();
+   * ```
+   */
+  getMe: async (): Promise<User> => {
+    return apiClient.get<User>('/auth/me');
+  },
+
   /**
    * Authenticate with Apple OAuth
    *
