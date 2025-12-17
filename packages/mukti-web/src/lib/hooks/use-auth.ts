@@ -75,6 +75,7 @@ export function useAuth() {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
+  const isInitializing = useAuthStore((state) => state.isInitializing);
 
   const { data: currentUser, isLoading: isUserLoading } = useUser();
 
@@ -85,7 +86,10 @@ export function useAuth() {
 
   // Loading state includes session restoration and store hydration
   const isLoading =
-    !hasHydrated || isUserLoading || (!!user && !isAuthenticated && !refreshMutation.isError);
+    !hasHydrated ||
+    isInitializing ||
+    isUserLoading ||
+    (!!user && !isAuthenticated && !refreshMutation.isError);
 
   // Set up automatic token refresh before expiration
   useTokenRefreshTimer();
