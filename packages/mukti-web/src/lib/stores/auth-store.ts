@@ -43,11 +43,6 @@ interface AuthState {
   isInitializing: boolean;
 
   /**
-   * Set initialization state
-   */
-  setInitializing: (state: boolean) => void;
-
-  /**
    * Set the access token
    * @param token - JWT access token
    */
@@ -64,6 +59,11 @@ interface AuthState {
    * Set hydration state
    */
   setHasHydrated: (state: boolean) => void;
+
+  /**
+   * Set initialization state
+   */
+  setInitializing: (state: boolean) => void;
 
   /**
    * Set the current user
