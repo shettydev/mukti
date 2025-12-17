@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
 import { GradientBackground } from '@/components/auth/gradient-background';
-import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { SignInForm } from '@/components/auth/sign-in-form';
 import { SignUpForm } from '@/components/auth/sign-up-form';
 import { cn } from '@/lib/utils';
