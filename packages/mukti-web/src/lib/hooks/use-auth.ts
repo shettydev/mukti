@@ -75,8 +75,6 @@ export function useAuth() {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const clearAuth = useAuthStore((state) => state.clearAuth);
 
   const { data: currentUser, isLoading: isUserLoading } = useUser();
 
@@ -84,38 +82,6 @@ export function useAuth() {
   const registerMutation = useRegister();
   const logoutMutation = useLogout();
   const refreshMutation = useRefreshToken();
-
-  // Track if we're currently restoring a session
-  const isRestoringSession = !!user && !isAuthenticated && !refreshMutation.isPending;
-  const hasAttemptedRestore = useRef(false);
-
-  // Attempt to restore session when user exists but not authenticated
-  // This happens on page reload when user data is persisted but token is not
-  useEffect(() => {
-    if (isRestoringSession && !hasAttemptedRestore.current) {
-      hasAttemptedRestore.current = true;
-      // Attempt to refresh the token using the httpOnly refresh cookie
-      authApi
-        .refresh()
-        .then((response) => {
-          // Successfully refreshed - restore auth state
-          if (user) {
-            setAuth(user, response.accessToken);
-          }
-        })
-        .catch(() => {
-          // Refresh failed - clear the stale user data
-          clearAuth();
-        });
-    }
-  }, [isRestoringSession, user, setAuth, clearAuth]);
-
-  // Reset the restore attempt flag when user logs out
-  useEffect(() => {
-    if (!user) {
-      hasAttemptedRestore.current = false;
-    }
-  }, [user]);
 
   // Loading state includes session restoration and store hydration
   const isLoading =
