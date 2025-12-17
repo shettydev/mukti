@@ -31,21 +31,6 @@ import { apiClient } from './client';
  */
 export const authApi = {
   /**
-   * Get current authenticated user details
-   *
-   * @returns Current user data
-   * @throws {ApiClientError} If request fails
-   *
-   * @example
-   * ```typescript
-   * const user = await authApi.getMe();
-   * ```
-   */
-  getMe: async (): Promise<User> => {
-    return apiClient.get<User>('/auth/me');
-  },
-
-  /**
    * Authenticate with Apple OAuth
    *
    * @param dto - OAuth authorization code from Apple
@@ -80,6 +65,21 @@ export const authApi = {
    */
   forgotPassword: async (dto: ForgotPasswordDto): Promise<void> => {
     return apiClient.post<void>('/auth/forgot-password', dto);
+  },
+
+  /**
+   * Get current authenticated user details
+   *
+   * @returns Current user data
+   * @throws {ApiClientError} If request fails
+   *
+   * @example
+   * ```typescript
+   * const user = await authApi.getMe();
+   * ```
+   */
+  getMe: async (): Promise<User> => {
+    return apiClient.get<User>('/auth/me');
   },
 
   /**
