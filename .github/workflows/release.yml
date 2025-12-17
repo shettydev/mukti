@@ -51,7 +51,7 @@ jobs:
           if [ "${{ inputs.releaseType }}" == "stable" ]; then
             bun nx release --dry-run
           else
-            bun nx release --type=prerelease --preid=${{ inputs.releaseType }} --dry-run
+            bun nx release --preid=${{ inputs.releaseType }} --dry-run
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -62,7 +62,7 @@ jobs:
           if [ "${{ inputs.releaseType }}" == "stable" ]; then
             bun nx release
           else
-            bun nx release --type=prerelease --preid=${{ inputs.releaseType }}
+            bun nx release --preid=${{ inputs.releaseType }}
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
