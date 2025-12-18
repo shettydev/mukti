@@ -2,9 +2,7 @@
 
 ## Overview
 
-The Quick Chat Interface transforms Mukti's dashboard into an immediate, ChatGPT-like experience where users can start conversations instantly. This design leverages existing conversation infrastructure while introducing new components for seamless chat initiation, automatic title generation, and technique selection.
-
-The interface prioritizes speed and simplicity: users land directly on a chat page, select their preferred Socratic technique, and begin conversing immediately. The system automatically generates conversation titles and updates the sidebar in real-time, creating a fluid experience that encourages exploration and inquiry.
+The Quick Chat Interface transforms Mukti into a streamlined, Claude-like chat experience. This design removes the `/dashboard` prefix entirely, using clean routes (`/chat`, `/chat/:id`, `/canvas`). The sidebar is simplified to show only Thinking Canvas and conversation history, with all other options (Settings, Security, Help) moved to a user profile popover. When starting a new conversation, the input is centered on the page with a quirky heading, creating a focused, distraction-free experience.
 
 ## Architecture
 
@@ -14,98 +12,78 @@ The interface prioritizes speed and simplicity: users land directly on a chat pa
 ┌─────────────────────────────────────────────────────────────┐
 │                     Quick Chat Interface                     │
 │                                                              │
-│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────┐ │
-│  │   Simplified   │  │  Chat Page   │  │  Conversation   │ │
-│  │    Sidebar     │  │  Component   │  │     List        │ │
-│  │                │  │              │  │                 │ │
-│  │ • Chat (new)   │  │ • Welcome    │  │ • Auto-titled   │ │
-│  │ • Conversations│  │ • Technique  │  │ • Real-time     │ │
-│  │ • Canvas       │  │ • Messages   │  │ • Clickable     │ │
-│  │ • Security     │  │ • Input      │  │                 │ │
-│  │ • Settings     │  │              │  │                 │ │
-│  │ • Help         │  │              │  │                 │ │
-│  └────────────────┘  └──────────────┘  └─────────────────┘ │
+│  ┌────────────────┐  ┌──────────────────────────────────┐  │
+│  │   Simplified   │  │         Chat Page                 │  │
+│  │    Sidebar     │  │                                   │  │
+│  │                │  │  Empty State:                     │  │
+│  │ • New Chat     │  │  ┌─────────────────────────────┐  │  │
+│  │ • Canvas       │  │  │   Quirky Heading            │  │  │
+│  │ ─────────────  │  │  │   [Technique ▼]             │  │  │
+│  │ • Conv 1       │  │  │   [    Input Bar      ] [→] │  │  │
+│  │ • Conv 2       │  │  └─────────────────────────────┘  │  │
+│  │ • Conv 3       │  │                                   │  │
+│  │ • ...          │  │  Active State:                    │  │
+│  │                │  │  • Message list                   │  │
+│  │ ─────────────  │  │  • Input bar at bottom            │  │
+│  │ [User Profile] │  │                                   │  │
+│  └────────────────┘  └──────────────────────────────────┘  │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Existing Conversation Infrastructure            │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │ TanStack     │  │ Conversation │  │ SSE Streaming    │  │
-│  │ Query Hooks  │  │ API Client   │  │ (Real-time)      │  │
-│  │              │  │              │  │                  │  │
-│  │ • useCreate  │  │ • create()   │  │ • useConversation│  │
-│  │ • useSend    │  │ • sendMsg()  │  │   Stream()       │  │
-│  │ • useUpdate  │  │ • update()   │  │                  │  │
-│  └──────────────┘  └──────────────┘  └──────────────────┘  │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Backend API                             │
-│                                                              │
-│  • POST /conversations (create with technique)               │
-│  • POST /conversations/:id/messages (send message)           │
-│  • PATCH /conversations/:id (update title)                   │
-│  • GET /conversations/:id/stream (SSE)                       │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+```
+
+### Route Structure
+
+```
+/chat           → New conversation (centered input)
+/chat/:id       → Existing conversation
+/canvas         → Thinking Canvas
+/security       → Security settings (from profile popover)
+/settings       → User settings (from profile popover)
+/help           → Help & Support (from profile popover)
 ```
 
 ### Component Hierarchy
 
 ```
-/dashboard/chat (ChatPage)
-├── DashboardLayout
-│   ├── Sidebar (simplified)
+/chat (ChatPage)
+├── AppLayout
+│   ├── Sidebar
 │   │   ├── Logo
-│   │   ├── Navigation Items
-│   │   │   ├── Chat (active)
-│   │   │   ├── Conversations
-│   │   │   ├── Thinking Canvas
-│   │   │   ├── Security
-│   │   │   ├── Settings
-│   │   │   └── Help & Support
-│   │   └── User Profile
+│   │   ├── NewChatButton
+│   │   ├── CanvasNavItem
+│   │   ├── Separator
+│   │   ├── ConversationList (infinite scroll)
+│   │   │   └── ConversationItem[]
+│   │   └── UserProfilePopover
+│   │       ├── User Info
+│   │       ├── Security Link
+│   │       ├── Settings Link
+│   │       ├── Help & Support Link
+│   │       └── Logout Button
 │   └── Main Content
 │       └── ChatInterface
-│           ├── WelcomeSection (empty state)
-│           │   ├── Logo
-│           │   ├── Greeting
-│           │   └── Example Prompts
-│           ├── MessageList (active state)
-│           │   └── Message[]
-│           └── ChatInputBar
-│               ├── TechniqueSelector
-│               ├── MessageInput
-│               └── SendButton
+│           ├── EmptyState (when no conversation)
+│           │   ├── QuirkyHeading
+│           │   ├── TechniqueSelector
+│           │   └── CenteredInput
+│           └── ActiveState (when conversation exists)
+│               ├── MessageList
+│               └── ChatInputBar
 ```
 
 ## Components and Interfaces
 
 ### 1. ChatPage Component
 
-**Location:** `packages/mukti-web/src/app/dashboard/chat/page.tsx`
+**Location:** `packages/mukti-web/src/app/chat/page.tsx` and `packages/mukti-web/src/app/chat/[id]/page.tsx`
 
 **Purpose:** Main page component that manages chat state and conversation lifecycle.
 
-**Props:** None (uses URL params for conversation ID if present)
-
 **State:**
 
-- `conversationId: string | null` - Current conversation ID
+- `conversationId: string | null` - Current conversation ID (from URL param)
 - `selectedTechnique: SocraticTechnique` - Selected technique (default: 'elenchus')
 - `isCreatingConversation: boolean` - Loading state for conversation creation
-
-**Key Responsibilities:**
-
-- Create new conversation on first message
-- Manage conversation lifecycle
-- Handle technique selection
-- Coordinate between welcome state and active chat state
 
 **Interface:**
 
@@ -121,7 +99,7 @@ interface ChatPageState {
 
 **Location:** `packages/mukti-web/src/components/chat/chat-interface.tsx`
 
-**Purpose:** Main chat UI that displays messages and input bar.
+**Purpose:** Main chat UI that displays either empty state or active conversation.
 
 **Props:**
 
@@ -135,117 +113,158 @@ interface ChatInterfaceProps {
 }
 ```
 
-**Key Responsibilities:**
+### 3. EmptyState Component
 
-- Display welcome section when no conversation
-- Display message list when conversation exists
-- Render chat input bar with technique selector
-- Handle message sending
+**Location:** `packages/mukti-web/src/components/chat/empty-state.tsx`
 
-### 3. WelcomeSection Component
-
-**Location:** `packages/mukti-web/src/components/chat/welcome-section.tsx`
-
-**Purpose:** Empty state UI with branding and example prompts.
+**Purpose:** Centered input with quirky heading when no conversation is active.
 
 **Props:**
 
 ```typescript
-interface WelcomeSectionProps {
-  onExampleClick?: (prompt: string) => void;
-}
-```
-
-**Features:**
-
-- Mukti logo with glow effect
-- Personalized greeting
-- Example conversation starters
-- Technique explanation
-
-### 4. ChatInputBar Component
-
-**Location:** `packages/mukti-web/src/components/chat/chat-input-bar.tsx`
-
-**Purpose:** Combined input bar with technique selector and message input.
-
-**Props:**
-
-```typescript
-interface ChatInputBarProps {
-  conversationId: string | null;
+interface EmptyStateProps {
   selectedTechnique: SocraticTechnique;
   onTechniqueChange: (technique: SocraticTechnique) => void;
-  onSend: (content: string) => Promise<void>;
-  disabled?: boolean;
+  onSendMessage: (content: string) => Promise<void>;
+  isCreating: boolean;
 }
 ```
 
 **Layout:**
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  [Technique: Elenchus ▼]                                │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │ Type your message...                          [→] │  │
-│  └───────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                                                              │
+│                                                              │
+│                                                              │
+│              "What's on your mind today?"                    │
+│                   or similar quirky heading                  │
+│                                                              │
+│              [Technique: Elenchus ▼]                         │
+│              ┌─────────────────────────────────────────┐    │
+│              │ Ask me anything...                  [→] │    │
+│              └─────────────────────────────────────────┘    │
+│                                                              │
+│                                                              │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 5. Simplified Sidebar Component
+**Quirky Heading Options:**
 
-**Location:** `packages/mukti-web/src/components/dashboard/sidebar.tsx` (modified)
+- "What's puzzling you today?"
+- "Let's think together..."
+- "Question everything."
+- "What would Socrates ask?"
+- "Ready to challenge your assumptions?"
 
-**Changes:**
+### 4. Simplified Sidebar Component
 
-- Remove "Dashboard" nav item, replace with "Chat"
-- Remove "Workspace" section header
-- Remove dummy pages: Community, Resources, Messages, Reports
-- Keep: Chat, Conversations, Thinking Canvas, Security, Settings, Help & Support
+**Location:** `packages/mukti-web/src/components/sidebar/sidebar.tsx`
 
-**Navigation Items:**
+**Structure:**
 
 ```typescript
-const navItems = [
-  { href: '/dashboard/chat', icon: MessageSquare, label: 'Chat' },
-  { href: '/dashboard/conversations', icon: MessageSquare, label: 'Conversations' },
-  { href: '/dashboard/canvas', icon: Brain, label: 'Thinking Canvas' },
-  { href: '/dashboard/security', icon: Shield, label: 'Security' },
-  { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
-  { href: '/dashboard/help', icon: HelpCircle, label: 'Help & Support' },
+interface SidebarProps {
+  collapsed: boolean;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+  onToggleCollapse?: () => void;
+}
+```
+
+**Layout:**
+
+```
+┌──────────────────────┐
+│ [Logo] Mukti AI  [<] │
+├──────────────────────┤
+│ [+] New Chat         │
+│ [🧠] Thinking Canvas │
+├──────────────────────┤
+│ Conversations        │
+│ ─────────────────    │
+│ • React Performance  │
+│ • API Design Quest...│
+│ • Learning Rust      │
+│ • ...                │
+│ (infinite scroll)    │
+├──────────────────────┤
+│ [Avatar] John Doe    │
+│          john@...    │
+└──────────────────────┘
+```
+
+### 5. UserProfilePopover Component
+
+**Location:** `packages/mukti-web/src/components/sidebar/user-profile-popover.tsx`
+
+**Purpose:** Dropdown menu from user profile containing settings and logout.
+
+**Props:**
+
+```typescript
+interface UserProfilePopoverProps {
+  user: User;
+  collapsed: boolean;
+  onLogout: () => void;
+}
+```
+
+**Menu Items:**
+
+```typescript
+const menuItems = [
+  { icon: Shield, label: 'Security', href: '/security' },
+  { icon: Settings, label: 'Settings', href: '/settings' },
+  { icon: HelpCircle, label: 'Help & Support', href: '/help' },
+  { type: 'separator' },
+  { icon: LogOut, label: 'Logout', action: 'logout', variant: 'destructive' },
 ];
 ```
 
-### 6. Dashboard Redirect
+### 6. ConversationList Component
 
-**Location:** `packages/mukti-web/src/app/dashboard/page.tsx` (modified)
+**Location:** `packages/mukti-web/src/components/sidebar/conversation-list.tsx`
 
-**Purpose:** Redirect `/dashboard` to `/dashboard/chat`
+**Purpose:** Infinite scroll list of all conversations in sidebar.
 
-**Implementation:**
+**Props:**
 
 ```typescript
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ProtectedRoute } from '@/components/auth/protected-route';
-
-export default function DashboardPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/dashboard/chat');
-  }, [router]);
-
-  return (
-    <ProtectedRoute>
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Redirecting...</p>
-      </div>
-    </ProtectedRoute>
-  );
+interface ConversationListProps {
+  activeConversationId?: string;
+  collapsed: boolean;
+  onConversationClick: (id: string) => void;
 }
+```
+
+**Features:**
+
+- Infinite scroll using `useInfiniteConversations` hook
+- Active conversation highlighting
+- Truncated titles with tooltips
+- Last activity timestamp
+
+### 7. Route Redirects
+
+**Location:** `packages/mukti-web/src/app/dashboard/[[...slug]]/page.tsx`
+
+**Purpose:** Redirect all `/dashboard/*` routes to new routes.
+
+**Redirect Mapping:**
+
+```typescript
+const redirectMap: Record<string, string> = {
+  '/dashboard': '/chat',
+  '/dashboard/chat': '/chat',
+  '/dashboard/conversations': '/chat',
+  '/dashboard/conversations/:id': '/chat/:id',
+  '/dashboard/canvas': '/canvas',
+  '/dashboard/security': '/security',
+  '/dashboard/settings': '/settings',
+  '/dashboard/help': '/help',
+};
 ```
 
 ## Data Models
@@ -253,31 +272,33 @@ export default function DashboardPage() {
 ### Conversation Creation Flow
 
 ```typescript
-// 1. User sends first message
-const userMessage = 'How can I optimize React rendering?';
+// 1. User on /chat (empty state)
+// 2. User types message and sends
 
-// 2. Create conversation with temporary title
-const createDto: CreateConversationDto = {
-  title: generateTemporaryTitle(userMessage), // "React rendering optimization"
-  technique: selectedTechnique, // "elenchus"
-  tags: [],
+const handleSendFirstMessage = async (content: string) => {
+  setIsCreating(true);
+
+  // Generate temporary title
+  const title = generateTemporaryTitle(content);
+
+  // Create conversation
+  const conversation = await conversationsApi.create({
+    title,
+    technique: selectedTechnique,
+    tags: [],
+  });
+
+  // Navigate to /chat/:id
+  router.push(`/chat/${conversation.id}`);
+
+  // Send message
+  await conversationsApi.sendMessage(conversation.id, { content });
+
+  setIsCreating(false);
 };
-
-const conversation = await conversationsApi.create(createDto);
-
-// 3. Send message
-await conversationsApi.sendMessage(conversation.id, {
-  content: userMessage,
-});
-
-// 4. Backend generates final title after AI response
-// Title updated via SSE event or polling
-// Example: "Optimizing React Component Re-renders"
 ```
 
 ### Temporary Title Generation
-
-**Client-side logic:**
 
 ```typescript
 function generateTemporaryTitle(message: string): string {
@@ -293,57 +314,20 @@ function generateTemporaryTitle(message: string): string {
 }
 ```
 
-### Backend Title Generation
-
-**Backend responsibility (not implemented in this spec):**
-
-- Analyze first user message + AI response
-- Generate concise, descriptive title (max 60 chars)
-- Update conversation via PATCH endpoint
-- Emit SSE event to update frontend cache
-
-**Expected SSE event:**
-
-```typescript
-{
-  type: 'title_updated',
-  conversationId: '507f1f77bcf86cd799439011',
-  data: {
-    title: 'Optimizing React Component Re-renders'
-  },
-  timestamp: '2024-01-15T10:30:00Z'
-}
-```
-
 ## Correctness Properties
 
 _A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property Reflection
 
-After analyzing all acceptance criteria, I've identified the following redundancies and consolidations:
-
-**Redundant Properties:**
-
-- 3.3 and 4.2 both test sidebar updates when titles change - can be combined into one property
-- 1.1 and 7.3 both test that /dashboard/chat displays the chat interface - 7.3 is redundant
-- 8.3 and 8.5 are implementation details, not functional requirements - should not be properties
-
-**Combined Properties:**
-
-- Properties about sidebar updates (3.3, 4.2) → Single property about reactive sidebar updates
-- Properties about technique display (10.1, 10.2, 10.4) → Can be combined into technique UI feedback property
-
-After reflection, we'll focus on unique, high-value properties that validate distinct functional requirements.
-
-### Correctness Properties
+After analyzing all acceptance criteria, the following properties have been identified as unique and testable:
 
 **Property 1: Input validation enables send button**
 _For any_ non-empty text input in the message bar, the send button should be enabled
 **Validates: Requirements 1.4**
 
-**Property 2: First message creates conversation**
-_For any_ valid message content sent when no conversation exists, a new conversation should be created and the message should appear in the chat interface
+**Property 2: First message creates conversation and navigates**
+_For any_ valid message content sent when no conversation exists, a new conversation should be created and the user should be navigated to `/chat/:id`
 **Validates: Requirements 1.5**
 
 **Property 3: Technique selector displays all options**
@@ -360,7 +344,7 @@ _For any_ technique selected when creating a conversation, that technique should
 
 **Property 6: Temporary title generation follows rules**
 _For any_ message content, the generated temporary title should be truncated to 60 characters maximum and should not end mid-word
-**Validates: Requirements 3.1, 3.4**
+**Validates: Requirements 3.1, 3.2**
 
 **Property 7: Sidebar updates reactively**
 _For any_ conversation title update or new conversation creation, the sidebar conversation list should reflect the change immediately
@@ -371,64 +355,52 @@ _For any_ newly created conversation, it should appear at the top of the sidebar
 **Validates: Requirements 4.1**
 
 **Property 9: Sidebar navigation works**
-_For any_ conversation in the sidebar list, clicking it should navigate to that conversation's chat interface
+_For any_ conversation in the sidebar list, clicking it should navigate to `/chat/:id`
 **Validates: Requirements 4.3**
 
-**Property 10: Sidebar shows recent conversations**
-_For any_ user's conversation list, the sidebar should display at most 20 conversations sorted by last activity (most recent first)
-**Validates: Requirements 4.4**
-
-**Property 11: Active conversation is highlighted**
+**Property 10: Active conversation is highlighted**
 _For any_ active conversation, it should have a visual highlight in the sidebar conversation list
 **Validates: Requirements 4.5**
 
-**Property 12: Optimistic message display**
+**Property 11: Optimistic message display**
 _For any_ message sent by the user, it should appear immediately in the chat interface before server confirmation
 **Validates: Requirements 5.1**
 
-**Property 13: Streaming shows indicator**
+**Property 12: Streaming shows indicator**
 _For any_ AI response being streamed, a typing indicator or streaming animation should be visible
 **Validates: Requirements 5.3**
 
-**Property 14: Streaming completion enables input**
+**Property 13: Streaming completion enables input**
 _For any_ completed AI response, the input bar should be re-enabled and the streaming indicator should be hidden
 **Validates: Requirements 5.4**
 
-**Property 15: Keyboard shortcuts work**
+**Property 14: Keyboard shortcuts work**
 _For any_ text in the input bar, pressing Enter should send the message
 **Validates: Requirements 6.4**
 
-**Property 16: Dashboard redirects to chat**
-_For any_ navigation to `/dashboard`, the system should redirect to `/dashboard/chat`
+**Property 15: Dashboard routes redirect correctly**
+_For any_ navigation to `/dashboard/*`, the system should redirect to the equivalent `/chat`, `/canvas`, or settings route
 **Validates: Requirements 7.2**
 
-**Property 17: New chat clears state**
-_For any_ click on "New Chat" in the sidebar, the system should navigate to `/dashboard/chat` and clear the current conversation state
-**Validates: Requirements 7.4**
+**Property 16: New chat clears state and shows centered input**
+_For any_ click on "New Chat" in the sidebar, the system should navigate to `/chat` and display the centered input layout
+**Validates: Requirements 7.4, 12.5**
 
-**Property 18: Navigation preserves conversation**
-_For any_ active conversation, navigating away and back should preserve the conversation ID and messages
-**Validates: Requirements 7.5**
+**Property 17: Profile popover shows all options**
+_For any_ click on the user profile, the popover should display Security, Settings, Help & Support, and Logout options
+**Validates: Requirements 10.2**
 
-**Property 19: Data consistency across views**
-_For any_ conversation, switching between quick chat and conversation list should show consistent data (same title, message count, etc.)
-**Validates: Requirements 8.4**
+**Property 18: Profile popover navigation works**
+_For any_ click on a navigation item in the profile popover, the system should navigate to the correct route
+**Validates: Requirements 10.3, 10.4, 10.5**
 
-**Property 20: Collapsed sidebar shows tooltips**
-_For any_ navigation item in a collapsed sidebar, hovering should display a tooltip with the item label
-**Validates: Requirements 9.5**
+**Property 19: Empty state shows centered layout**
+_For any_ visit to `/chat` without a conversation ID, the system should display the centered input with quirky heading and no navbar
+**Validates: Requirements 12.1, 12.2, 12.3**
 
-**Property 21: Technique indicator displays current technique**
+**Property 20: Technique indicator displays current technique**
 _For any_ active conversation, the technique indicator should display the currently selected technique name
-**Validates: Requirements 10.1**
-
-**Property 22: Technique change shows feedback**
-_For any_ technique change, the system should provide visual feedback confirming the selection
-**Validates: Requirements 10.2, 10.4**
-
-**Property 23: Technique tooltip shows explanation**
-_For any_ technique indicator, hovering should display a tooltip explaining the current technique
-**Validates: Requirements 10.5**
+**Validates: Requirements 11.1**
 
 ## Error Handling
 
@@ -436,84 +408,26 @@ _For any_ technique indicator, hovering should display a tooltip explaining the 
 
 **1. Conversation Creation Failure**
 
-- **Scenario:** API call to create conversation fails
-- **Handling:**
-  - Show error toast: "Failed to create conversation. Please try again."
-  - Keep message in input bar (don't clear)
-  - Enable retry button
-  - Log error for debugging
+- Show error toast: "Failed to create conversation. Please try again."
+- Keep message in input bar (don't clear)
+- Enable retry button
 
 **2. Message Send Failure**
 
-- **Scenario:** API call to send message fails
-- **Handling:**
-  - Rollback optimistic update (remove message from UI)
-  - Show error toast: "Failed to send message. Please try again."
-  - Keep message in input bar
-  - Enable retry button
+- Rollback optimistic update (remove message from UI)
+- Show error toast: "Failed to send message. Please try again."
+- Keep message in input bar
 
 **3. SSE Connection Failure**
 
-- **Scenario:** SSE connection drops or fails to establish
-- **Handling:**
-  - Use existing `useConversationStream` error handling
-  - Show connection status indicator
-  - Attempt automatic reconnection with exponential backoff
-  - Show error message if reconnection fails
+- Use existing `useConversationStream` error handling
+- Show connection status indicator
+- Attempt automatic reconnection with exponential backoff
 
 **4. Title Generation Failure**
 
-- **Scenario:** Temporary title generation throws error
-- **Handling:**
-  - Use fallback title: `"Conversation - ${new Date().toISOString()}"`
-  - Log error for debugging
-  - Continue with conversation creation
-
-**5. Network Timeout**
-
-- **Scenario:** API request times out
-- **Handling:**
-  - Show error toast: "Request timed out. Please check your connection."
-  - Enable retry button
-  - Don't clear user input
-
-### Error Recovery Patterns
-
-**Optimistic Update Rollback:**
-
-```typescript
-try {
-  // Optimistic update
-  setMessages([...messages, newMessage]);
-
-  // API call
-  await conversationsApi.sendMessage(conversationId, { content });
-} catch (error) {
-  // Rollback
-  setMessages(messages);
-
-  // Show error
-  toast.error('Failed to send message');
-}
-```
-
-**Retry with Exponential Backoff:**
-
-```typescript
-async function retryWithBackoff<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt === maxAttempts - 1) throw error;
-
-      const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Max retry attempts reached');
-}
-```
+- Use fallback title: `"Conversation - ${new Date().toISOString()}"`
+- Continue with conversation creation
 
 ## Testing Strategy
 
@@ -523,55 +437,14 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, maxAttempts = 3): Promi
 
 1. **ChatPage** - State management, conversation lifecycle
 2. **ChatInterface** - Message display, input handling
-3. **WelcomeSection** - Empty state rendering
-4. **ChatInputBar** - Technique selection, message input
-5. **Sidebar** - Navigation, conversation list
-
-**Test Cases:**
-
-- Component renders without crashing
-- Props are passed correctly
-- Event handlers are called with correct arguments
-- Conditional rendering works (empty vs active state)
-- Loading states display correctly
-- Error states display correctly
-
-**Example Unit Test:**
-
-```typescript
-describe('ChatInputBar', () => {
-  it('should enable send button when input is not empty', () => {
-    const { getByRole, getByPlaceholderText } = render(
-      <ChatInputBar
-        conversationId={null}
-        selectedTechnique="elenchus"
-        onTechniqueChange={jest.fn()}
-        onSend={jest.fn()}
-      />
-    );
-
-    const input = getByPlaceholderText(/type your message/i);
-    const sendButton = getByRole('button', { name: /send/i });
-
-    expect(sendButton).toBeDisabled();
-
-    fireEvent.change(input, { target: { value: 'Hello' } });
-
-    expect(sendButton).toBeEnabled();
-  });
-});
-```
+3. **EmptyState** - Centered layout, quirky heading
+4. **Sidebar** - Navigation, conversation list
+5. **UserProfilePopover** - Menu items, navigation
+6. **ConversationList** - Infinite scroll, highlighting
 
 ### Property-Based Testing
 
-We'll use **fast-check** for property-based testing in TypeScript/React.
-
-**Property Test Framework Setup:**
-
-```typescript
-import fc from 'fast-check';
-import { render } from '@testing-library/react';
-```
+We'll use **fast-check** for property-based testing.
 
 **Key Properties to Test:**
 
@@ -582,130 +455,31 @@ it('Property 6: Temporary title generation follows rules', () => {
   fc.assert(
     fc.property(fc.string({ minLength: 1, maxLength: 200 }), (message) => {
       const title = generateTemporaryTitle(message);
-
-      // Title should be <= 60 characters
       expect(title.length).toBeLessThanOrEqual(60);
-
-      // Title should not end mid-word (unless original was short)
-      if (message.length > 60) {
-        expect(title).toMatch(/\.\.\.$|[^\s]$/);
-      }
     }),
     { numRuns: 100 }
   );
 });
 ```
 
-**2. Technique Selection Property:**
+**2. Route Redirect Property:**
 
 ```typescript
-it('Property 4: Technique selection updates state', () => {
-  fc.assert(
-    fc.property(fc.constantFrom(...SOCRATIC_TECHNIQUES), (technique) => {
-      const { result } = renderHook(() => useState<SocraticTechnique>('elenchus'));
-      const [, setTechnique] = result.current;
-
-      act(() => {
-        setTechnique(technique);
-      });
-
-      const [currentTechnique] = result.current;
-      expect(currentTechnique).toBe(technique);
-    }),
-    { numRuns: 50 }
-  );
-});
-```
-
-**3. Sidebar Ordering Property:**
-
-```typescript
-it('Property 10: Sidebar shows recent conversations sorted', () => {
+it('Property 15: Dashboard routes redirect correctly', () => {
   fc.assert(
     fc.property(
-      fc.array(
-        fc.record({
-          id: fc.uuid(),
-          title: fc.string(),
-          updatedAt: fc.date(),
-        }),
-        { minLength: 1, maxLength: 50 }
+      fc.constantFrom(
+        '/dashboard',
+        '/dashboard/chat',
+        '/dashboard/conversations',
+        '/dashboard/canvas'
       ),
-      (conversations) => {
-        const sorted = sortConversationsByActivity(conversations);
-        const limited = sorted.slice(0, 20);
-
-        // Should have at most 20 items
-        expect(limited.length).toBeLessThanOrEqual(20);
-
-        // Should be sorted by updatedAt descending
-        for (let i = 0; i < limited.length - 1; i++) {
-          expect(limited[i].updatedAt.getTime()).toBeGreaterThanOrEqual(
-            limited[i + 1].updatedAt.getTime()
-          );
-        }
+      (route) => {
+        const redirected = getRedirectRoute(route);
+        expect(redirected).not.toContain('/dashboard');
       }
     ),
-    { numRuns: 100 }
-  );
-});
-```
-
-**4. Optimistic Update Property:**
-
-```typescript
-it('Property 12: Optimistic message display', () => {
-  fc.assert(
-    fc.property(fc.string({ minLength: 1, maxLength: 4000 }), async (messageContent) => {
-      const { result } = renderHook(() => useMessages(conversationId));
-      const initialCount = result.current.messages.length;
-
-      act(() => {
-        result.current.sendMessage(messageContent);
-      });
-
-      // Message should appear immediately (optimistically)
-      expect(result.current.messages.length).toBe(initialCount + 1);
-      expect(result.current.messages[initialCount].content).toBe(messageContent);
-    }),
-    { numRuns: 50 }
-  );
-});
-```
-
-**5. Navigation Preservation Property:**
-
-```typescript
-it('Property 18: Navigation preserves conversation', () => {
-  fc.assert(
-    fc.property(
-      fc.uuid(),
-      fc.array(
-        fc.record({
-          content: fc.string(),
-          role: fc.constantFrom('user', 'assistant'),
-        })
-      ),
-      async (conversationId, messages) => {
-        // Set up conversation state
-        const { result } = renderHook(() => useConversation(conversationId));
-
-        // Navigate away
-        act(() => {
-          router.push('/dashboard/conversations');
-        });
-
-        // Navigate back
-        act(() => {
-          router.push(`/dashboard/chat?id=${conversationId}`);
-        });
-
-        // Conversation should be preserved
-        expect(result.current.data?.id).toBe(conversationId);
-        expect(result.current.data?.recentMessages.length).toBe(messages.length);
-      }
-    ),
-    { numRuns: 30 }
+    { numRuns: 20 }
   );
 });
 ```
@@ -714,45 +488,9 @@ it('Property 18: Navigation preserves conversation', () => {
 
 **Test Scenarios:**
 
-1. **End-to-End Chat Flow:**
-   - User lands on /dashboard/chat
-   - Selects technique
-   - Sends first message
-   - Conversation is created
-   - Message appears
-   - AI response streams in
-   - Title is generated
-   - Sidebar updates
-
-2. **Navigation Flow:**
-   - User navigates to /dashboard
-   - Redirects to /dashboard/chat
-   - User clicks conversation in sidebar
-   - Navigates to that conversation
-   - User clicks "New Chat"
-   - Returns to empty chat state
-
-3. **Error Recovery:**
-   - User sends message
-   - API fails
-   - Error message displays
-   - User retries
-   - Message sends successfully
-
-### Testing Tools
-
-- **Unit Tests:** Jest + React Testing Library
-- **Property Tests:** fast-check
-- **Integration Tests:** Playwright or Cypress
-- **Component Tests:** Storybook for visual testing
-- **API Mocking:** MSW (Mock Service Worker)
-
-### Test Coverage Goals
-
-- **Unit Tests:** 80%+ coverage for components and utilities
-- **Property Tests:** All critical properties (23 properties identified)
-- **Integration Tests:** All major user flows (3 flows identified)
-- **E2E Tests:** Happy path + critical error scenarios
+1. **End-to-End Chat Flow:** Land on /chat → Send message → Navigate to /chat/:id → Receive response
+2. **Navigation Flow:** Test all route redirects and sidebar navigation
+3. **Profile Popover Flow:** Open popover → Navigate to settings → Return to chat
 
 ## Performance Considerations
 
@@ -760,67 +498,20 @@ it('Property 18: Navigation preserves conversation', () => {
 
 **1. Lazy Loading:**
 
-- Lazy load WelcomeSection component (only shown on empty state)
-- Lazy load TechniqueSelector dialog content
-- Code-split chat interface from other dashboard pages
+- Lazy load EmptyState component
+- Lazy load TechniqueSelector dialog
+- Code-split chat page from canvas page
 
 **2. Memoization:**
 
-- Memoize message list rendering with `React.memo`
-- Memoize technique selector options
-- Use `useMemo` for sorted/filtered conversation lists
+- Memoize ConversationList items
+- Memoize message rendering
+- Use `useMemo` for sorted conversation lists
 
 **3. Virtualization:**
 
-- Use virtual scrolling for message list (react-window or react-virtual)
-- Virtualize sidebar conversation list if > 20 items
-
-**4. Debouncing:**
-
-- Debounce title generation (wait for user to stop typing)
-- Debounce sidebar search/filter if implemented
-
-**5. Caching:**
-
-- Leverage TanStack Query cache for conversations
-- Set appropriate staleTime for conversation lists (30s)
-- Use optimistic updates to avoid unnecessary refetches
-
-### Performance Metrics
-
-**Target Metrics:**
-
-- **Time to Interactive (TTI):** < 2s
-- **First Contentful Paint (FCP):** < 1s
-- **Message Send Latency:** < 100ms (optimistic update)
-- **SSE Connection Time:** < 500ms
-- **Sidebar Update Latency:** < 50ms (optimistic)
-
-## Security Considerations
-
-### Authentication
-
-- All API calls include JWT token from auth store
-- SSE connection includes token in query param (EventSource limitation)
-- Token refresh handled by existing auth infrastructure
-
-### Authorization
-
-- Backend validates user owns conversation before allowing access
-- Frontend hides conversations user doesn't own
-- SSE connection validates ownership before streaming
-
-### Input Validation
-
-- Client-side: Max message length (4000 chars)
-- Client-side: Sanitize HTML in messages (prevent XSS)
-- Backend: Validate all inputs (technique, title, content)
-
-### Rate Limiting
-
-- Respect backend rate limits
-- Show rate limit banner when exceeded
-- Disable send button during rate limit period
+- Use virtual scrolling for conversation list in sidebar
+- Use virtual scrolling for message list
 
 ## Accessibility
 
@@ -830,86 +521,40 @@ it('Property 18: Navigation preserves conversation', () => {
 
 - Tab through all interactive elements
 - Enter to send message
-- Escape to close technique selector
-- Arrow keys to navigate technique options
+- Escape to close popover/dialogs
+- Arrow keys to navigate conversation list
 
 **Screen Reader Support:**
 
 - ARIA labels on all buttons and inputs
 - ARIA live regions for message updates
-- Semantic HTML (main, nav, article, etc.)
-- Alt text for logo and icons
-
-**Visual Accessibility:**
-
-- Sufficient color contrast (4.5:1 for text)
-- Focus indicators on all interactive elements
-- No reliance on color alone for information
-- Resizable text up to 200%
-
-**Example ARIA Implementation:**
-
-```typescript
-<div role="log" aria-live="polite" aria-atomic="false">
-  {messages.map(message => (
-    <div key={message.sequence} role="article" aria-label={`Message from ${message.role}`}>
-      {message.content}
-    </div>
-  ))}
-</div>
-
-<button
-  aria-label="Send message"
-  aria-disabled={!canSend}
-  onClick={handleSend}
->
-  <Send aria-hidden="true" />
-</button>
-```
+- Semantic HTML structure
 
 ## Migration Strategy
 
-### Phase 1: Component Development
+### Phase 1: Route Setup
 
-1. Create new components (ChatPage, ChatInterface, etc.)
-2. Update Sidebar component (remove dummy pages)
-3. Add redirect to /dashboard/page.tsx
-4. Write unit tests
+1. Create new route structure (`/chat`, `/chat/[id]`, `/canvas`)
+2. Add redirect handlers for `/dashboard/*` routes
+3. Update auth redirects to use `/chat`
 
-### Phase 2: Integration
+### Phase 2: Component Development
 
-1. Wire up TanStack Query hooks
+1. Create EmptyState component with centered layout
+2. Update Sidebar to remove nav items, add conversation list
+3. Create UserProfilePopover component
+4. Create ConversationList component
+
+### Phase 3: Integration
+
+1. Wire up conversation creation flow
 2. Integrate SSE streaming
 3. Implement technique selection
 4. Add title generation logic
-5. Write integration tests
 
-### Phase 3: Polish
+### Phase 4: Cleanup
 
-1. Add loading states
-2. Add error handling
-3. Implement accessibility features
-4. Add animations and transitions
-5. Write property-based tests
-
-### Phase 4: Deployment
-
-1. Feature flag for gradual rollout
-2. Monitor error rates and performance
-3. Gather user feedback
-4. Iterate based on feedback
-
-## Future Enhancements
-
-### Potential Features (Out of Scope)
-
-1. **Conversation Search:** Search through past conversations
-2. **Conversation Folders:** Organize conversations into folders
-3. **Conversation Sharing:** Share conversations with other users
-4. **Conversation Export:** Export conversations as PDF/Markdown
-5. **Voice Input:** Speak messages instead of typing
-6. **Multi-modal Input:** Upload images/files with messages
-7. **Conversation Templates:** Pre-defined conversation starters
-8. **AI Model Selection:** Choose different AI models
-9. **Conversation Analytics:** Track conversation metrics
-10. **Collaborative Conversations:** Multiple users in one conversation
+1. Remove old dashboard pages
+2. Remove old conversation list page
+3. Update all internal links
+4. Update documentation
