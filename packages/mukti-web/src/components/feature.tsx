@@ -65,9 +65,10 @@ export function Feature() {
         </div>
 
         {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-4 w-full max-w-7xl mt-8">
+        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 md:gap-4 w-full max-w-7xl mt-8 pb-12 md:pb-0 px-4 md:px-0 -mx-4 md:mx-auto [&::-webkit-scrollbar]:hidden">
           {features.map((feature, index) => (
             <motion.div
+              className="min-w-[80vw] md:min-w-0 snap-center"
               initial={{ opacity: 0, y: 20 }}
               key={feature.title}
               transition={{ delay: index * 0.1, duration: 0.5 }}

@@ -122,10 +122,10 @@ export function Pricing() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 w-full max-w-6xl">
+        <div className="flex md:grid md:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 md:gap-6 w-full max-w-6xl pb-12 md:pb-0 px-4 md:px-0 -mx-4 md:mx-auto [&::-webkit-scrollbar]:hidden">
           {plans.map((plan, index) => (
             <div
-              className="relative p-8 rounded-2xl bg-[#0A0F1C]/80 border border-slate-800/60 flex flex-col hover:border-slate-700 transition-all duration-300 backdrop-blur-sm group"
+              className="min-w-[85vw] md:min-w-0 snap-center relative p-8 rounded-2xl bg-[#0A0F1C]/80 border border-slate-800/60 flex flex-col hover:border-slate-700 transition-all duration-300 backdrop-blur-sm group"
               key={index}
             >
               {/* Icon */}

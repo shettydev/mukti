@@ -68,10 +68,10 @@ export function Proof() {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 max-w-4xl mx-auto">
+        <div className="flex md:grid md:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 md:gap-6 max-w-4xl mx-auto pb-12 md:pb-0 px-4 md:px-0 -mx-4 md:mx-auto [&::-webkit-scrollbar]:hidden">
           {stats.map((stat, index) => (
             <motion.div
-              className="relative p-6 rounded-2xl bg-card border border-border/50 text-center group hover:border-primary/30 transition-colors"
+              className="min-w-[80vw] md:min-w-0 snap-center relative p-6 rounded-2xl bg-card border border-border/50 text-center group hover:border-primary/30 transition-colors"
               initial={{ opacity: 0, y: 20 }}
               key={stat.label}
               transition={{ delay: index * 0.1, duration: 0.5 }}
