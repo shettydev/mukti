@@ -31,7 +31,7 @@ const stats = [
 
 export function Proof() {
   return (
-    <section className="relative w-full py-32 bg-background overflow-hidden">
+    <section className="relative w-full py-24 md:py-32 bg-[#020617] overflow-hidden">
       <DotPattern
         className={cn('[mask-image:radial-gradient(500px_circle_at_center,white,transparent)]')}
       />
@@ -68,7 +68,7 @@ export function Proof() {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 max-w-4xl mx-auto">
           {stats.map((stat, index) => (
             <motion.div
               className="relative p-6 rounded-2xl bg-card border border-border/50 text-center group hover:border-primary/30 transition-colors"

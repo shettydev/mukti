@@ -38,7 +38,7 @@ export function Hero() {
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[400px] h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
 
       {/* Content Section */}
-      <div className="flex-1 flex flex-col items-center justify-center pt-32 pb-8 px-4">
+      <div className="flex-1 flex flex-col items-center justify-center pt-32 md:pt-40 pb-12 px-4">
         <motion.h1
           className="bg-gradient-to-b from-white via-slate-200 to-slate-500 bg-clip-text text-center text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-medium tracking-tight text-transparent leading-tight"
           initial={{ opacity: 0, y: 30 }}
