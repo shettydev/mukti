@@ -40,7 +40,7 @@ const faqs = [
 
 export function FAQ() {
   return (
-    <section className="py-24 md:py-32 bg-background">
+    <section className="py-24 md:py-32 bg-[#020617]">
       <div className="container mx-auto px-4">
         <motion.div
           className="mx-auto max-w-2xl text-center mb-16"

@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 
 export function Cta() {
   return (
-    <section className="relative w-full py-64 bg-[#020617] overflow-hidden">
+    <section className="relative w-full py-32 md:py-64 bg-[#020617] overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
 

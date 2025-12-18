@@ -68,7 +68,7 @@ export function Pricing() {
 
   return (
     <section
-      className="min-h-screen w-full bg-[#020617] relative overflow-hidden flex flex-col items-center justify-center py-24"
+      className="min-h-screen w-full bg-[#020617] relative overflow-hidden flex flex-col items-center justify-center py-24 md:py-32"
       id="pricing"
     >
       {/* Background Gradients */}
@@ -122,7 +122,7 @@ export function Pricing() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 w-full max-w-6xl">
           {plans.map((plan, index) => (
             <div
               className="relative p-8 rounded-2xl bg-[#0A0F1C]/80 border border-slate-800/60 flex flex-col hover:border-slate-700 transition-all duration-300 backdrop-blur-sm group"

@@ -35,7 +35,7 @@ export function Feature() {
 
   return (
     <section
-      className="min-h-screen w-full bg-[#020617] relative overflow-hidden flex flex-col items-center justify-center py-24"
+      className="min-h-screen w-full bg-[#020617] relative overflow-hidden flex flex-col items-center justify-center py-24 md:py-32"
       id="features"
     >
       {/* Background Gradients */}
@@ -65,7 +65,7 @@ export function Feature() {
         </div>
 
         {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-7xl mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-4 w-full max-w-7xl mt-8">
           {features.map((feature, index) => (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
