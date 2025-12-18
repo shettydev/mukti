@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [-] 1. Set up TypeScript types and API client foundation
+- [x] 1. Set up TypeScript types and API client foundation
   - Create TypeScript types matching backend DTOs
   - Implement conversation API client with all endpoints
   - Create query key factory for cache management
@@ -66,7 +66,6 @@
   - **Property 20: Post-deletion invalidation**
   - **Property 21: Post-message invalidation**
   - **Validates: Requirements 4.7, 7.5, 8.8, 9.4**
-
 
 - [x] 2.4 Write unit tests for query hooks
   - Test useConversations with various filters
