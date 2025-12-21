@@ -22,20 +22,23 @@ import type { SocraticTechnique } from '@/types/conversation.types';
 
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { ChatInterface } from '@/components/chat';
-import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { DashboardLayout, useLayout } from '@/components/layouts/dashboard-layout';
 import { useCreateConversation } from '@/lib/hooks/use-conversations';
 import { generateTemporaryTitle } from '@/lib/utils/title-generation';
 
 export default function ChatPage() {
   return (
     <ProtectedRoute redirectTo="/auth">
-      <ChatContent />
+      <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar={false}>
+        <ChatContent />
+      </DashboardLayout>
     </ProtectedRoute>
   );
 }
 
 function ChatContent() {
   const router = useRouter();
+  const { toggleMobileMenu } = useLayout();
   const [selectedTechnique, setSelectedTechnique] = useState<SocraticTechnique>('elenchus');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const { isPending: isCreating, mutateAsync: createConversation } = useCreateConversation();
@@ -82,15 +85,14 @@ function ChatContent() {
   }, []);
 
   return (
-    <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar={false}>
-      <ChatInterface
-        conversationId={null}
-        isCreating={isCreating}
-        isTransitioning={isTransitioning}
-        onCreateConversation={handleCreateConversation}
-        onTechniqueChange={handleTechniqueChange}
-        selectedTechnique={selectedTechnique}
-      />
-    </DashboardLayout>
+    <ChatInterface
+      conversationId={null}
+      isCreating={isCreating}
+      isTransitioning={isTransitioning}
+      onCreateConversation={handleCreateConversation}
+      onMobileMenuToggle={toggleMobileMenu}
+      onTechniqueChange={handleTechniqueChange}
+      selectedTechnique={selectedTechnique}
+    />
   );
 }

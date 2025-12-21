@@ -22,7 +22,7 @@ import type { SocraticTechnique } from '@/types/conversation.types';
 
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { ChatInterface } from '@/components/chat';
-import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { DashboardLayout, useLayout } from '@/components/layouts/dashboard-layout';
 import { useConversation } from '@/lib/hooks/use-conversations';
 
 interface ChatDetailContentProps {
@@ -38,12 +38,15 @@ export default function ChatDetailPage({ params }: ChatDetailPageProps) {
 
   return (
     <ProtectedRoute redirectTo="/auth">
-      <ChatDetailContent conversationId={id} />
+      <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar={false}>
+        <ChatDetailContent conversationId={id} />
+      </DashboardLayout>
     </ProtectedRoute>
   );
 }
 
 function ChatDetailContent({ conversationId }: ChatDetailContentProps) {
+  const { toggleMobileMenu } = useLayout();
   const [selectedTechnique, setSelectedTechnique] = useState<SocraticTechnique>('elenchus');
 
   // Fetch conversation to get the actual technique
@@ -73,14 +76,13 @@ function ChatDetailContent({ conversationId }: ChatDetailContentProps) {
   }, []);
 
   return (
-    <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar={false}>
-      <ChatInterface
-        conversationId={conversationId}
-        isCreating={false}
-        onCreateConversation={handleCreateConversation}
-        onTechniqueChange={handleTechniqueChange}
-        selectedTechnique={selectedTechnique}
-      />
-    </DashboardLayout>
+    <ChatInterface
+      conversationId={conversationId}
+      isCreating={false}
+      onCreateConversation={handleCreateConversation}
+      onMobileMenuToggle={toggleMobileMenu}
+      onTechniqueChange={handleTechniqueChange}
+      selectedTechnique={selectedTechnique}
+    />
   );
 }
