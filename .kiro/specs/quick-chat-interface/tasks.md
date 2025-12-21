@@ -258,7 +258,7 @@
   - Handle network disconnections gracefully
   - _Requirements: 5.5_
 
-- [x] 10. Implement input validation and keyboard shortcuts
+- [ ] 10. Implement input validation and keyboard shortcuts
 - [x] 10.1 Implement input validation
   - Enable send button only when input is non-empty
   - Disable during sending
@@ -278,13 +278,13 @@
   - **Property 14: Keyboard shortcuts work**
   - **Validates: Requirements 6.4**
 
-- [ ] 11. Implement sidebar reactive updates
-- [ ] 11.1 Ensure sidebar updates on new conversation
+- [x] 11. Implement sidebar reactive updates
+- [x] 11.1 Ensure sidebar updates on new conversation
   - Invalidate conversation queries after creation
   - New conversation appears at top immediately
   - _Requirements: 4.1, 3.3_
 
-- [ ] 11.2 Ensure sidebar updates on title change
+- [x] 11.2 Ensure sidebar updates on title change
   - Update conversation in cache when title changes
   - Reflect change in sidebar immediately
   - _Requirements: 4.2, 3.3_
