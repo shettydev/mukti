@@ -8,14 +8,19 @@
 import { Loader2, Send } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { SocraticTechnique } from '@/types/conversation.types';
+
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+import { TechniqueIndicator } from './technique-indicator';
 
 interface MessageInputProps {
   conversationId: string;
   disabled?: boolean;
   maxLength?: number;
   onSend: (content: string) => Promise<void>;
+  technique?: SocraticTechnique;
 }
 
 const DEFAULT_MAX_LENGTH = 4000;
@@ -25,6 +30,7 @@ export function MessageInput({
   disabled = false,
   maxLength = DEFAULT_MAX_LENGTH,
   onSend,
+  technique,
 }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -109,6 +115,13 @@ export function MessageInput({
 
   return (
     <div className="border-t bg-background p-4">
+      {/* Technique indicator */}
+      {technique && (
+        <div className="mb-2 flex items-center justify-between">
+          <TechniqueIndicator technique={technique} />
+        </div>
+      )}
+
       <div className="relative">
         <textarea
           aria-describedby="character-count"

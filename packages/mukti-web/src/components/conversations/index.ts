@@ -10,4 +10,5 @@ export { MessageInput } from './message-input';
 export { MessageList } from './message-list';
 export { RateLimitBanner } from './rate-limit-banner';
 export { TagInput } from './tag-input';
+export { TechniqueIndicator } from './technique-indicator';
 export { TechniqueSelector } from './technique-selector';
