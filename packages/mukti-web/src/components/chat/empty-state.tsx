@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 interface EmptyStateProps {
   className?: string;
   isCreating?: boolean;
+  isTransitioning?: boolean;
   onSendMessage: (content: string) => Promise<void>;
   onTechniqueChange: (technique: SocraticTechnique) => void;
   selectedTechnique: SocraticTechnique;
@@ -53,6 +54,7 @@ const QUIRKY_HEADINGS = [
 export function EmptyState({
   className,
   isCreating = false,
+  isTransitioning = false,
   onSendMessage,
   onTechniqueChange,
   selectedTechnique,
@@ -127,7 +129,14 @@ export function EmptyState({
   );
 
   return (
-    <div className={cn('flex min-h-screen items-center justify-center p-4', className)}>
+    <div
+      className={cn(
+        'flex min-h-full items-center justify-center p-4',
+        'transition-all duration-300 ease-out',
+        isTransitioning && 'opacity-0 scale-95 translate-y-4',
+        className
+      )}
+    >
       <div className="w-full max-w-2xl space-y-6">
         {/* Quirky heading */}
         <h1 className="text-center text-3xl font-bold text-foreground sm:text-4xl">{heading}</h1>

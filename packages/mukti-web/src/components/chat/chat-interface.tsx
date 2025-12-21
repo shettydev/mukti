@@ -35,6 +35,7 @@ import { EmptyState } from './empty-state';
 interface ChatInterfaceProps {
   conversationId: null | string;
   isCreating: boolean;
+  isTransitioning?: boolean;
   onCreateConversation: (content: string, technique: SocraticTechnique) => Promise<string>;
   onTechniqueChange: (technique: SocraticTechnique) => void;
   selectedTechnique: SocraticTechnique;
@@ -49,6 +50,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({
   conversationId,
   isCreating,
+  isTransitioning = false,
   onCreateConversation,
   onTechniqueChange,
   selectedTechnique,
@@ -211,6 +213,7 @@ export function ChatInterface({
     return (
       <EmptyState
         isCreating={isCreating}
+        isTransitioning={isTransitioning}
         onSendMessage={handleSendFirstMessage}
         onTechniqueChange={onTechniqueChange}
         selectedTechnique={selectedTechnique}
