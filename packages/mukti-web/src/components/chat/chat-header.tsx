@@ -103,6 +103,7 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                 aria-label="Toggle sidebar"
                 className={cn(
                   'h-8 w-8 shrink-0',
+                  'md:hidden', // Hide on desktop
                   'bg-transparent hover:bg-white/5',
                   'text-white/50 hover:text-white/80',
                   'transition-colors duration-200'
