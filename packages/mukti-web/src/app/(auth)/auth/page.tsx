@@ -79,8 +79,8 @@ function AuthContent() {
   };
 
   const handleAuthSuccess = () => {
-    // Redirect to dashboard on successful authentication
-    router.push('/dashboard');
+    // Redirect to chat on successful authentication
+    router.push('/chat');
   };
 
   return (
