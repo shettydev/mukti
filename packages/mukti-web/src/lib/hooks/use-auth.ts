@@ -170,7 +170,7 @@ export function useForgotPassword() {
  *     loginMutation.mutate(data, {
  *       onSuccess: () => {
  *         toast.success('Welcome back!');
- *         router.push('/dashboard');
+ *         router.push('/chat');
  *       },
  *       onError: (error) => {
  *         toast.error('Invalid credentials');
@@ -311,7 +311,7 @@ export function useRefreshToken() {
  *     registerMutation.mutate(data, {
  *       onSuccess: () => {
  *         toast.success('Account created successfully!');
- *         router.push('/dashboard');
+ *         router.push('/chat');
  *       },
  *       onError: (error) => {
  *         toast.error(error.message);
