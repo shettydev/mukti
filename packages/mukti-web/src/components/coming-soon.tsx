@@ -67,7 +67,7 @@ export function ComingSoon({ className, description, feature, icon, timeline }: 
 
       {/* Back to dashboard button */}
       <Button asChild size="lg" variant="outline">
-        <Link href="/dashboard">
+        <Link href="/chat">
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
         </Link>
