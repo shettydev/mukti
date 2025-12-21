@@ -170,7 +170,7 @@ export function EmptyState({
             disabled={isCreating || isSending}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask me anything... (Enter to send, Shift+Enter for new line)"
+            placeholder="Ask me anything..."
             ref={textareaRef}
             value={content}
           />
