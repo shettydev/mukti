@@ -26,7 +26,7 @@ describe('ComingSoon', () => {
 
     const backButton = screen.getByRole('link', { name: /back to dashboard/i });
     expect(backButton).toBeInTheDocument();
-    expect(backButton).toHaveAttribute('href', '/dashboard');
+    expect(backButton).toHaveAttribute('href', '/chat');
   });
 
   it('renders timeline when provided', () => {
