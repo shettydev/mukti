@@ -85,7 +85,7 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
       showSuccessToast('Welcome back!');
 
       setIsRedirecting(true);
-      router.push('/dashboard');
+      router.push('/chat');
 
       // Call onSuccess callback if provided
       onSuccess?.();
