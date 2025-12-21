@@ -10,7 +10,10 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Define paths
-  const isProtectedPath = pathname.startsWith('/dashboard');
+  const isProtectedPath =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/chat') ||
+    pathname.startsWith('/canvas');
   const isAuthPage = pathname === '/auth';
 
   // Scenario 1: Unauthenticated user trying to access protected routes
@@ -24,8 +27,8 @@ export function middleware(request: NextRequest) {
 
   // Scenario 2: Authenticated user trying to access the login/signup page
   if (isAuthPage && isAuth) {
-    // Redirect to dashboard
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Redirect to chat
+    return NextResponse.redirect(new URL('/chat', request.url));
   }
 
   // Scenario 3: Redirect /dashboard/conversations/new to /dashboard/conversations with dialog auto-open
