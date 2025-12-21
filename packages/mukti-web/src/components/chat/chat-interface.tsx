@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { type SSEError, useConversationStream } from '@/lib/hooks/use-conversation-stream';
 import { useConversation, useSendMessage } from '@/lib/hooks/use-conversations';
 
+import { ChatHeader } from './chat-header';
 import { EmptyState } from './empty-state';
 
 interface ChatInterfaceProps {
@@ -37,6 +38,7 @@ interface ChatInterfaceProps {
   isCreating: boolean;
   isTransitioning?: boolean;
   onCreateConversation: (content: string, technique: SocraticTechnique) => Promise<string>;
+  onMobileMenuToggle?: () => void;
   onTechniqueChange: (technique: SocraticTechnique) => void;
   selectedTechnique: SocraticTechnique;
 }
@@ -52,6 +54,7 @@ export function ChatInterface({
   isCreating,
   isTransitioning = false,
   onCreateConversation,
+  onMobileMenuToggle,
   onTechniqueChange,
   selectedTechnique,
 }: ChatInterfaceProps) {
@@ -211,13 +214,16 @@ export function ChatInterface({
   // Show empty state if no conversation
   if (!conversationId || !conversation) {
     return (
-      <EmptyState
-        isCreating={isCreating}
-        isTransitioning={isTransitioning}
-        onSendMessage={handleSendFirstMessage}
-        onTechniqueChange={onTechniqueChange}
-        selectedTechnique={selectedTechnique}
-      />
+      <div className="flex h-full min-h-0 flex-col">
+        <ChatHeader conversation={null} onMobileMenuToggle={onMobileMenuToggle} />
+        <EmptyState
+          isCreating={isCreating}
+          isTransitioning={isTransitioning}
+          onSendMessage={handleSendFirstMessage}
+          onTechniqueChange={onTechniqueChange}
+          selectedTechnique={selectedTechnique}
+        />
+      </div>
     );
   }
 
@@ -233,6 +239,9 @@ export function ChatInterface({
   // Show active conversation state
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* Chat header with title and actions */}
+      <ChatHeader conversation={conversation} onMobileMenuToggle={onMobileMenuToggle} />
+
       {/* Rate limit banner */}
       {rateLimitInfo && (
         <div className="border-b p-4">

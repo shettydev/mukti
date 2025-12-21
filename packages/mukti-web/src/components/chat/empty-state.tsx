@@ -131,7 +131,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex min-h-full items-center justify-center p-4',
+        'flex flex-1 items-center justify-center p-4',
         'transition-all duration-300 ease-out',
         isTransitioning && 'opacity-0 scale-95 translate-y-4',
         className
