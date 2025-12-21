@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Archive,
-  ArchiveRestore,
-  Loader2,
-  Menu,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-} from 'lucide-react';
+import { Archive, ArchiveRestore, Loader2, MoreHorizontal, PanelLeft, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -24,17 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { conversationsApi } from '@/lib/api/conversations';
-import { useDeleteConversation, useUpdateConversation } from '@/lib/hooks/use-conversations';
+import { useDeleteConversation } from '@/lib/hooks/use-conversations';
 import { cn } from '@/lib/utils';
 
 interface ChatHeaderProps {
@@ -43,53 +27,21 @@ interface ChatHeaderProps {
 }
 
 /**
- * Chat header component with title and action menu
+ * Minimal chat header with sidebar toggle, title, and options popover
  *
- * Features:
- * - Displays conversation title or "New Chat" for empty state
- * - Mobile menu toggle button
- * - Dropdown menu with rename, archive, delete options
- * - Responsive design
+ * Layout:
+ * - Left: Sidebar toggle + Chat title
+ * - Right: Options popover (archive, delete)
  */
 export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps) {
   const router = useRouter();
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
 
-  // Mutations
   const { isPending: isDeleting, mutate: deleteConversation } = useDeleteConversation();
-  const { mutate: updateConversation } = useUpdateConversation(conversation?.id || '');
 
   const isNewChat = !conversation;
   const title = conversation?.title || 'New Chat';
-
-  // Handle rename dialog open
-  const handleRenameOpen = useCallback(() => {
-    setNewTitle(conversation?.title || '');
-    setRenameDialogOpen(true);
-  }, [conversation?.title]);
-
-  // Handle rename submit
-  const handleRenameSubmit = useCallback(() => {
-    if (!newTitle.trim()) {
-      toast.error('Title cannot be empty');
-      return;
-    }
-
-    updateConversation(
-      { title: newTitle.trim() },
-      {
-        onError: () => {
-          toast.error('Failed to rename conversation');
-        },
-        onSuccess: () => {
-          toast.success('Conversation renamed');
-          setRenameDialogOpen(false);
-        },
-      }
-    );
-  }, [newTitle, updateConversation]);
 
   // Handle archive/unarchive
   const handleArchive = useCallback(async () => {
@@ -97,17 +49,24 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
       return;
     }
 
+    setPopoverOpen(false);
+
     try {
       await conversationsApi.update(conversation.id, {
         isArchived: !conversation.isArchived,
       });
       toast.success(conversation.isArchived ? 'Conversation restored' : 'Conversation archived');
-      // Refresh the page to reflect changes
       router.refresh();
     } catch {
       toast.error('Failed to update conversation');
     }
   }, [conversation, router]);
+
+  // Handle delete
+  const handleDeleteClick = useCallback(() => {
+    setPopoverOpen(false);
+    setDeleteDialogOpen(true);
+  }, []);
 
   // Handle delete confirm
   const handleDeleteConfirm = useCallback(() => {
@@ -129,137 +88,148 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
 
   return (
     <>
-      <header
-        className={cn(
-          'flex items-center gap-2 px-3 py-2 md:px-4 md:py-3',
-          'border-b border-white/10 bg-[#111111]',
-          'min-h-[52px] md:min-h-[56px]'
-        )}
-      >
-        {/* Mobile menu button */}
-        {onMobileMenuToggle && (
-          <Button
-            aria-label="Open navigation menu"
-            className="md:hidden min-h-[40px] min-w-[40px]"
-            onClick={onMobileMenuToggle}
-            size="icon"
-            variant="ghost"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-        )}
+      {/* Floating header with gradient fade */}
+      <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none h-16 md:h-20">
+        {/* Gradient background - fades from solid to transparent */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050505] from-40% via-[#050505]/60 via-70% to-transparent" />
 
-        {/* Title */}
-        <div className="flex-1 min-w-0">
-          <h1
-            className={cn(
-              'text-sm md:text-base font-semibold truncate',
-              isNewChat && 'text-white/60'
+        {/* Header content */}
+        <div className="relative flex items-center justify-between p-2 md:p-3">
+          {/* Left side - Sidebar toggle + Title */}
+          <div className="flex items-center gap-2 pointer-events-auto min-w-0">
+            {/* Sidebar toggle */}
+            {onMobileMenuToggle && (
+              <Button
+                aria-label="Toggle sidebar"
+                className={cn(
+                  'h-8 w-8 shrink-0',
+                  'bg-transparent hover:bg-white/5',
+                  'text-white/50 hover:text-white/80',
+                  'transition-colors duration-200'
+                )}
+                onClick={onMobileMenuToggle}
+                size="icon"
+                variant="ghost"
+              >
+                <PanelLeft className="w-4 h-4" />
+              </Button>
             )}
-            title={title}
-          >
-            {title}
-          </h1>
-          {conversation?.isArchived && (
-            <span className="text-xs text-white/40 flex items-center gap-1">
-              <Archive className="w-3 h-3" />
-              Archived
-            </span>
-          )}
-        </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          {/* Options menu (only for existing conversations) */}
-          {!isNewChat && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  aria-label="Conversation options"
-                  className="h-8 w-8"
-                  size="icon"
-                  variant="ghost"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="gap-2 cursor-pointer" onClick={handleRenameOpen}>
-                  <Pencil className="w-4 h-4" />
-                  Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 cursor-pointer" onClick={handleArchive}>
-                  {conversation?.isArchived ? (
-                    <>
-                      <ArchiveRestore className="w-4 h-4" />
-                      Restore
-                    </>
-                  ) : (
-                    <>
-                      <Archive className="w-4 h-4" />
-                      Archive
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="gap-2 cursor-pointer"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  variant="destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </header>
+            {/* Title */}
+            <h1
+              className={cn(
+                'text-sm font-medium truncate',
+                isNewChat ? 'text-white/40' : 'text-white/70'
+              )}
+              title={title}
+            >
+              {title}
+            </h1>
 
-      {/* Rename Dialog */}
-      <Dialog onOpenChange={setRenameDialogOpen} open={renameDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Rename conversation</DialogTitle>
-            <DialogDescription>Enter a new title for this conversation.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="chat-title">Title</Label>
-              <Input
-                id="chat-title"
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
-                placeholder="Enter conversation title"
-                value={newTitle}
-              />
-            </div>
+            {/* Archived badge */}
+            {conversation?.isArchived && (
+              <span className="shrink-0 text-[10px] text-amber-500/70 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                Archived
+              </span>
+            )}
           </div>
-          <DialogFooter>
-            <Button onClick={() => setRenameDialogOpen(false)} variant="outline">
-              Cancel
-            </Button>
-            <Button onClick={handleRenameSubmit}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+          {/* Right side - Options */}
+          {!isNewChat && (
+            <div className="pointer-events-auto">
+              <Popover onOpenChange={setPopoverOpen} open={popoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    aria-label="More options"
+                    className={cn(
+                      'h-8 w-8',
+                      'bg-transparent hover:bg-white/5',
+                      'text-white/50 hover:text-white/80',
+                      'transition-colors duration-200',
+                      popoverOpen && 'bg-white/5 text-white/80'
+                    )}
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-48 p-1 bg-[#1a1a1a] border-white/10"
+                  sideOffset={8}
+                >
+                  {/* Archive/Restore option */}
+                  <button
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm',
+                      'text-white/70 hover:text-white hover:bg-white/5',
+                      'transition-colors duration-150 cursor-pointer'
+                    )}
+                    onClick={handleArchive}
+                    type="button"
+                  >
+                    {conversation?.isArchived ? (
+                      <>
+                        <ArchiveRestore className="w-4 h-4" />
+                        Restore
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-4 h-4" />
+                        Archive
+                      </>
+                    )}
+                  </button>
+
+                  {/* Delete option */}
+                  <button
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm',
+                      'text-red-400 hover:text-red-300 hover:bg-red-500/10',
+                      'transition-colors duration-150 cursor-pointer'
+                    )}
+                    onClick={handleDeleteClick}
+                    type="button"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog onOpenChange={setDeleteDialogOpen} open={deleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[400px] bg-[#1a1a1a] border-white/10">
           <DialogHeader>
-            <DialogTitle>Delete conversation</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete &quot;{conversation?.title}&quot;? This action cannot
-              be undone.
+            <DialogTitle className="text-white">Delete conversation?</DialogTitle>
+            <DialogDescription className="text-white/50">
+              This will permanently delete &quot;{conversation?.title}&quot;. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setDeleteDialogOpen(false)} variant="outline">
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button
+              className="bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/5"
+              onClick={() => setDeleteDialogOpen(false)}
+              variant="outline"
+            >
               Cancel
             </Button>
-            <Button disabled={isDeleting} onClick={handleDeleteConfirm} variant="destructive">
-              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            <Button
+              className="bg-red-500 text-white hover:bg-red-600"
+              disabled={isDeleting}
+              onClick={handleDeleteConfirm}
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
               Delete
             </Button>
           </DialogFooter>

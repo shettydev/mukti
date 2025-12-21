@@ -214,9 +214,10 @@ export function ChatInterface({
   // Show empty state if no conversation
   if (!conversationId || !conversation) {
     return (
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="relative flex h-full min-h-0 flex-col">
         <ChatHeader conversation={null} onMobileMenuToggle={onMobileMenuToggle} />
         <EmptyState
+          className="pt-12"
           isCreating={isCreating}
           isTransitioning={isTransitioning}
           onSendMessage={handleSendFirstMessage}
@@ -238,13 +239,13 @@ export function ChatInterface({
 
   // Show active conversation state
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* Chat header with title and actions */}
+    <div className="relative flex h-full min-h-0 flex-col">
+      {/* Floating chat header */}
       <ChatHeader conversation={conversation} onMobileMenuToggle={onMobileMenuToggle} />
 
       {/* Rate limit banner */}
       {rateLimitInfo && (
-        <div className="border-b p-4">
+        <div className="relative z-0 border-b p-4 mt-12">
           <RateLimitBanner
             onDismiss={handleDismissRateLimit}
             retryAfter={rateLimitInfo.retryAfter}
