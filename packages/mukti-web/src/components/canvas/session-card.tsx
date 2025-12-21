@@ -33,7 +33,7 @@ export function SessionCard({ session }: SessionCardProps) {
 
   const handleClick = () => {
     // Navigate to canvas detail page
-    router.push(`/dashboard/canvas/${session.id}`);
+    router.push(`/canvas/${session.id}`);
   };
 
   const createdAt = formatDistanceToNow(new Date(session.createdAt), { addSuffix: true });

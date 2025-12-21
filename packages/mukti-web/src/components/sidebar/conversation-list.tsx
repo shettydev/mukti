@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { conversationsApi } from '@/lib/api/conversations';
 import {
   useDeleteConversation,
@@ -208,8 +209,10 @@ export function ConversationList({
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-white/50" />
+      <div className="space-y-1 px-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <ConversationSkeleton collapsed={collapsed} key={i} />
+        ))}
       </div>
     );
   }
@@ -229,6 +232,7 @@ export function ConversationList({
       {!collapsed && (
         <div className="flex items-center gap-2 px-3 py-2 mb-2">
           <Checkbox
+            aria-describedby="show-archived-description"
             checked={showArchived}
             id="show-archived"
             onCheckedChange={(checked) => setShowArchived(checked === true)}
@@ -236,19 +240,26 @@ export function ConversationList({
           <Label className="text-xs text-white/50 cursor-pointer" htmlFor="show-archived">
             Show archived
           </Label>
+          <span className="sr-only" id="show-archived-description">
+            Toggle to show or hide archived conversations
+          </span>
         </div>
       )}
 
       {/* Empty state */}
       {conversations.length === 0 ? (
-        <div className={cn('px-3 py-4 text-center', collapsed && 'hidden')}>
+        <div className={cn('px-3 py-4 text-center', collapsed && 'hidden')} role="status">
           <p className="text-xs text-white/50">
             {showArchived ? 'No archived conversations' : 'No conversations yet'}
           </p>
           {!showArchived && <p className="text-xs text-white/30 mt-1">Start a new chat to begin</p>}
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-1" ref={scrollContainerRef}>
+        <nav
+          aria-label="Conversation list"
+          className="flex-1 overflow-y-auto space-y-1"
+          ref={scrollContainerRef}
+        >
           {conversations.map((conversation) => (
             <ConversationItem
               active={conversation.id === activeId}
@@ -263,11 +274,12 @@ export function ConversationList({
           ))}
 
           {isFetchingNextPage && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-4 h-4 animate-spin text-white/50" />
+            <div aria-live="polite" className="flex items-center justify-center py-4" role="status">
+              <Loader2 aria-hidden="true" className="w-4 h-4 animate-spin text-white/50" />
+              <span className="sr-only">Loading more conversations</span>
             </div>
           )}
-        </div>
+        </nav>
       )}
 
       {/* Rename Dialog */}
@@ -352,7 +364,7 @@ function ConversationItem({
   const MenuItems = () => (
     <>
       <ContextMenuItem
-        className="gap-2 cursor-pointer"
+        className="gap-2 cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-purple-500/30 focus:ring-inset active:scale-[0.98]"
         onClick={(e) => {
           e.stopPropagation();
           onRename(conversation.id, conversation.title);
@@ -362,7 +374,7 @@ function ConversationItem({
         Rename
       </ContextMenuItem>
       <ContextMenuItem
-        className="gap-2 cursor-pointer"
+        className="gap-2 cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-purple-500/30 focus:ring-inset active:scale-[0.98]"
         onClick={(e) => {
           e.stopPropagation();
           onArchive(conversation.id, conversation.isArchived);
@@ -382,7 +394,7 @@ function ConversationItem({
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
-        className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+        className="gap-2 cursor-pointer text-destructive focus:text-destructive transition-all duration-150 focus:ring-2 focus:ring-red-400/30 focus:ring-inset active:scale-[0.98]"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(conversation.id);
@@ -398,7 +410,7 @@ function ConversationItem({
   const DropdownItems = () => (
     <>
       <DropdownMenuItem
-        className="gap-2 cursor-pointer"
+        className="gap-2 cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-purple-500/30 focus:ring-inset active:scale-[0.98]"
         onClick={(e) => {
           e.stopPropagation();
           onRename(conversation.id, conversation.title);
@@ -408,7 +420,7 @@ function ConversationItem({
         Rename
       </DropdownMenuItem>
       <DropdownMenuItem
-        className="gap-2 cursor-pointer"
+        className="gap-2 cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-purple-500/30 focus:ring-inset active:scale-[0.98]"
         onClick={(e) => {
           e.stopPropagation();
           onArchive(conversation.id, conversation.isArchived);
@@ -428,7 +440,7 @@ function ConversationItem({
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
-        className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+        className="gap-2 cursor-pointer text-destructive focus:text-destructive transition-all duration-150 focus:ring-2 focus:ring-red-400/30 focus:ring-inset active:scale-[0.98]"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(conversation.id);
@@ -444,14 +456,17 @@ function ConversationItem({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div
+        <article
+          aria-current={active ? 'page' : undefined}
+          aria-label={`Conversation: ${conversation.title}`}
           className={cn(
-            'group relative w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer',
-            'min-h-[40px] text-left',
+            'group relative w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg text-sm transition-all duration-200 cursor-pointer',
+            'min-h-[48px] sm:min-h-[40px] text-left',
             'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#111111]',
+            'animate-fade-in',
             active
               ? 'bg-white/10 text-white font-medium'
-              : 'text-white/80 hover:text-white hover:bg-white/5',
+              : 'text-white/80 hover:text-white hover:bg-white/5 active:bg-white/10',
             collapsed && 'justify-center px-2',
             conversation.isArchived && 'opacity-60'
           )}
@@ -462,7 +477,10 @@ function ConversationItem({
           title={conversation.title}
         >
           {collapsed ? (
-            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-xs font-semibold text-purple-300">
+            <div
+              aria-label={conversation.title}
+              className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-xs font-semibold text-purple-300"
+            >
               {conversation.title[0]?.toUpperCase() || 'C'}
             </div>
           ) : (
@@ -474,17 +492,17 @@ function ConversationItem({
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-white/50">
-                  <span>{relativeTime}</span>
+                  <time dateTime={lastActivity}>{relativeTime}</time>
                   {conversation.metadata.messageCount > 0 && (
                     <>
-                      <span>•</span>
+                      <span aria-hidden="true">•</span>
                       <span>{conversation.metadata.messageCount} messages</span>
                     </>
                   )}
                   {conversation.isArchived && (
                     <>
-                      <span>•</span>
-                      <Archive className="w-3 h-3" />
+                      <span aria-hidden="true">•</span>
+                      <Archive aria-label="Archived" className="w-3 h-3" />
                     </>
                   )}
                 </div>
@@ -494,9 +512,11 @@ function ConversationItem({
               <DropdownMenu onOpenChange={setMenuOpen} open={menuOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button
+                    aria-label={`More actions for ${conversation.title}`}
                     className={cn(
-                      'h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity',
-                      'hover:bg-white/10',
+                      'h-8 w-8 sm:h-7 sm:w-7 p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200',
+                      'hover:bg-white/10 active:scale-95',
+                      'focus:ring-2 focus:ring-purple-500/30 focus:ring-offset-2 focus:ring-offset-[#111111]',
                       menuOpen && 'opacity-100'
                     )}
                     onClick={(e) => {
@@ -505,7 +525,7 @@ function ConversationItem({
                     size="icon"
                     variant="ghost"
                   >
-                    <MoreHorizontal className="w-4 h-4" />
+                    <MoreHorizontal aria-hidden="true" className="w-4 h-4" />
                     <span className="sr-only">Open menu</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -515,11 +535,39 @@ function ConversationItem({
               </DropdownMenu>
             </>
           )}
-        </div>
+        </article>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
         <MenuItems />
       </ContextMenuContent>
     </ContextMenu>
+  );
+}
+
+/**
+ * Skeleton loader for conversation items
+ * Displays animated placeholder while conversations are loading
+ */
+function ConversationSkeleton({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div
+      className={cn(
+        'w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg',
+        'min-h-[48px] sm:min-h-[40px]',
+        collapsed && 'justify-center px-2'
+      )}
+    >
+      {collapsed ? (
+        <Skeleton className="w-8 h-8 rounded-full" />
+      ) : (
+        <>
+          <div className="flex-1 min-w-0 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+          <Skeleton className="h-7 w-7 rounded-md" />
+        </>
+      )}
+    </div>
   );
 }

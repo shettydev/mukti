@@ -155,7 +155,7 @@ describe('ConversationCard', () => {
     });
 
     const link = container.querySelector('a');
-    expect(link).toHaveAttribute('href', '/dashboard/conversations/test-id-123');
+    expect(link).toHaveAttribute('href', '/chat/test-id-123');
   });
 
   it('should render all technique types correctly', () => {

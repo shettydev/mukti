@@ -114,7 +114,7 @@ export function MessageInput({
   }, []);
 
   return (
-    <div className="border-t bg-background p-4">
+    <div className="border-t bg-background p-3 sm:p-4">
       {/* Technique indicator */}
       {technique && (
         <div className="mb-2 flex items-center justify-between">
@@ -122,17 +122,31 @@ export function MessageInput({
         </div>
       )}
 
+      {/* Loading indicator for sending message */}
+      {isSending && (
+        <div
+          aria-live="polite"
+          className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"
+          role="status"
+        >
+          <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+          <span>Sending message...</span>
+        </div>
+      )}
+
       <div className="relative">
         <textarea
           aria-describedby="character-count"
-          aria-label="Message input"
+          aria-label="Type your message. Press Enter to send, Shift+Enter for new line"
           className={cn(
-            'w-full resize-none rounded-lg border bg-background px-4 py-3 pr-14',
+            'w-full resize-none rounded-lg border bg-background px-3 py-2.5 pr-12 sm:px-4 sm:py-3 sm:pr-14',
             'text-sm placeholder:text-muted-foreground',
-            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'min-h-[56px] max-h-[200px]',
-            isOverLimit && 'border-destructive focus:ring-destructive'
+            'transition-all duration-200',
+            'hover:border-primary/50',
+            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:border-primary',
+            'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border',
+            'min-h-[52px] sm:min-h-[56px] max-h-[160px] sm:max-h-[200px]',
+            isOverLimit && 'border-destructive focus:ring-destructive hover:border-destructive'
           )}
           data-testid="message-input"
           disabled={disabled || isSending}
@@ -144,21 +158,36 @@ export function MessageInput({
         />
 
         <Button
-          aria-label="Send message"
-          className="absolute bottom-3 right-3 h-11 w-11 min-h-[44px] min-w-[44px]"
+          aria-label={
+            isSending
+              ? 'Sending message'
+              : canSend
+                ? 'Send message'
+                : 'Type a message to enable send button'
+          }
+          className={cn(
+            'absolute bottom-2 right-2 sm:bottom-3 sm:right-3 h-10 w-10 sm:h-11 sm:w-11 min-h-[44px] min-w-[44px]',
+            'transition-all duration-200',
+            canSend && !isOverLimit && 'hover:scale-105 active:scale-95'
+          )}
           data-testid="send-button"
           disabled={!canSend || isOverLimit}
           onClick={handleSend}
           size="icon"
           type="button"
         >
-          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {isSending ? (
+            <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send aria-hidden="true" className="h-4 w-4" />
+          )}
         </Button>
       </div>
 
       <div
+        aria-live="polite"
         className={cn(
-          'mt-2 flex items-center justify-end text-xs',
+          'mt-1.5 sm:mt-2 flex items-center justify-end text-[10px] sm:text-xs',
           isOverLimit
             ? 'text-destructive'
             : isNearLimit
@@ -167,6 +196,7 @@ export function MessageInput({
         )}
         data-testid="character-count"
         id="character-count"
+        role="status"
       >
         <span>
           {characterCount.toLocaleString()} / {maxLength.toLocaleString()}

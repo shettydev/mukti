@@ -108,7 +108,7 @@ export function DashboardLayout({
   });
 
   const handleConversationCreated = (conversation: { id: string }) => {
-    router.push(`/dashboard/conversations/${conversation.id}`);
+    router.push(`/chat/${conversation.id}`);
   };
 
   const contextValue: LayoutContextValue = {
@@ -123,19 +123,24 @@ export function DashboardLayout({
       <div className="flex h-screen bg-[#050505] text-white overflow-hidden">
         {/* Sidebar */}
         {showSidebar && (
-          <Sidebar
-            collapsed={state.sidebarCollapsed}
-            mobileOpen={state.mobileMenuOpen}
-            onMobileClose={closeMobileMenu}
-            onToggleCollapse={toggleSidebar}
-          />
+          <aside aria-label="Main navigation">
+            <Sidebar
+              collapsed={state.sidebarCollapsed}
+              mobileOpen={state.mobileMenuOpen}
+              onMobileClose={closeMobileMenu}
+              onToggleCollapse={toggleSidebar}
+            />
+          </aside>
         )}
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col overflow-hidden" role="main">
           {/* Navbar */}
           {showNavbar && (
-            <header className="bg-[#111111] border-b border-white/10 px-4 md:px-6 py-3 md:py-4 flex items-center gap-2">
+            <header
+              aria-label="Page header"
+              className="bg-[#111111] border-b border-white/10 px-4 md:px-6 py-3 md:py-4 flex items-center gap-2"
+            >
               {/* Mobile menu button */}
               {showSidebar && <MobileMenuButton onClick={toggleMobileMenu} />}
 

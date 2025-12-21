@@ -77,7 +77,7 @@ export function ConversationCard({ className, conversation }: ConversationCardPr
         'min-h-[44px]', // Touch target
         className
       )}
-      href={`/dashboard/conversations/${conversation.id}`}
+      href={`/chat/${conversation.id}`}
       onMouseEnter={handleMouseEnter}
     >
       <Card className="h-full hover:border-primary/50 transition-colors">

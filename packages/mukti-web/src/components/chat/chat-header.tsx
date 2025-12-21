@@ -106,7 +106,9 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                   'md:hidden', // Hide on desktop
                   'bg-transparent hover:bg-white/5',
                   'text-white/50 hover:text-white/80',
-                  'transition-colors duration-200'
+                  'transition-all duration-200',
+                  'focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-[#050505]',
+                  'active:scale-95'
                 )}
                 onClick={onMobileMenuToggle}
                 size="icon"
@@ -146,7 +148,9 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                       'h-8 w-8',
                       'bg-transparent hover:bg-white/5',
                       'text-white/50 hover:text-white/80',
-                      'transition-colors duration-200',
+                      'transition-all duration-200',
+                      'focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-[#050505]',
+                      'active:scale-95',
                       popoverOpen && 'bg-white/5 text-white/80'
                     )}
                     size="icon"
@@ -165,7 +169,9 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                     className={cn(
                       'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm',
                       'text-white/70 hover:text-white hover:bg-white/5',
-                      'transition-colors duration-150 cursor-pointer'
+                      'transition-all duration-150 cursor-pointer',
+                      'focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-inset',
+                      'active:scale-[0.98]'
                     )}
                     onClick={handleArchive}
                     type="button"
@@ -188,7 +194,9 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                     className={cn(
                       'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm',
                       'text-red-400 hover:text-red-300 hover:bg-red-500/10',
-                      'transition-colors duration-150 cursor-pointer'
+                      'transition-all duration-150 cursor-pointer',
+                      'focus:outline-none focus:ring-2 focus:ring-red-400/30 focus:ring-inset',
+                      'active:scale-[0.98]'
                     )}
                     onClick={handleDeleteClick}
                     type="button"
@@ -215,14 +223,14 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0 mt-4">
             <Button
-              className="bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/5"
+              className="bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 active:scale-95"
               onClick={() => setDeleteDialogOpen(false)}
               variant="outline"
             >
               Cancel
             </Button>
             <Button
-              className="bg-red-500 text-white hover:bg-red-600"
+              className="bg-red-500 text-white hover:bg-red-600 transition-all duration-200 active:scale-95"
               disabled={isDeleting}
               onClick={handleDeleteConfirm}
             >

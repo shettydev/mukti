@@ -188,7 +188,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
 
   body {
@@ -292,6 +292,42 @@
   }
 }
 
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -335,6 +371,18 @@
   animation: highlight 1s ease-out;
 }
 
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.4s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInFromLeft 0.4s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight 0.4s ease-out;
+}
+
 .animate-shimmer {
   background: linear-gradient(
     90deg,
@@ -368,13 +416,19 @@
   .animate-gradient,
   .animate-shine,
   .animate-highlight,
-  .animate-shimmer {
+  .animate-shimmer,
+  .animate-slide-in-bottom,
+  .animate-slide-in-left,
+  .animate-slide-in-right {
     animation: none;
   }
 
   /* Use simple opacity transitions instead */
   .animate-fade-in,
-  .animate-fade-in-up {
+  .animate-fade-in-up,
+  .animate-slide-in-bottom,
+  .animate-slide-in-left,
+  .animate-slide-in-right {
     opacity: 1;
     transform: none;
   }

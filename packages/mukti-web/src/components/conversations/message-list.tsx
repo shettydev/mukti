@@ -229,18 +229,20 @@ export function MessageList({
           />
         )}
 
-        <div className="space-y-1 px-4 pt-14 md:pt-16">
+        <div className="space-y-1 px-3 sm:px-4 pt-14 md:pt-16 pb-2">
           {allMessages.map((message) => (
             <Message key={`${message.sequence}-${message.timestamp}`} message={message} />
           ))}
 
           {/* Loading indicator when AI is processing */}
           {processingState?.isProcessing && (
-            <LoadingMessage
-              duration={processingDuration}
-              queuePosition={processingState.queuePosition}
-              status={processingState.status}
-            />
+            <div aria-live="polite" role="status">
+              <LoadingMessage
+                duration={processingDuration}
+                queuePosition={processingState.queuePosition}
+                status={processingState.status}
+              />
+            </div>
           )}
 
           <div ref={messagesEndRef} />
@@ -249,15 +251,17 @@ export function MessageList({
 
       {/* Scroll to bottom button */}
       {showScrollButton && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <Button
-            aria-label={hasNewMessages ? 'New messages' : 'Scroll to bottom'}
-            className="shadow-lg"
+            aria-label={
+              hasNewMessages ? 'Scroll to new messages' : 'Scroll to bottom of conversation'
+            }
+            className="shadow-lg text-xs sm:text-sm"
             onClick={() => scrollToBottom('smooth')}
             size="sm"
             variant="secondary"
           >
-            <ArrowDown aria-hidden="true" className="mr-2 h-4 w-4" />
+            <ArrowDown aria-hidden="true" className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             {hasNewMessages ? 'New messages' : 'Scroll to bottom'}
           </Button>
         </div>

@@ -45,7 +45,10 @@ export function MobileMenuButton({
   return (
     <Button
       aria-label="Open navigation menu"
-      className={cn('md:hidden min-h-[44px] min-w-[44px]', className)}
+      className={cn(
+        'md:hidden min-h-[44px] min-w-[44px] transition-all duration-200 active:scale-95',
+        className
+      )}
       onClick={onClick}
       size="icon"
       variant="ghost"
@@ -81,8 +84,9 @@ export function Sidebar({
       {mobileOpen && (
         <div
           aria-hidden="true"
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden backdrop-blur-sm"
           onClick={onMobileClose}
+          onTouchEnd={onMobileClose}
         />
       )}
 
@@ -95,7 +99,8 @@ export function Sidebar({
           'hidden md:flex',
           collapsed ? 'md:w-20' : 'md:w-[260px]',
           // Mobile styles - slide in from left
-          mobileOpen && 'fixed inset-y-0 left-0 z-50 flex w-[260px] md:relative md:z-auto'
+          mobileOpen &&
+            'fixed inset-y-0 left-0 z-50 flex w-[280px] sm:w-[300px] md:relative md:z-auto'
         )}
         role="navigation"
       >
@@ -121,7 +126,7 @@ export function Sidebar({
           {/* Desktop collapse button */}
           <Button
             className={cn(
-              'hidden md:flex h-8 w-8 text-white/60 hover:text-white',
+              'hidden md:flex h-8 w-8 text-white/60 hover:text-white transition-all duration-200 active:scale-95',
               collapsed && 'flex mx-auto'
             )}
             onClick={onToggleCollapse}
@@ -138,7 +143,7 @@ export function Sidebar({
           {mobileOpen && (
             <Button
               aria-label="Close navigation menu"
-              className="md:hidden min-h-[44px] min-w-[44px]"
+              className="md:hidden min-h-[44px] min-w-[44px] transition-all duration-200 active:scale-95"
               onClick={onMobileClose}
               size="icon"
               variant="ghost"
@@ -153,10 +158,11 @@ export function Sidebar({
           {/* New Chat Button */}
           <Link
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
               'min-h-[40px]',
               'bg-purple-600 hover:bg-purple-700 text-white font-medium',
               'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#111111]',
+              'active:scale-[0.98]',
               collapsed && 'justify-center'
             )}
             href="/chat"
@@ -221,12 +227,12 @@ function NavItem({ active, collapsed, href, icon, label }: NavItemProps) {
     <Link
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+        'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
         'min-h-[40px]',
         'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#111111]',
         active
           ? 'bg-white/10 text-white font-medium'
-          : 'text-white/80 hover:text-white hover:bg-white/5',
+          : 'text-white/80 hover:text-white hover:bg-white/5 active:scale-[0.98]',
         collapsed && 'justify-center'
       )}
       href={href}

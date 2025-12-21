@@ -293,49 +293,49 @@
   - **Property 7: Sidebar updates reactively**
   - **Validates: Requirements 3.3, 4.2**
 
-- [ ] 12. Add accessibility features
-- [ ] 12.1 Add ARIA labels and semantic HTML
+- [x] 12. Add accessibility features
+- [x] 12.1 Add ARIA labels and semantic HTML
   - Add role="log" to message list
   - Add aria-label to all buttons
   - Use semantic HTML (main, nav, article)
   - Add aria-live regions for dynamic content
   - _Requirements: 6.5_
 
-- [ ] 12.2 Verify keyboard navigation
+- [x] 12.2 Verify keyboard navigation
   - Test tab order through all interactive elements
   - Ensure focus indicators are visible
   - Test with screen reader
   - _Requirements: 6.4, 6.5_
 
-- [ ] 13. Add responsive design
-- [ ] 13.1 Make EmptyState responsive
+- [x] 13. Add responsive design
+- [x] 13.1 Make EmptyState responsive
   - Test centered layout on mobile
   - Adjust padding and sizing for small screens
   - _Requirements: 6.1_
 
-- [ ] 13.2 Make ChatInterface responsive
+- [x] 13.2 Make ChatInterface responsive
   - Test message list on mobile
   - Ensure input bar is accessible on mobile
   - _Requirements: 6.1_
 
-- [ ] 13.3 Make technique selector mobile-friendly
+- [x] 13.3 Make technique selector mobile-friendly
   - Test technique selector on mobile
   - Ensure dialog is mobile-optimized
   - _Requirements: 6.2_
 
-- [ ] 13.4 Verify sidebar mobile behavior
+- [x] 13.4 Verify sidebar mobile behavior
   - Test sidebar overlay on mobile
   - Verify close button works
   - _Requirements: 6.3_
 
-- [ ] 14. Add loading and error states
-- [ ] 14.1 Add loading states
+- [x] 14. Add loading and error states
+- [x] 14.1 Add loading states
   - Show loading indicator while creating conversation
   - Show loading indicator while sending message
   - Show loading indicator while connecting to SSE
   - _Requirements: 1.5, 5.1_
 
-- [ ] 14.2 Add error states
+- [x] 14.2 Add error states
   - Show error toast on conversation creation failure
   - Show error toast on message send failure
   - Show error banner on SSE connection failure
@@ -345,37 +345,37 @@
 - [ ] 15. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 16. Cleanup old dashboard code
-- [ ] 16.1 Remove old dashboard pages
+- [x] 16. Cleanup old dashboard code
+- [x] 16.1 Remove old dashboard pages
   - Remove `/dashboard/page.tsx` (replaced by redirect)
   - Remove `/dashboard/conversations` directory
   - Keep redirect handler for backwards compatibility
   - _Requirements: 7.2_
 
-- [ ] 16.2 Update all internal links
+- [x] 16.2 Update all internal links
   - Search for `/dashboard` references in codebase
   - Update to new routes (`/chat`, `/canvas`, etc.)
   - Update navigation components
   - _Requirements: 7.2_
 
-- [ ] 16.3 Update documentation
+- [x] 16.3 Update documentation
   - Update README if it references old routes
   - Update any API documentation
   - _Requirements: N/A_
 
-- [ ] 17. Polish UI and animations
-- [ ] 17.1 Add smooth transitions
+- [-] 17. Polish UI and animations
+- [x] 17.1 Add smooth transitions
   - Add fade-in for empty state
   - Add slide-in for new messages
   - Add smooth scroll to bottom on new message
   - Add transition for conversation list updates
 
-- [ ] 17.2 Add loading animations
+- [x] 17.2 Add loading animations
   - Add typing indicator animation for AI responses
   - Add skeleton loaders for conversation list
   - Add spinner for send button during loading
 
-- [ ] 17.3 Add hover and focus states
+- [x] 17.3 Add hover and focus states
   - Add hover effects to all interactive elements
   - Add focus rings for keyboard navigation
   - Add active states for buttons

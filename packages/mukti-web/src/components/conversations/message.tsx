@@ -49,8 +49,8 @@ export function Message({ message }: MessageProps) {
       className={cn(
         'flex w-full gap-3 py-4',
         isUser ? 'justify-end' : 'justify-start',
-        // Fade-in animation on mount
-        'animate-fade-in'
+        // Slide-in animation based on role
+        isUser ? 'animate-slide-in-right' : 'animate-slide-in-left'
       )}
     >
       <div

@@ -17,6 +17,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 import type { SocraticTechnique } from '@/types/conversation.types';
 
@@ -41,6 +42,7 @@ function ChatContent() {
   const { toggleMobileMenu } = useLayout();
   const [selectedTechnique, setSelectedTechnique] = useState<SocraticTechnique>('elenchus');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [creationError, setCreationError] = useState<Error | null>(null);
   const { isPending: isCreating, mutateAsync: createConversation } = useCreateConversation();
 
   /**
@@ -55,27 +57,44 @@ function ChatContent() {
    */
   const handleCreateConversation = useCallback(
     async (content: string, technique: SocraticTechnique): Promise<string> => {
-      // Generate temporary title from message content
-      const title = generateTemporaryTitle(content);
+      try {
+        // Clear any previous errors
+        setCreationError(null);
 
-      // Create conversation
-      const conversation = await createConversation({
-        tags: [],
-        technique,
-        title,
-      });
+        // Generate temporary title from message content
+        const title = generateTemporaryTitle(content);
 
-      // Start transition animation
-      setIsTransitioning(true);
+        // Create conversation
+        const conversation = await createConversation({
+          tags: [],
+          technique,
+          title,
+        });
 
-      // Small delay for smooth animation before navigation
-      await new Promise((resolve) => setTimeout(resolve, 150));
+        // Start transition animation
+        setIsTransitioning(true);
 
-      // Navigate to conversation detail
-      router.push(`/chat/${conversation.id}`);
+        // Small delay for smooth animation before navigation
+        await new Promise((resolve) => setTimeout(resolve, 150));
 
-      // Return conversation ID for message sending
-      return conversation.id;
+        // Navigate to conversation detail
+        router.push(`/chat/${conversation.id}`);
+
+        // Return conversation ID for message sending
+        return conversation.id;
+      } catch (error) {
+        // Set error state for display
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to create conversation';
+        setCreationError(error instanceof Error ? error : new Error(errorMessage));
+
+        // Show toast notification
+        toast.error('Failed to create conversation', {
+          description: errorMessage,
+        });
+
+        throw error; // Re-throw so ChatInterface can handle it
+      }
     },
     [createConversation, router]
   );
@@ -84,13 +103,19 @@ function ChatContent() {
     setSelectedTechnique(technique);
   }, []);
 
+  const handleRetryCreation = useCallback(() => {
+    setCreationError(null);
+  }, []);
+
   return (
     <ChatInterface
       conversationId={null}
+      creationError={creationError}
       isCreating={isCreating}
       isTransitioning={isTransitioning}
       onCreateConversation={handleCreateConversation}
       onMobileMenuToggle={toggleMobileMenu}
+      onRetryCreation={handleRetryCreation}
       onTechniqueChange={handleTechniqueChange}
       selectedTechnique={selectedTechnique}
     />

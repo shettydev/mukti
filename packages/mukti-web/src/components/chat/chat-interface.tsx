@@ -35,10 +35,12 @@ import { EmptyState } from './empty-state';
 
 interface ChatInterfaceProps {
   conversationId: null | string;
+  creationError?: Error | null;
   isCreating: boolean;
   isTransitioning?: boolean;
   onCreateConversation: (content: string, technique: SocraticTechnique) => Promise<string>;
   onMobileMenuToggle?: () => void;
+  onRetryCreation?: () => void;
   onTechniqueChange: (technique: SocraticTechnique) => void;
   selectedTechnique: SocraticTechnique;
 }
@@ -51,10 +53,12 @@ interface ChatInterfaceProps {
  */
 export function ChatInterface({
   conversationId,
+  creationError = null,
   isCreating,
   isTransitioning = false,
   onCreateConversation,
   onMobileMenuToggle,
+  onRetryCreation,
   onTechniqueChange,
   selectedTechnique,
 }: ChatInterfaceProps) {
@@ -218,8 +222,10 @@ export function ChatInterface({
         <ChatHeader conversation={null} onMobileMenuToggle={onMobileMenuToggle} />
         <EmptyState
           className="pt-12"
+          error={creationError}
           isCreating={isCreating}
           isTransitioning={isTransitioning}
+          onRetry={onRetryCreation}
           onSendMessage={handleSendFirstMessage}
           onTechniqueChange={onTechniqueChange}
           selectedTechnique={selectedTechnique}
@@ -231,7 +237,7 @@ export function ChatInterface({
   // Show error state if conversation failed to load
   if (conversationError && conversationId) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center" role="alert">
         <ErrorState error={conversationError} onRetry={() => window.location.reload()} showRetry />
       </div>
     );
@@ -245,7 +251,7 @@ export function ChatInterface({
 
       {/* Rate limit banner */}
       {rateLimitInfo && (
-        <div className="relative z-0 border-b p-4 mt-12">
+        <div aria-live="polite" className="relative z-0 border-b p-4 mt-12" role="status">
           <RateLimitBanner
             onDismiss={handleDismissRateLimit}
             retryAfter={rateLimitInfo.retryAfter}
@@ -255,15 +261,21 @@ export function ChatInterface({
 
       {/* Streaming error banner */}
       {streamError && streamError.type !== 'rate_limit' && (
-        <div className="border-b bg-destructive/10 p-4">
+        <div aria-live="assertive" className="border-b bg-destructive/10 p-4" role="alert">
           <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-destructive" />
+            <AlertCircle aria-hidden="true" className="h-5 w-5 text-destructive" />
             <div className="flex-1">
               <p className="text-sm font-medium text-destructive">Connection Error</p>
               <p className="text-sm text-muted-foreground">{streamError.message}</p>
             </div>
             {streamError.type === 'connection' || streamError.type === 'server' ? (
-              <Button onClick={handleRetryStream} size="sm" variant="outline">
+              <Button
+                aria-label="Retry connection to real-time updates"
+                className="transition-all duration-200 hover:scale-105 active:scale-95"
+                onClick={handleRetryStream}
+                size="sm"
+                variant="outline"
+              >
                 Retry Connection
               </Button>
             ) : null}
@@ -271,10 +283,15 @@ export function ChatInterface({
         </div>
       )}
 
-      {/* Connection status indicator (subtle) */}
+      {/* Connection status indicator (more visible) */}
       {conversationId && !isConnected && !streamError && (
-        <div className="border-b bg-muted/50 px-4 py-2">
-          <p className="text-xs text-muted-foreground">Connecting to real-time updates...</p>
+        <div
+          aria-live="polite"
+          className="border-b bg-muted/50 px-4 py-3 flex items-center gap-2"
+          role="status"
+        >
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Connecting to real-time updates...</p>
         </div>
       )}
 
@@ -288,9 +305,9 @@ export function ChatInterface({
 
       {/* Send error banner (shown above input) */}
       {sendError && (
-        <div className="border-t bg-destructive/10 p-3">
+        <div aria-live="assertive" className="border-t bg-destructive/10 p-3" role="alert">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive" />
+            <AlertCircle aria-hidden="true" className="h-4 w-4 text-destructive" />
             <p className="text-sm text-destructive">Failed to send message. Please try again.</p>
           </div>
         </div>

@@ -52,15 +52,21 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          aria-label={`User menu for ${user?.firstName} ${user?.lastName}`}
           className={cn(
-            'w-full justify-start p-2 h-auto hover:bg-white/10 rounded-xl transition-all',
+            'w-full justify-start p-2 h-auto hover:bg-white/10 rounded-xl transition-all duration-200',
+            'focus:ring-2 focus:ring-purple-500/30 focus:ring-offset-2 focus:ring-offset-[#111111]',
+            'active:scale-[0.98]',
             collapsed && 'justify-center px-2'
           )}
           variant="ghost"
         >
           <div className="flex items-center gap-3 w-full">
             {/* User Avatar */}
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 text-white">
+            <div
+              aria-hidden="true"
+              className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 text-white"
+            >
               {user?.firstName?.[0]}
               {user?.lastName?.[0]}
             </div>
@@ -87,25 +93,34 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
         sideOffset={10}
       >
         {/* Security Link */}
-        <DropdownMenuItem asChild className="cursor-pointer">
+        <DropdownMenuItem
+          asChild
+          className="cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-purple-500/30 focus:ring-inset active:scale-[0.98]"
+        >
           <Link href="/security">
-            <Shield className="mr-2 h-4 w-4" />
+            <Shield aria-hidden="true" className="mr-2 h-4 w-4" />
             <span>Security</span>
           </Link>
         </DropdownMenuItem>
 
         {/* Settings Link */}
-        <DropdownMenuItem asChild className="cursor-pointer">
+        <DropdownMenuItem
+          asChild
+          className="cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-purple-500/30 focus:ring-inset active:scale-[0.98]"
+        >
           <Link href="/settings">
-            <Settings className="mr-2 h-4 w-4" />
+            <Settings aria-hidden="true" className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </Link>
         </DropdownMenuItem>
 
         {/* Help & Support Link */}
-        <DropdownMenuItem asChild className="cursor-pointer">
+        <DropdownMenuItem
+          asChild
+          className="cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-purple-500/30 focus:ring-inset active:scale-[0.98]"
+        >
           <Link href="/help">
-            <HelpCircle className="mr-2 h-4 w-4" />
+            <HelpCircle aria-hidden="true" className="mr-2 h-4 w-4" />
             <span>Help & Support</span>
           </Link>
         </DropdownMenuItem>
@@ -115,11 +130,12 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
 
         {/* Logout Button */}
         <DropdownMenuItem
-          className="text-red-400 focus:text-red-400 focus:bg-red-900/10 cursor-pointer"
+          aria-label="Log out of your account"
+          className="text-red-400 focus:text-red-400 focus:bg-red-900/10 cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-red-400/30 focus:ring-inset active:scale-[0.98]"
           onClick={onLogout}
           variant="destructive"
         >
-          <LogOut className="mr-2 h-4 w-4" />
+          <LogOut aria-hidden="true" className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

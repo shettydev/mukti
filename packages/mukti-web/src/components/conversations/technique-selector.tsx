@@ -56,8 +56,9 @@ export function TechniqueSelector({
         aria-haspopup="dialog"
         aria-label="Select Socratic technique"
         className={cn(
-          'w-full justify-between font-normal',
+          'w-full justify-between font-normal transition-all duration-200',
           !value && 'text-muted-foreground',
+          !disabled && 'hover:scale-[1.01] active:scale-[0.99]',
           className
         )}
         disabled={disabled}
@@ -72,7 +73,7 @@ export function TechniqueSelector({
       </Button>
 
       <Dialog onOpenChange={setOpen} open={open}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Select Socratic Technique</DialogTitle>
             <DialogDescription>
@@ -88,9 +89,11 @@ export function TechniqueSelector({
                 <button
                   aria-selected={isSelected}
                   className={cn(
-                    'flex items-start gap-3 rounded-lg border p-3 text-left transition-colors',
-                    'hover:bg-accent hover:text-accent-foreground',
+                    'flex items-start gap-2 sm:gap-3 rounded-lg border p-2.5 sm:p-3 text-left transition-all duration-200',
+                    'hover:bg-accent hover:text-accent-foreground hover:border-primary/50',
                     'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                    'active:scale-[0.98]',
+                    'min-h-[44px]',
                     isSelected && 'border-primary bg-primary/5'
                   )}
                   key={technique}
@@ -100,7 +103,7 @@ export function TechniqueSelector({
                 >
                   <div
                     className={cn(
-                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
+                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all duration-200',
                       isSelected
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-muted'
@@ -108,9 +111,11 @@ export function TechniqueSelector({
                   >
                     {isSelected && <Check className="h-3 w-3" />}
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="font-medium leading-none">{info.name}</p>
-                    <p className="text-sm text-muted-foreground">{info.description}</p>
+                  <div className="flex-1 space-y-1 min-w-0">
+                    <p className="font-medium leading-none text-sm sm:text-base">{info.name}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground break-words">
+                      {info.description}
+                    </p>
                   </div>
                 </button>
               );
