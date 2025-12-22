@@ -65,26 +65,48 @@ export function EmptyState({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
-  // Initialize GSAP Void Animation
+  // Initialize GSAP Animations
   useEffect(() => {
     if (!containerRef.current || !glowRef.current) {
       return;
     }
 
     const glow = glowRef.current;
+    const title = titleRef.current;
 
-    // 1. Idle "Breathing" Animation
-    const breatheTween = gsap.to(glow, {
-      duration: 8,
-      ease: 'sine.inOut',
-      opacity: 0.4,
-      repeat: -1,
-      scale: 1.2,
-      yoyo: true,
-    });
+    const ctx = gsap.context(() => {
+      // 1. Deep Void Breathing
+      gsap.to(glow, {
+        duration: 8,
+        ease: 'sine.inOut',
+        opacity: 0.4,
+        repeat: -1,
+        scale: 1.2,
+        yoyo: true,
+      });
 
-    // 2. Mouse Follow Interaction
+      // 2. Title Subtle Shimmer/Float
+      if (title) {
+        // Fade in up
+        gsap.fromTo(
+          title,
+          { opacity: 0, y: 20 },
+          { duration: 1.5, ease: 'power3.out', opacity: 1, y: 0 }
+        );
+
+        // Continuous subtle gradient shimmer
+        gsap.to(title, {
+          backgroundPosition: '200% center',
+          duration: 8,
+          ease: 'linear',
+          repeat: -1,
+        });
+      }
+    }, containerRef);
+
+    // Mouse Follow Interaction
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) {
         return;
@@ -98,11 +120,11 @@ export function EmptyState({
 
       // Move glow slightly towards mouse (parallax feel)
       gsap.to(glow, {
-        duration: 1.5, // Slightly faster follow
+        duration: 1.5,
         ease: 'power2.out',
         overwrite: 'auto',
-        rotation: x * 10, // Subtle rotation
-        x: x * 80, // Increased movement range
+        rotation: x * 10,
+        x: x * 80,
         y: y * 80,
       });
     };
@@ -111,8 +133,7 @@ export function EmptyState({
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      breatheTween.kill();
-      gsap.killTweensOf(glow);
+      ctx.revert();
     };
   }, []);
 
@@ -203,7 +224,12 @@ export function EmptyState({
 
       <div className="w-full max-w-2xl space-y-6 relative z-10">
         {/* Quirky heading */}
-        <h1 className="text-center text-3xl font-bold text-foreground sm:text-4xl">{heading}</h1>
+        <h1
+          className="text-center text-3xl font-bold sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-[length:200%_auto]"
+          ref={titleRef}
+        >
+          {heading}
+        </h1>
 
         {/* Technique selector */}
         <div className="space-y-2">
