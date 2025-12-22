@@ -31,10 +31,10 @@ describe('Message', () => {
     const messageContent = screen.getByText('This is a user message');
     expect(messageContent).toBeInTheDocument();
 
-    // Check for user-specific styling (primary background)
-    const styledContainer = container.querySelector('.bg-primary');
+    // Check for user-specific styling
+    const styledContainer = container.querySelector('.bg-white\\/10');
     expect(styledContainer).toBeInTheDocument();
-    expect(styledContainer).toHaveClass('text-primary-foreground');
+    expect(styledContainer).toHaveClass('text-foreground');
   });
 
   it('should render assistant message with correct styling', () => {
@@ -43,8 +43,8 @@ describe('Message', () => {
     const messageContent = screen.getByText('This is an assistant message');
     expect(messageContent).toBeInTheDocument();
 
-    // Check for assistant-specific styling (muted background)
-    const styledContainer = container.querySelector('.bg-muted');
+    // Check for assistant-specific styling
+    const styledContainer = container.querySelector('.bg-transparent');
     expect(styledContainer).toBeInTheDocument();
     expect(styledContainer).toHaveClass('text-foreground');
   });
@@ -112,76 +112,27 @@ describe('Message', () => {
       jest.useRealTimers();
     });
 
-    it('should apply fade-in animation on mount', () => {
+    it('should apply fade-in-up animation on mount', () => {
       const { container } = render(<Message message={mockUserMessage} />);
 
-      const messageWrapper = container.querySelector('.animate-fade-in');
+      const messageWrapper = container.querySelector('.animate-fade-in-up');
       expect(messageWrapper).toBeInTheDocument();
     });
 
-    it('should apply highlight animation for new messages', () => {
+    it('should maintain fade-in-up animation throughout component lifecycle', () => {
       const { container } = render(<Message message={mockUserMessage} />);
 
-      const messageContent = container.querySelector('.animate-highlight');
-      expect(messageContent).toBeInTheDocument();
-    });
-
-    it('should remove highlight animation after 1 second', () => {
-      const { container } = render(<Message message={mockUserMessage} />);
-
-      // Initially has highlight
-      let messageContent = container.querySelector('.animate-highlight');
-      expect(messageContent).toBeInTheDocument();
-
-      // Fast-forward 1 second
-      act(() => {
-        jest.advanceTimersByTime(1000);
-      });
-
-      // Highlight should be removed
-      messageContent = container.querySelector('.animate-highlight');
-      expect(messageContent).not.toBeInTheDocument();
-    });
-
-    it('should re-apply highlight when message timestamp changes', () => {
-      const { container, rerender } = render(<Message message={mockUserMessage} />);
-
-      // Fast-forward to remove initial highlight
-      act(() => {
-        jest.advanceTimersByTime(1000);
-      });
-
-      // Verify highlight is removed
-      let messageContent = container.querySelector('.animate-highlight');
-      expect(messageContent).not.toBeInTheDocument();
-
-      // Update message with new timestamp
-      const updatedMessage: MessageType = {
-        ...mockUserMessage,
-        timestamp: '2024-01-01T12:05:00Z',
-      };
-
-      rerender(<Message message={updatedMessage} />);
-
-      // Highlight should be re-applied
-      messageContent = container.querySelector('.animate-highlight');
-      expect(messageContent).toBeInTheDocument();
-    });
-
-    it('should maintain fade-in animation throughout component lifecycle', () => {
-      const { container } = render(<Message message={mockUserMessage} />);
-
-      // Fade-in should be present initially
-      let messageWrapper = container.querySelector('.animate-fade-in');
+      // Fade-in-up should be present initially
+      let messageWrapper = container.querySelector('.animate-fade-in-up');
       expect(messageWrapper).toBeInTheDocument();
 
-      // Fast-forward past highlight duration
+      // Fast-forward past animation duration
       act(() => {
         jest.advanceTimersByTime(1000);
       });
 
-      // Fade-in should still be present (it's on the wrapper, not removed)
-      messageWrapper = container.querySelector('.animate-fade-in');
+      // Fade-in-up should still be present (it's on the wrapper, not removed)
+      messageWrapper = container.querySelector('.animate-fade-in-up');
       expect(messageWrapper).toBeInTheDocument();
     });
   });
