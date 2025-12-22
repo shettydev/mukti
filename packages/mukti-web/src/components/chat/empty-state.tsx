@@ -12,7 +12,7 @@
  *
  */
 
-import { Send } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { SocraticTechnique } from '@/types/conversation.types';
@@ -34,21 +34,12 @@ interface EmptyStateProps {
  * Quirky headings reflecting Socratic philosophy
  * Randomly selected on component mount
  */
-const QUIRKY_HEADINGS = [
-  "What's puzzling you today?",
-  'Question everything.',
-  "Let's think together...",
-  'What would Socrates ask?',
-  'Ready to challenge your assumptions?',
-  'Seek wisdom through inquiry.',
-  'The unexamined life is not worth living.',
-  'Know thyself.',
-] as const;
+const QUIRKY_HEADINGS = ['The unexamined life is not worth living.'] as const;
 
 /**
  * EmptyState component
  *
- * Displays centered input with quirky heading when no conversation is active.
+ * Displays centered input with fixed heading when no conversation is active.
  * Includes technique selector and message input.
  */
 export function EmptyState({
@@ -64,9 +55,9 @@ export function EmptyState({
   const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Set random heading on mount
+  // Set heading on mount
   useEffect(() => {
-    setHeading(getRandomHeading());
+    setHeading('The unexamined life is not worth living.');
   }, []);
 
   const isValid = content.trim().length > 0;
@@ -161,9 +152,9 @@ export function EmptyState({
           <textarea
             aria-label="Message input"
             className={cn(
-              'w-full resize-none rounded-lg border bg-background px-4 py-3 pr-14',
-              'text-sm placeholder:text-muted-foreground',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+              'w-full resize-none rounded-2xl border-none bg-[#111111] px-4 py-4 pr-14',
+              'text-base placeholder:text-muted-foreground/50',
+              'focus:outline-none focus:ring-1 focus:ring-white/10',
               'disabled:cursor-not-allowed disabled:opacity-50',
               'min-h-[56px] max-h-[200px]'
             )}
@@ -177,13 +168,13 @@ export function EmptyState({
 
           <Button
             aria-label="Send message"
-            className="absolute bottom-3 right-3 h-11 w-11"
+            className="absolute bottom-2 right-2 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90"
             disabled={!canSend}
             onClick={handleSend}
             size="icon"
             type="button"
           >
-            <Send className="h-4 w-4" />
+            <ArrowUp className="h-5 w-5" />
           </Button>
         </div>
 
@@ -194,12 +185,4 @@ export function EmptyState({
       </div>
     </div>
   );
-}
-
-/**
- * Selects a random heading from the available options
- */
-function getRandomHeading(): string {
-  const randomIndex = Math.floor(Math.random() * QUIRKY_HEADINGS.length);
-  return QUIRKY_HEADINGS[randomIndex];
 }

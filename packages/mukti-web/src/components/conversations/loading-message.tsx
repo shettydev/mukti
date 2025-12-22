@@ -17,7 +17,6 @@
 
 'use client';
 
-import { Bot, Clock, Users } from 'lucide-react';
 import { useMemo } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -101,100 +100,19 @@ export function LoadingMessage({ duration = 0, queuePosition, status }: LoadingM
     <div
       aria-label="AI is generating a response"
       aria-live="polite"
-      className="flex w-full gap-3 py-4 animate-fade-in"
+      className="flex w-full gap-3 py-4 animate-fade-in pl-4"
       role="status"
     >
-      {/* AI Avatar with pulse animation */}
-      <div className="relative flex-shrink-0">
+      {/* Loading message bubble */}
+      <div className="flex-1 max-w-[80%]">
         <div
           className={cn(
-            'h-8 w-8 rounded-full flex items-center justify-center',
-            'bg-primary/10 text-primary'
-          )}
-        >
-          <Bot aria-hidden="true" className="h-5 w-5" />
-        </div>
-        {/* Pulsing ring effect - respects prefers-reduced-motion */}
-        <div
-          aria-hidden="true"
-          className={cn('absolute inset-0 rounded-full bg-primary/20', 'motion-safe:animate-ping')}
-        />
-      </div>
-
-      {/* Loading message bubble with hover tooltip */}
-      <div className="flex-1 max-w-[80%] group">
-        <div
-          className={cn(
-            'rounded-lg px-4 py-3 relative',
-            'bg-muted/50 border border-muted',
-            'animate-pulse-border',
+            'text-sm text-muted-foreground flex items-center gap-2',
             'transition-all duration-300'
           )}
-          title={tooltipContent}
         >
-          {/* Main status text */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="transition-all duration-300">{displayStatus}</span>
-            <TypingIndicator />
-          </div>
-
-          {/* Additional info badges - shown for longer processing times */}
-          {(duration > 5 || queuePosition !== undefined) && (
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground/80">
-              {/* Duration indicator */}
-              {duration > 5 && (
-                <div className="flex items-center gap-1 animate-fade-in">
-                  <Clock aria-hidden="true" className="h-3 w-3" />
-                  <span>{duration}s</span>
-                </div>
-              )}
-
-              {/* Queue position indicator */}
-              {queuePosition !== undefined && queuePosition > 0 && (
-                <div className="flex items-center gap-1 animate-fade-in">
-                  <Users aria-hidden="true" className="h-3 w-3" />
-                  <span>#{queuePosition} in queue</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Hover tooltip - desktop only */}
-          <div
-            className={cn(
-              'absolute left-0 right-0 -bottom-2 translate-y-full',
-              'px-3 py-2 rounded-md',
-              'bg-popover text-popover-foreground',
-              'border shadow-md',
-              'text-xs',
-              'opacity-0 invisible',
-              'group-hover:opacity-100 group-hover:visible',
-              'transition-all duration-200',
-              'pointer-events-none',
-              'z-10',
-              'hidden sm:block' // Only show on larger screens
-            )}
-          >
-            <div className="flex flex-col gap-1">
-              {duration > 0 && (
-                <div className="flex items-center gap-2">
-                  <Clock aria-hidden="true" className="h-3 w-3 text-muted-foreground" />
-                  <span>Processing for {duration} seconds</span>
-                </div>
-              )}
-              {queuePosition !== undefined && queuePosition > 0 && (
-                <div className="flex items-center gap-2">
-                  <Users aria-hidden="true" className="h-3 w-3 text-muted-foreground" />
-                  <span>Position #{queuePosition} in queue</span>
-                </div>
-              )}
-              {duration > 10 && (
-                <div className="text-muted-foreground mt-1">
-                  Usually completes within 30 seconds
-                </div>
-              )}
-            </div>
-          </div>
+          <span>{displayStatus}</span>
+          <TypingIndicator />
         </div>
       </div>
     </div>
