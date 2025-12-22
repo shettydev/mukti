@@ -302,7 +302,6 @@ describe('MessageList', () => {
           hasArchivedMessages={false}
           processingState={{
             isProcessing: true,
-            queuePosition: 3,
             status: 'Processing your message...',
           }}
           recentMessages={mockRecentMessages}
