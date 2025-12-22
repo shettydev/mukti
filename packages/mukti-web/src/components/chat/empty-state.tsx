@@ -87,22 +87,13 @@ export function EmptyState({
         yoyo: true,
       });
 
-      // 2. Title Subtle Shimmer/Float
+      // 2. Title Entrance (Slide Up + Fade In)
       if (title) {
-        // Fade in up
         gsap.fromTo(
           title,
           { opacity: 0, y: 20 },
           { duration: 1.5, ease: 'power3.out', opacity: 1, y: 0 }
         );
-
-        // Continuous subtle gradient shimmer
-        gsap.to(title, {
-          backgroundPosition: '200% center',
-          duration: 8,
-          ease: 'linear',
-          repeat: -1,
-        });
       }
     }, containerRef);
 
@@ -225,7 +216,7 @@ export function EmptyState({
       <div className="w-full max-w-2xl space-y-6 relative z-10">
         {/* Quirky heading */}
         <h1
-          className="text-center text-3xl font-bold sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-[length:200%_auto]"
+          className="text-center text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white via-white/80 to-white/20 sm:text-4xl pb-1"
           ref={titleRef}
         >
           {heading}
