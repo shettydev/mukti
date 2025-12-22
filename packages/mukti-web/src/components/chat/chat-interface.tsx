@@ -16,8 +16,9 @@
  *
  */
 
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { gsap } from 'gsap';
+import { AlertCircle } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import type { SocraticTechnique } from '@/types/conversation.types';
@@ -77,6 +78,58 @@ export function ChatInterface({
     error: conversationError,
     isLoading,
   } = useConversation(conversationId || '');
+
+  // Loading screen state (prevents empty-state flash + adds polish)
+  const [showLoading, setShowLoading] = useState(false);
+  const [isLoadingExiting, setIsLoadingExiting] = useState(false);
+  const loadingStartRef = useRef(0);
+
+  useEffect(() => {
+    const MIN_LOADING_MS = 350;
+
+    if (!conversationId) {
+      setShowLoading(false);
+      setIsLoadingExiting(false);
+      return;
+    }
+
+    // Start loading
+    if (isLoading) {
+      setIsLoadingExiting(false);
+      if (!showLoading) {
+        loadingStartRef.current = Date.now();
+        setShowLoading(true);
+      }
+      return;
+    }
+
+    // Finish loading (with minimum display time + exit animation)
+    if (showLoading && !isLoadingExiting) {
+      const elapsed = Date.now() - loadingStartRef.current;
+      const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+
+      const t = window.setTimeout(() => {
+        setIsLoadingExiting(true);
+      }, remaining);
+
+      return () => window.clearTimeout(t);
+    }
+  }, [conversationId, isLoading, showLoading, isLoadingExiting]);
+
+  useEffect(() => {
+    const EXIT_MS = 220;
+
+    if (!isLoadingExiting) {
+      return;
+    }
+
+    const t = window.setTimeout(() => {
+      setShowLoading(false);
+      setIsLoadingExiting(false);
+    }, EXIT_MS);
+
+    return () => window.clearTimeout(t);
+  }, [isLoadingExiting]);
   const {
     error: sendError,
     isPending: isSending,
@@ -216,15 +269,8 @@ export function ChatInterface({
   }, []);
 
   // Show loading state while fetching conversation
-  if (conversationId && isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground/50 animate-pulse">Loading conversation...</p>
-        </div>
-      </div>
-    );
+  if (conversationId && (isLoading || showLoading)) {
+    return <ConversationLoading isExiting={isLoadingExiting} />;
   }
 
   // Show empty state if no conversation
@@ -319,6 +365,102 @@ export function ChatInterface({
         onSend={handleSendMessage}
         technique={conversation.technique}
       />
+    </div>
+  );
+}
+
+function ConversationLoading({ isExiting }: { isExiting: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const dotsRef = useRef<HTMLSpanElement[]>([]);
+
+  // Entrance + looping animation
+  useEffect(() => {
+    if (!containerRef.current) {
+      return;
+    }
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0 },
+        { duration: 0.25, ease: 'power2.out', opacity: 1 }
+      );
+
+      if (glowRef.current) {
+        gsap.to(glowRef.current, {
+          duration: 1.8,
+          ease: 'sine.inOut',
+          opacity: 0.7,
+          repeat: -1,
+          scale: 1.15,
+          yoyo: true,
+        });
+      }
+
+      // Staggered dots (subtle "loading")
+      gsap.fromTo(
+        dotsRef.current,
+        { opacity: 0.25, y: 0 },
+        {
+          duration: 0.6,
+          ease: 'sine.inOut',
+          opacity: 0.8,
+          repeat: -1,
+          stagger: 0.12,
+          y: -6,
+          yoyo: true,
+        }
+      );
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  // Exit animation
+  useEffect(() => {
+    if (!isExiting || !containerRef.current) {
+      return;
+    }
+
+    gsap.to(containerRef.current, {
+      duration: 0.22,
+      ease: 'power2.in',
+      opacity: 0,
+    });
+  }, [isExiting]);
+
+  return (
+    <div
+      className="relative flex h-full items-center justify-center overflow-hidden"
+      ref={containerRef}
+    >
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
+      >
+        <div
+          className="h-[420px] w-[420px] rounded-full bg-gradient-to-tr from-indigo-500/30 via-purple-500/30 to-blue-500/30 blur-[110px] opacity-50"
+          ref={glowRef}
+        />
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center gap-3">
+        <p className="text-sm text-muted-foreground/70">Opening conversation</p>
+        <div className="flex items-center gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-white/70"
+              key={i}
+              ref={(el) => {
+                if (el) {
+                  dotsRef.current[i] = el;
+                }
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
