@@ -5,7 +5,7 @@
 
 'use client';
 
-import { Loader2, Send } from 'lucide-react';
+import { ArrowUp, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { SocraticTechnique } from '@/types/conversation.types';
@@ -127,12 +127,12 @@ export function MessageInput({
           aria-describedby="character-count"
           aria-label="Message input"
           className={cn(
-            'w-full resize-none rounded-lg border bg-background px-4 py-3 pr-14',
-            'text-sm placeholder:text-muted-foreground',
-            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            'w-full resize-none rounded-2xl border-none bg-[#111111] px-4 py-4 pr-14',
+            'text-base placeholder:text-muted-foreground/50',
+            'focus:outline-none focus:ring-1 focus:ring-white/10',
             'disabled:cursor-not-allowed disabled:opacity-50',
             'min-h-[56px] max-h-[200px]',
-            isOverLimit && 'border-destructive focus:ring-destructive'
+            isOverLimit && 'focus:ring-destructive'
           )}
           data-testid="message-input"
           disabled={disabled || isSending}
@@ -145,14 +145,18 @@ export function MessageInput({
 
         <Button
           aria-label="Send message"
-          className="absolute bottom-3 right-3 h-11 w-11 min-h-[44px] min-w-[44px]"
+          className="absolute bottom-6 right-2 h-10 min-h-[44px] w-10 min-w-[44px] rounded-full bg-white text-black hover:bg-white/90"
           data-testid="send-button"
           disabled={!canSend || isOverLimit}
           onClick={handleSend}
           size="icon"
           type="button"
         >
-          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {isSending ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <ArrowUp className="h-5 w-5" />
+          )}
         </Button>
       </div>
 

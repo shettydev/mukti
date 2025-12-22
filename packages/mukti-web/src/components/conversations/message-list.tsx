@@ -29,7 +29,6 @@ interface MessageListProps {
   hasArchivedMessages: boolean;
   processingState?: {
     isProcessing: boolean;
-    queuePosition?: number;
     status: string;
   };
   recentMessages: MessageType[];
@@ -236,11 +235,7 @@ export function MessageList({
 
           {/* Loading indicator when AI is processing */}
           {processingState?.isProcessing && (
-            <LoadingMessage
-              duration={processingDuration}
-              queuePosition={processingState.queuePosition}
-              status={processingState.status}
-            />
+            <LoadingMessage duration={processingDuration} status={processingState.status} />
           )}
 
           <div ref={messagesEndRef} />

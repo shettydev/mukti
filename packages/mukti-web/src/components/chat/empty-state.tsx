@@ -12,7 +12,8 @@
  *
  */
 
-import { Send } from 'lucide-react';
+import { gsap } from 'gsap';
+import { ArrowUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { SocraticTechnique } from '@/types/conversation.types';
@@ -35,20 +36,19 @@ interface EmptyStateProps {
  * Randomly selected on component mount
  */
 const QUIRKY_HEADINGS = [
-  "What's puzzling you today?",
-  'Question everything.',
-  "Let's think together...",
-  'What would Socrates ask?',
-  'Ready to challenge your assumptions?',
-  'Seek wisdom through inquiry.',
   'The unexamined life is not worth living.',
   'Know thyself.',
+  'Wonder is the beginning of wisdom.',
+  'I cannot teach anybody anything. I can only make them think.',
+  'Speak so that I may see you.',
+  'To know, is to know that you know nothing.',
+  'To find yourself, think for yourself.',
 ] as const;
 
 /**
  * EmptyState component
  *
- * Displays centered input with quirky heading when no conversation is active.
+ * Displays centered input with fixed heading when no conversation is active.
  * Includes technique selector and message input.
  */
 export function EmptyState({
@@ -63,8 +63,72 @@ export function EmptyState({
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
-  // Set random heading on mount
+  // Initialize GSAP Animations
+  useEffect(() => {
+    if (!containerRef.current || !glowRef.current) {
+      return;
+    }
+
+    const glow = glowRef.current;
+    const title = titleRef.current;
+
+    const ctx = gsap.context(() => {
+      // 1. Deep Void Breathing
+      gsap.to(glow, {
+        duration: 8,
+        ease: 'sine.inOut',
+        opacity: 0.4,
+        repeat: -1,
+        scale: 1.2,
+        yoyo: true,
+      });
+
+      // 2. Title Entrance (Slide Up + Fade In)
+      if (title) {
+        gsap.fromTo(
+          title,
+          { opacity: 0, y: 20 },
+          { duration: 1.5, ease: 'power3.out', opacity: 1, y: 0 }
+        );
+      }
+    }, containerRef);
+
+    // Mouse Follow Interaction
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) {
+        return;
+      }
+
+      const { height, left, top, width } = containerRef.current.getBoundingClientRect();
+
+      // Calculate mouse position relative to center (-1 to 1)
+      const x = ((e.clientX - left) / width - 0.5) * 2;
+      const y = ((e.clientY - top) / height - 0.5) * 2;
+
+      // Move glow slightly towards mouse (parallax feel)
+      gsap.to(glow, {
+        duration: 1.5,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        rotation: x * 10,
+        x: x * 80,
+        y: y * 80,
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      ctx.revert();
+    };
+  }, []);
+
+  // Set heading on mount
   useEffect(() => {
     setHeading(getRandomHeading());
   }, []);
@@ -131,15 +195,32 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-1 items-center justify-center p-4',
+        'relative flex flex-1 items-center justify-center p-4 overflow-hidden',
         'transition-all duration-300 ease-out',
         isTransitioning && 'opacity-0 scale-95 translate-y-4',
         className
       )}
+      ref={containerRef}
     >
-      <div className="w-full max-w-2xl space-y-6">
+      {/* Deep Void Background */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden"
+      >
+        <div
+          className="w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-indigo-500/40 via-purple-500/40 to-blue-500/40 blur-[120px]"
+          ref={glowRef}
+        />
+      </div>
+
+      <div className="w-full max-w-2xl space-y-6 relative z-10">
         {/* Quirky heading */}
-        <h1 className="text-center text-3xl font-bold text-foreground sm:text-4xl">{heading}</h1>
+        <h1
+          className="text-center text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white via-white/80 to-white/20 sm:text-4xl pb-1"
+          ref={titleRef}
+        >
+          {heading}
+        </h1>
 
         {/* Technique selector */}
         <div className="space-y-2">
@@ -161,9 +242,9 @@ export function EmptyState({
           <textarea
             aria-label="Message input"
             className={cn(
-              'w-full resize-none rounded-lg border bg-background px-4 py-3 pr-14',
-              'text-sm placeholder:text-muted-foreground',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+              'w-full resize-none rounded-2xl border-none bg-[#111111] px-4 py-4 pr-14',
+              'text-base placeholder:text-muted-foreground/50',
+              'focus:outline-none focus:ring-1 focus:ring-white/10',
               'disabled:cursor-not-allowed disabled:opacity-50',
               'min-h-[56px] max-h-[200px]'
             )}
@@ -177,13 +258,13 @@ export function EmptyState({
 
           <Button
             aria-label="Send message"
-            className="absolute bottom-3 right-3 h-11 w-11"
+            className="absolute bottom-6 right-2 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90"
             disabled={!canSend}
             onClick={handleSend}
             size="icon"
             type="button"
           >
-            <Send className="h-4 w-4" />
+            <ArrowUp className="h-5 w-5" />
           </Button>
         </div>
 

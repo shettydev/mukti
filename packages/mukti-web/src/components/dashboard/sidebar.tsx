@@ -155,8 +155,7 @@ export function Sidebar({
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
               'min-h-[40px]',
-              'bg-purple-600 hover:bg-purple-700 text-white font-medium',
-              'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#111111]',
+              'bg-white/5 hover:bg-white/10 text-white font-medium',
               collapsed && 'justify-center'
             )}
             href="/chat"
@@ -223,7 +222,6 @@ function NavItem({ active, collapsed, href, icon, label }: NavItemProps) {
       className={cn(
         'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
         'min-h-[40px]',
-        'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#111111]',
         active
           ? 'bg-white/10 text-white font-medium'
           : 'text-white/80 hover:text-white hover:bg-white/5',
