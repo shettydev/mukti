@@ -183,7 +183,7 @@ describe('useCreateConversation', () => {
 
     expect(conversationsApi.create).toHaveBeenCalledWith(dto);
     expect(result.current.data).toEqual(mockConversation);
-    expect(mockPush).toHaveBeenCalledWith(`/dashboard/conversations/${mockConversation.id}`);
+    expect(mockPush).toHaveBeenCalledWith(`/chat/${mockConversation.id}`);
   });
 });
 
@@ -231,7 +231,7 @@ describe('useDeleteConversation', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(conversationsApi.delete).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
-    expect(mockPush).toHaveBeenCalledWith('/dashboard/conversations');
+    expect(mockPush).toHaveBeenCalledWith('/chat');
   });
 });
 
