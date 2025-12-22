@@ -16,6 +16,7 @@ const mockBack = jest.fn();
 let mockSearchParams = new URLSearchParams();
 
 jest.mock('next/navigation', () => ({
+  useParams: () => ({}),
   usePathname: () => '/dashboard/conversations',
   useRouter: () => ({
     back: mockBack,
@@ -122,6 +123,15 @@ describe('Conversation Page Navigation', () => {
         role: 'user',
       },
     });
+
+    // Default conversation mutations to avoid undefined destructuring in child components
+    mockUseDeleteConversation.mockReturnValue({
+      isPending: false,
+      mutate: jest.fn(),
+    });
+    mockUseUpdateConversation.mockReturnValue({
+      mutate: jest.fn(),
+    });
   });
 
   describe('Navigation from list to detail', () => {
@@ -149,8 +159,8 @@ describe('Conversation Page Navigation', () => {
 
       render(<ConversationsPage />, { wrapper: createWrapper() });
 
-      // Conversation card should be rendered
-      expect(screen.getByText('Test Conversation')).toBeInTheDocument();
+      // Conversation title can appear in multiple places (list + detail)
+      expect(screen.getAllByText('Test Conversation').length).toBeGreaterThan(0);
     });
 
     it('should have link to create new conversation', () => {

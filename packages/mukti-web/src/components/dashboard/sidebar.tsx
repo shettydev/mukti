@@ -1,31 +1,13 @@
 'use client';
 
-import {
-  Brain,
-  FileText,
-  HelpCircle,
-  LayoutDashboard,
-  LogOut,
-  Mail,
-  Menu,
-  MessageSquare,
-  PanelLeft,
-  Settings,
-  Shield,
-  Users,
-  X,
-} from 'lucide-react';
+import { Brain, Menu, PanelLeft, Plus, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { ConversationList } from '@/components/sidebar/conversation-list';
+import { UserProfilePopover } from '@/components/sidebar/user-profile-popover';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { cn } from '@/lib/utils';
 
@@ -168,74 +150,46 @@ export function Sidebar({
 
         {/* Navigation */}
         <nav aria-label="Dashboard navigation" className="flex-1 px-3 space-y-1 overflow-y-auto">
+          {/* New Chat Button */}
+          <Link
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+              'min-h-[40px]',
+              'bg-purple-600 hover:bg-purple-700 text-white font-medium',
+              'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#111111]',
+              collapsed && 'justify-center'
+            )}
+            href="/chat"
+            title={collapsed ? 'New Chat' : undefined}
+          >
+            <Plus aria-hidden="true" className="w-4 h-4" />
+            {!collapsed && <span className="whitespace-nowrap">New Chat</span>}
+          </Link>
+
+          {/* Thinking Canvas Link */}
           <NavItem
-            active={pathname === '/dashboard'}
+            active={pathname?.startsWith('/canvas')}
             collapsed={collapsed}
-            href="/dashboard"
-            icon={<LayoutDashboard aria-hidden="true" className="w-4 h-4" />}
-            label="Dashboard"
-          />
-          <NavItem
-            active={pathname?.startsWith('/dashboard/conversations')}
-            collapsed={collapsed}
-            href="/dashboard/conversations"
-            icon={<MessageSquare aria-hidden="true" className="w-4 h-4" />}
-            label="Conversations"
-          />
-          <NavItem
-            active={pathname?.startsWith('/dashboard/canvas')}
-            collapsed={collapsed}
-            href="/dashboard/canvas"
+            href="/canvas"
             icon={<Brain aria-hidden="true" className="w-4 h-4" />}
             label="Thinking Canvas"
           />
+
+          {/* Separator */}
           <div className={cn('pt-4 pb-2', collapsed && 'hidden')}>
+            <div className="border-t border-white/10 mb-2" />
             <p className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
-              Workspace
+              Conversations
             </p>
           </div>
-          <NavItem
+
+          {/* Conversation list */}
+          <ConversationList
             collapsed={collapsed}
-            href="/dashboard/community"
-            icon={<Users aria-hidden="true" className="w-4 h-4" />}
-            label="Community"
-          />
-          <NavItem
-            collapsed={collapsed}
-            href="/dashboard/resources"
-            icon={<FileText aria-hidden="true" className="w-4 h-4" />}
-            label="Resources"
-          />
-          <NavItem
-            collapsed={collapsed}
-            href="/dashboard/messages"
-            icon={<Mail aria-hidden="true" className="w-4 h-4" />}
-            label="Messages"
-          />
-          <NavItem
-            collapsed={collapsed}
-            href="/dashboard/reports"
-            icon={<FileText aria-hidden="true" className="w-4 h-4" />}
-            label="Reports"
-          />
-          <NavItem
-            active={pathname?.startsWith('/dashboard/security')}
-            collapsed={collapsed}
-            href="/dashboard/security"
-            icon={<Shield aria-hidden="true" className="w-4 h-4" />}
-            label="Security"
-          />
-          <NavItem
-            collapsed={collapsed}
-            href="/dashboard/settings"
-            icon={<Settings aria-hidden="true" className="w-4 h-4" />}
-            label="Settings"
-          />
-          <NavItem
-            collapsed={collapsed}
-            href="/dashboard/help"
-            icon={<HelpCircle aria-hidden="true" className="w-4 h-4" />}
-            label="Help & Support"
+            onConversationClick={() => {
+              // Close mobile sidebar if open, navigation happens in ConversationList
+              onMobileClose?.();
+            }}
           />
         </nav>
 
@@ -255,48 +209,7 @@ export function Sidebar({
               </p>
             </div>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className={cn(
-                  'w-full justify-start p-2 h-auto hover:bg-white/10 rounded-xl transition-all',
-                  collapsed && 'justify-center px-2'
-                )}
-                variant="ghost"
-              >
-                <div className="flex items-center gap-3 w-full">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 text-white">
-                    {user?.firstName?.[0]}
-                    {user?.lastName?.[0]}
-                  </div>
-                  {!collapsed && (
-                    <div className="flex flex-col items-start text-sm truncate overflow-hidden">
-                      <span className="font-medium truncate w-full text-left text-white">
-                        {user?.firstName} {user?.lastName}
-                      </span>
-                      <span className="text-xs text-white/60 truncate w-full text-left">
-                        {user?.email}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="w-56 bg-[#1A1A1A] border-white/10 text-white"
-              side="top"
-              sideOffset={10}
-            >
-              <DropdownMenuItem
-                className="text-red-400 focus:text-red-400 focus:bg-red-900/10 cursor-pointer"
-                onClick={() => logout()}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <UserProfilePopover collapsed={collapsed} onLogout={logout} user={user!} />
         </div>
       </aside>
     </>

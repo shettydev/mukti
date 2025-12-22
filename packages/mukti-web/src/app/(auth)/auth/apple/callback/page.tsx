@@ -70,8 +70,8 @@ function AppleCallbackContent() {
         setAccessToken(response.accessToken);
         setUser(response.user);
 
-        // Redirect to dashboard
-        router.push('/dashboard');
+        // Redirect to chat
+        router.push('/chat');
       } catch (err) {
         console.error('Apple OAuth callback error:', err);
         setError(err instanceof Error ? err.message : 'Failed to complete Apple authentication');

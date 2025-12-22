@@ -1,24 +1,24 @@
 # Implementation Plan
 
-- [ ] 1. Set up new route structure
-- [ ] 1.1 Create `/chat` route directory and page component
+- [x] 1. Set up new route structure
+- [x] 1.1 Create `/chat` route directory and page component
   - Create `packages/mukti-web/src/app/chat/page.tsx`
   - Set up basic page structure with ProtectedRoute wrapper
   - Implement empty state with centered input layout
   - _Requirements: 1.1, 1.2, 12.1, 12.2_
 
-- [ ] 1.2 Create `/chat/[id]` dynamic route for existing conversations
+- [x] 1.2 Create `/chat/[id]` dynamic route for existing conversations
   - Create `packages/mukti-web/src/app/chat/[id]/page.tsx`
   - Load conversation by ID from URL param
   - Display active conversation state
   - _Requirements: 7.3_
 
-- [ ] 1.3 Create `/canvas` route
+- [x] 1.3 Create `/canvas` route
   - Create `packages/mukti-web/src/app/canvas/page.tsx`
   - Move existing Thinking Canvas functionality
   - _Requirements: 7.5_
 
-- [ ] 1.4 Create redirect handlers for legacy `/dashboard/*` routes
+- [x] 1.4 Create redirect handlers for legacy `/dashboard/*` routes
   - Create `packages/mukti-web/src/app/dashboard/[[...slug]]/page.tsx`
   - Redirect `/dashboard` → `/chat`
   - Redirect `/dashboard/conversations` → `/chat`
@@ -33,27 +33,27 @@
   - **Property 15: Dashboard routes redirect correctly**
   - **Validates: Requirements 7.2**
 
-- [ ] 1.6 Update auth redirects to use `/chat`
+- [x] 1.6 Update auth redirects to use `/chat`
   - Update login success redirect to `/chat`
   - Update protected route redirect to `/chat`
   - Update any hardcoded `/dashboard` references
   - _Requirements: 7.1_
 
-- [ ] 2. Create EmptyState component (centered input layout)
-- [ ] 2.1 Create EmptyState component
+- [x] 2. Create EmptyState component (centered input layout)
+- [x] 2.1 Create EmptyState component
   - Create `packages/mukti-web/src/components/chat/empty-state.tsx`
   - Implement centered layout (vertically and horizontally)
   - Add quirky heading above input
   - Hide navbar in this state
   - _Requirements: 1.2, 1.3, 12.2, 12.3_
 
-- [ ] 2.2 Implement quirky heading rotation
+- [x] 2.2 Implement quirky heading rotation
   - Create array of quirky headings reflecting Socratic philosophy
   - Randomly select heading on page load
   - Examples: "What's puzzling you today?", "Question everything.", "Let's think together..."
   - _Requirements: 1.3, 12.3_
 
-- [ ] 2.3 Add technique selector to EmptyState
+- [x] 2.3 Add technique selector to EmptyState
   - Position technique selector above input bar
   - Default to "Elenchus" technique
   - Style to match centered layout
@@ -63,14 +63,14 @@
   - **Property 19: Empty state shows centered layout**
   - **Validates: Requirements 12.1, 12.2, 12.3**
 
-- [ ] 3. Create ChatInterface component
-- [ ] 3.1 Create ChatInterface component
+- [x] 3. Create ChatInterface component
+- [x] 3.1 Create ChatInterface component
   - Create `packages/mukti-web/src/components/chat/chat-interface.tsx`
   - Implement conditional rendering (EmptyState vs ActiveState)
   - Handle conversation state transitions
   - _Requirements: 1.1, 1.5_
 
-- [ ] 3.2 Implement first message handling
+- [x] 3.2 Implement first message handling
   - Create conversation on first message send
   - Generate temporary title from message content
   - Navigate to `/chat/:id` after creation
@@ -81,7 +81,7 @@
   - **Property 2: First message creates conversation and navigates**
   - **Validates: Requirements 1.5**
 
-- [ ] 3.4 Implement active conversation state
+- [x] 3.4 Implement active conversation state
   - Display message list
   - Show input bar at bottom
   - Integrate SSE streaming
@@ -91,8 +91,8 @@
   - **Property 11: Optimistic message display**
   - **Validates: Requirements 5.1**
 
-- [ ] 4. Implement title generation utility
-- [ ] 4.1 Create title generation utility
+- [x] 4. Implement title generation utility
+- [x] 4.1 Create title generation utility
   - Create `packages/mukti-web/src/lib/utils/title-generation.ts`
   - Implement `generateTemporaryTitle()` function
   - Truncate to 60 characters
@@ -104,25 +104,25 @@
   - **Property 6: Temporary title generation follows rules**
   - **Validates: Requirements 3.1, 3.2**
 
-- [ ] 5. Update Sidebar component
-- [ ] 5.1 Remove old navigation items from Sidebar
+- [x] 5. Update Sidebar component
+- [x] 5.1 Remove old navigation items from Sidebar
   - Remove Dashboard, Conversations, Security, Settings, Help nav items
   - Keep only structure for new layout
   - _Requirements: 9.1_
 
-- [ ] 5.2 Add New Chat button to Sidebar
+- [x] 5.2 Add New Chat button to Sidebar
   - Add prominent "New Chat" button at top
   - Navigate to `/chat` on click
   - Clear conversation state
   - _Requirements: 7.4, 9.1_
 
-- [ ] 5.3 Add Thinking Canvas link to Sidebar
+- [x] 5.3 Add Thinking Canvas link to Sidebar
   - Add Canvas nav item below New Chat
   - Link to `/canvas`
   - Show active state when on canvas page
   - _Requirements: 9.1_
 
-- [ ] 5.4 Add separator between nav and conversation list
+- [x] 5.4 Add separator between nav and conversation list
   - Add visual separator (line or spacing)
   - Add "Conversations" label above list
   - _Requirements: 4.6, 9.1_
@@ -131,21 +131,21 @@
   - **Property 16: New chat clears state and shows centered input**
   - **Validates: Requirements 7.4, 12.5**
 
-- [ ] 6. Create ConversationList component
-- [ ] 6.1 Create ConversationList component
+- [-] 6. Create ConversationList component
+- [x] 6.1 Create ConversationList component
   - Create `packages/mukti-web/src/components/sidebar/conversation-list.tsx`
   - Use `useInfiniteConversations` hook
   - Implement infinite scroll
   - Sort by last activity
   - _Requirements: 4.4, 9.2_
 
-- [ ] 6.2 Implement conversation item rendering
+- [x] 6.2 Implement conversation item rendering
   - Show truncated title
   - Show last activity timestamp
   - Add tooltip for full title on hover
   - _Requirements: 4.2_
 
-- [ ] 6.3 Implement active conversation highlighting
+- [x] 6.3 Implement active conversation highlighting
   - Compare current URL param with conversation ID
   - Apply highlight styles to active item
   - _Requirements: 4.5_
@@ -154,7 +154,7 @@
   - **Property 10: Active conversation is highlighted**
   - **Validates: Requirements 4.5**
 
-- [ ] 6.5 Implement conversation click navigation
+- [x] 6.5 Implement conversation click navigation
   - Navigate to `/chat/:id` on click
   - Close mobile sidebar if open
   - _Requirements: 4.3_
@@ -163,7 +163,7 @@
   - **Property 9: Sidebar navigation works**
   - **Validates: Requirements 4.3**
 
-- [ ] 6.7 Implement new conversation at top of list
+- [x] 6.7 Implement new conversation at top of list
   - Ensure optimistic updates place new conversations at top
   - Verify sorting maintains newest first
   - _Requirements: 4.1_
@@ -172,14 +172,14 @@
   - **Property 8: New conversations appear at top**
   - **Validates: Requirements 4.1**
 
-- [ ] 7. Create UserProfilePopover component
-- [ ] 7.1 Create UserProfilePopover component
+- [x] 7. Create UserProfilePopover component
+- [x] 7.1 Create UserProfilePopover component
   - Create `packages/mukti-web/src/components/sidebar/user-profile-popover.tsx`
   - Replace existing dropdown menu
   - Add user info display
   - _Requirements: 10.1_
 
-- [ ] 7.2 Add navigation items to popover
+- [x] 7.2 Add navigation items to popover
   - Add Security link → `/security`
   - Add Settings link → `/settings`
   - Add Help & Support link → `/help`
@@ -195,8 +195,8 @@
   - **Property 18: Profile popover navigation works**
   - **Validates: Requirements 10.3, 10.4, 10.5**
 
-- [ ] 8. Implement technique selection
-- [ ] 8.1 Verify TechniqueSelector works in new layout
+- [x] 8. Implement technique selection
+- [x] 8.1 Verify TechniqueSelector works in new layout
   - Test in EmptyState centered layout
   - Test in active conversation layout
   - Ensure all 6 techniques display with descriptions
@@ -206,7 +206,7 @@
   - **Property 3: Technique selector displays all options**
   - **Validates: Requirements 2.2**
 
-- [ ] 8.3 Implement technique state management
+- [x] 8.3 Implement technique state management
   - Add `selectedTechnique` state with default "elenchus"
   - Pass technique to conversation creation
   - Update technique when user changes selection
@@ -220,7 +220,7 @@
   - **Property 5: Technique persists with conversation**
   - **Validates: Requirements 2.5**
 
-- [ ] 8.6 Add technique indicator display
+- [x] 8.6 Add technique indicator display
   - Display selected technique name near input bar
   - Add tooltip with technique explanation on hover
   - _Requirements: 11.1, 11.5_
@@ -229,15 +229,15 @@
   - **Property 20: Technique indicator displays current technique**
   - **Validates: Requirements 11.1**
 
-- [ ] 9. Implement message sending and streaming
-- [ ] 9.1 Integrate message sending
+- [x] 9. Implement message sending and streaming
+- [x] 9.1 Integrate message sending
   - Use existing `useSendMessage` hook
   - Implement optimistic message display
   - Handle loading state during send
   - Handle error state with retry
   - _Requirements: 5.1_
 
-- [ ] 9.2 Integrate SSE streaming
+- [x] 9.2 Integrate SSE streaming
   - Use existing `useConversationStream` hook
   - Display streaming indicator during AI response
   - Update messages as they stream in
@@ -252,14 +252,14 @@
   - **Property 13: Streaming completion enables input**
   - **Validates: Requirements 5.4**
 
-- [ ] 9.5 Add error handling for streaming failures
+- [x] 9.5 Add error handling for streaming failures
   - Display error message on stream error
   - Provide retry button
   - Handle network disconnections gracefully
   - _Requirements: 5.5_
 
 - [ ] 10. Implement input validation and keyboard shortcuts
-- [ ] 10.1 Implement input validation
+- [x] 10.1 Implement input validation
   - Enable send button only when input is non-empty
   - Disable during sending
   - Show character count
@@ -269,7 +269,7 @@
   - **Property 1: Input validation enables send button**
   - **Validates: Requirements 1.4**
 
-- [ ] 10.3 Implement keyboard shortcuts
+- [x] 10.3 Implement keyboard shortcuts
   - Enter to send message
   - Shift+Enter for newline
   - _Requirements: 6.4_
@@ -278,13 +278,13 @@
   - **Property 14: Keyboard shortcuts work**
   - **Validates: Requirements 6.4**
 
-- [ ] 11. Implement sidebar reactive updates
-- [ ] 11.1 Ensure sidebar updates on new conversation
+- [x] 11. Implement sidebar reactive updates
+- [x] 11.1 Ensure sidebar updates on new conversation
   - Invalidate conversation queries after creation
   - New conversation appears at top immediately
   - _Requirements: 4.1, 3.3_
 
-- [ ] 11.2 Ensure sidebar updates on title change
+- [x] 11.2 Ensure sidebar updates on title change
   - Update conversation in cache when title changes
   - Reflect change in sidebar immediately
   - _Requirements: 4.2, 3.3_

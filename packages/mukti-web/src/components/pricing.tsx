@@ -23,7 +23,7 @@ export function Pricing() {
         'Standard rate limits',
       ],
       highlight: false,
-      href: '/dashboard',
+      href: '/chat',
       icon: <Flame className="h-5 w-5 text-slate-300" />,
       period: '',
       price: 'FREE',

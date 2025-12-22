@@ -26,7 +26,7 @@ interface VerifyEmailFormProps {
  * ```tsx
  * <VerifyEmailForm
  *   token="verification-token-from-email"
- *   onSuccess={() => router.push('/dashboard')}
+ *   onSuccess={() => router.push('/chat')}
  * />
  * ```
  */

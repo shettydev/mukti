@@ -229,7 +229,7 @@ export function MessageList({
           />
         )}
 
-        <div className="space-y-1 px-4">
+        <div className="space-y-1 px-4 pt-14 md:pt-16">
           {allMessages.map((message) => (
             <Message key={`${message.sequence}-${message.timestamp}`} message={message} />
           ))}

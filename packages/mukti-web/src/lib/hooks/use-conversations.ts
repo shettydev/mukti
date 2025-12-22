@@ -209,8 +209,8 @@ export function useCreateConversation() {
       // Invalidate and refetch to get accurate data from server
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
 
-      // Navigate to new conversation
-      router.push(`/dashboard/conversations/${data.id}`);
+      // Navigate to new conversation (using new route structure)
+      router.push(`/chat/${data.id}`);
     },
   });
 }
@@ -292,8 +292,8 @@ export function useDeleteConversation() {
       // Remove detail query from cache
       queryClient.removeQueries({ queryKey: conversationKeys.detail(id) });
 
-      // Navigate back to list
-      router.push('/dashboard/conversations');
+      // Navigate back to chat (using new route structure)
+      router.push('/chat');
     },
   });
 }

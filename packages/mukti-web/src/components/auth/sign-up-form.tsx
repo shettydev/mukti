@@ -52,7 +52,7 @@ interface SignUpFormProps {
  * @example
  * ```tsx
  * <SignUpForm
- *   onSuccess={() => router.push('/dashboard')}
+ *   onSuccess={() => router.push('/chat')}
  *   onSwitchToSignIn={() => setTab('signin')}
  * />
  * ```

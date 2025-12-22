@@ -9,7 +9,7 @@ export function Navbar() {
         navItems={[
           { link: '#features', name: 'Features' },
           { link: '#how-it-works', name: 'How it Works' },
-          { link: '/dashboard', name: 'Dashboard' },
+          { link: '/chat', name: 'Chat' },
         ]}
         signUpHref="/auth?tab=signup"
       />
