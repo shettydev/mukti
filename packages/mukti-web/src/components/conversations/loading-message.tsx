@@ -24,12 +24,10 @@ import { cn } from '@/lib/utils';
 /**
  * Props for the LoadingMessage component
  * @property {number} [duration] - Time elapsed in seconds since processing started
- * @property {number} [queuePosition] - Position in processing queue (if available)
  * @property {string} status - Current processing status text
  */
 interface LoadingMessageProps {
   duration?: number;
-  queuePosition?: number;
   status: string;
 }
 
@@ -62,7 +60,7 @@ interface LoadingMessageProps {
  * />
  * ```
  */
-export function LoadingMessage({ duration = 0, queuePosition, status }: LoadingMessageProps) {
+export function LoadingMessage({ duration = 0, status }: LoadingMessageProps) {
   // Update status text based on processing duration with progressive disclosure
   const displayStatus = useMemo(() => {
     if (duration > 10) {

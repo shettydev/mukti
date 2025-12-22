@@ -16,7 +16,7 @@
  *
  */
 
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -72,7 +72,11 @@ export function ChatInterface({
   const [rateLimitInfo, setRateLimitInfo] = useState<null | { retryAfter: number }>(null);
 
   // Fetch conversation data if we have an ID
-  const { data: conversation, error: conversationError } = useConversation(conversationId || '');
+  const {
+    data: conversation,
+    error: conversationError,
+    isLoading,
+  } = useConversation(conversationId || '');
   const {
     error: sendError,
     isPending: isSending,
@@ -210,6 +214,18 @@ export function ChatInterface({
   const handleDismissRateLimit = useCallback(() => {
     setRateLimitInfo(null);
   }, []);
+
+  // Show loading state while fetching conversation
+  if (conversationId && isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground/50 animate-pulse">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show empty state if no conversation
   if (!conversationId || !conversation) {
