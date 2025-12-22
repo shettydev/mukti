@@ -5,8 +5,6 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-
 import type { Message as MessageType } from '@/types/conversation.types';
 
 import { Markdown } from '@/components/ui/markdown';
@@ -18,57 +16,44 @@ interface MessageProps {
 
 export function Message({ message }: MessageProps) {
   const isUser = message.role === 'user';
-  const [isNew, setIsNew] = useState(true);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Mark message as "new" for 1 second to trigger highlight animation
-  useEffect(() => {
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // Set message as new
-    setIsNew(true);
-
-    // Remove "new" status after 1 second (duration of highlight animation)
-    timeoutRef.current = setTimeout(() => {
-      setIsNew(false);
-    }, 1000);
-
-    // Cleanup on unmount
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [message.timestamp]); // Re-run when message timestamp changes
 
   return (
     <div
       className={cn(
-        'flex w-full gap-3 py-4',
+        'flex w-full gap-3 py-6', // increased py for better spacing
         isUser ? 'justify-end' : 'justify-start',
-        // Fade-in animation on mount
-        'animate-fade-in'
+        // Smooth slide-up animation on mount
+        'animate-fade-in-up'
       )}
     >
       <div
         className={cn(
-          'max-w-[80%] rounded-lg px-4 py-3 transition-all duration-300',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
-          // Add highlight animation for new messages
-          isNew && 'animate-highlight'
+          'max-w-[85%] rounded-2xl px-6 py-4 transition-all duration-300',
+          isUser
+            ? 'bg-white/10 text-foreground backdrop-blur-sm'
+            : 'bg-transparent text-foreground px-0 pl-2'
         )}
       >
         <div className="flex items-start gap-2">
-          <div className="flex-1">
+          <div className="flex-1 space-y-2">
             {isUser ? (
-              <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
+              <p className="whitespace-pre-wrap break-words text-base leading-relaxed">
+                {message.content}
+              </p>
             ) : (
-              <Markdown className="text-sm">{message.content}</Markdown>
+              <Markdown className="text-base leading-relaxed prose-invert prose-p:leading-relaxed prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10">
+                {message.content}
+              </Markdown>
             )}
-            <div className="mt-2 flex items-center gap-2 text-xs opacity-70">
+
+            {/* Minimal timestamp - only show on hover or for active messages if desired, 
+                but keeping it visible and subtle for now */}
+            <div
+              className={cn(
+                'flex items-center gap-2 text-[10px] opacity-40 uppercase tracking-widest mt-2',
+                isUser ? 'justify-end' : 'justify-start'
+              )}
+            >
               <time dateTime={message.timestamp}>
                 {new Date(message.timestamp).toLocaleTimeString([], {
                   hour: '2-digit',

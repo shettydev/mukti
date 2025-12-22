@@ -34,7 +34,15 @@ interface EmptyStateProps {
  * Quirky headings reflecting Socratic philosophy
  * Randomly selected on component mount
  */
-const QUIRKY_HEADINGS = ['The unexamined life is not worth living.'] as const;
+const QUIRKY_HEADINGS = [
+  'The unexamined life is not worth living.',
+  'Know thyself.',
+  'Wonder is the beginning of wisdom.',
+  'Education is the kindling of a flame.',
+  'Speak so that I may see you.',
+  'The only true wisdom is in knowing you know nothing.',
+  'Be as you wish to seem.',
+] as const;
 
 /**
  * EmptyState component
@@ -57,7 +65,7 @@ export function EmptyState({
 
   // Set heading on mount
   useEffect(() => {
-    setHeading('The unexamined life is not worth living.');
+    setHeading(getRandomHeading());
   }, []);
 
   const isValid = content.trim().length > 0;
@@ -168,7 +176,7 @@ export function EmptyState({
 
           <Button
             aria-label="Send message"
-            className="absolute bottom-2 right-2 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90"
+            className="absolute bottom-6 right-2 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90"
             disabled={!canSend}
             onClick={handleSend}
             size="icon"
@@ -185,4 +193,12 @@ export function EmptyState({
       </div>
     </div>
   );
+}
+
+/**
+ * Selects a random heading from the available options
+ */
+function getRandomHeading(): string {
+  const randomIndex = Math.floor(Math.random() * QUIRKY_HEADINGS.length);
+  return QUIRKY_HEADINGS[randomIndex];
 }

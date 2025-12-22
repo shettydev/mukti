@@ -74,28 +74,6 @@ export function LoadingMessage({ duration = 0, queuePosition, status }: LoadingM
     return status;
   }, [duration, status]);
 
-  // Generate tooltip content with additional details
-  const tooltipContent = useMemo(() => {
-    const parts: string[] = [];
-
-    // Add elapsed time
-    if (duration > 0) {
-      parts.push(`Processing for ${duration}s`);
-    }
-
-    // Add queue position
-    if (queuePosition !== undefined && queuePosition > 0) {
-      parts.push(`Position #${queuePosition} in queue`);
-    }
-
-    // Add estimated time for longer waits
-    if (duration > 10) {
-      parts.push('Usually completes within 30 seconds');
-    }
-
-    return parts.length > 0 ? parts.join(' • ') : 'AI is processing your message';
-  }, [duration, queuePosition]);
-
   return (
     <div
       aria-label="AI is generating a response"
