@@ -12,6 +12,7 @@
  *
  */
 
+import { gsap } from 'gsap';
 import { ArrowUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -38,10 +39,10 @@ const QUIRKY_HEADINGS = [
   'The unexamined life is not worth living.',
   'Know thyself.',
   'Wonder is the beginning of wisdom.',
-  'Education is the kindling of a flame.',
+  'I cannot teach anybody anything. I can only make them think.',
   'Speak so that I may see you.',
-  'The only true wisdom is in knowing you know nothing.',
-  'Be as you wish to seem.',
+  'To know, is to know that you know nothing.',
+  'To find yourself, think for yourself.',
 ] as const;
 
 /**
@@ -62,6 +63,58 @@ export function EmptyState({
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  // Initialize GSAP Void Animation
+  useEffect(() => {
+    if (!containerRef.current || !glowRef.current) {
+      return;
+    }
+
+    const glow = glowRef.current;
+
+    // 1. Idle "Breathing" Animation
+    const breatheTween = gsap.to(glow, {
+      duration: 8,
+      ease: 'sine.inOut',
+      opacity: 0.4,
+      repeat: -1,
+      scale: 1.2,
+      yoyo: true,
+    });
+
+    // 2. Mouse Follow Interaction
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) {
+        return;
+      }
+
+      const { height, left, top, width } = containerRef.current.getBoundingClientRect();
+
+      // Calculate mouse position relative to center (-1 to 1)
+      const x = ((e.clientX - left) / width - 0.5) * 2;
+      const y = ((e.clientY - top) / height - 0.5) * 2;
+
+      // Move glow slightly towards mouse (parallax feel)
+      gsap.to(glow, {
+        duration: 1.5, // Slightly faster follow
+        ease: 'power2.out',
+        overwrite: 'auto',
+        rotation: x * 10, // Subtle rotation
+        x: x * 80, // Increased movement range
+        y: y * 80,
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      breatheTween.kill();
+      gsap.killTweensOf(glow);
+    };
+  }, []);
 
   // Set heading on mount
   useEffect(() => {
@@ -130,13 +183,25 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-1 items-center justify-center p-4',
+        'relative flex flex-1 items-center justify-center p-4 overflow-hidden',
         'transition-all duration-300 ease-out',
         isTransitioning && 'opacity-0 scale-95 translate-y-4',
         className
       )}
+      ref={containerRef}
     >
-      <div className="w-full max-w-2xl space-y-6">
+      {/* Deep Void Background */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden"
+      >
+        <div
+          className="w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-indigo-500/40 via-purple-500/40 to-blue-500/40 blur-[120px]"
+          ref={glowRef}
+        />
+      </div>
+
+      <div className="w-full max-w-2xl space-y-6 relative z-10">
         {/* Quirky heading */}
         <h1 className="text-center text-3xl font-bold text-foreground sm:text-4xl">{heading}</h1>
 
