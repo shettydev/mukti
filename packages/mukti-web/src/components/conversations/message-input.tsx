@@ -145,7 +145,7 @@ export function MessageInput({
 
         <Button
           aria-label="Send message"
-          className="absolute bottom-6 right-2 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90"
+          className="absolute bottom-6 right-2 h-10 min-h-[44px] w-10 min-w-[44px] rounded-full bg-white text-black hover:bg-white/90"
           data-testid="send-button"
           disabled={!canSend || isOverLimit}
           onClick={handleSend}
