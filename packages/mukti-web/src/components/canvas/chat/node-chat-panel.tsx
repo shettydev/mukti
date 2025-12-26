@@ -21,6 +21,7 @@ import type { CanvasNode } from '@/types/canvas-visualization.types';
 
 import { Button } from '@/components/ui/button';
 import { useDialogueStream, useNodeMessages, useSendNodeMessage } from '@/lib/hooks/use-dialogue';
+import { useAiStore } from '@/lib/stores/ai-store';
 import {
   MAX_PANEL_WIDTH,
   MIN_PANEL_WIDTH,
@@ -113,6 +114,8 @@ export function NodeChatPanel({
     selectedNode?.id ?? ''
   );
 
+  const activeModel = useAiStore((state) => state.activeModel);
+
   // Subscribe to SSE stream for real-time updates
   const { isProcessing, processingStatus } = useDialogueStream(
     sessionId,
@@ -137,9 +140,9 @@ export function NodeChatPanel({
    */
   const handleSend = useCallback(
     (content: string) => {
-      sendMessage({ content });
+      sendMessage({ content, model: activeModel ?? undefined });
     },
-    [sendMessage]
+    [activeModel, sendMessage]
   );
 
   /**

@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OpenRouter } from '@openrouter/sdk';
 
 import type { RecentMessage } from '../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../schemas/technique.schema';
+
+import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
 
 /**
  * Error details when OpenRouter API request fails
@@ -50,13 +51,6 @@ interface ChatResponsePayload {
   };
 }
 
-type ModelPricingTable = Partial<Record<string, Pricing>>;
-
-interface Pricing {
-  completion: number;
-  prompt: number;
-}
-
 /**
  * Service responsible for integrating with OpenRouter API for AI-powered Socratic questioning.
  * Handles prompt building, model selection, API communication, and response parsing.
@@ -68,33 +62,12 @@ interface Pricing {
  */
 @Injectable()
 export class OpenRouterService {
-  private readonly apiKey: string;
-  private readonly client: OpenRouter;
   private readonly logger = new Logger(OpenRouterService.name);
-  // Model pricing per 1M tokens (in USD)
-  private readonly modelPricing: ModelPricingTable = {
-    'openai/gpt-3.5-turbo': {
-      completion: 2.0,
-      prompt: 0.5,
-    },
-    'openai/gpt-4': {
-      completion: 60.0,
-      prompt: 30.0,
-    },
-  };
 
-  constructor(private readonly configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!this.apiKey) {
-      this.logger.warn('OPENROUTER_API_KEY not configured');
-    }
-
-    // Initialize OpenRouter SDK client
-    this.client = new OpenRouter({
-      apiKey: this.apiKey,
-    });
-  }
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly openRouterClientFactory: OpenRouterClientFactory,
+  ) {}
 
   /**
    * Builds a complete prompt for the AI model including technique instructions and conversation history.
@@ -230,12 +203,9 @@ export class OpenRouterService {
       usage?.completionTokens ?? usage?.completion_tokens ?? 0;
     const totalTokens = usage?.totalTokens ?? usage?.total_tokens ?? 0;
 
-    // Calculate cost based on model pricing
-    const cost = this.calculateCost(promptTokens, completionTokens, model);
+    const cost = 0;
 
-    this.logger.log(
-      `Response parsed: ${totalTokens} tokens, $${cost.toFixed(6)} cost`,
-    );
+    this.logger.log(`Response parsed: ${totalTokens} tokens`);
 
     return {
       completionTokens,
@@ -245,23 +215,6 @@ export class OpenRouterService {
       promptTokens,
       totalTokens,
     };
-  }
-
-  /**
-   * Selects the appropriate AI model based on user's subscription tier.
-   *
-   * @param subscriptionTier - User's subscription level ('free' or 'paid')
-   * @returns Model identifier for OpenRouter API
-   *
-   * @remarks
-   * - Free tier: Uses gpt-3.5-turbo for cost efficiency
-   * - Paid tier: Uses gpt-4 for enhanced capabilities
-   */
-  selectModel(subscriptionTier: string): string {
-    if (subscriptionTier === 'paid') {
-      return 'openai/gpt-4';
-    }
-    return 'openai/gpt-3.5-turbo';
   }
 
   /**
@@ -280,6 +233,7 @@ export class OpenRouterService {
   async sendChatCompletion(
     messages: { content: string; role: 'assistant' | 'system' | 'user' }[],
     model: string,
+    apiKey: string,
     _technique: TechniqueTemplate,
   ): Promise<OpenRouterResponse> {
     try {
@@ -287,7 +241,9 @@ export class OpenRouterService {
         `Sending chat completion request to OpenRouter with model: ${model}`,
       );
 
-      const response = await this.client.chat.send(
+      const client = this.openRouterClientFactory.create(apiKey);
+
+      const response = await client.chat.send(
         {
           messages,
           model,
@@ -312,35 +268,6 @@ export class OpenRouterService {
       );
       throw error;
     }
-  }
-
-  /**
-   * Calculates the cost of an API request based on token usage and model pricing.
-   *
-   * @param promptTokens - Number of tokens in the prompt
-   * @param completionTokens - Number of tokens in the completion
-   * @param model - Model identifier
-   * @returns Cost in USD
-   *
-   * @remarks
-   * Pricing is per 1M tokens. If model pricing is not found, returns 0.
-   */
-  private calculateCost(
-    promptTokens: number,
-    completionTokens: number,
-    model: string,
-  ): number {
-    const pricing = this.modelPricing[model];
-
-    if (!pricing) {
-      this.logger.warn(`No pricing information for model: ${model}`);
-      return 0;
-    }
-
-    const promptCost = (promptTokens / 1_000_000) * pricing.prompt;
-    const completionCost = (completionTokens / 1_000_000) * pricing.completion;
-
-    return promptCost + completionCost;
   }
 
   private extractContent(choice?: ChatChoice): string {

@@ -96,6 +96,7 @@ export interface RateLimitError {
  */
 export interface SendMessageDto {
   content: string;
+  model?: string;
 }
 
 /**

@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OpenRouter } from '@openrouter/sdk';
 
 import type { ProblemStructure } from '../../schemas/canvas-session.schema';
 import type { DialogueMessage } from '../../schemas/dialogue-message.schema';
 import type { NodeType } from '../../schemas/node-dialogue.schema';
 
+import { OpenRouterClientFactory } from '../ai/services/openrouter-client.factory';
 import {
   buildSystemPrompt,
   getRecommendedTechnique,
@@ -48,13 +48,6 @@ interface ChatResponsePayload {
   };
 }
 
-type ModelPricingTable = Partial<Record<string, Pricing>>;
-
-interface Pricing {
-  completion: number;
-  prompt: number;
-}
-
 /**
  * Service responsible for AI-powered Socratic dialogue generation.
  * Uses OpenRouter API to generate context-aware responses for canvas node dialogues.
@@ -68,35 +61,12 @@ interface Pricing {
  */
 @Injectable()
 export class DialogueAIService {
-  private readonly apiKey: string;
-  private readonly client: OpenRouter;
   private readonly logger = new Logger(DialogueAIService.name);
 
-  // Model pricing per 1M tokens (in USD)
-  private readonly modelPricing: ModelPricingTable = {
-    'openai/gpt-3.5-turbo': {
-      completion: 2.0,
-      prompt: 0.5,
-    },
-    'openai/gpt-4': {
-      completion: 60.0,
-      prompt: 30.0,
-    },
-  };
-
-  constructor(private readonly configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!this.apiKey) {
-      this.logger.warn(
-        'OPENROUTER_API_KEY not configured - AI responses will use fallback',
-      );
-    }
-
-    this.client = new OpenRouter({
-      apiKey: this.apiKey,
-    });
-  }
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly openRouterClientFactory: OpenRouterClientFactory,
+  ) {}
 
   /**
    * Generates a Socratic AI response for a node dialogue.
@@ -105,7 +75,8 @@ export class DialogueAIService {
    * @param problemStructure - The full problem structure from the canvas session
    * @param conversationHistory - Previous messages in this dialogue
    * @param userMessage - The current user message to respond to
-   * @param subscriptionTier - User's subscription tier for model selection
+   * @param model - OpenRouter model id
+   * @param apiKey - OpenRouter API key
    * @returns AI response with content, tokens, and cost
    */
   async generateResponse(
@@ -113,12 +84,12 @@ export class DialogueAIService {
     problemStructure: ProblemStructure,
     conversationHistory: DialogueMessage[],
     userMessage: string,
-    subscriptionTier = 'free',
+    model: string,
+    apiKey: string,
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
-    // If API key is not configured, return fallback response
-    if (!this.apiKey) {
+    if (!apiKey) {
       return this.generateFallbackResponse(nodeContext.nodeType, startTime);
     }
 
@@ -140,18 +111,19 @@ export class DialogueAIService {
         userMessage,
       );
 
-      // Select model based on subscription tier
-      const model = this.selectModel(subscriptionTier);
+      const effectiveModel = model.trim();
 
       this.logger.log(
-        `Generating AI response for node ${nodeContext.nodeId} with model ${model}`,
+        `Generating AI response for node ${nodeContext.nodeId} with model ${effectiveModel}`,
       );
 
+      const client = this.openRouterClientFactory.create(apiKey);
+
       // Send request to OpenRouter
-      const response = await this.client.chat.send(
+      const response = await client.chat.send(
         {
           messages,
-          model,
+          model: effectiveModel,
           stream: false,
           temperature: 0.7,
         },
@@ -165,7 +137,7 @@ export class DialogueAIService {
       );
 
       const latencyMs = Date.now() - startTime;
-      return this.parseResponse(response, model, latencyMs);
+      return this.parseResponse(response, effectiveModel, latencyMs);
     } catch (error) {
       this.logger.error(
         `Failed to generate AI response: ${this.getErrorMessage(error)}`,
@@ -175,13 +147,6 @@ export class DialogueAIService {
       // Return fallback response on error
       return this.generateFallbackResponse(nodeContext.nodeType, startTime);
     }
-  }
-
-  /**
-   * Checks if the AI service is available (API key configured).
-   */
-  isAvailable(): boolean {
-    return !!this.apiKey;
   }
 
   /**
@@ -218,26 +183,6 @@ export class DialogueAIService {
     });
 
     return messages;
-  }
-
-  /**
-   * Calculates the cost based on token usage and model pricing.
-   */
-  private calculateCost(
-    promptTokens: number,
-    completionTokens: number,
-    model: string,
-  ): number {
-    const pricing = this.modelPricing[model];
-
-    if (!pricing) {
-      return 0;
-    }
-
-    const promptCost = (promptTokens / 1_000_000) * pricing.prompt;
-    const completionCost = (completionTokens / 1_000_000) * pricing.completion;
-
-    return promptCost + completionCost;
   }
 
   /**
@@ -380,10 +325,10 @@ export class DialogueAIService {
       usage?.completionTokens ?? usage?.completion_tokens ?? 0;
     const totalTokens = usage?.totalTokens ?? usage?.total_tokens ?? 0;
 
-    const cost = this.calculateCost(promptTokens, completionTokens, model);
+    const cost = 0;
 
     this.logger.log(
-      `AI response generated: ${totalTokens} tokens, $${cost.toFixed(6)} cost, ${latencyMs}ms`,
+      `AI response generated: ${totalTokens} tokens, ${latencyMs}ms`,
     );
 
     return {
@@ -396,15 +341,5 @@ export class DialogueAIService {
       promptTokens,
       totalTokens,
     };
-  }
-
-  /**
-   * Selects the appropriate AI model based on subscription tier.
-   */
-  private selectModel(subscriptionTier: string): string {
-    if (subscriptionTier === 'paid') {
-      return 'openai/gpt-4';
-    }
-    return 'openai/gpt-3.5-turbo';
   }
 }

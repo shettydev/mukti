@@ -95,7 +95,7 @@ export function Pricing() {
           {/* Billing Toggle */}
           <div className="mt-8 flex items-center justify-center gap-4">
             <div className="bg-slate-900/50 p-1 rounded-full border border-slate-800 inline-flex">
-              <button
+              <Button
                 className={cn(
                   'px-6 py-2 rounded-full text-sm font-medium transition-all duration-300',
                   billingCycle === 'monthly'
@@ -105,8 +105,9 @@ export function Pricing() {
                 onClick={() => setBillingCycle('monthly')}
               >
                 Monthly
-              </button>
-              <button
+              </Button>
+              {/* TODO: Uncomment the following button, once annual billing is available */}
+              {/*<Button
                 className={cn(
                   'px-6 py-2 rounded-full text-sm font-medium transition-all duration-300',
                   billingCycle === 'annually'
@@ -116,7 +117,7 @@ export function Pricing() {
                 onClick={() => setBillingCycle('annually')}
               >
                 Anually
-              </button>
+              </Button>*/}
             </div>
           </div>
         </div>

@@ -1,5 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 /**
  * DTO for sending a message in a node dialogue.
@@ -16,4 +22,12 @@ export class DialogueSendMessageDto {
   @MaxLength(5000)
   @MinLength(1)
   content: string;
+
+  @ApiPropertyOptional({
+    description: 'OpenRouter model id to use for this message',
+    example: 'openai/gpt-5-mini',
+  })
+  @IsOptional()
+  @IsString()
+  model?: string;
 }

@@ -15,12 +15,17 @@ import {
   Sse,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
+import { Model } from 'mongoose';
 import { Observable } from 'rxjs';
 
 import type { Subscription } from '../../schemas/subscription.schema';
-import type { User } from '../../schemas/user.schema';
 
+import { User, type UserDocument } from '../../schemas/user.schema';
+import { AiPolicyService } from '../ai/services/ai-policy.service';
+import { AiSecretsService } from '../ai/services/ai-secrets.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -54,6 +59,11 @@ import { StreamService } from './services/stream.service';
 @UseGuards(JwtAuthGuard)
 export class ConversationController {
   constructor(
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
+    private readonly configService: ConfigService,
+    private readonly aiPolicyService: AiPolicyService,
+    private readonly aiSecretsService: AiSecretsService,
     private readonly conversationService: ConversationService,
     private readonly messageService: MessageService,
     private readonly queueService: QueueService,
@@ -294,12 +304,54 @@ export class ConversationController {
     const subscriptionTier: 'free' | 'paid' =
       userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
 
+    const userRecord = await this.userModel
+      .findById(user._id)
+      .select('+openRouterApiKeyEncrypted preferences')
+      .lean();
+
+    if (!userRecord) {
+      throw new Error('User not found');
+    }
+
+    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
+    const serverApiKey =
+      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
+
+    if (!usedByok && !serverApiKey) {
+      throw new Error('OPENROUTER_API_KEY not configured');
+    }
+
+    const validationApiKey = usedByok
+      ? this.aiSecretsService.decryptString(
+          userRecord.openRouterApiKeyEncrypted!,
+        )
+      : serverApiKey;
+
+    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
+      hasByok: usedByok,
+      requestedModel: sendMessageDto.model,
+      userActiveModel: userRecord.preferences?.activeModel,
+      validationApiKey,
+    });
+
+    const shouldPersistModel =
+      !!sendMessageDto.model || !userRecord.preferences?.activeModel;
+
+    if (shouldPersistModel) {
+      await this.userModel.updateOne(
+        { _id: user._id },
+        { $set: { 'preferences.activeModel': effectiveModel } },
+      );
+    }
+
     const result = await this.queueService.enqueueRequest(
       user._id,
       id,
       sendMessageDto.content,
       subscriptionTier,
       conversation.technique,
+      effectiveModel,
+      usedByok,
     );
 
     return {

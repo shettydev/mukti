@@ -9,6 +9,7 @@ jest.mock('@openrouter/sdk', () => ({
 import type { RecentMessage } from '../../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../../schemas/technique.schema';
 
+import { OpenRouterClientFactory } from '../../../ai/services/openrouter-client.factory';
 import { OpenRouterService } from '../openrouter.service';
 
 describe('OpenRouterService', () => {
@@ -18,6 +19,16 @@ describe('OpenRouterService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OpenRouterService,
+        {
+          provide: OpenRouterClientFactory,
+          useValue: {
+            create: jest.fn(() => ({
+              chat: {
+                send: jest.fn(),
+              },
+            })),
+          },
+        },
         {
           provide: ConfigService,
           useValue: {
@@ -120,49 +131,6 @@ describe('OpenRouterService', () => {
     });
   });
 
-  describe('selectModel', () => {
-    /**
-     * Feature: conversation-backend, Property 8 variant: Model selection based on tier
-     * Validates: Requirements 2.8
-     */
-    it('should select correct model for any subscription tier', () => {
-      fc.assert(
-        fc.property(fc.constantFrom('free', 'paid'), (tier: string) => {
-          const model = service.selectModel(tier);
-
-          // Property: Free tier should get gpt-3.5-turbo
-          if (tier === 'free') {
-            expect(model).toBe('openai/gpt-3.5-turbo');
-          }
-
-          // Property: Paid tier should get gpt-4
-          if (tier === 'paid') {
-            expect(model).toBe('openai/gpt-4');
-          }
-
-          // Property: Model should always be a non-empty string
-          expect(typeof model).toBe('string');
-          expect(model.length).toBeGreaterThan(0);
-        }),
-        { numRuns: 100 },
-      );
-    });
-
-    it('should default to free tier model for unknown tiers', () => {
-      fc.assert(
-        fc.property(
-          fc.string().filter((s) => s !== 'free' && s !== 'paid'),
-          (tier: string) => {
-            const model = service.selectModel(tier);
-            // Property: Unknown tiers should default to free tier model
-            expect(model).toBe('openai/gpt-3.5-turbo');
-          },
-        ),
-        { numRuns: 50 },
-      );
-    });
-  });
-
   describe('parseResponse', () => {
     /**
      * Feature: conversation-backend, Property: Response parsing extracts all required fields
@@ -214,12 +182,9 @@ describe('OpenRouterService', () => {
             // Property: Model should match input
             expect(result.model).toBe(model);
 
-            // Property: Cost should be a non-negative number
+            // Property: Cost is currently treated as unknown
             expect(typeof result.cost).toBe('number');
-            expect(result.cost).toBeGreaterThanOrEqual(0);
-
-            // Property: Cost should increase with token usage
-            expect(result.cost).toBeGreaterThan(0);
+            expect(result.cost).toBe(0);
           },
         ),
         { numRuns: 100 },

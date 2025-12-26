@@ -187,6 +187,7 @@ export interface SendMessageResponse {
  */
 export interface SendNodeMessageDto {
   content: string;
+  model?: string;
 }
 
 /**

@@ -4,6 +4,7 @@ import { Document, Types } from 'mongoose';
 export type UserDocument = Document & User;
 
 export interface UserPreferences {
+  activeModel?: string;
   defaultTechnique?: string;
   emailNotifications?: boolean;
   language?: string;
@@ -56,6 +57,15 @@ export class User {
 
   @Prop({ required: true, trim: true, type: String })
   lastName: string;
+
+  @Prop({ required: false, select: false, type: String })
+  openRouterApiKeyEncrypted?: string;
+
+  @Prop({ type: String })
+  openRouterApiKeyLast4?: string;
+
+  @Prop({ type: Date })
+  openRouterApiKeyUpdatedAt?: Date;
 
   @Prop({ required: false, select: false, type: String })
   password?: string; // Optional for OAuth users
