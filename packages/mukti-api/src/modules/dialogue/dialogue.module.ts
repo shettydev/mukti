@@ -16,6 +16,8 @@ import {
   NodeDialogueSchema,
 } from '../../schemas/node-dialogue.schema';
 import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
+import { User, UserSchema } from '../../schemas/user.schema';
+import { AiModule } from '../ai/ai.module';
 import { DialogueAIService } from './dialogue-ai.service';
 import { DialogueController } from './dialogue.controller';
 import { DialogueService } from './dialogue.service';
@@ -44,11 +46,13 @@ import { DialogueStreamService } from './services/dialogue-stream.service';
   ],
   imports: [
     ConfigModule,
+    AiModule,
     MongooseModule.forFeature([
       { name: CanvasSession.name, schema: CanvasSessionSchema },
       { name: DialogueMessage.name, schema: DialogueMessageSchema },
       { name: NodeDialogue.name, schema: NodeDialogueSchema },
       { name: UsageEvent.name, schema: UsageEventSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     // Configure BullMQ queue for dialogue requests
     BullModule.forRootAsync({

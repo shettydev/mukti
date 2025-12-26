@@ -16,8 +16,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Archive, ArrowLeft, MoreVertical, Star, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { ModelSelector } from '@/components/ai/model-selector';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -35,6 +36,7 @@ import {
   useUpdateConversation,
 } from '@/lib/hooks/use-conversations';
 import { conversationKeys } from '@/lib/query-keys';
+import { useAiStore } from '@/lib/stores/ai-store';
 import { getRetryAfter, isRateLimitError } from '@/lib/utils/error-types';
 
 import { MessageInput } from './message-input';
@@ -51,6 +53,20 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const { mutate: updateConversation } = useUpdateConversation(conversationId);
   const { isPending: isDeleting, mutate: deleteConversation } = useDeleteConversation();
   const { isPending: isSending, mutateAsync: sendMessage } = useSendMessage(conversationId);
+
+  const {
+    activeModel,
+    hydrate: hydrateAi,
+    isHydrated: aiHydrated,
+    models,
+    setActiveModel,
+  } = useAiStore();
+
+  useEffect(() => {
+    if (!aiHydrated) {
+      hydrateAi();
+    }
+  }, [aiHydrated, hydrateAi]);
 
   // Rate limit state
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<null | number>(null);
@@ -129,7 +145,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const handleSendMessage = useCallback(
     async (content: string) => {
       try {
-        await sendMessage({ content });
+        await sendMessage({ content, model: activeModel ?? undefined });
       } catch (err) {
         // Check if it's a rate limit error
         if (isRateLimitError(err)) {
@@ -286,6 +302,18 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 </>
               )}
             </div>
+          </div>
+
+          <div className="hidden lg:block w-72">
+            <ModelSelector
+              className="w-full"
+              disabled={models.length === 0}
+              models={models}
+              onChange={(modelId) => {
+                setActiveModel(modelId);
+              }}
+              value={activeModel}
+            />
           </div>
 
           {/* Action buttons with touch-friendly sizes */}

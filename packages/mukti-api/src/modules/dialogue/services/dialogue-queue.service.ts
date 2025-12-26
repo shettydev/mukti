@@ -1,5 +1,6 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
@@ -15,6 +16,9 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
+import { User, UserDocument } from '../../../schemas/user.schema';
+import { AiPolicyService } from '../../ai/services/ai-policy.service';
+import { AiSecretsService } from '../../ai/services/ai-secrets.service';
 import { DialogueAIService } from '../dialogue-ai.service';
 import { DialogueService } from '../dialogue.service';
 import { DialogueStreamService } from './dialogue-stream.service';
@@ -24,12 +28,14 @@ import { DialogueStreamService } from './dialogue-stream.service';
  */
 export interface DialogueRequestJobData {
   message: string;
+  model: string;
   nodeId: string;
   nodeLabel: string;
   nodeType: NodeType;
   problemStructure: ProblemStructure;
   sessionId: string;
   subscriptionTier: string;
+  usedByok: boolean;
   userId: string;
 }
 
@@ -64,6 +70,11 @@ export class DialogueQueueService extends WorkerHost {
     private canvasSessionModel: Model<CanvasSessionDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
+    private readonly configService: ConfigService,
+    private readonly aiPolicyService: AiPolicyService,
+    private readonly aiSecretsService: AiSecretsService,
     private readonly dialogueAIService: DialogueAIService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
@@ -83,6 +94,8 @@ export class DialogueQueueService extends WorkerHost {
     problemStructure: ProblemStructure,
     message: string,
     subscriptionTier: string,
+    model: string,
+    usedByok: boolean,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = this.formatId(userId);
 
@@ -95,12 +108,14 @@ export class DialogueQueueService extends WorkerHost {
 
       const jobData: DialogueRequestJobData = {
         message,
+        model,
         nodeId,
         nodeLabel,
         nodeType,
         problemStructure,
         sessionId,
         subscriptionTier,
+        usedByok,
         userId: userIdString,
       };
 
@@ -191,12 +206,14 @@ export class DialogueQueueService extends WorkerHost {
     const startTime = Date.now();
     const {
       message,
+      model,
       nodeId,
       nodeLabel,
       nodeType,
       problemStructure,
       sessionId,
-      subscriptionTier,
+      subscriptionTier: _subscriptionTier,
+      usedByok,
       userId,
     } = job.data;
 
@@ -268,13 +285,17 @@ export class DialogueQueueService extends WorkerHost {
         },
       );
 
+      const effectiveModel = this.validateEffectiveModel(model, usedByok);
+      const apiKey = await this.resolveApiKey(userId, usedByok);
+
       // Generate AI response
       const aiResponse = await this.dialogueAIService.generateResponse(
         { nodeId, nodeLabel, nodeType },
         problemStructure,
         historyResult.messages,
         message,
-        subscriptionTier,
+        effectiveModel,
+        apiKey,
       );
 
       // Add AI response to dialogue
@@ -390,5 +411,54 @@ export class DialogueQueueService extends WorkerHost {
 
   private getErrorStack(error: unknown): string | undefined {
     return error instanceof Error ? error.stack : undefined;
+  }
+
+  private async resolveApiKey(
+    userId: string,
+    usedByok: boolean,
+  ): Promise<string> {
+    if (usedByok) {
+      const user = await this.userModel
+        .findById(userId)
+        .select('+openRouterApiKeyEncrypted')
+        .lean();
+
+      if (!user?.openRouterApiKeyEncrypted) {
+        throw new Error('OPENROUTER_KEY_MISSING');
+      }
+
+      return this.aiSecretsService.decryptString(
+        user.openRouterApiKeyEncrypted,
+      );
+    }
+
+    const serverKey =
+      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
+
+    if (!serverKey) {
+      throw new Error('OPENROUTER_API_KEY not configured');
+    }
+
+    return serverKey;
+  }
+
+  private validateEffectiveModel(model: string, usedByok: boolean): string {
+    const trimmed = model.trim();
+
+    if (!trimmed) {
+      throw new Error('Model is required');
+    }
+
+    if (!usedByok) {
+      const isCurated = this.aiPolicyService
+        .getCuratedModels()
+        .some((allowed) => allowed.id === trimmed);
+
+      if (!isCurated) {
+        throw new Error('MODEL_NOT_ALLOWED');
+      }
+    }
+
+    return trimmed;
   }
 }
