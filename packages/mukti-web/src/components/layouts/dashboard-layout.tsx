@@ -108,7 +108,7 @@ export function DashboardLayout({
   });
 
   const handleConversationCreated = (conversation: { id: string }) => {
-    router.push(`/dashboard/conversations/${conversation.id}`);
+    router.push(`/chat/${conversation.id}`);
   };
 
   const contextValue: LayoutContextValue = {

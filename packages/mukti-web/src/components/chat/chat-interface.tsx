@@ -273,6 +273,15 @@ export function ChatInterface({
     return <ConversationLoading isExiting={isLoadingExiting} />;
   }
 
+  // Show error state if conversation failed to load (check before empty state)
+  if (conversationError && conversationId) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <ErrorState error={conversationError} onRetry={() => window.location.reload()} showRetry />
+      </div>
+    );
+  }
+
   // Show empty state if no conversation
   if (!conversationId || !conversation) {
     return (
@@ -286,15 +295,6 @@ export function ChatInterface({
           onTechniqueChange={onTechniqueChange}
           selectedTechnique={selectedTechnique}
         />
-      </div>
-    );
-  }
-
-  // Show error state if conversation failed to load
-  if (conversationError && conversationId) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <ErrorState error={conversationError} onRetry={() => window.location.reload()} showRetry />
       </div>
     );
   }

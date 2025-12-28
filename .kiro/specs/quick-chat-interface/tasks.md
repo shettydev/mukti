@@ -29,7 +29,7 @@
   - Redirect `/dashboard/help` → `/help`
   - _Requirements: 7.2_
 
-- [ ]\* 1.5 Write property test for route redirects
+- [x] 1.5 Write property test for route redirects
   - **Property 15: Dashboard routes redirect correctly**
   - **Validates: Requirements 7.2**
 
@@ -59,7 +59,7 @@
   - Style to match centered layout
   - _Requirements: 2.1_
 
-- [ ]\* 2.4 Write property test for empty state layout
+- [x] 2.4 Write property test for empty state layout
   - **Property 19: Empty state shows centered layout**
   - **Validates: Requirements 12.1, 12.2, 12.3**
 
@@ -77,7 +77,7 @@
   - Send message to new conversation
   - _Requirements: 1.5, 3.1_
 
-- [ ]\* 3.3 Write property test for first message conversation creation
+- [x] 3.3 Write property test for first message conversation creation
   - **Property 2: First message creates conversation and navigates**
   - **Validates: Requirements 1.5**
 
@@ -87,7 +87,7 @@
   - Integrate SSE streaming
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ]\* 3.5 Write property test for optimistic message display
+- [x] 3.5 Write property test for optimistic message display
   - **Property 11: Optimistic message display**
   - **Validates: Requirements 5.1**
 
@@ -100,7 +100,7 @@
   - Add ellipsis if truncated
   - _Requirements: 3.1, 3.2_
 
-- [ ]\* 4.2 Write property test for title generation
+- [x] 4.2 Write property test for title generation
   - **Property 6: Temporary title generation follows rules**
   - **Validates: Requirements 3.1, 3.2**
 
@@ -127,7 +127,7 @@
   - Add "Conversations" label above list
   - _Requirements: 4.6, 9.1_
 
-- [ ]\* 5.5 Write property test for new chat navigation
+- [-] 5.5 Write property test for new chat navigation
   - **Property 16: New chat clears state and shows centered input**
   - **Validates: Requirements 7.4, 12.5**
 
@@ -150,7 +150,7 @@
   - Apply highlight styles to active item
   - _Requirements: 4.5_
 
-- [ ]\* 6.4 Write property test for active conversation highlight
+- [x] 6.4 Write property test for active conversation highlight
   - **Property 10: Active conversation is highlighted**
   - **Validates: Requirements 4.5**
 
@@ -159,7 +159,7 @@
   - Close mobile sidebar if open
   - _Requirements: 4.3_
 
-- [ ]\* 6.6 Write property test for sidebar navigation
+- [x] 6.6 Write property test for sidebar navigation
   - **Property 9: Sidebar navigation works**
   - **Validates: Requirements 4.3**
 
@@ -168,7 +168,7 @@
   - Verify sorting maintains newest first
   - _Requirements: 4.1_
 
-- [ ]\* 6.8 Write property test for new conversation positioning
+- [x] 6.8 Write property test for new conversation positioning
   - **Property 8: New conversations appear at top**
   - **Validates: Requirements 4.1**
 
@@ -187,11 +187,11 @@
   - Add Logout button with destructive styling
   - _Requirements: 10.2, 10.3, 10.4, 10.5, 10.6_
 
-- [ ]\* 7.3 Write property test for profile popover options
+- [x] 7.3 Write property test for profile popover options
   - **Property 17: Profile popover shows all options**
   - **Validates: Requirements 10.2**
 
-- [ ]\* 7.4 Write property test for profile popover navigation
+- [x] 7.4 Write property test for profile popover navigation
   - **Property 18: Profile popover navigation works**
   - **Validates: Requirements 10.3, 10.4, 10.5**
 
@@ -202,7 +202,7 @@
   - Ensure all 6 techniques display with descriptions
   - _Requirements: 2.1, 2.2_
 
-- [ ]\* 8.2 Write property test for technique selector
+- [x] 8.2 Write property test for technique selector
   - **Property 3: Technique selector displays all options**
   - **Validates: Requirements 2.2**
 
@@ -212,11 +212,11 @@
   - Update technique when user changes selection
   - _Requirements: 2.3, 2.4, 2.5_
 
-- [ ]\* 8.4 Write property test for technique selection
+- [x] 8.4 Write property test for technique selection
   - **Property 4: Technique selection updates state**
   - **Validates: Requirements 2.3**
 
-- [ ]\* 8.5 Write property test for technique persistence
+- [x] 8.5 Write property test for technique persistence
   - **Property 5: Technique persists with conversation**
   - **Validates: Requirements 2.5**
 
@@ -225,7 +225,7 @@
   - Add tooltip with technique explanation on hover
   - _Requirements: 11.1, 11.5_
 
-- [ ]\* 8.7 Write property test for technique indicator
+- [x] 8.7 Write property test for technique indicator
   - **Property 20: Technique indicator displays current technique**
   - **Validates: Requirements 11.1**
 
@@ -244,11 +244,11 @@
   - Handle stream completion
   - _Requirements: 5.2, 5.3, 5.4_
 
-- [ ]\* 9.3 Write property test for streaming indicator
+- [x] 9.3 Write property test for streaming indicator
   - **Property 12: Streaming shows indicator**
   - **Validates: Requirements 5.3**
 
-- [ ]\* 9.4 Write property test for streaming completion
+- [x] 9.4 Write property test for streaming completion
   - **Property 13: Streaming completion enables input**
   - **Validates: Requirements 5.4**
 
@@ -265,7 +265,7 @@
   - Show character count
   - _Requirements: 1.4_
 
-- [ ]\* 10.2 Write property test for input validation
+- [x] 10.2 Write property test for input validation
   - **Property 1: Input validation enables send button**
   - **Validates: Requirements 1.4**
 
@@ -274,7 +274,7 @@
   - Shift+Enter for newline
   - _Requirements: 6.4_
 
-- [ ]\* 10.4 Write property test for keyboard shortcuts
+- [x] 10.4 Write property test for keyboard shortcuts
   - **Property 14: Keyboard shortcuts work**
   - **Validates: Requirements 6.4**
 
@@ -289,7 +289,7 @@
   - Reflect change in sidebar immediately
   - _Requirements: 4.2, 3.3_
 
-- [ ]\* 11.3 Write property test for sidebar reactive updates
+- [x] 11.3 Write property test for sidebar reactive updates
   - **Property 7: Sidebar updates reactively**
   - **Validates: Requirements 3.3, 4.2**
 
@@ -345,20 +345,20 @@
 - [ ] 15. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 16. Cleanup old dashboard code
-- [ ] 16.1 Remove old dashboard pages
+- [x] 16. Cleanup old dashboard code
+- [x] 16.1 Remove old dashboard pages
   - Remove `/dashboard/page.tsx` (replaced by redirect)
   - Remove `/dashboard/conversations` directory
   - Keep redirect handler for backwards compatibility
   - _Requirements: 7.2_
 
-- [ ] 16.2 Update all internal links
+- [x] 16.2 Update all internal links
   - Search for `/dashboard` references in codebase
   - Update to new routes (`/chat`, `/canvas`, etc.)
   - Update navigation components
   - _Requirements: 7.2_
 
-- [ ] 16.3 Update documentation
+- [x] 16.3 Update documentation
   - Update README if it references old routes
   - Update any API documentation
   - _Requirements: N/A_
@@ -380,8 +380,8 @@
   - Add focus rings for keyboard navigation
   - Add active states for buttons
 
-- [ ] 18. Write integration tests
-- [ ]\* 18.1 Write end-to-end chat flow test
+- [-] 18. Write integration tests
+- [-]\* 18.1 Write end-to-end chat flow test
   - Test complete flow: land on /chat → send message → navigate to /chat/:id → receive response
   - Verify conversation creation
   - Verify sidebar updates

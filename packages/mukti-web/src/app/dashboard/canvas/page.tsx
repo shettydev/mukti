@@ -40,7 +40,7 @@ function CanvasContent() {
       // Refetch sessions list after successful creation
       refetch();
       // Navigate to the newly created canvas session
-      router.push(`/dashboard/canvas/${session.id}`);
+      router.push(`/canvas/${session.id}`);
     },
     [refetch, router]
   );
