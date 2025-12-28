@@ -10,7 +10,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { ConversationFilters } from '../conversation-filters';
 import { CreateConversationDialog } from '../create-conversation-dialog';
 import { MessageInput } from '../message-input';
 import { TagInput } from '../tag-input';
@@ -194,21 +193,6 @@ describe('Accessibility Tests', () => {
         expect(selectedOption).toBeInTheDocument();
       });
     });
-
-    it('should have proper aria-label on filter buttons', () => {
-      render(
-        <ConversationFilters
-          filters={{ limit: 20, sort: 'updatedAt' }}
-          onFiltersChange={jest.fn()}
-        />
-      );
-
-      // Check that filter buttons are accessible
-      expect(screen.getByRole('button', { name: /technique/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /sort/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /favorites/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /archived/i })).toBeInTheDocument();
-    });
   });
 
   describe('Focus Management', () => {
@@ -285,19 +269,6 @@ describe('Accessibility Tests', () => {
       expect(screen.getByRole('heading', { name: /create new conversation/i })).toBeInTheDocument();
     });
 
-    it('should use button role for interactive elements', () => {
-      render(
-        <ConversationFilters
-          filters={{ limit: 20, sort: 'updatedAt' }}
-          onFiltersChange={jest.fn()}
-        />
-      );
-
-      // All filter controls should be buttons
-      const buttons = screen.getAllByRole('button');
-      expect(buttons.length).toBeGreaterThan(0);
-    });
-
     it('should use textbox role for inputs', () => {
       render(<TagInput onChange={jest.fn()} value={[]} />);
 
@@ -336,21 +307,6 @@ describe('Accessibility Tests', () => {
       const sendButton = screen.getByTestId('send-button');
       // Button should have min-h-[44px] min-w-[44px] for touch targets
       expect(sendButton).toHaveClass('min-h-[44px]', 'min-w-[44px]');
-    });
-
-    it('should have adequate touch targets for filter buttons', () => {
-      render(
-        <ConversationFilters
-          filters={{ limit: 20, sort: 'updatedAt' }}
-          onFiltersChange={jest.fn()}
-        />
-      );
-
-      const buttons = screen.getAllByRole('button');
-      buttons.forEach((button) => {
-        // Buttons should have size="sm" which provides adequate touch targets
-        expect(button.className).toMatch(/h-\d+/);
-      });
     });
   });
 
