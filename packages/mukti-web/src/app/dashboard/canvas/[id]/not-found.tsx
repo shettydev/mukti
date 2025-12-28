@@ -4,7 +4,6 @@
  * Displays a friendly message when a canvas session is not found.
  * Provides navigation back to the canvas listing page.
  *
- * @requirements 10.3
  */
 
 import { Brain, Home } from 'lucide-react';
@@ -37,7 +36,7 @@ export default function CanvasNotFound() {
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Button asChild>
-            <Link href="/dashboard/canvas">
+            <Link href="/canvas">
               <Home className="mr-2 h-4 w-4" />
               Back to Canvas List
             </Link>
