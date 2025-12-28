@@ -345,20 +345,20 @@
 - [ ] 15. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 16. Cleanup old dashboard code
-- [ ] 16.1 Remove old dashboard pages
+- [x] 16. Cleanup old dashboard code
+- [x] 16.1 Remove old dashboard pages
   - Remove `/dashboard/page.tsx` (replaced by redirect)
   - Remove `/dashboard/conversations` directory
   - Keep redirect handler for backwards compatibility
   - _Requirements: 7.2_
 
-- [ ] 16.2 Update all internal links
+- [x] 16.2 Update all internal links
   - Search for `/dashboard` references in codebase
   - Update to new routes (`/chat`, `/canvas`, etc.)
   - Update navigation components
   - _Requirements: 7.2_
 
-- [ ] 16.3 Update documentation
+- [x] 16.3 Update documentation
   - Update README if it references old routes
   - Update any API documentation
   - _Requirements: N/A_
@@ -380,8 +380,8 @@
   - Add focus rings for keyboard navigation
   - Add active states for buttons
 
-- [ ] 18. Write integration tests
-- [ ]\* 18.1 Write end-to-end chat flow test
+- [-] 18. Write integration tests
+- [-]\* 18.1 Write end-to-end chat flow test
   - Test complete flow: land on /chat → send message → navigate to /chat/:id → receive response
   - Verify conversation creation
   - Verify sidebar updates
