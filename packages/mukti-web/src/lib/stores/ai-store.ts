@@ -32,16 +32,21 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
   },
   hasOpenRouterKey: false,
   hydrate: async () => {
-    const settings = (await aiApi.getSettings()) as AiSettings;
+    try {
+      const settings = (await aiApi.getSettings()) as AiSettings;
 
-    set({
-      activeModel: settings.activeModel ?? 'openai/gpt-5-mini',
-      hasOpenRouterKey: settings.hasOpenRouterKey,
-      isHydrated: true,
-      openRouterKeyLast4: settings.openRouterKeyLast4,
-    });
+      set({
+        activeModel: settings.activeModel ?? 'openai/gpt-5-mini',
+        hasOpenRouterKey: settings.hasOpenRouterKey,
+        isHydrated: true,
+        openRouterKeyLast4: settings.openRouterKeyLast4,
+      });
 
-    await get().refreshModels();
+      await get().refreshModels();
+    } catch (error) {
+      // Silently fail if not authenticated - user might be on login screen
+      console.warn('Failed to hydrate AI store:', error);
+    }
   },
   isHydrated: false,
   mode: 'curated',
@@ -51,20 +56,24 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
   openRouterKeyLast4: null,
 
   refreshModels: async () => {
-    const modelsResponse = await aiApi.getModels();
+    try {
+      const modelsResponse = await aiApi.getModels();
 
-    if (modelsResponse.mode === 'curated') {
+      if (modelsResponse.mode === 'curated') {
+        set({
+          mode: 'curated',
+          models: modelsResponse.models.map((m) => ({ id: m.id, label: m.label })),
+        });
+        return;
+      }
+
       set({
-        mode: 'curated',
-        models: modelsResponse.models.map((m) => ({ id: m.id, label: m.label })),
+        mode: 'openrouter',
+        models: modelsResponse.models.map((m) => ({ id: m.id, label: m.name })),
       });
-      return;
+    } catch (error) {
+      console.warn('Failed to refresh models:', error);
     }
-
-    set({
-      mode: 'openrouter',
-      models: modelsResponse.models.map((m) => ({ id: m.id, label: m.name })),
-    });
   },
 
   setActiveModel: async (model: string) => {
