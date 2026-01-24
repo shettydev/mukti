@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 /**
  * DTO for sending a message to a conversation.
@@ -18,4 +18,12 @@ export class SendMessageDto {
   @IsNotEmpty()
   @IsString()
   content: string;
+
+  @ApiPropertyOptional({
+    description: 'OpenRouter model id to use for this message',
+    example: 'openai/gpt-5-mini',
+  })
+  @IsOptional()
+  @IsString()
+  model?: string;
 }

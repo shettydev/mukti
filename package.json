@@ -48,7 +48,7 @@
     "affected:build": "bun nx affected --target=build",
     "graph": "bun nx graph",
     "commit": "czg",
-    "ai:commit": "bun run scripts/ai-commit.js"
+    "commit:ai": "bun run scripts/ai-commit.js"
   },
   "config": {
     "commitizen": {

@@ -1,6 +1,6 @@
 'use client';
 
-import { HelpCircle, LogOut, Settings, Shield } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import Link from 'next/link';
 
 import type { User } from '@/types/user.types';
@@ -86,27 +86,11 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
         side="top"
         sideOffset={10}
       >
-        {/* Security Link */}
-        <DropdownMenuItem asChild className="cursor-pointer">
-          <Link href="/security">
-            <Shield className="mr-2 h-4 w-4" />
-            <span>Security</span>
-          </Link>
-        </DropdownMenuItem>
-
         {/* Settings Link */}
         <DropdownMenuItem asChild className="cursor-pointer">
-          <Link href="/settings">
+          <Link href="/dashboard/settings">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
-          </Link>
-        </DropdownMenuItem>
-
-        {/* Help & Support Link */}
-        <DropdownMenuItem asChild className="cursor-pointer">
-          <Link href="/help">
-            <HelpCircle className="mr-2 h-4 w-4" />
-            <span>Help & Support</span>
           </Link>
         </DropdownMenuItem>
 

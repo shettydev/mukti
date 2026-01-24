@@ -105,6 +105,7 @@ export function Sidebar({
             'p-3 mb-2 flex items-center',
             collapsed ? 'justify-center' : 'justify-between'
           )}
+          suppressHydrationWarning
         >
           <div
             className={cn(

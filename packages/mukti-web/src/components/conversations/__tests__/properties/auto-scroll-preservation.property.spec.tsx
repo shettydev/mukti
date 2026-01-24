@@ -78,122 +78,127 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
             newMessageCount: fc.integer({ max: 5, min: 1 }),
           }),
           async ({ conversationId, initialMessageCount, newMessageCount }) => {
-            // Create initial messages
-            const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
-              content: `Initial message ${i}`,
-              role: 'assistant' as const,
-              sequence: i,
-              timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
-            }));
+            try {
+              // Create initial messages
+              const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
+                content: `Initial message ${i}`,
+                role: 'assistant' as const,
+                sequence: i,
+                timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
+              }));
 
-            const initialConversation: Conversation = {
-              createdAt: new Date().toISOString(),
-              hasArchivedMessages: false,
-              id: conversationId,
-              isArchived: false,
-              isFavorite: false,
-              metadata: {
-                estimatedCost: 0,
-                lastMessageAt: new Date().toISOString(),
-                messageCount: initialMessageCount,
-                totalTokens: 0,
-              },
-              recentMessages: initialMessages,
-              tags: [],
-              technique: 'elenchus',
-              title: 'Test Conversation',
-              updatedAt: new Date().toISOString(),
-              userId: 'user-123',
-            };
+              const initialConversation: Conversation = {
+                createdAt: new Date().toISOString(),
+                hasArchivedMessages: false,
+                id: conversationId,
+                isArchived: false,
+                isFavorite: false,
+                metadata: {
+                  estimatedCost: 0,
+                  lastMessageAt: new Date().toISOString(),
+                  messageCount: initialMessageCount,
+                  totalTokens: 0,
+                },
+                recentMessages: initialMessages,
+                tags: [],
+                technique: 'elenchus',
+                title: 'Test Conversation',
+                updatedAt: new Date().toISOString(),
+                userId: 'user-123',
+              };
 
-            queryClient.setQueryData(conversationKeys.detail(conversationId), initialConversation);
+              queryClient.setQueryData(
+                conversationKeys.detail(conversationId),
+                initialConversation
+              );
 
-            const wrapper = ({ children }: { children: ReactNode }) => (
-              <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-            );
+              const wrapper = ({ children }: { children: ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+              );
 
-            const { rerender } = render(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={initialMessages}
-              />,
-              { wrapper }
-            );
+              const { rerender } = render(
+                <MessageList
+                  conversationId={conversationId}
+                  hasArchivedMessages={false}
+                  recentMessages={initialMessages}
+                />,
+                { wrapper }
+              );
 
-            // Wait for initial render
-            await waitFor(() => {
-              expect(screen.getByRole('log')).toBeInTheDocument();
-            });
+              // Wait for initial render
+              await waitFor(() => {
+                expect(screen.getByRole('log')).toBeInTheDocument();
+              });
 
-            // Get the scroll container
-            const scrollContainer = screen.getByRole('log');
+              // Get the scroll container
+              const scrollContainer = screen.getByRole('log');
 
-            // Mock that user is at bottom (scrollHeight - scrollTop - clientHeight <= 100)
-            Object.defineProperty(scrollContainer, 'scrollHeight', {
-              configurable: true,
-              value: 1000,
-            });
-            Object.defineProperty(scrollContainer, 'clientHeight', {
-              configurable: true,
-              value: 500,
-            });
-            Object.defineProperty(scrollContainer, 'scrollTop', {
-              configurable: true,
-              value: 500, // At bottom: 1000 - 500 - 500 = 0
-              writable: true,
-            });
+              // Mock that user is at bottom (scrollHeight - scrollTop - clientHeight <= 100)
+              Object.defineProperty(scrollContainer, 'scrollHeight', {
+                configurable: true,
+                value: 1000,
+              });
+              Object.defineProperty(scrollContainer, 'clientHeight', {
+                configurable: true,
+                value: 500,
+              });
+              Object.defineProperty(scrollContainer, 'scrollTop', {
+                configurable: true,
+                value: 500, // At bottom: 1000 - 500 - 500 = 0
+                writable: true,
+              });
 
-            // Clear previous scrollIntoView calls
-            scrollIntoViewMock.mockClear();
+              // Clear previous scrollIntoView calls
+              scrollIntoViewMock.mockClear();
 
-            // Add new messages (simulating SSE events)
-            const newMessages = Array.from({ length: newMessageCount }, (_, i) => ({
-              content: `New message ${i}`,
-              role: 'assistant' as const,
-              sequence: initialMessageCount + i,
-              timestamp: new Date(Date.now() + i * 1000).toISOString(),
-            }));
+              // Add new messages (simulating SSE events)
+              const newMessages = Array.from({ length: newMessageCount }, (_, i) => ({
+                content: `New message ${i}`,
+                role: 'assistant' as const,
+                sequence: initialMessageCount + i,
+                timestamp: new Date(Date.now() + i * 1000).toISOString(),
+              }));
 
-            const updatedMessages = [...initialMessages, ...newMessages];
+              const updatedMessages = [...initialMessages, ...newMessages];
 
-            // Update conversation with new messages
-            queryClient.setQueryData(conversationKeys.detail(conversationId), {
-              ...initialConversation,
-              metadata: {
-                ...initialConversation.metadata,
-                messageCount: updatedMessages.length,
-              },
-              recentMessages: updatedMessages,
-            });
+              // Update conversation with new messages
+              queryClient.setQueryData(conversationKeys.detail(conversationId), {
+                ...initialConversation,
+                metadata: {
+                  ...initialConversation.metadata,
+                  messageCount: updatedMessages.length,
+                },
+                recentMessages: updatedMessages,
+              });
 
-            // Rerender with new messages
-            rerender(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={updatedMessages}
-              />
-            );
+              // Rerender with new messages
+              rerender(
+                <MessageList
+                  conversationId={conversationId}
+                  hasArchivedMessages={false}
+                  recentMessages={updatedMessages}
+                />
+              );
 
-            // Wait for scroll to be triggered (batched with 100ms delay)
-            await waitFor(
-              () => {
-                expect(scrollIntoViewMock).toHaveBeenCalled();
-              },
-              { timeout: 500 }
-            );
+              // Wait for scroll to be triggered (batched with 100ms delay)
+              await waitFor(
+                () => {
+                  expect(scrollIntoViewMock).toHaveBeenCalled();
+                },
+                { timeout: 500 }
+              );
 
-            // Verify scrollIntoView was called with smooth behavior
-            expect(scrollIntoViewMock).toHaveBeenCalledWith({
-              behavior: 'smooth',
-            });
+              // Verify scrollIntoView was called with smooth behavior
+              expect(scrollIntoViewMock).toHaveBeenCalledWith({
+                behavior: 'smooth',
+              });
 
-            // Verify scroll button is NOT shown (user is at bottom)
-            expect(screen.queryByRole('button', { name: /scroll to bottom/i })).toBeNull();
-
-            // Cleanup DOM after each iteration
-            cleanup();
+              // Verify scroll button is NOT shown (user is at bottom)
+              expect(screen.queryByRole('button', { name: /scroll to bottom/i })).toBeNull();
+            } finally {
+              // Cleanup DOM after each iteration
+              cleanup();
+            }
           }
         ),
         { numRuns: 20 }
@@ -216,139 +221,144 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
             newMessageCount,
             scrollDistanceFromBottom,
           }) => {
-            // Create initial messages
-            const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
-              content: `Initial message ${i}`,
-              role: 'assistant' as const,
-              sequence: i,
-              timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
-            }));
+            try {
+              // Create initial messages
+              const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
+                content: `Initial message ${i}`,
+                role: 'assistant' as const,
+                sequence: i,
+                timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
+              }));
 
-            const initialConversation: Conversation = {
-              createdAt: new Date().toISOString(),
-              hasArchivedMessages: false,
-              id: conversationId,
-              isArchived: false,
-              isFavorite: false,
-              metadata: {
-                estimatedCost: 0,
-                lastMessageAt: new Date().toISOString(),
-                messageCount: initialMessageCount,
-                totalTokens: 0,
-              },
-              recentMessages: initialMessages,
-              tags: [],
-              technique: 'elenchus',
-              title: 'Test Conversation',
-              updatedAt: new Date().toISOString(),
-              userId: 'user-123',
-            };
+              const initialConversation: Conversation = {
+                createdAt: new Date().toISOString(),
+                hasArchivedMessages: false,
+                id: conversationId,
+                isArchived: false,
+                isFavorite: false,
+                metadata: {
+                  estimatedCost: 0,
+                  lastMessageAt: new Date().toISOString(),
+                  messageCount: initialMessageCount,
+                  totalTokens: 0,
+                },
+                recentMessages: initialMessages,
+                tags: [],
+                technique: 'elenchus',
+                title: 'Test Conversation',
+                updatedAt: new Date().toISOString(),
+                userId: 'user-123',
+              };
 
-            queryClient.setQueryData(conversationKeys.detail(conversationId), initialConversation);
+              queryClient.setQueryData(
+                conversationKeys.detail(conversationId),
+                initialConversation
+              );
 
-            const wrapper = ({ children }: { children: ReactNode }) => (
-              <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-            );
+              const wrapper = ({ children }: { children: ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+              );
 
-            const { rerender } = render(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={initialMessages}
-              />,
-              { wrapper }
-            );
+              const { rerender } = render(
+                <MessageList
+                  conversationId={conversationId}
+                  hasArchivedMessages={false}
+                  recentMessages={initialMessages}
+                />,
+                { wrapper }
+              );
 
-            // Wait for initial render
-            await waitFor(() => {
-              expect(screen.getByRole('log')).toBeInTheDocument();
-            });
+              // Wait for initial render
+              await waitFor(() => {
+                expect(screen.getByRole('log')).toBeInTheDocument();
+              });
 
-            // Get the scroll container
-            const scrollContainer = screen.getByRole('log');
+              // Get the scroll container
+              const scrollContainer = screen.getByRole('log');
 
-            // Mock that user is scrolled up (not at bottom)
-            const scrollHeight = 2000;
-            const clientHeight = 500;
-            const scrollTop = scrollHeight - clientHeight - scrollDistanceFromBottom;
+              // Mock that user is scrolled up (not at bottom)
+              const scrollHeight = 2000;
+              const clientHeight = 500;
+              const scrollTop = scrollHeight - clientHeight - scrollDistanceFromBottom;
 
-            Object.defineProperty(scrollContainer, 'scrollHeight', {
-              configurable: true,
-              value: scrollHeight,
-            });
-            Object.defineProperty(scrollContainer, 'clientHeight', {
-              configurable: true,
-              value: clientHeight,
-            });
-            Object.defineProperty(scrollContainer, 'scrollTop', {
-              configurable: true,
-              value: scrollTop,
-              writable: true,
-            });
+              Object.defineProperty(scrollContainer, 'scrollHeight', {
+                configurable: true,
+                value: scrollHeight,
+              });
+              Object.defineProperty(scrollContainer, 'clientHeight', {
+                configurable: true,
+                value: clientHeight,
+              });
+              Object.defineProperty(scrollContainer, 'scrollTop', {
+                configurable: true,
+                value: scrollTop,
+                writable: true,
+              });
 
-            // Trigger scroll event to update isAtBottom state
-            await act(async () => {
-              scrollContainer.dispatchEvent(new Event('scroll'));
-            });
+              // Trigger scroll event to update isAtBottom state
+              await act(async () => {
+                scrollContainer.dispatchEvent(new Event('scroll'));
+              });
 
-            // Wait for scroll state to update
-            await waitFor(() => {
-              // Scroll button should appear after scroll event
-              const button = screen.queryByRole('button', { name: /scroll to bottom/i });
-              // Button might not be visible yet if no new messages
-              expect(button).toBeNull();
-            });
+              // Wait for scroll state to update
+              await waitFor(() => {
+                // Scroll button should appear after scroll event
+                const button = screen.queryByRole('button', { name: /scroll to bottom/i });
+                // Button might not be visible yet if no new messages
+                expect(button).toBeNull();
+              });
 
-            // Clear previous scrollIntoView calls
-            scrollIntoViewMock.mockClear();
+              // Clear previous scrollIntoView calls
+              scrollIntoViewMock.mockClear();
 
-            // Add new messages (simulating SSE events)
-            const newMessages = Array.from({ length: newMessageCount }, (_, i) => ({
-              content: `New message ${i}`,
-              role: 'assistant' as const,
-              sequence: initialMessageCount + i,
-              timestamp: new Date(Date.now() + i * 1000).toISOString(),
-            }));
+              // Add new messages (simulating SSE events)
+              const newMessages = Array.from({ length: newMessageCount }, (_, i) => ({
+                content: `New message ${i}`,
+                role: 'assistant' as const,
+                sequence: initialMessageCount + i,
+                timestamp: new Date(Date.now() + i * 1000).toISOString(),
+              }));
 
-            const updatedMessages = [...initialMessages, ...newMessages];
+              const updatedMessages = [...initialMessages, ...newMessages];
 
-            // Update conversation with new messages
-            queryClient.setQueryData(conversationKeys.detail(conversationId), {
-              ...initialConversation,
-              metadata: {
-                ...initialConversation.metadata,
-                messageCount: updatedMessages.length,
-              },
-              recentMessages: updatedMessages,
-            });
+              // Update conversation with new messages
+              queryClient.setQueryData(conversationKeys.detail(conversationId), {
+                ...initialConversation,
+                metadata: {
+                  ...initialConversation.metadata,
+                  messageCount: updatedMessages.length,
+                },
+                recentMessages: updatedMessages,
+              });
 
-            // Rerender with new messages
-            rerender(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={updatedMessages}
-              />
-            );
+              // Rerender with new messages
+              rerender(
+                <MessageList
+                  conversationId={conversationId}
+                  hasArchivedMessages={false}
+                  recentMessages={updatedMessages}
+                />
+              );
 
-            // Wait for the batching delay
-            await waitFor(
-              () => {
-                // Scroll button should appear when user is scrolled up and new messages arrive
-                const button = screen.queryByRole('button', { name: /new messages/i });
-                expect(button).toBeInTheDocument();
-              },
-              { timeout: 500 }
-            );
+              // Wait for the batching delay
+              await waitFor(
+                () => {
+                  // Scroll button should appear when user is scrolled up and new messages arrive
+                  const button = screen.queryByRole('button', { name: /new messages/i });
+                  expect(button).toBeInTheDocument();
+                },
+                { timeout: 500 }
+              );
 
-            // Verify scrollIntoView was NOT called (scroll position preserved)
-            expect(scrollIntoViewMock).not.toHaveBeenCalled();
+              // Verify scrollIntoView was NOT called (scroll position preserved)
+              expect(scrollIntoViewMock).not.toHaveBeenCalled();
 
-            // Verify scroll button IS shown with "New messages" text
-            expect(screen.getByRole('button', { name: /new messages/i })).toBeInTheDocument();
-
-            // Cleanup DOM after each iteration
-            cleanup();
+              // Verify scroll button IS shown with "New messages" text
+              expect(screen.getByRole('button', { name: /new messages/i })).toBeInTheDocument();
+            } finally {
+              // Cleanup DOM after each iteration
+              cleanup();
+            }
           }
         ),
         { numRuns: 20 }
@@ -370,174 +380,182 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
             messagesAfterScrollToBottom,
             messagesWhileScrolledUp,
           }) => {
-            // Create initial messages
-            const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
-              content: `Initial message ${i}`,
-              role: 'assistant' as const,
-              sequence: i,
-              timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
-            }));
+            try {
+              // Create initial messages
+              const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
+                content: `Initial message ${i}`,
+                role: 'assistant' as const,
+                sequence: i,
+                timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
+              }));
 
-            const initialConversation: Conversation = {
-              createdAt: new Date().toISOString(),
-              hasArchivedMessages: false,
-              id: conversationId,
-              isArchived: false,
-              isFavorite: false,
-              metadata: {
-                estimatedCost: 0,
-                lastMessageAt: new Date().toISOString(),
-                messageCount: initialMessageCount,
-                totalTokens: 0,
-              },
-              recentMessages: initialMessages,
-              tags: [],
-              technique: 'elenchus',
-              title: 'Test Conversation',
-              updatedAt: new Date().toISOString(),
-              userId: 'user-123',
-            };
+              const initialConversation: Conversation = {
+                createdAt: new Date().toISOString(),
+                hasArchivedMessages: false,
+                id: conversationId,
+                isArchived: false,
+                isFavorite: false,
+                metadata: {
+                  estimatedCost: 0,
+                  lastMessageAt: new Date().toISOString(),
+                  messageCount: initialMessageCount,
+                  totalTokens: 0,
+                },
+                recentMessages: initialMessages,
+                tags: [],
+                technique: 'elenchus',
+                title: 'Test Conversation',
+                updatedAt: new Date().toISOString(),
+                userId: 'user-123',
+              };
 
-            queryClient.setQueryData(conversationKeys.detail(conversationId), initialConversation);
+              queryClient.setQueryData(
+                conversationKeys.detail(conversationId),
+                initialConversation
+              );
 
-            const wrapper = ({ children }: { children: ReactNode }) => (
-              <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-            );
+              const wrapper = ({ children }: { children: ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+              );
 
-            const { rerender } = render(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={initialMessages}
-              />,
-              { wrapper }
-            );
+              const { rerender } = render(
+                <MessageList
+                  conversationId={conversationId}
+                  hasArchivedMessages={false}
+                  recentMessages={initialMessages}
+                />,
+                { wrapper }
+              );
 
-            // Wait for initial render
-            await waitFor(() => {
-              expect(screen.getByRole('log')).toBeInTheDocument();
-            });
+              // Wait for initial render
+              await waitFor(() => {
+                expect(screen.getByRole('log')).toBeInTheDocument();
+              });
 
-            const scrollContainer = screen.getByRole('log');
+              const scrollContainer = screen.getByRole('log');
 
-            // Phase 1: User is scrolled up
-            Object.defineProperty(scrollContainer, 'scrollHeight', {
-              configurable: true,
-              value: 2000,
-            });
-            Object.defineProperty(scrollContainer, 'clientHeight', {
-              configurable: true,
-              value: 500,
-            });
-            Object.defineProperty(scrollContainer, 'scrollTop', {
-              configurable: true,
-              value: 1000, // Scrolled up: 2000 - 1000 - 500 = 500 > 100
-              writable: true,
-            });
+              // Phase 1: User is scrolled up
+              Object.defineProperty(scrollContainer, 'scrollHeight', {
+                configurable: true,
+                value: 2000,
+              });
+              Object.defineProperty(scrollContainer, 'clientHeight', {
+                configurable: true,
+                value: 500,
+              });
+              Object.defineProperty(scrollContainer, 'scrollTop', {
+                configurable: true,
+                value: 1000, // Scrolled up: 2000 - 1000 - 500 = 500 > 100
+                writable: true,
+              });
 
-            await act(async () => {
-              scrollContainer.dispatchEvent(new Event('scroll'));
-            });
+              await act(async () => {
+                scrollContainer.dispatchEvent(new Event('scroll'));
+              });
 
-            // Add messages while scrolled up
-            let currentSequence = initialMessageCount;
-            const messagesPhase1 = Array.from({ length: messagesWhileScrolledUp }, (_, i) => ({
-              content: `Message while scrolled up ${i}`,
-              role: 'assistant' as const,
-              sequence: currentSequence + i,
-              timestamp: new Date(Date.now() + i * 1000).toISOString(),
-            }));
-            currentSequence += messagesWhileScrolledUp;
+              // Add messages while scrolled up
+              let currentSequence = initialMessageCount;
+              const messagesPhase1 = Array.from({ length: messagesWhileScrolledUp }, (_, i) => ({
+                content: `Message while scrolled up ${i}`,
+                role: 'assistant' as const,
+                sequence: currentSequence + i,
+                timestamp: new Date(Date.now() + i * 1000).toISOString(),
+              }));
+              currentSequence += messagesWhileScrolledUp;
 
-            const messagesAfterPhase1 = [...initialMessages, ...messagesPhase1];
+              const messagesAfterPhase1 = [...initialMessages, ...messagesPhase1];
 
-            queryClient.setQueryData(conversationKeys.detail(conversationId), {
-              ...initialConversation,
-              metadata: {
-                ...initialConversation.metadata,
-                messageCount: messagesAfterPhase1.length,
-              },
-              recentMessages: messagesAfterPhase1,
-            });
+              queryClient.setQueryData(conversationKeys.detail(conversationId), {
+                ...initialConversation,
+                metadata: {
+                  ...initialConversation.metadata,
+                  messageCount: messagesAfterPhase1.length,
+                },
+                recentMessages: messagesAfterPhase1,
+              });
 
-            rerender(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={messagesAfterPhase1}
-              />
-            );
+              rerender(
+                <MessageList
+                  conversationId={conversationId}
+                  hasArchivedMessages={false}
+                  recentMessages={messagesAfterPhase1}
+                />
+              );
 
-            // Wait for scroll button to appear
-            await waitFor(
-              () => {
-                expect(screen.getByRole('button', { name: /new messages/i })).toBeInTheDocument();
-              },
-              { timeout: 500 }
-            );
+              // Wait for scroll button to appear
+              await waitFor(
+                () => {
+                  expect(screen.getByRole('button', { name: /new messages/i })).toBeInTheDocument();
+                },
+                { timeout: 500 }
+              );
 
-            scrollIntoViewMock.mockClear();
+              scrollIntoViewMock.mockClear();
 
-            // Phase 2: User manually scrolls to bottom
-            Object.defineProperty(scrollContainer, 'scrollTop', {
-              configurable: true,
-              value: 1500, // At bottom: 2000 - 1500 - 500 = 0
-              writable: true,
-            });
+              // Phase 2: User manually scrolls to bottom
+              Object.defineProperty(scrollContainer, 'scrollTop', {
+                configurable: true,
+                value: 1500, // At bottom: 2000 - 1500 - 500 = 0
+                writable: true,
+              });
 
-            await act(async () => {
-              scrollContainer.dispatchEvent(new Event('scroll'));
-            });
+              await act(async () => {
+                scrollContainer.dispatchEvent(new Event('scroll'));
+              });
 
-            // Wait for scroll button to disappear
-            await waitFor(() => {
-              expect(
-                screen.queryByRole('button', { name: /new messages/i })
-              ).not.toBeInTheDocument();
-            });
+              // Wait for scroll button to disappear
+              await waitFor(() => {
+                expect(
+                  screen.queryByRole('button', { name: /new messages/i })
+                ).not.toBeInTheDocument();
+              });
 
-            // Phase 3: New messages arrive after user is at bottom
-            const messagesPhase2 = Array.from({ length: messagesAfterScrollToBottom }, (_, i) => ({
-              content: `Message after scroll to bottom ${i}`,
-              role: 'assistant' as const,
-              sequence: currentSequence + i,
-              timestamp: new Date(Date.now() + 1000 + i * 1000).toISOString(),
-            }));
+              // Phase 3: New messages arrive after user is at bottom
+              const messagesPhase2 = Array.from(
+                { length: messagesAfterScrollToBottom },
+                (_, i) => ({
+                  content: `Message after scroll to bottom ${i}`,
+                  role: 'assistant' as const,
+                  sequence: currentSequence + i,
+                  timestamp: new Date(Date.now() + 1000 + i * 1000).toISOString(),
+                })
+              );
 
-            const finalMessages = [...messagesAfterPhase1, ...messagesPhase2];
+              const finalMessages = [...messagesAfterPhase1, ...messagesPhase2];
 
-            queryClient.setQueryData(conversationKeys.detail(conversationId), {
-              ...initialConversation,
-              metadata: {
-                ...initialConversation.metadata,
-                messageCount: finalMessages.length,
-              },
-              recentMessages: finalMessages,
-            });
+              queryClient.setQueryData(conversationKeys.detail(conversationId), {
+                ...initialConversation,
+                metadata: {
+                  ...initialConversation.metadata,
+                  messageCount: finalMessages.length,
+                },
+                recentMessages: finalMessages,
+              });
 
-            rerender(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={finalMessages}
-              />
-            );
+              rerender(
+                <MessageList
+                  conversationId={conversationId}
+                  hasArchivedMessages={false}
+                  recentMessages={finalMessages}
+                />
+              );
 
-            // Wait for auto-scroll to be triggered
-            await waitFor(
-              () => {
-                expect(scrollIntoViewMock).toHaveBeenCalled();
-              },
-              { timeout: 500 }
-            );
+              // Wait for auto-scroll to be triggered
+              await waitFor(
+                () => {
+                  expect(scrollIntoViewMock).toHaveBeenCalled();
+                },
+                { timeout: 500 }
+              );
 
-            // Verify auto-scroll resumed (scrollIntoView called)
-            expect(scrollIntoViewMock).toHaveBeenCalledWith({
-              behavior: 'smooth',
-            });
-
-            // Cleanup DOM after each iteration
-            cleanup();
+              // Verify auto-scroll resumed (scrollIntoView called)
+              expect(scrollIntoViewMock).toHaveBeenCalledWith({
+                behavior: 'smooth',
+              });
+            } finally {
+              // Cleanup DOM after each iteration
+              cleanup();
+            }
           }
         ),
         { numRuns: 20 }
@@ -554,124 +572,129 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
             rapidMessageCount: fc.integer({ max: 10, min: 3 }),
           }),
           async ({ conversationId, initialMessageCount, rapidMessageCount }) => {
-            // Create initial messages
-            const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
-              content: `Initial message ${i}`,
-              role: 'assistant' as const,
-              sequence: i,
-              timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
-            }));
-
-            const initialConversation: Conversation = {
-              createdAt: new Date().toISOString(),
-              hasArchivedMessages: false,
-              id: conversationId,
-              isArchived: false,
-              isFavorite: false,
-              metadata: {
-                estimatedCost: 0,
-                lastMessageAt: new Date().toISOString(),
-                messageCount: initialMessageCount,
-                totalTokens: 0,
-              },
-              recentMessages: initialMessages,
-              tags: [],
-              technique: 'elenchus',
-              title: 'Test Conversation',
-              updatedAt: new Date().toISOString(),
-              userId: 'user-123',
-            };
-
-            queryClient.setQueryData(conversationKeys.detail(conversationId), initialConversation);
-
-            const wrapper = ({ children }: { children: ReactNode }) => (
-              <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-            );
-
-            const { rerender } = render(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={initialMessages}
-              />,
-              { wrapper }
-            );
-
-            await waitFor(() => {
-              expect(screen.getByRole('log')).toBeInTheDocument();
-            });
-
-            const scrollContainer = screen.getByRole('log');
-
-            // User is at bottom
-            Object.defineProperty(scrollContainer, 'scrollHeight', {
-              configurable: true,
-              value: 1000,
-            });
-            Object.defineProperty(scrollContainer, 'clientHeight', {
-              configurable: true,
-              value: 500,
-            });
-            Object.defineProperty(scrollContainer, 'scrollTop', {
-              configurable: true,
-              value: 500,
-              writable: true,
-            });
-
-            scrollIntoViewMock.mockClear();
-
-            // Add messages rapidly (one at a time to simulate SSE events)
-            let currentMessages = [...initialMessages];
-
-            for (let i = 0; i < rapidMessageCount; i++) {
-              const newMessage = {
-                content: `Rapid message ${i}`,
+            try {
+              // Create initial messages
+              const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
+                content: `Initial message ${i}`,
                 role: 'assistant' as const,
-                sequence: initialMessageCount + i,
-                timestamp: new Date(Date.now() + i * 10).toISOString(), // 10ms apart
+                sequence: i,
+                timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
+              }));
+
+              const initialConversation: Conversation = {
+                createdAt: new Date().toISOString(),
+                hasArchivedMessages: false,
+                id: conversationId,
+                isArchived: false,
+                isFavorite: false,
+                metadata: {
+                  estimatedCost: 0,
+                  lastMessageAt: new Date().toISOString(),
+                  messageCount: initialMessageCount,
+                  totalTokens: 0,
+                },
+                recentMessages: initialMessages,
+                tags: [],
+                technique: 'elenchus',
+                title: 'Test Conversation',
+                updatedAt: new Date().toISOString(),
+                userId: 'user-123',
               };
 
-              currentMessages = [...currentMessages, newMessage];
+              queryClient.setQueryData(
+                conversationKeys.detail(conversationId),
+                initialConversation
+              );
 
-              queryClient.setQueryData(conversationKeys.detail(conversationId), {
-                ...initialConversation,
-                metadata: {
-                  ...initialConversation.metadata,
-                  messageCount: currentMessages.length,
-                },
-                recentMessages: currentMessages,
-              });
+              const wrapper = ({ children }: { children: ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+              );
 
-              rerender(
+              const { rerender } = render(
                 <MessageList
                   conversationId={conversationId}
                   hasArchivedMessages={false}
-                  recentMessages={currentMessages}
-                />
+                  recentMessages={initialMessages}
+                />,
+                { wrapper }
               );
+
+              await waitFor(() => {
+                expect(screen.getByRole('log')).toBeInTheDocument();
+              });
+
+              const scrollContainer = screen.getByRole('log');
+
+              // User is at bottom
+              Object.defineProperty(scrollContainer, 'scrollHeight', {
+                configurable: true,
+                value: 1000,
+              });
+              Object.defineProperty(scrollContainer, 'clientHeight', {
+                configurable: true,
+                value: 500,
+              });
+              Object.defineProperty(scrollContainer, 'scrollTop', {
+                configurable: true,
+                value: 500,
+                writable: true,
+              });
+
+              scrollIntoViewMock.mockClear();
+
+              // Add messages rapidly (one at a time to simulate SSE events)
+              let currentMessages = [...initialMessages];
+
+              for (let i = 0; i < rapidMessageCount; i++) {
+                const newMessage = {
+                  content: `Rapid message ${i}`,
+                  role: 'assistant' as const,
+                  sequence: initialMessageCount + i,
+                  timestamp: new Date(Date.now() + i * 10).toISOString(), // 10ms apart
+                };
+
+                currentMessages = [...currentMessages, newMessage];
+
+                queryClient.setQueryData(conversationKeys.detail(conversationId), {
+                  ...initialConversation,
+                  metadata: {
+                    ...initialConversation.metadata,
+                    messageCount: currentMessages.length,
+                  },
+                  recentMessages: currentMessages,
+                });
+
+                rerender(
+                  <MessageList
+                    conversationId={conversationId}
+                    hasArchivedMessages={false}
+                    recentMessages={currentMessages}
+                  />
+                );
+              }
+
+              // Wait for batched scroll to complete
+              await waitFor(
+                () => {
+                  expect(scrollIntoViewMock).toHaveBeenCalled();
+                },
+                { timeout: 500 }
+              );
+
+              // Verify scrollIntoView was called, but not excessively
+              // With batching (100ms window), we should have fewer calls than messages
+              const scrollCallCount = (scrollIntoViewMock as jest.Mock).mock.calls.length;
+
+              // Should be called at least once
+              expect(scrollCallCount).toBeGreaterThanOrEqual(1);
+
+              // Should be called fewer times than the number of messages (batching effect)
+              // Allow some flexibility since timing can vary in tests
+              expect(scrollCallCount).toBeLessThanOrEqual(rapidMessageCount);
+            } finally {
+              // Cleanup DOM after each iteration
+              cleanup();
             }
-
-            // Wait for batched scroll to complete
-            await waitFor(
-              () => {
-                expect(scrollIntoViewMock).toHaveBeenCalled();
-              },
-              { timeout: 500 }
-            );
-
-            // Verify scrollIntoView was called, but not excessively
-            // With batching (100ms window), we should have fewer calls than messages
-            const scrollCallCount = (scrollIntoViewMock as jest.Mock).mock.calls.length;
-
-            // Should be called at least once
-            expect(scrollCallCount).toBeGreaterThanOrEqual(1);
-
-            // Should be called fewer times than the number of messages (batching effect)
-            // Allow some flexibility since timing can vary in tests
-            expect(scrollCallCount).toBeLessThanOrEqual(rapidMessageCount);
-
-            // Cleanup DOM after each iteration
-            cleanup();
           }
         ),
         { numRuns: 20 }
@@ -688,131 +711,136 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
             newMessageBatches: fc.integer({ max: 5, min: 2 }),
           }),
           async ({ conversationId, initialMessageCount, messagesPerBatch, newMessageBatches }) => {
-            // Create initial messages
-            const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
-              content: `Initial message ${i}`,
-              role: 'assistant' as const,
-              sequence: i,
-              timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
-            }));
-
-            const initialConversation: Conversation = {
-              createdAt: new Date().toISOString(),
-              hasArchivedMessages: false,
-              id: conversationId,
-              isArchived: false,
-              isFavorite: false,
-              metadata: {
-                estimatedCost: 0,
-                lastMessageAt: new Date().toISOString(),
-                messageCount: initialMessageCount,
-                totalTokens: 0,
-              },
-              recentMessages: initialMessages,
-              tags: [],
-              technique: 'elenchus',
-              title: 'Test Conversation',
-              updatedAt: new Date().toISOString(),
-              userId: 'user-123',
-            };
-
-            queryClient.setQueryData(conversationKeys.detail(conversationId), initialConversation);
-
-            const wrapper = ({ children }: { children: ReactNode }) => (
-              <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-            );
-
-            const { rerender } = render(
-              <MessageList
-                conversationId={conversationId}
-                hasArchivedMessages={false}
-                recentMessages={initialMessages}
-              />,
-              { wrapper }
-            );
-
-            await waitFor(() => {
-              expect(screen.getByRole('log')).toBeInTheDocument();
-            });
-
-            const scrollContainer = screen.getByRole('log');
-
-            // User is at bottom
-            Object.defineProperty(scrollContainer, 'scrollHeight', {
-              configurable: true,
-              value: 1000,
-            });
-            Object.defineProperty(scrollContainer, 'clientHeight', {
-              configurable: true,
-              value: 500,
-            });
-            Object.defineProperty(scrollContainer, 'scrollTop', {
-              configurable: true,
-              value: 500,
-              writable: true,
-            });
-
-            let currentMessages = [...initialMessages];
-            let currentSequence = initialMessageCount;
-
-            // Add messages in batches
-            for (let batch = 0; batch < newMessageBatches; batch++) {
-              scrollIntoViewMock.mockClear();
-
-              // Add a batch of messages
-              const batchMessages = Array.from({ length: messagesPerBatch }, (_, i) => ({
-                content: `Batch ${batch} Message ${i}`,
+            try {
+              // Create initial messages
+              const initialMessages = Array.from({ length: initialMessageCount }, (_, i) => ({
+                content: `Initial message ${i}`,
                 role: 'assistant' as const,
-                sequence: currentSequence + i,
-                timestamp: new Date(Date.now() + batch * 1000 + i * 100).toISOString(),
+                sequence: i,
+                timestamp: new Date(Date.now() - (initialMessageCount - i) * 1000).toISOString(),
               }));
 
-              currentMessages = [...currentMessages, ...batchMessages];
-              currentSequence += messagesPerBatch;
-
-              queryClient.setQueryData(conversationKeys.detail(conversationId), {
-                ...initialConversation,
+              const initialConversation: Conversation = {
+                createdAt: new Date().toISOString(),
+                hasArchivedMessages: false,
+                id: conversationId,
+                isArchived: false,
+                isFavorite: false,
                 metadata: {
-                  ...initialConversation.metadata,
-                  messageCount: currentMessages.length,
+                  estimatedCost: 0,
+                  lastMessageAt: new Date().toISOString(),
+                  messageCount: initialMessageCount,
+                  totalTokens: 0,
                 },
-                recentMessages: currentMessages,
-              });
+                recentMessages: initialMessages,
+                tags: [],
+                technique: 'elenchus',
+                title: 'Test Conversation',
+                updatedAt: new Date().toISOString(),
+                userId: 'user-123',
+              };
 
-              rerender(
+              queryClient.setQueryData(
+                conversationKeys.detail(conversationId),
+                initialConversation
+              );
+
+              const wrapper = ({ children }: { children: ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+              );
+
+              const { rerender } = render(
                 <MessageList
                   conversationId={conversationId}
                   hasArchivedMessages={false}
-                  recentMessages={currentMessages}
-                />
+                  recentMessages={initialMessages}
+                />,
+                { wrapper }
               );
 
-              // Wait for scroll to be triggered for this batch
-              await waitFor(
-                () => {
-                  expect(scrollIntoViewMock).toHaveBeenCalled();
-                },
-                { timeout: 500 }
-              );
-
-              // Verify scroll was called with smooth behavior
-              expect(scrollIntoViewMock).toHaveBeenCalledWith({
-                behavior: 'smooth',
+              await waitFor(() => {
+                expect(screen.getByRole('log')).toBeInTheDocument();
               });
 
-              // Verify no scroll button appears (user stays at bottom)
-              expect(
-                screen.queryByRole('button', { name: /scroll to bottom/i })
-              ).not.toBeInTheDocument();
+              const scrollContainer = screen.getByRole('log');
+
+              // User is at bottom
+              Object.defineProperty(scrollContainer, 'scrollHeight', {
+                configurable: true,
+                value: 1000,
+              });
+              Object.defineProperty(scrollContainer, 'clientHeight', {
+                configurable: true,
+                value: 500,
+              });
+              Object.defineProperty(scrollContainer, 'scrollTop', {
+                configurable: true,
+                value: 500,
+                writable: true,
+              });
+
+              let currentMessages = [...initialMessages];
+              let currentSequence = initialMessageCount;
+
+              // Add messages in batches
+              for (let batch = 0; batch < newMessageBatches; batch++) {
+                scrollIntoViewMock.mockClear();
+
+                // Add a batch of messages
+                const batchMessages = Array.from({ length: messagesPerBatch }, (_, i) => ({
+                  content: `Batch ${batch} Message ${i}`,
+                  role: 'assistant' as const,
+                  sequence: currentSequence + i,
+                  timestamp: new Date(Date.now() + batch * 1000 + i * 100).toISOString(),
+                }));
+
+                currentMessages = [...currentMessages, ...batchMessages];
+                currentSequence += messagesPerBatch;
+
+                queryClient.setQueryData(conversationKeys.detail(conversationId), {
+                  ...initialConversation,
+                  metadata: {
+                    ...initialConversation.metadata,
+                    messageCount: currentMessages.length,
+                  },
+                  recentMessages: currentMessages,
+                });
+
+                rerender(
+                  <MessageList
+                    conversationId={conversationId}
+                    hasArchivedMessages={false}
+                    recentMessages={currentMessages}
+                  />
+                );
+
+                // Wait for scroll to be triggered for this batch
+                await waitFor(
+                  () => {
+                    expect(scrollIntoViewMock).toHaveBeenCalled();
+                  },
+                  { timeout: 500 }
+                );
+
+                // Verify scroll was called with smooth behavior
+                expect(scrollIntoViewMock).toHaveBeenCalledWith({
+                  behavior: 'smooth',
+                });
+
+                // Verify no scroll button appears (user stays at bottom)
+                expect(
+                  screen.queryByRole('button', { name: /scroll to bottom/i })
+                ).not.toBeInTheDocument();
+              }
+
+              // Verify all messages are rendered
+              expect(currentMessages.length).toBe(
+                initialMessageCount + newMessageBatches * messagesPerBatch
+              );
+            } finally {
+              // Cleanup DOM after each iteration
+              cleanup();
             }
-
-            // Verify all messages are rendered
-            expect(currentMessages.length).toBe(
-              initialMessageCount + newMessageBatches * messagesPerBatch
-            );
-
-            // Cleanup DOM after each iteration
-            cleanup();
           }
         ),
         { numRuns: 20 }

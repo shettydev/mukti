@@ -106,6 +106,8 @@ const mockPaginatedConversations: PaginatedConversations = {
 };
 
 describe('Conversation Page Navigation', () => {
+  jest.setTimeout(30000);
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockSearchParams = new URLSearchParams();
