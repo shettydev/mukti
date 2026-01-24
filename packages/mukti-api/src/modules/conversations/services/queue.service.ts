@@ -1,5 +1,6 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
@@ -16,6 +17,9 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
+import { User, UserDocument } from '../../../schemas/user.schema';
+import { AiPolicyService } from '../../ai/services/ai-policy.service';
+import { AiSecretsService } from '../../ai/services/ai-secrets.service';
 import { MessageService } from './message.service';
 import { OpenRouterService } from './openrouter.service';
 import { StreamService } from './stream.service';
@@ -26,8 +30,10 @@ import { StreamService } from './stream.service';
 export interface ConversationRequestJobData {
   conversationId: string;
   message: string;
+  model: string;
   subscriptionTier: string;
   technique: string;
+  usedByok: boolean;
   userId: string;
 }
 
@@ -70,6 +76,11 @@ export class QueueService extends WorkerHost {
     private techniqueModel: Model<TechniqueDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
+    private readonly configService: ConfigService,
+    private readonly aiPolicyService: AiPolicyService,
+    private readonly aiSecretsService: AiSecretsService,
     private readonly messageService: MessageService,
     private readonly openRouterService: OpenRouterService,
     private readonly streamService: StreamService,
@@ -113,6 +124,8 @@ export class QueueService extends WorkerHost {
     message: string,
     subscriptionTier: string,
     technique: string,
+    model: string,
+    usedByok: boolean,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = this.formatId(userId);
     const conversationIdString = this.formatId(conversationId);
@@ -129,8 +142,10 @@ export class QueueService extends WorkerHost {
       const jobData: ConversationRequestJobData = {
         conversationId: conversationIdString,
         message,
+        model,
         subscriptionTier,
         technique,
+        usedByok,
         userId: userIdString,
       };
 
@@ -371,8 +386,15 @@ export class QueueService extends WorkerHost {
     job: Job<ConversationRequestJobData, ConversationRequestJobResult>,
   ): Promise<ConversationRequestJobResult> {
     const startTime = Date.now();
-    const { conversationId, message, subscriptionTier, technique, userId } =
-      job.data;
+    const {
+      conversationId,
+      message,
+      model,
+      subscriptionTier: _subscriptionTier,
+      technique,
+      usedByok,
+      userId,
+    } = job.data;
 
     this.logger.log(
       `Processing job ${job.id} for user ${userId}, conversation ${conversationId}`,
@@ -423,7 +445,8 @@ export class QueueService extends WorkerHost {
       });
 
       // 3. Build prompt and call OpenRouter
-      const model = this.openRouterService.selectModel(subscriptionTier);
+      const effectiveModel = this.validateEffectiveModel(model, usedByok);
+      const apiKey = await this.resolveApiKey(userId, usedByok);
       const messages = this.openRouterService.buildPrompt(
         techniqueDoc.template,
         context.messages.map((m) => ({
@@ -445,7 +468,8 @@ export class QueueService extends WorkerHost {
 
       const response = await this.openRouterService.sendChatCompletion(
         messages,
-        model,
+        effectiveModel,
+        apiKey,
         techniqueDoc.template,
       );
 
@@ -576,6 +600,35 @@ export class QueueService extends WorkerHost {
     return error instanceof Error ? error.stack : undefined;
   }
 
+  private async resolveApiKey(
+    userId: string,
+    usedByok: boolean,
+  ): Promise<string> {
+    if (usedByok) {
+      const user = await this.userModel
+        .findById(userId)
+        .select('+openRouterApiKeyEncrypted')
+        .lean();
+
+      if (!user?.openRouterApiKeyEncrypted) {
+        throw new Error('OPENROUTER_KEY_MISSING');
+      }
+
+      return this.aiSecretsService.decryptString(
+        user.openRouterApiKeyEncrypted,
+      );
+    }
+
+    const serverKey =
+      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
+
+    if (!serverKey) {
+      throw new Error('OPENROUTER_API_KEY not configured');
+    }
+
+    return serverKey;
+  }
+
   /**
    * Sets up event listeners for job lifecycle events.
    * Listens to 'completed' and 'failed' events to log job outcomes.
@@ -592,5 +645,25 @@ export class QueueService extends WorkerHost {
     this.logger.log(
       'Job event listeners configured via WorkerHost lifecycle hooks',
     );
+  }
+
+  private validateEffectiveModel(model: string, usedByok: boolean): string {
+    const trimmed = model.trim();
+
+    if (!trimmed) {
+      throw new Error('Model is required');
+    }
+
+    if (!usedByok) {
+      const isCurated = this.aiPolicyService
+        .getCuratedModels()
+        .some((allowed) => allowed.id === trimmed);
+
+      if (!isCurated) {
+        throw new Error('MODEL_NOT_ALLOWED');
+      }
+    }
+
+    return trimmed;
   }
 }
