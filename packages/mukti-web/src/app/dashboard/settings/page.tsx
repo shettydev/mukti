@@ -1,9 +1,11 @@
 'use client';
 
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { ModelSelector } from '@/components/ai/model-selector';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAiStore } from '@/lib/stores/ai-store';
@@ -44,9 +46,9 @@ export default function SettingsPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Active model</label>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <ModelSelector
-                className="w-full"
+                className="flex-1"
                 models={models}
                 onChange={async (modelId) => {
                   setSavingModel(true);
@@ -60,7 +62,7 @@ export default function SettingsPage() {
                 value={activeModel}
               />
               <Button
-                className="min-h-[44px]"
+                className="min-h-[44px] shrink-0"
                 onClick={() => refreshModels()}
                 type="button"
                 variant="outline"
@@ -106,11 +108,22 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                {hasOpenRouterKey
-                  ? `Connected (…${openRouterKeyLast4 ?? '????'})`
-                  : 'Not connected'}
-              </p>
+              <div>
+                {hasOpenRouterKey ? (
+                  <Badge
+                    variant="outline"
+                    className="gap-1.5 border-green-500/50 bg-green-500/10 py-1.5 text-green-500"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Connected (…{openRouterKeyLast4 ?? '????'})
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="gap-1.5 py-1.5 text-muted-foreground">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Not connected
+                  </Badge>
+                )}
+              </div>
               {hasOpenRouterKey && (
                 <Button
                   className="min-h-[44px]"
