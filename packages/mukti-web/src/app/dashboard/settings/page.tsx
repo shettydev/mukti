@@ -115,16 +115,16 @@ export default function SettingsPage() {
               <div>
                 {hasOpenRouterKey ? (
                   <Badge
-                    variant="outline"
                     className="gap-1.5 border-green-500/50 bg-green-500/10 py-1.5 px-3 text-sm text-green-500 h-9"
+                    variant="outline"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     Connected (…{openRouterKeyLast4 ?? '????'})
                   </Badge>
                 ) : (
                   <Badge
-                    variant="secondary"
                     className="gap-1.5 py-1.5 px-3 text-sm text-muted-foreground h-9"
+                    variant="secondary"
                   >
                     <AlertCircle className="h-4 w-4" />
                     Not connected
@@ -143,8 +143,8 @@ export default function SettingsPage() {
                       setRemovingKey(false);
                     }
                   }}
-                  type="button"
                   size="sm"
+                  type="button"
                   variant="ghost"
                 >
                   <span className="text-red-400">Remove key</span>
