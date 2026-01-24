@@ -1,5 +1,7 @@
 import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
+import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 import { Types } from 'mongoose';
@@ -10,6 +12,9 @@ jest.mock('@openrouter/sdk', () => ({
 }));
 
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { User } from '../../../../schemas/user.schema';
+import { AiPolicyService } from '../../../ai/services/ai-policy.service';
+import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
 import { ConversationController } from '../../conversation.controller';
 import { ConversationService } from '../../services/conversation.service';
 import { MessageService } from '../../services/message.service';
@@ -66,6 +71,31 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
         {
           provide: StreamService,
           useValue: mockStreamService,
+        },
+        {
+          provide: getModelToken(User.name),
+          useValue: {
+            findById: jest.fn(),
+            updateOne: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
+        {
+          provide: AiPolicyService,
+          useValue: {
+            resolveEffectiveModel: jest.fn(),
+          },
+        },
+        {
+          provide: AiSecretsService,
+          useValue: {
+            decryptString: jest.fn(),
+          },
         },
         Reflector,
       ],
