@@ -11,10 +11,10 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: class {},
 }));
 
-import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { User } from '../../../../schemas/user.schema';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { ConversationController } from '../../conversation.controller';
 import { ConversationService } from '../../services/conversation.service';
 import { MessageService } from '../../services/message.service';

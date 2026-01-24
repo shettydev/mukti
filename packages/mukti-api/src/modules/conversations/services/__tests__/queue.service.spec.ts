@@ -9,9 +9,9 @@ jest.mock('@openrouter/sdk', () => ({
 }));
 
 import { Conversation } from '../../../../schemas/conversation.schema';
-import { User } from '../../../../schemas/user.schema';
 import { Technique } from '../../../../schemas/technique.schema';
 import { UsageEvent } from '../../../../schemas/usage-event.schema';
+import { User } from '../../../../schemas/user.schema';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
 import { MessageService } from '../message.service';
