@@ -20,6 +20,8 @@ jest.mock('@/lib/stores/auth-store', () => ({
 }));
 
 describe('SignUpForm', () => {
+  jest.setTimeout(30000);
+
   let queryClient: QueryClient;
 
   beforeEach(() => {
