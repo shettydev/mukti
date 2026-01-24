@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 
 import { authApi } from '@/lib/api/auth';
+import { useAiStore } from '@/lib/stores/ai-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 /**
@@ -53,6 +54,12 @@ export function AuthInitializer() {
               // If fetching user fails, we can't be authenticated
               throw new Error('Failed to fetch user profile');
             }
+          }
+
+          try {
+            await useAiStore.getState().hydrate();
+          } catch {
+            // Ignore AI settings failures during auth init
           }
         }
       } catch {

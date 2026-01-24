@@ -96,7 +96,7 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
 
         {/* Settings Link */}
         <DropdownMenuItem asChild className="cursor-pointer">
-          <Link href="/settings">
+          <Link href="/dashboard/settings">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </Link>
