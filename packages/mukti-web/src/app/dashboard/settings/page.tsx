@@ -48,7 +48,7 @@ export default function SettingsPage() {
             <label className="text-sm font-medium">Active model</label>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <ModelSelector
-                className="flex-1"
+                className="flex-1 h-11"
                 models={models}
                 onChange={async (modelId) => {
                   setSavingModel(true);
@@ -62,7 +62,7 @@ export default function SettingsPage() {
                 value={activeModel}
               />
               <Button
-                className="min-h-[44px] shrink-0"
+                className="h-11 px-4 shrink-0"
                 onClick={() => refreshModels()}
                 type="button"
                 variant="outline"
@@ -84,14 +84,18 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 aria-label="OpenRouter API key"
+                className="h-11 flex-1"
+                disabled={hasOpenRouterKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-or-v1-…"
+                placeholder={
+                  hasOpenRouterKey ? 'Remove existing key to add a new one' : 'sk-or-v1-…'
+                }
                 type="password"
                 value={apiKey}
               />
               <Button
-                className="min-h-[44px]"
-                disabled={savingKey || apiKey.trim().length === 0}
+                className="h-11 px-4 shrink-0"
+                disabled={savingKey || apiKey.trim().length === 0 || hasOpenRouterKey}
                 onClick={async () => {
                   setSavingKey(true);
                   try {
@@ -107,26 +111,29 @@ export default function SettingsPage() {
               </Button>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 min-h-[44px]">
               <div>
                 {hasOpenRouterKey ? (
                   <Badge
                     variant="outline"
-                    className="gap-1.5 border-green-500/50 bg-green-500/10 py-1.5 text-green-500"
+                    className="gap-1.5 border-green-500/50 bg-green-500/10 py-1.5 px-3 text-sm text-green-500 h-9"
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <CheckCircle2 className="h-4 w-4" />
                     Connected (…{openRouterKeyLast4 ?? '????'})
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="gap-1.5 py-1.5 text-muted-foreground">
-                    <AlertCircle className="h-3.5 w-3.5" />
+                  <Badge
+                    variant="secondary"
+                    className="gap-1.5 py-1.5 px-3 text-sm text-muted-foreground h-9"
+                  >
+                    <AlertCircle className="h-4 w-4" />
                     Not connected
                   </Badge>
                 )}
               </div>
               {hasOpenRouterKey && (
                 <Button
-                  className="min-h-[44px]"
+                  className="h-9 px-4 hover:bg-red-900/20 hover:text-red-400"
                   disabled={removingKey}
                   onClick={async () => {
                     setRemovingKey(true);
@@ -137,9 +144,10 @@ export default function SettingsPage() {
                     }
                   }}
                   type="button"
-                  variant="destructive"
+                  size="sm"
+                  variant="ghost"
                 >
-                  Remove
+                  <span className="text-red-400">Remove key</span>
                 </Button>
               )}
             </div>
