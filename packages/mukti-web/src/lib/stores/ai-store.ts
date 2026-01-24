@@ -11,27 +11,26 @@ export type AiModelOption = {
 
 interface AiStoreState {
   activeModel: null | string;
+  deleteOpenRouterKey: () => Promise<void>;
   hasOpenRouterKey: boolean;
+  hydrate: () => Promise<void>;
   isHydrated: boolean;
   mode: AiModelMode;
+
   models: AiModelOption[];
   openRouterKeyLast4: null | string;
-
-  hydrate: () => Promise<void>;
   refreshModels: () => Promise<void>;
   setActiveModel: (model: string) => Promise<void>;
   setOpenRouterKey: (apiKey: string) => Promise<void>;
-  deleteOpenRouterKey: () => Promise<void>;
 }
 
 export const useAiStore = create<AiStoreState>((set, get) => ({
   activeModel: 'openai/gpt-5-mini',
+  deleteOpenRouterKey: async () => {
+    await aiApi.deleteOpenRouterKey();
+    await get().hydrate();
+  },
   hasOpenRouterKey: false,
-  isHydrated: false,
-  mode: 'curated',
-  models: [],
-  openRouterKeyLast4: null,
-
   hydrate: async () => {
     const settings = (await aiApi.getSettings()) as AiSettings;
 
@@ -44,6 +43,12 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
     await get().refreshModels();
   },
+  isHydrated: false,
+  mode: 'curated',
+
+  models: [],
+
+  openRouterKeyLast4: null,
 
   refreshModels: async () => {
     const modelsResponse = await aiApi.getModels();
@@ -69,11 +74,6 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
   setOpenRouterKey: async (apiKey: string) => {
     await aiApi.setOpenRouterKey({ apiKey });
-    await get().hydrate();
-  },
-
-  deleteOpenRouterKey: async () => {
-    await aiApi.deleteOpenRouterKey();
     await get().hydrate();
   },
 }));
