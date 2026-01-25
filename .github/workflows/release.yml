@@ -17,6 +17,9 @@ on:
           - stable
           - beta
           - alpha
+          - patch
+          - minor
+          - major
 
 jobs:
   release:
@@ -48,21 +51,33 @@ jobs:
       - name: Run Release (Dry Run)
         if: ${{ inputs.dryRun }}
         run: |
-          if [ "${{ inputs.releaseType }}" == "stable" ]; then
-            bun nx release --dry-run --yes
-          else
-            bun nx release --preid=${{ inputs.releaseType }} --dry-run --yes
-          fi
+          case "${{ inputs.releaseType }}" in
+            stable)
+              bun nx release --dry-run --yes
+              ;;
+            beta|alpha)
+              bun nx release --preid=${{ inputs.releaseType }} --dry-run --yes
+              ;;
+            patch|minor|major)
+              bun nx release ${{ inputs.releaseType }} --dry-run --yes
+              ;;
+          esac
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Release
         if: ${{ !inputs.dryRun }}
         run: |
-          if [ "${{ inputs.releaseType }}" == "stable" ]; then
-            bun nx release --yes
-          else
-            bun nx release --preid=${{ inputs.releaseType }} --yes
-          fi
+          case "${{ inputs.releaseType }}" in
+            stable)
+              bun nx release --yes
+              ;;
+            beta|alpha)
+              bun nx release --preid=${{ inputs.releaseType }} --yes
+              ;;
+            patch|minor|major)
+              bun nx release ${{ inputs.releaseType }} --yes
+              ;;
+          esac
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
