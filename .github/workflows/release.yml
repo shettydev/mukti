@@ -56,7 +56,7 @@ jobs:
               bun nx release --dry-run --yes
               ;;
             beta|alpha)
-              bun nx release --preid=${{ inputs.releaseType }} --dry-run --yes
+              bun nx release prerelease --preid=${{ inputs.releaseType }} --dry-run --yes
               ;;
             patch|minor|major)
               bun nx release ${{ inputs.releaseType }} --dry-run --yes
@@ -73,7 +73,7 @@ jobs:
               bun nx release --yes
               ;;
             beta|alpha)
-              bun nx release --preid=${{ inputs.releaseType }} --yes
+              bun nx release prerelease --preid=${{ inputs.releaseType }} --yes
               ;;
             patch|minor|major)
               bun nx release ${{ inputs.releaseType }} --yes
