@@ -81,3 +81,10 @@ jobs:
           esac
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Changes
+        if: ${{ !inputs.dryRun }}
+        run: |
+          git push origin main --follow-tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
