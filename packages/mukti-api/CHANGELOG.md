@@ -1,3 +1,16 @@
+## 0.1.1-beta.0 (2026-01-25)
+
+### 🚀 Features
+
+- **api:** Register AiModule in the main application module ([4615f2f](https://github.com/shettydev/mukti/commit/4615f2f))
+- **api:** Implement dynamic model resolution and BYOK support ([5383fbf](https://github.com/shettydev/mukti/commit/5383fbf))
+- **api:** Implement AI controller for model and key management ([018e8f0](https://github.com/shettydev/mukti/commit/018e8f0))
+- **api,db:** Implement OpenRouter credentials storage ([0b6cd27](https://github.com/shettydev/mukti/commit/0b6cd27))
+
+### ❤️ Thank You
+
+- Prathik Shetty
+
 ## 0.1.0 (2025-12-17)
 
 ### 🚀 Features

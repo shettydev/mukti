@@ -1,3 +1,38 @@
+## 0.2.1-beta.0 (2026-01-25)
+
+### 🚀 Features
+
+- **web,ui:** Enhance OpenRouter connection status display ([1381518](https://github.com/shettydev/mukti/commit/1381518))
+- **web,ui:** Add model selector and API key inputs to settings ([c92b015](https://github.com/shettydev/mukti/commit/c92b015))
+- **web:** Add AI API client and state management ([e78a213](https://github.com/shettydev/mukti/commit/e78a213))
+- **components:** Add animated conversation loading screen ([35c476a](https://github.com/shettydev/mukti/commit/35c476a))
+- **components:** Add title animations to empty state with shimmer effect ([c13d231](https://github.com/shettydev/mukti/commit/c13d231))
+- **components:** Add GSAP animations to empty state with breathing and mouse follow effects ([8d56fb9](https://github.com/shettydev/mukti/commit/8d56fb9))
+- **components:** Add popover UI component ([048c69a](https://github.com/shettydev/mukti/commit/048c69a))
+- **components:** Add chat header with conversation management ([af90aea](https://github.com/shettydev/mukti/commit/af90aea))
+- **components:** Add conversation management with rename, archive, and delete ([332e190](https://github.com/shettydev/mukti/commit/332e190))
+- **components:** Add context menu UI component ([fc24158](https://github.com/shettydev/mukti/commit/fc24158))
+- **web:** Add canvas pages for session management and visualization ([6130aa3](https://github.com/shettydev/mukti/commit/6130aa3))
+- **web:** Add chat pages for conversation management ([d5062dc](https://github.com/shettydev/mukti/commit/d5062dc))
+- **components:** Add chat interface and empty state components ([07d65fc](https://github.com/shettydev/mukti/commit/07d65fc))
+- **components:** Add technique indicator component to message input ([b745ec8](https://github.com/shettydev/mukti/commit/b745ec8))
+- **web:** Add tooltip component with Radix UI integration ([f5360b1](https://github.com/shettydev/mukti/commit/f5360b1))
+- **web:** Refactor sidebar with extracted conversation and user profile components ([943a3cd](https://github.com/shettydev/mukti/commit/943a3cd))
+- **web:** Expand protected routes to include chat and canvas pages ([5499fc7](https://github.com/shettydev/mukti/commit/5499fc7))
+- **web:** Update navigation routes from dashboard to chat ([ec9913d](https://github.com/shettydev/mukti/commit/ec9913d))
+- **web:** Update navigation routes from dashboard to chat ([6f06d8a](https://github.com/shettydev/mukti/commit/6f06d8a))
+- **web:** Add utility functions for time formatting and title generation ([b6a556f](https://github.com/shettydev/mukti/commit/b6a556f))
+
+### 🩹 Fixes
+
+- **web,ui:** Handle hydration mismatch and store errors ([1d062d1](https://github.com/shettydev/mukti/commit/1d062d1))
+- **web:** Simplify empty state textarea placeholder text ([84d5c65](https://github.com/shettydev/mukti/commit/84d5c65))
+- **components:** Hide sidebar toggle button on desktop viewports ([1070e48](https://github.com/shettydev/mukti/commit/1070e48))
+
+### ❤️ Thank You
+
+- Prathik Shetty
+
 ## 0.2.0 (2025-12-17)
 
 ### 🚀 Features
