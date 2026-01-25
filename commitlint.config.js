@@ -6,7 +6,7 @@ const scopes = [
 
   // Infrastructure & tooling
   'config',
-  'ci',
+  'workflows',
   'deps',
   'docker',
   'deployment',
@@ -24,10 +24,9 @@ const scopes = [
   // UI/UX
   'ui',
   'components',
-  'styles',
 
   // Testing
-  'test',
+  'unit',
   'e2e',
 
   // Release

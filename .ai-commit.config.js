@@ -22,7 +22,7 @@ Rules:
 6. No period at the end
 7. Keep header under 100 characters
 8. CRITICAL: Body lines must be 100 characters or less. Wrap long lines.
-9. Be specific and descriptive but concise`,
+9. Be specific and descriptive. Use bullet points for the body.`,
 
   userPromptTemplate: `Based on the following git diff, generate {count} conventional commit messages.
 
@@ -39,7 +39,7 @@ Required JSON format:
     "type": "feat",
     "scope": "api",
     "subject": "Add user authentication",
-    "body": "Implemented JWT-based authentication with refresh tokens.\\nAdded middleware for token validation."
+    "body": "- Implement JWT-based authentication with refresh tokens\\n- Add middleware for token validation\\n- Update user schema to support auth fields"
   }
 ]
 
@@ -49,8 +49,9 @@ Rules:
 - Subject must be imperative mood (e.g., "add" not "added")
 - Subject must be sentence-case (Start with a capital letter)
 - CRITICAL: Each line in body must be 100 characters or less. Use \\n for line breaks.
-- Body is optional but recommended
-- Keep body concise, 1-3 short lines
+- Body is REQUIRED and must be descriptive.
+- Body MUST use bullet points (- ) for detailed explanations of changes.
+- Explain the "why" and "what" of the changes in the body.
 
 Respond with ONLY the JSON array, nothing else.`,
 };
