@@ -49,9 +49,9 @@ jobs:
         if: ${{ inputs.dryRun }}
         run: |
           if [ "${{ inputs.releaseType }}" == "stable" ]; then
-            bun nx release --dry-run
+            bun nx release --dry-run --yes
           else
-            bun nx release --preid=${{ inputs.releaseType }} --dry-run
+            bun nx release --preid=${{ inputs.releaseType }} --dry-run --yes
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -60,9 +60,9 @@ jobs:
         if: ${{ !inputs.dryRun }}
         run: |
           if [ "${{ inputs.releaseType }}" == "stable" ]; then
-            bun nx release
+            bun nx release --yes
           else
-            bun nx release --preid=${{ inputs.releaseType }}
+            bun nx release --preid=${{ inputs.releaseType }} --yes
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
