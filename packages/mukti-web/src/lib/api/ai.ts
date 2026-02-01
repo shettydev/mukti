@@ -2,7 +2,9 @@ import { apiClient } from './client';
 
 export type AiSettings = {
   activeModel?: string;
+  hasOpenAiKey: boolean;
   hasOpenRouterKey: boolean;
+  openAiKeyLast4: null | string;
   openRouterKeyLast4: null | string;
 };
 
@@ -22,6 +24,13 @@ export const aiApi = {
     return apiClient.delete<{ hasOpenRouterKey: boolean; openRouterKeyLast4: null }>(
       '/ai/openrouter-key'
     );
+  },
+
+  deleteOpenAiKey: async (): Promise<{
+    hasOpenAiKey: boolean;
+    openAiKeyLast4: null;
+  }> => {
+    return apiClient.delete<{ hasOpenAiKey: boolean; openAiKeyLast4: null }>('/ai/openai-key');
   },
 
   getModels: async (): Promise<AiModelsResponse> => {
@@ -52,6 +61,12 @@ export const aiApi = {
       '/ai/openrouter-key',
       dto
     );
+  },
+
+  setOpenAiKey: async (dto: {
+    apiKey: string;
+  }): Promise<{ hasOpenAiKey: boolean; openAiKeyLast4: string }> => {
+    return apiClient.put<{ hasOpenAiKey: boolean; openAiKeyLast4: string }>('/ai/openai-key', dto);
   },
 
   updateSettings: async (dto: { activeModel: string }): Promise<{ activeModel: string }> => {

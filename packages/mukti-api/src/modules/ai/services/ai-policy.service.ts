@@ -53,6 +53,10 @@ export class AiPolicyService {
     return !!user.openRouterApiKeyEncrypted;
   }
 
+  hasUserOpenAiKey(user: Pick<User, 'openAiApiKeyEncrypted'>): boolean {
+    return !!user.openAiApiKeyEncrypted;
+  }
+
   async resolveEffectiveModel(params: {
     hasByok: boolean;
     requestedModel?: string;
