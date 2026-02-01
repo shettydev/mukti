@@ -17,6 +17,7 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from '../../schemas/user.schema';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
+import { SetAnthropicKeyDto } from './dto/anthropic-key.dto';
 import { SetOpenRouterKeyDto } from './dto/openrouter-key.dto';
 import { AiPolicyService } from './services/ai-policy.service';
 import { AiSecretsService } from './services/ai-secrets.service';
@@ -38,7 +39,9 @@ export class AiController {
   async getSettings(@CurrentUser('_id') userId: string) {
     const user = await this.userModel
       .findById(userId)
-      .select('preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt')
+      .select(
+        'preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt anthropicApiKeyLast4 anthropicApiKeyUpdatedAt',
+      )
       .lean();
 
     if (!user) {
@@ -48,6 +51,8 @@ export class AiController {
     return {
       data: {
         activeModel: user.preferences?.activeModel,
+        anthropicKeyLast4: user.anthropicApiKeyLast4 ?? null,
+        hasAnthropicKey: !!user.anthropicApiKeyUpdatedAt,
         hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,
         openRouterKeyLast4: user.openRouterApiKeyLast4 ?? null,
       },
@@ -189,6 +194,69 @@ export class AiController {
       data: {
         hasOpenRouterKey: false,
         openRouterKeyLast4: null,
+      },
+      success: true,
+    };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Put('anthropic-key')
+  async setAnthropicKey(
+    @CurrentUser('_id') userId: string,
+    @Body() dto: SetAnthropicKeyDto,
+  ) {
+    const apiKey = dto.apiKey.trim();
+
+    if (!apiKey) {
+      throw new BadRequestException({
+        error: {
+          code: 'INVALID_API_KEY',
+          message: 'API key is required',
+        },
+      });
+    }
+
+    const encrypted = this.aiSecretsService.encryptString(apiKey);
+    const last4 = apiKey.slice(-4);
+
+    await this.userModel.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          anthropicApiKeyEncrypted: encrypted,
+          anthropicApiKeyLast4: last4,
+          anthropicApiKeyUpdatedAt: new Date(),
+        },
+      },
+    );
+
+    return {
+      data: {
+        anthropicKeyLast4: last4,
+        hasAnthropicKey: true,
+      },
+      success: true,
+    };
+  }
+
+  @Delete('anthropic-key')
+  @HttpCode(HttpStatus.OK)
+  async deleteAnthropicKey(@CurrentUser('_id') userId: string) {
+    await this.userModel.updateOne(
+      { _id: userId },
+      {
+        $unset: {
+          anthropicApiKeyEncrypted: 1,
+          anthropicApiKeyLast4: 1,
+          anthropicApiKeyUpdatedAt: 1,
+        },
+      },
+    );
+
+    return {
+      data: {
+        anthropicKeyLast4: null,
+        hasAnthropicKey: false,
       },
       success: true,
     };

@@ -6,6 +6,7 @@ import { User, UserSchema } from '../../schemas/user.schema';
 import { AiController } from './ai.controller';
 import { AiPolicyService } from './services/ai-policy.service';
 import { AiSecretsService } from './services/ai-secrets.service';
+import { AnthropicClientFactory } from './services/anthropic-client.factory';
 import { OpenRouterClientFactory } from './services/openrouter-client.factory';
 import { OpenRouterModelsService } from './services/openrouter-models.service';
 
@@ -14,6 +15,7 @@ import { OpenRouterModelsService } from './services/openrouter-models.service';
   exports: [
     AiPolicyService,
     AiSecretsService,
+    AnthropicClientFactory,
     OpenRouterClientFactory,
     OpenRouterModelsService,
   ],
@@ -24,6 +26,7 @@ import { OpenRouterModelsService } from './services/openrouter-models.service';
   providers: [
     AiPolicyService,
     AiSecretsService,
+    AnthropicClientFactory,
     OpenRouterClientFactory,
     OpenRouterModelsService,
   ],

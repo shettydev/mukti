@@ -13,7 +13,10 @@ import { useAiStore } from '@/lib/stores/ai-store';
 export default function SettingsPage() {
   const {
     activeModel,
+    anthropicKeyLast4,
+    deleteAnthropicKey,
     deleteOpenRouterKey,
+    hasAnthropicKey,
     hasOpenRouterKey,
     hydrate,
     isHydrated,
@@ -21,12 +24,16 @@ export default function SettingsPage() {
     openRouterKeyLast4,
     refreshModels,
     setActiveModel,
+    setAnthropicKey,
     setOpenRouterKey,
   } = useAiStore();
 
   const [apiKey, setApiKey] = useState('');
+  const [anthropicKey, setAnthropicKeyInput] = useState('');
   const [savingKey, setSavingKey] = useState(false);
+  const [savingAnthropicKey, setSavingAnthropicKey] = useState(false);
   const [removingKey, setRemovingKey] = useState(false);
+  const [removingAnthropicKey, setRemovingAnthropicKey] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
 
   useEffect(() => {
@@ -153,6 +160,84 @@ export default function SettingsPage() {
             </div>
 
             {savingKey && <p className="text-xs text-muted-foreground">Saving key…</p>}
+          </div>
+        </section>
+
+        <section className="space-y-3 rounded-lg border p-4">
+          <h3 className="text-lg font-semibold">Anthropic API key</h3>
+          <p className="text-sm text-muted-foreground">Connect your Anthropic API key.</p>
+
+          <div className="space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                aria-label="Anthropic API key"
+                className="h-11 flex-1"
+                disabled={hasAnthropicKey}
+                onChange={(e) => setAnthropicKeyInput(e.target.value)}
+                placeholder={hasAnthropicKey ? 'Remove existing key to add a new one' : 'sk-ant-…'}
+                type="password"
+                value={anthropicKey}
+              />
+              <Button
+                className="h-11 px-4 shrink-0"
+                disabled={savingAnthropicKey || anthropicKey.trim().length === 0 || hasAnthropicKey}
+                onClick={async () => {
+                  setSavingAnthropicKey(true);
+                  try {
+                    await setAnthropicKey(anthropicKey);
+                    setAnthropicKeyInput('');
+                  } finally {
+                    setSavingAnthropicKey(false);
+                  }
+                }}
+                type="button"
+              >
+                Save key
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 min-h-[44px]">
+              <div>
+                {hasAnthropicKey ? (
+                  <Badge
+                    className="gap-1.5 border-green-500/50 bg-green-500/10 py-1.5 px-3 text-sm text-green-500 h-9"
+                    variant="outline"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Connected (…{anthropicKeyLast4 ?? '????'})
+                  </Badge>
+                ) : (
+                  <Badge
+                    className="gap-1.5 py-1.5 px-3 text-sm text-muted-foreground h-9"
+                    variant="secondary"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    Not connected
+                  </Badge>
+                )}
+              </div>
+              {hasAnthropicKey && (
+                <Button
+                  className="h-9 px-4 hover:bg-red-900/20 hover:text-red-400"
+                  disabled={removingAnthropicKey}
+                  onClick={async () => {
+                    setRemovingAnthropicKey(true);
+                    try {
+                      await deleteAnthropicKey();
+                    } finally {
+                      setRemovingAnthropicKey(false);
+                    }
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <span className="text-red-400">Remove key</span>
+                </Button>
+              )}
+            </div>
+
+            {savingAnthropicKey && <p className="text-xs text-muted-foreground">Saving key…</p>}
           </div>
         </section>
       </div>
