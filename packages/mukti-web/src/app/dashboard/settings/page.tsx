@@ -15,6 +15,10 @@ export default function SettingsPage() {
     activeModel,
     deleteOpenRouterKey,
     hasOpenRouterKey,
+    hasGeminiKey,
+    geminiKeyLast4,
+    setGeminiKey,
+    deleteGeminiKey,
     hydrate,
     isHydrated,
     models,
@@ -25,8 +29,11 @@ export default function SettingsPage() {
   } = useAiStore();
 
   const [apiKey, setApiKey] = useState('');
+  const [geminiKey, setGeminiKeyInput] = useState('');
   const [savingKey, setSavingKey] = useState(false);
+  const [savingGeminiKey, setSavingGeminiKey] = useState(false);
   const [removingKey, setRemovingKey] = useState(false);
+  const [removingGeminiKey, setRemovingGeminiKey] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
 
   useEffect(() => {
@@ -153,6 +160,84 @@ export default function SettingsPage() {
             </div>
 
             {savingKey && <p className="text-xs text-muted-foreground">Saving key…</p>}
+          </div>
+        </section>
+
+        <section className="space-y-3 rounded-lg border p-4">
+          <h3 className="text-lg font-semibold">Gemini API key</h3>
+          <p className="text-sm text-muted-foreground">Connect your Google Gemini API key.</p>
+
+          <div className="space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                aria-label="Gemini API key"
+                className="h-11 flex-1"
+                disabled={hasGeminiKey}
+                onChange={(e) => setGeminiKeyInput(e.target.value)}
+                placeholder={hasGeminiKey ? 'Remove existing key to add a new one' : 'AIzaSy…'}
+                type="password"
+                value={geminiKey}
+              />
+              <Button
+                className="h-11 px-4 shrink-0"
+                disabled={savingGeminiKey || geminiKey.trim().length === 0 || hasGeminiKey}
+                onClick={async () => {
+                  setSavingGeminiKey(true);
+                  try {
+                    await setGeminiKey(geminiKey);
+                    setGeminiKeyInput('');
+                  } finally {
+                    setSavingGeminiKey(false);
+                  }
+                }}
+                type="button"
+              >
+                Save key
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 min-h-[44px]">
+              <div>
+                {hasGeminiKey ? (
+                  <Badge
+                    className="gap-1.5 border-green-500/50 bg-green-500/10 py-1.5 px-3 text-sm text-green-500 h-9"
+                    variant="outline"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Connected (…{geminiKeyLast4 ?? '????'})
+                  </Badge>
+                ) : (
+                  <Badge
+                    className="gap-1.5 py-1.5 px-3 text-sm text-muted-foreground h-9"
+                    variant="secondary"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    Not connected
+                  </Badge>
+                )}
+              </div>
+              {hasGeminiKey && (
+                <Button
+                  className="h-9 px-4 hover:bg-red-900/20 hover:text-red-400"
+                  disabled={removingGeminiKey}
+                  onClick={async () => {
+                    setRemovingGeminiKey(true);
+                    try {
+                      await deleteGeminiKey();
+                    } finally {
+                      setRemovingGeminiKey(false);
+                    }
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <span className="text-red-400">Remove key</span>
+                </Button>
+              )}
+            </div>
+
+            {savingGeminiKey && <p className="text-xs text-muted-foreground">Saving key…</p>}
           </div>
         </section>
       </div>

@@ -2,6 +2,8 @@ import { apiClient } from './client';
 
 export type AiSettings = {
   activeModel?: string;
+  geminiKeyLast4: null | string;
+  hasGeminiKey: boolean;
   hasOpenRouterKey: boolean;
   openRouterKeyLast4: null | string;
 };
@@ -22,6 +24,13 @@ export const aiApi = {
     return apiClient.delete<{ hasOpenRouterKey: boolean; openRouterKeyLast4: null }>(
       '/ai/openrouter-key'
     );
+  },
+
+  deleteGeminiKey: async (): Promise<{
+    geminiKeyLast4: null;
+    hasGeminiKey: boolean;
+  }> => {
+    return apiClient.delete<{ geminiKeyLast4: null; hasGeminiKey: boolean }>('/ai/gemini-key');
   },
 
   getModels: async (): Promise<AiModelsResponse> => {
@@ -52,6 +61,12 @@ export const aiApi = {
       '/ai/openrouter-key',
       dto
     );
+  },
+
+  setGeminiKey: async (dto: {
+    apiKey: string;
+  }): Promise<{ geminiKeyLast4: string; hasGeminiKey: boolean }> => {
+    return apiClient.put<{ geminiKeyLast4: string; hasGeminiKey: boolean }>('/ai/gemini-key', dto);
   },
 
   updateSettings: async (dto: { activeModel: string }): Promise<{ activeModel: string }> => {

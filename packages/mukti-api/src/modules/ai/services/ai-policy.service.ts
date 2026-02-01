@@ -53,6 +53,10 @@ export class AiPolicyService {
     return !!user.openRouterApiKeyEncrypted;
   }
 
+  hasUserGeminiKey(user: Pick<User, 'geminiApiKeyEncrypted'>): boolean {
+    return !!user.geminiApiKeyEncrypted;
+  }
+
   async resolveEffectiveModel(params: {
     hasByok: boolean;
     requestedModel?: string;

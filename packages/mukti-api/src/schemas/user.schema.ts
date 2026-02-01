@@ -68,6 +68,15 @@ export class User {
   openRouterApiKeyUpdatedAt?: Date;
 
   @Prop({ required: false, select: false, type: String })
+  geminiApiKeyEncrypted?: string;
+
+  @Prop({ type: String })
+  geminiApiKeyLast4?: string;
+
+  @Prop({ type: Date })
+  geminiApiKeyUpdatedAt?: Date;
+
+  @Prop({ required: false, select: false, type: String })
   password?: string; // Optional for OAuth users
 
   @Prop({ type: Date })

@@ -17,6 +17,7 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from '../../schemas/user.schema';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
+import { SetGeminiKeyDto } from './dto/gemini-key.dto';
 import { SetOpenRouterKeyDto } from './dto/openrouter-key.dto';
 import { AiPolicyService } from './services/ai-policy.service';
 import { AiSecretsService } from './services/ai-secrets.service';
@@ -38,7 +39,9 @@ export class AiController {
   async getSettings(@CurrentUser('_id') userId: string) {
     const user = await this.userModel
       .findById(userId)
-      .select('preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt')
+      .select(
+        'preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt geminiApiKeyLast4 geminiApiKeyUpdatedAt',
+      )
       .lean();
 
     if (!user) {
@@ -48,6 +51,8 @@ export class AiController {
     return {
       data: {
         activeModel: user.preferences?.activeModel,
+        geminiKeyLast4: user.geminiApiKeyLast4 ?? null,
+        hasGeminiKey: !!user.geminiApiKeyUpdatedAt,
         hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,
         openRouterKeyLast4: user.openRouterApiKeyLast4 ?? null,
       },
@@ -189,6 +194,72 @@ export class AiController {
       data: {
         hasOpenRouterKey: false,
         openRouterKeyLast4: null,
+      },
+      success: true,
+    };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Put('gemini-key')
+  async setGeminiKey(
+    @CurrentUser('_id') userId: string,
+    @Body() dto: SetGeminiKeyDto,
+  ) {
+    const apiKey = dto.apiKey.trim();
+
+    if (!apiKey) {
+      throw new BadRequestException({
+        error: {
+          code: 'INVALID_API_KEY',
+          message: 'API key is required',
+        },
+      });
+    }
+
+    // TODO: Validate key by listing models or making a dummy call.
+    // For now, we trust the format check.
+
+    const encrypted = this.aiSecretsService.encryptString(apiKey);
+    const last4 = apiKey.slice(-4);
+
+    await this.userModel.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          geminiApiKeyEncrypted: encrypted,
+          geminiApiKeyLast4: last4,
+          geminiApiKeyUpdatedAt: new Date(),
+        },
+      },
+    );
+
+    return {
+      data: {
+        geminiKeyLast4: last4,
+        hasGeminiKey: true,
+      },
+      success: true,
+    };
+  }
+
+  @Delete('gemini-key')
+  @HttpCode(HttpStatus.OK)
+  async deleteGeminiKey(@CurrentUser('_id') userId: string) {
+    await this.userModel.updateOne(
+      { _id: userId },
+      {
+        $unset: {
+          geminiApiKeyEncrypted: 1,
+          geminiApiKeyLast4: 1,
+          geminiApiKeyUpdatedAt: 1,
+        },
+      },
+    );
+
+    return {
+      data: {
+        geminiKeyLast4: null,
+        hasGeminiKey: false,
       },
       success: true,
     };
