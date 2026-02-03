@@ -89,3 +89,21 @@ jobs:
           git push origin main --follow-tags
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dryRun }}
+        run: |
+          TAG=$(git describe --tags --abbrev=0)
+          echo "Creating release for tag: $TAG"
+
+          PRERELEASE_FLAG=""
+          if [[ "${{ inputs.releaseType }}" == "beta" || "${{ inputs.releaseType }}" == "alpha" ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          gh release create "$TAG" \
+            $PRERELEASE_FLAG \
+            --generate-notes \
+            --title "$TAG"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
