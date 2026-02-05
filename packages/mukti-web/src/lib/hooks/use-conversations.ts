@@ -38,8 +38,8 @@ import type {
 } from '@/types/conversation.types';
 
 import { conversationsApi } from '@/lib/api/conversations';
-import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 import { config } from '@/lib/config';
+import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 import { conversationKeys } from '@/lib/query-keys';
 
 /**

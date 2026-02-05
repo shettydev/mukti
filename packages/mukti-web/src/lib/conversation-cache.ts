@@ -7,48 +7,8 @@ import type { Conversation, Message, PaginatedConversations } from '@/types/conv
 import { conversationKeys } from '@/lib/query-keys';
 
 interface ListSnapshot {
-  queryKey: readonly unknown[];
   previousConversation: Conversation | null;
-}
-
-function findConversationInLists(
-  lists: [readonly unknown[], InfiniteData<PaginatedConversations> | undefined][],
-  conversationId: string
-): Conversation | null {
-  for (const [, data] of lists) {
-    if (!data) {
-      continue;
-    }
-
-    for (const page of data.pages) {
-      const match = page.data.find((conv) => conv.id === conversationId);
-      if (match) {
-        return match;
-      }
-    }
-  }
-
-  return null;
-}
-
-function snapshotListConversations(
-  lists: [readonly unknown[], InfiniteData<PaginatedConversations> | undefined][],
-  conversationId: string
-): ListSnapshot[] {
-  return lists.map(([queryKey, data]) => {
-    if (!data) {
-      return { previousConversation: null, queryKey };
-    }
-
-    for (const page of data.pages) {
-      const match = page.data.find((conv) => conv.id === conversationId);
-      if (match) {
-        return { previousConversation: match, queryKey };
-      }
-    }
-
-    return { previousConversation: null, queryKey };
-  });
+  queryKey: readonly unknown[];
 }
 
 export async function optimisticallyAppendUserMessage(
@@ -195,7 +155,7 @@ export async function optimisticallyAppendUserMessage(
       return;
     }
 
-    listSnapshots.forEach(({ queryKey, previousConversation: previousListConversation }) => {
+    listSnapshots.forEach(({ previousConversation: previousListConversation, queryKey }) => {
       if (!previousListConversation) {
         return;
       }
@@ -240,4 +200,44 @@ export async function optimisticallyAppendUserMessage(
   };
 
   return { rollback };
+}
+
+function findConversationInLists(
+  lists: [readonly unknown[], InfiniteData<PaginatedConversations> | undefined][],
+  conversationId: string
+): Conversation | null {
+  for (const [, data] of lists) {
+    if (!data) {
+      continue;
+    }
+
+    for (const page of data.pages) {
+      const match = page.data.find((conv) => conv.id === conversationId);
+      if (match) {
+        return match;
+      }
+    }
+  }
+
+  return null;
+}
+
+function snapshotListConversations(
+  lists: [readonly unknown[], InfiniteData<PaginatedConversations> | undefined][],
+  conversationId: string
+): ListSnapshot[] {
+  return lists.map(([queryKey, data]) => {
+    if (!data) {
+      return { previousConversation: null, queryKey };
+    }
+
+    for (const page of data.pages) {
+      const match = page.data.find((conv) => conv.id === conversationId);
+      if (match) {
+        return { previousConversation: match, queryKey };
+      }
+    }
+
+    return { previousConversation: null, queryKey };
+  });
 }

@@ -16,10 +16,10 @@
  *
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { gsap } from 'gsap';
 import { AlertCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import type { SocraticTechnique } from '@/types/conversation.types';
@@ -29,9 +29,9 @@ import { MessageInput } from '@/components/conversations/message-input';
 import { MessageList } from '@/components/conversations/message-list';
 import { RateLimitBanner } from '@/components/conversations/rate-limit-banner';
 import { Button } from '@/components/ui/button';
+import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 import { type SSEError, useConversationStream } from '@/lib/hooks/use-conversation-stream';
 import { useConversation, useSendMessage } from '@/lib/hooks/use-conversations';
-import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 
 import { ChatHeader } from './chat-header';
 import { EmptyState } from './empty-state';
