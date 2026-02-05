@@ -48,10 +48,13 @@ export async function optimisticallyAppendUserMessage(
       return old;
     }
 
+    const nextSequence =
+      Math.max(old.metadata.messageCount, ...old.recentMessages.map((m) => m.sequence)) + 1;
+
     const message: Message = {
       content,
       role: 'user',
-      sequence: old.metadata.messageCount + 1,
+      sequence: nextSequence,
       timestamp,
     };
 
