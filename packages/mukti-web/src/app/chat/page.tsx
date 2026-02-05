@@ -15,6 +15,7 @@
  *
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
@@ -24,6 +25,7 @@ import { ProtectedRoute } from '@/components/auth/protected-route';
 import { ChatInterface } from '@/components/chat';
 import { DashboardLayout, useLayout } from '@/components/layouts/dashboard-layout';
 import { useCreateConversation } from '@/lib/hooks/use-conversations';
+import { conversationKeys } from '@/lib/query-keys';
 import { generateTemporaryTitle } from '@/lib/utils/title-generation';
 
 export default function ChatPage() {
@@ -41,6 +43,7 @@ function ChatContent() {
   const { toggleMobileMenu } = useLayout();
   const [selectedTechnique, setSelectedTechnique] = useState<SocraticTechnique>('elenchus');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const queryClient = useQueryClient();
   const { isPending: isCreating, mutateAsync: createConversation } = useCreateConversation();
 
   /**
@@ -65,6 +68,8 @@ function ChatContent() {
         title,
       });
 
+      queryClient.setQueryData(conversationKeys.detail(conversation.id), conversation);
+
       // Start transition animation
       setIsTransitioning(true);
 
@@ -77,7 +82,7 @@ function ChatContent() {
       // Return conversation ID for message sending
       return conversation.id;
     },
-    [createConversation, router]
+    [createConversation, queryClient, router]
   );
 
   const handleTechniqueChange = useCallback((technique: SocraticTechnique) => {

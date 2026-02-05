@@ -39,6 +39,7 @@ import type {
 
 import { conversationsApi } from '@/lib/api/conversations';
 import { config } from '@/lib/config';
+import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 import { conversationKeys } from '@/lib/query-keys';
 
 /**
@@ -365,59 +366,21 @@ export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'pa
 export function useSendMessage(conversationId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    SendMessageResponse,
-    Error,
-    SendMessageDto,
-    { previousConversation: Conversation | undefined }
-  >({
+  return useMutation<SendMessageResponse, Error, SendMessageDto, { rollback: () => void }>({
     mutationFn: (dto: SendMessageDto) => conversationsApi.sendMessage(conversationId, dto),
 
     onError: (err, message, context) => {
-      // Rollback on error
-      if (context?.previousConversation) {
-        queryClient.setQueryData(
-          conversationKeys.detail(conversationId),
-          context.previousConversation
-        );
-      }
+      context?.rollback();
     },
 
     onMutate: async (message) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: conversationKeys.detail(conversationId) });
-
-      // Snapshot previous value
-      const previousConversation = queryClient.getQueryData<Conversation>(
-        conversationKeys.detail(conversationId)
+      const { rollback } = await optimisticallyAppendUserMessage(
+        queryClient,
+        conversationId,
+        message.content
       );
 
-      // Optimistically add user message
-      queryClient.setQueryData<Conversation>(conversationKeys.detail(conversationId), (old) => {
-        if (!old) {
-          return old;
-        }
-
-        const newMessage: Message = {
-          content: message.content,
-          role: 'user',
-          sequence: old.metadata.messageCount + 1,
-          timestamp: new Date().toISOString(),
-        };
-
-        return {
-          ...old,
-          metadata: {
-            ...old.metadata,
-            lastMessageAt: newMessage.timestamp,
-            messageCount: old.metadata.messageCount + 1,
-          },
-          recentMessages: [...old.recentMessages, newMessage],
-          updatedAt: new Date().toISOString(),
-        };
-      });
-
-      return { previousConversation };
+      return { rollback };
     },
 
     onSuccess: () => {

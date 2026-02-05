@@ -779,6 +779,11 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
                 writable: true,
               });
 
+              // Trigger scroll event to synchronize isAtBottom state
+              await act(async () => {
+                scrollContainer.dispatchEvent(new Event('scroll'));
+              });
+
               let currentMessages = [...initialMessages];
               let currentSequence = initialMessageCount;
 

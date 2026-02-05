@@ -16,6 +16,7 @@
  *
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { gsap } from 'gsap';
 import { AlertCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -28,6 +29,7 @@ import { MessageInput } from '@/components/conversations/message-input';
 import { MessageList } from '@/components/conversations/message-list';
 import { RateLimitBanner } from '@/components/conversations/rate-limit-banner';
 import { Button } from '@/components/ui/button';
+import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 import { type SSEError, useConversationStream } from '@/lib/hooks/use-conversation-stream';
 import { useConversation, useSendMessage } from '@/lib/hooks/use-conversations';
 
@@ -71,6 +73,7 @@ export function ChatInterface({
   // Error states
   const [streamError, setStreamError] = useState<null | SSEError>(null);
   const [rateLimitInfo, setRateLimitInfo] = useState<null | { retryAfter: number }>(null);
+  const queryClient = useQueryClient();
 
   // Fetch conversation data if we have an ID
   const {
@@ -219,13 +222,27 @@ export function ChatInterface({
       // Create conversation and get ID
       const newConversationId = await onCreateConversation(content, selectedTechnique);
 
-      // Send the first message to the new conversation
-      // We need to use the conversations API directly since we don't have
-      // the mutation hook set up for this conversation yet
-      const { conversationsApi } = await import('@/lib/api/conversations');
-      await conversationsApi.sendMessage(newConversationId, { content });
+      const { rollback } = await optimisticallyAppendUserMessage(
+        queryClient,
+        newConversationId,
+        content
+      );
+
+      try {
+        // Send the first message to the new conversation
+        // We need to use the conversations API directly since we don't have
+        // the mutation hook set up for this conversation yet
+        const { conversationsApi } = await import('@/lib/api/conversations');
+        await conversationsApi.sendMessage(newConversationId, { content });
+      } catch (error) {
+        rollback();
+        toast.error('Failed to send message', {
+          description: 'Please try again.',
+        });
+        throw error;
+      }
     },
-    [onCreateConversation, selectedTechnique]
+    [onCreateConversation, queryClient, selectedTechnique]
   );
 
   /**

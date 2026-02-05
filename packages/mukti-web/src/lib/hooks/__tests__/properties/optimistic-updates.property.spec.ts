@@ -18,13 +18,13 @@ import * as fc from 'fast-check';
 import type {
   Conversation,
   CreateConversationDto,
-  Message,
   PaginatedConversations,
   SendMessageDto,
   SocraticTechnique,
   UpdateConversationDto,
 } from '@/types/conversation.types';
 
+import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 import { conversationKeys } from '@/lib/query-keys';
 
 /**
@@ -255,14 +255,14 @@ describe('Property 14: Optimistic update rollback', () => {
  * before the server responds
  */
 describe('Property 15: Optimistic message sending', () => {
-  it('should add user message to conversation before server response', () => {
-    fc.assert(
-      fc.property(
+  it('should add user message to conversation before server response', async () => {
+    await fc.assert(
+      fc.asyncProperty(
         conversationArbitrary,
         fc.record({
           content: fc.string({ maxLength: 500, minLength: 1 }),
         }),
-        (conversation: Conversation, message: SendMessageDto) => {
+        async (conversation: Conversation, message: SendMessageDto) => {
           const queryClient = new QueryClient();
 
           // Set up initial cache
@@ -271,32 +271,7 @@ describe('Property 15: Optimistic message sending', () => {
           const initialMessageCount = conversation.recentMessages.length;
 
           // Simulate optimistic update (what onMutate does)
-          queryClient.setQueryData<Conversation>(
-            conversationKeys.detail(conversation.id),
-            (old) => {
-              if (!old) {
-                return old;
-              }
-
-              const newMessage: Message = {
-                content: message.content,
-                role: 'user',
-                sequence: old.metadata.messageCount + 1,
-                timestamp: new Date().toISOString(),
-              };
-
-              return {
-                ...old,
-                metadata: {
-                  ...old.metadata,
-                  lastMessageAt: newMessage.timestamp,
-                  messageCount: old.metadata.messageCount + 1,
-                },
-                recentMessages: [...old.recentMessages, newMessage],
-                updatedAt: new Date().toISOString(),
-              };
-            }
-          );
+          await optimisticallyAppendUserMessage(queryClient, conversation.id, message.content);
 
           // Verify message was added optimistically
           const updatedConversation = queryClient.getQueryData<Conversation>(
