@@ -17,6 +17,7 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from '../../schemas/user.schema';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
+import { SetOpenAiKeyDto } from './dto/openai-key.dto';
 import { SetOpenRouterKeyDto } from './dto/openrouter-key.dto';
 import { AiPolicyService } from './services/ai-policy.service';
 import { AiSecretsService } from './services/ai-secrets.service';
@@ -38,7 +39,9 @@ export class AiController {
   async getSettings(@CurrentUser('_id') userId: string) {
     const user = await this.userModel
       .findById(userId)
-      .select('preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt')
+      .select(
+        'preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt openAiApiKeyLast4 openAiApiKeyUpdatedAt',
+      )
       .lean();
 
     if (!user) {
@@ -48,7 +51,9 @@ export class AiController {
     return {
       data: {
         activeModel: user.preferences?.activeModel,
+        hasOpenAiKey: !!user.openAiApiKeyUpdatedAt,
         hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,
+        openAiKeyLast4: user.openAiApiKeyLast4 ?? null,
         openRouterKeyLast4: user.openRouterApiKeyLast4 ?? null,
       },
       success: true,
@@ -189,6 +194,69 @@ export class AiController {
       data: {
         hasOpenRouterKey: false,
         openRouterKeyLast4: null,
+      },
+      success: true,
+    };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Put('openai-key')
+  async setOpenAiKey(
+    @CurrentUser('_id') userId: string,
+    @Body() dto: SetOpenAiKeyDto,
+  ) {
+    const apiKey = dto.apiKey.trim();
+
+    if (!apiKey) {
+      throw new BadRequestException({
+        error: {
+          code: 'INVALID_API_KEY',
+          message: 'API key is required',
+        },
+      });
+    }
+
+    const encrypted = this.aiSecretsService.encryptString(apiKey);
+    const last4 = apiKey.slice(-4);
+
+    await this.userModel.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          openAiApiKeyEncrypted: encrypted,
+          openAiApiKeyLast4: last4,
+          openAiApiKeyUpdatedAt: new Date(),
+        },
+      },
+    );
+
+    return {
+      data: {
+        hasOpenAiKey: true,
+        openAiKeyLast4: last4,
+      },
+      success: true,
+    };
+  }
+
+  @Delete('openai-key')
+  @HttpCode(HttpStatus.OK)
+  async deleteOpenAiKey(@CurrentUser('_id') userId: string) {
+    await this.userModel.updateOne(
+      { _id: userId },
+      {
+        $unset: {
+          openAiApiKeyEncrypted: 1,
+          openAiApiKeyLast4: 1,
+          openAiApiKeyUpdatedAt: 1,
+        },
+      },
+    );
+
+    return {
+      data: {
+        hasOpenAiKey: false,
+        openAiKeyLast4: null,
       },
       success: true,
     };

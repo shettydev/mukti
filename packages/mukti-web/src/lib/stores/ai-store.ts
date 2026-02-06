@@ -11,25 +11,34 @@ export type AiModelOption = {
 
 interface AiStoreState {
   activeModel: null | string;
+  deleteOpenAiKey: () => Promise<void>;
   deleteOpenRouterKey: () => Promise<void>;
+  hasOpenAiKey: boolean;
   hasOpenRouterKey: boolean;
   hydrate: () => Promise<void>;
   isHydrated: boolean;
   mode: AiModelMode;
 
   models: AiModelOption[];
+  openAiKeyLast4: null | string;
   openRouterKeyLast4: null | string;
   refreshModels: () => Promise<void>;
   setActiveModel: (model: string) => Promise<void>;
+  setOpenAiKey: (apiKey: string) => Promise<void>;
   setOpenRouterKey: (apiKey: string) => Promise<void>;
 }
 
 export const useAiStore = create<AiStoreState>((set, get) => ({
   activeModel: 'openai/gpt-5-mini',
+  deleteOpenAiKey: async () => {
+    await aiApi.deleteOpenAiKey();
+    await get().hydrate();
+  },
   deleteOpenRouterKey: async () => {
     await aiApi.deleteOpenRouterKey();
     await get().hydrate();
   },
+  hasOpenAiKey: false,
   hasOpenRouterKey: false,
   hydrate: async () => {
     try {
@@ -37,8 +46,10 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
       set({
         activeModel: settings.activeModel ?? 'openai/gpt-5-mini',
+        hasOpenAiKey: settings.hasOpenAiKey,
         hasOpenRouterKey: settings.hasOpenRouterKey,
         isHydrated: true,
+        openAiKeyLast4: settings.openAiKeyLast4,
         openRouterKeyLast4: settings.openRouterKeyLast4,
       });
 
@@ -53,6 +64,7 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
   models: [],
 
+  openAiKeyLast4: null,
   openRouterKeyLast4: null,
 
   refreshModels: async () => {
@@ -79,6 +91,11 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
   setActiveModel: async (model: string) => {
     set({ activeModel: model });
     await aiApi.updateSettings({ activeModel: model });
+  },
+
+  setOpenAiKey: async (apiKey: string) => {
+    await aiApi.setOpenAiKey({ apiKey });
+    await get().hydrate();
   },
 
   setOpenRouterKey: async (apiKey: string) => {
