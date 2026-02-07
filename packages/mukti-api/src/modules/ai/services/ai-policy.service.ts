@@ -49,12 +49,12 @@ export class AiPolicyService {
     return serverKey;
   }
 
-  hasUserOpenRouterKey(user: Pick<User, 'openRouterApiKeyEncrypted'>): boolean {
-    return !!user.openRouterApiKeyEncrypted;
-  }
-
   hasUserGeminiKey(user: Pick<User, 'geminiApiKeyEncrypted'>): boolean {
     return !!user.geminiApiKeyEncrypted;
+  }
+
+  hasUserOpenRouterKey(user: Pick<User, 'openRouterApiKeyEncrypted'>): boolean {
+    return !!user.openRouterApiKeyEncrypted;
   }
 
   async resolveEffectiveModel(params: {

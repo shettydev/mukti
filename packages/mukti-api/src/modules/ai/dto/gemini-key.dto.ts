@@ -7,8 +7,8 @@ export class SetGeminiKeyDto {
     example: 'AIzaSy...',
     minLength: 10,
   })
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   @MinLength(10)
   apiKey: string;
 }
