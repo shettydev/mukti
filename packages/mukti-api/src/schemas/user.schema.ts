@@ -68,6 +68,15 @@ export class User {
   openRouterApiKeyUpdatedAt?: Date;
 
   @Prop({ required: false, select: false, type: String })
+  anthropicApiKeyEncrypted?: string;
+
+  @Prop({ type: String })
+  anthropicApiKeyLast4?: string;
+
+  @Prop({ type: Date })
+  anthropicApiKeyUpdatedAt?: Date;
+
+  @Prop({ required: false, select: false, type: String })
   password?: string; // Optional for OAuth users
 
   @Prop({ type: Date })

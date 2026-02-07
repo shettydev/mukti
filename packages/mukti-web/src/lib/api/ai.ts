@@ -2,6 +2,8 @@ import { apiClient } from './client';
 
 export type AiSettings = {
   activeModel?: string;
+  anthropicKeyLast4: null | string;
+  hasAnthropicKey: boolean;
   hasOpenRouterKey: boolean;
   openRouterKeyLast4: null | string;
 };
@@ -15,6 +17,15 @@ type CuratedModel = { id: string; label: string };
 type OpenRouterModel = { id: string; name: string };
 
 export const aiApi = {
+  deleteAnthropicKey: async (): Promise<{
+    anthropicKeyLast4: null;
+    hasAnthropicKey: boolean;
+  }> => {
+    return apiClient.delete<{ anthropicKeyLast4: null; hasAnthropicKey: boolean }>(
+      '/ai/anthropic-key'
+    );
+  },
+
   deleteOpenRouterKey: async (): Promise<{
     hasOpenRouterKey: boolean;
     openRouterKeyLast4: null;
@@ -43,6 +54,15 @@ export const aiApi = {
       openRouterKeyLast4: null | string;
     }>('/ai/settings');
     return response;
+  },
+
+  setAnthropicKey: async (dto: {
+    apiKey: string;
+  }): Promise<{ anthropicKeyLast4: string; hasAnthropicKey: boolean }> => {
+    return apiClient.put<{ anthropicKeyLast4: string; hasAnthropicKey: boolean }>(
+      '/ai/anthropic-key',
+      dto
+    );
   },
 
   setOpenRouterKey: async (dto: {
