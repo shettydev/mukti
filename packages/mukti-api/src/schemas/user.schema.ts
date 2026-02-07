@@ -40,6 +40,15 @@ export class User {
   @Prop({ required: true, trim: true, type: String })
   firstName: string;
 
+  @Prop({ required: false, select: false, type: String })
+  geminiApiKeyEncrypted?: string;
+
+  @Prop({ type: String })
+  geminiApiKeyLast4?: string;
+
+  @Prop({ type: Date })
+  geminiApiKeyUpdatedAt?: Date;
+
   @Prop({ type: String })
   googleId?: string;
 

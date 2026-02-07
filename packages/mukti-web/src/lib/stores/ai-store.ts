@@ -11,7 +11,10 @@ export type AiModelOption = {
 
 interface AiStoreState {
   activeModel: null | string;
+  deleteGeminiKey: () => Promise<void>;
   deleteOpenRouterKey: () => Promise<void>;
+  geminiKeyLast4: null | string;
+  hasGeminiKey: boolean;
   hasOpenRouterKey: boolean;
   hydrate: () => Promise<void>;
   isHydrated: boolean;
@@ -21,15 +24,22 @@ interface AiStoreState {
   openRouterKeyLast4: null | string;
   refreshModels: () => Promise<void>;
   setActiveModel: (model: string) => Promise<void>;
+  setGeminiKey: (apiKey: string) => Promise<void>;
   setOpenRouterKey: (apiKey: string) => Promise<void>;
 }
 
 export const useAiStore = create<AiStoreState>((set, get) => ({
   activeModel: 'openai/gpt-5-mini',
+  deleteGeminiKey: async () => {
+    await aiApi.deleteGeminiKey();
+    await get().hydrate();
+  },
   deleteOpenRouterKey: async () => {
     await aiApi.deleteOpenRouterKey();
     await get().hydrate();
   },
+  geminiKeyLast4: null,
+  hasGeminiKey: false,
   hasOpenRouterKey: false,
   hydrate: async () => {
     try {
@@ -37,6 +47,8 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
       set({
         activeModel: settings.activeModel ?? 'openai/gpt-5-mini',
+        geminiKeyLast4: settings.geminiKeyLast4,
+        hasGeminiKey: settings.hasGeminiKey,
         hasOpenRouterKey: settings.hasOpenRouterKey,
         isHydrated: true,
         openRouterKeyLast4: settings.openRouterKeyLast4,
@@ -79,6 +91,11 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
   setActiveModel: async (model: string) => {
     set({ activeModel: model });
     await aiApi.updateSettings({ activeModel: model });
+  },
+
+  setGeminiKey: async (apiKey: string) => {
+    await aiApi.setGeminiKey({ apiKey });
+    await get().hydrate();
   },
 
   setOpenRouterKey: async (apiKey: string) => {

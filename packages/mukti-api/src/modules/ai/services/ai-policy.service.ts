@@ -49,6 +49,10 @@ export class AiPolicyService {
     return serverKey;
   }
 
+  hasUserGeminiKey(user: Pick<User, 'geminiApiKeyEncrypted'>): boolean {
+    return !!user.geminiApiKeyEncrypted;
+  }
+
   hasUserOpenRouterKey(user: Pick<User, 'openRouterApiKeyEncrypted'>): boolean {
     return !!user.openRouterApiKeyEncrypted;
   }
