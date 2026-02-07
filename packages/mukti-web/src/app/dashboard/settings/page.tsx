@@ -13,18 +13,18 @@ import { useAiStore } from '@/lib/stores/ai-store';
 export default function SettingsPage() {
   const {
     activeModel,
-    deleteOpenRouterKey,
-    hasOpenRouterKey,
-    hasGeminiKey,
-    geminiKeyLast4,
-    setGeminiKey,
     deleteGeminiKey,
+    deleteOpenRouterKey,
+    geminiKeyLast4,
+    hasGeminiKey,
+    hasOpenRouterKey,
     hydrate,
     isHydrated,
     models,
     openRouterKeyLast4,
     refreshModels,
     setActiveModel,
+    setGeminiKey,
     setOpenRouterKey,
   } = useAiStore();
 
