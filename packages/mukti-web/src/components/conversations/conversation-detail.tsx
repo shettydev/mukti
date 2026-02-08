@@ -122,7 +122,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       setProcessingState({
         isProcessing: true,
         queuePosition: event.data.position,
-        status: 'AI is thinking...',
+        status: 'Mukti is thinking...',
       });
       setSseError(null);
       setShowManualRefresh(false);

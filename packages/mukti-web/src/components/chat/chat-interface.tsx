@@ -19,6 +19,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { gsap } from 'gsap';
 import { AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -74,6 +75,7 @@ export function ChatInterface({
   const [streamError, setStreamError] = useState<null | SSEError>(null);
   const [rateLimitInfo, setRateLimitInfo] = useState<null | { retryAfter: number }>(null);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Fetch conversation data if we have an ID
   const {
@@ -155,6 +157,10 @@ export function ChatInterface({
     onError: (error) => {
       // Handle SSE connection errors
       setStreamError(error);
+      setProcessingState({
+        isProcessing: false,
+        status: '',
+      });
 
       // Show toast notification for connection errors
       if (error.type === 'connection' || error.type === 'server') {
@@ -214,8 +220,8 @@ export function ChatInterface({
    * Flow:
    * 1. Create conversation with title and technique
    * 2. Get new conversation ID
-   * 3. Send message to new conversation
-   * 4. Parent handles navigation
+   * 3. Seed optimistic message cache and navigate to conversation
+   * 4. Send message to new conversation
    */
   const handleSendFirstMessage = useCallback(
     async (content: string): Promise<void> => {
@@ -228,6 +234,14 @@ export function ChatInterface({
         content
       );
 
+      // Route transition happens only after optimistic cache update to avoid blank initial render.
+      router.push(`/chat/${newConversationId}`);
+
+      setProcessingState({
+        isProcessing: true,
+        status: 'AI is thinking...',
+      });
+
       try {
         // Send the first message to the new conversation
         // We need to use the conversations API directly since we don't have
@@ -235,6 +249,10 @@ export function ChatInterface({
         const { conversationsApi } = await import('@/lib/api/conversations');
         await conversationsApi.sendMessage(newConversationId, { content });
       } catch (error) {
+        setProcessingState({
+          isProcessing: false,
+          status: '',
+        });
         rollback();
         toast.error('Failed to send message', {
           description: 'Please try again.',
@@ -242,7 +260,7 @@ export function ChatInterface({
         throw error;
       }
     },
-    [onCreateConversation, queryClient, selectedTechnique]
+    [onCreateConversation, queryClient, router, selectedTechnique]
   );
 
   /**
@@ -257,8 +275,16 @@ export function ChatInterface({
       try {
         // Clear any previous errors
         resetSendMutation();
+        setProcessingState({
+          isProcessing: true,
+          status: 'AI is thinking...',
+        });
         await sendMessage({ content });
       } catch (error) {
+        setProcessingState({
+          isProcessing: false,
+          status: '',
+        });
         // Error is already handled by the mutation's onError
         // Show toast notification
         toast.error('Failed to send message', {
@@ -285,13 +311,13 @@ export function ChatInterface({
     setRateLimitInfo(null);
   }, []);
 
-  // Show loading state while fetching conversation
-  if (conversationId && (isLoading || showLoading)) {
+  // Show loading state only when conversation data is not yet available.
+  if (conversationId && !conversation && (isLoading || showLoading)) {
     return <ConversationLoading isExiting={isLoadingExiting} />;
   }
 
-  // Show empty state if no conversation
-  if (!conversationId || !conversation) {
+  // Show empty state if no conversation is selected
+  if (!conversationId) {
     return (
       <div className="relative flex h-full min-h-0 flex-col">
         <ChatHeader conversation={null} onMobileMenuToggle={onMobileMenuToggle} />
@@ -315,6 +341,24 @@ export function ChatInterface({
       </div>
     );
   }
+
+  // Fallback while mounting an existing conversation route with no cached detail yet.
+  if (!conversation) {
+    return <ConversationLoading isExiting={false} />;
+  }
+
+  const latestMessage = conversation.recentMessages[conversation.recentMessages.length - 1];
+  const shouldShowDerivedProcessing =
+    !processingState.isProcessing &&
+    !rateLimitInfo &&
+    !streamError &&
+    latestMessage?.role === 'user';
+  const effectiveProcessingState = shouldShowDerivedProcessing
+    ? {
+        isProcessing: true,
+        status: 'AI is thinking...',
+      }
+    : processingState;
 
   // Show active conversation state
   return (
@@ -361,7 +405,7 @@ export function ChatInterface({
       <MessageList
         conversationId={conversationId}
         hasArchivedMessages={conversation.hasArchivedMessages}
-        processingState={processingState}
+        processingState={effectiveProcessingState}
         recentMessages={conversation.recentMessages}
       />
 

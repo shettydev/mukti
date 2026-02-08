@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useCreateConversation } from '@/lib/hooks/use-conversations';
+import { generateTemporaryTitle } from '@/lib/utils/title-generation';
 import {
   type CreateConversationFormData,
   createConversationSchema,
@@ -73,10 +74,16 @@ export function CreateConversationDialog({
 
   const handleSubmit = async (data: CreateConversationFormData) => {
     try {
+      const title =
+        data.title.trim() ||
+        generateTemporaryTitle(
+          `New ${data.technique.charAt(0).toUpperCase()}${data.technique.slice(1)} conversation`
+        );
+
       const conversation = await createMutation.mutateAsync({
         tags: data.tags,
         technique: data.technique,
-        title: data.title,
+        title,
       });
 
       // Reset form and close dialog
@@ -116,11 +123,13 @@ export function CreateConversationDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Title (optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="What would you like to explore?" {...field} />
                   </FormControl>
-                  <FormDescription>A brief description of your inquiry topic.</FormDescription>
+                  <FormDescription>
+                    Leave blank to auto-generate a title while you start chatting.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

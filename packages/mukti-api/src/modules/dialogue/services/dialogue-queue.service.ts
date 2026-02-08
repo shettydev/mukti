@@ -271,7 +271,7 @@ export class DialogueQueueService extends WorkerHost {
         nodeId,
         dialogueId,
         {
-          data: { jobId: job.id!, status: 'AI is thinking...' },
+          data: { jobId: job.id!, status: 'Mukti is thinking...' },
           type: 'progress',
         },
       );

@@ -5,7 +5,10 @@ import { QueryClient } from '@tanstack/react-query';
 
 import type { Conversation, PaginatedConversations } from '@/types/conversation.types';
 
-import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
+import {
+  mergeConversationPreservingRecentMessages,
+  optimisticallyAppendUserMessage,
+} from '@/lib/conversation-cache';
 import { conversationKeys } from '@/lib/query-keys';
 
 const baseConversation: Conversation = {
@@ -117,5 +120,46 @@ describe('optimisticallyAppendUserMessage', () => {
     );
 
     expect(rolledBackDetail).toEqual(baseConversation);
+  });
+});
+
+describe('mergeConversationPreservingRecentMessages', () => {
+  it('keeps optimistic messages when incoming payload is older', () => {
+    const cachedConversation: Conversation = {
+      ...baseConversation,
+      metadata: {
+        ...baseConversation.metadata,
+        lastMessageAt: '2025-01-01T00:00:00.000Z',
+        messageCount: 1,
+      },
+      recentMessages: [
+        {
+          content: 'First message',
+          role: 'user',
+          sequence: 1,
+          timestamp: '2025-01-01T00:00:00.000Z',
+        },
+      ],
+      updatedAt: '2025-01-01T00:00:00.000Z',
+    };
+
+    const incomingConversation: Conversation = {
+      ...baseConversation,
+      metadata: {
+        ...baseConversation.metadata,
+        messageCount: 0,
+      },
+      recentMessages: [],
+      updatedAt: '2024-12-31T23:59:00.000Z',
+    };
+
+    const merged = mergeConversationPreservingRecentMessages(
+      cachedConversation,
+      incomingConversation
+    );
+
+    expect(merged.recentMessages).toHaveLength(1);
+    expect(merged.recentMessages[0].content).toBe('First message');
+    expect(merged.metadata.messageCount).toBe(1);
   });
 });

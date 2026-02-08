@@ -5,7 +5,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 
 import type {
@@ -15,6 +15,7 @@ import type {
 } from '@/types/conversation.types';
 
 import { conversationsApi } from '@/lib/api/conversations';
+import { conversationKeys } from '@/lib/query-keys';
 
 import {
   useArchivedMessages,
@@ -51,6 +52,10 @@ jest.mock('@/lib/api/conversations', () => ({
  * Create a wrapper with QueryClient for testing hooks
  */
 function createWrapper() {
+  return createWrapperWithClient().wrapper;
+}
+
+function createWrapperWithClient() {
   const queryClient = new QueryClient({
     defaultOptions: {
       mutations: {
@@ -62,10 +67,11 @@ function createWrapper() {
     },
   });
 
-  // eslint-disable-next-line react/display-name
-  return ({ children }: { children: ReactNode }) => {
+  const wrapper = ({ children }: { children: ReactNode }) => {
     return createElement(QueryClientProvider, { client: queryClient }, children);
   };
+
+  return { queryClient, wrapper };
 }
 
 const mockConversation: Conversation = {
@@ -128,6 +134,58 @@ describe('useConversation', () => {
 
     expect(result.current.error).toEqual(error);
   });
+
+  it('preserves optimistic messages when a refetch returns fewer messages', async () => {
+    const { queryClient, wrapper } = createWrapperWithClient();
+    const optimisticConversation: Conversation = {
+      ...mockConversation,
+      metadata: {
+        ...mockConversation.metadata,
+        lastMessageAt: '2024-01-01T00:00:00Z',
+        messageCount: 1,
+      },
+      recentMessages: [
+        {
+          content: 'Optimistic first message',
+          role: 'user',
+          sequence: 1,
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+      ],
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const staleServerConversation: Conversation = {
+      ...mockConversation,
+      metadata: {
+        ...mockConversation.metadata,
+        lastMessageAt: undefined,
+        messageCount: 0,
+      },
+      recentMessages: [],
+      updatedAt: '2023-12-31T23:59:00Z',
+    };
+
+    queryClient.setQueryData(conversationKeys.detail(mockConversation.id), optimisticConversation);
+    (
+      conversationsApi.getById as jest.MockedFunction<typeof conversationsApi.getById>
+    ).mockResolvedValue(staleServerConversation);
+
+    const { result } = renderHook(() => useConversation(mockConversation.id), {
+      wrapper,
+    });
+
+    expect(result.current.data?.recentMessages[0]?.content).toBe('Optimistic first message');
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    await waitFor(() => expect(result.current.data?.recentMessages).toHaveLength(1));
+
+    expect(result.current.data?.recentMessages[0]?.content).toBe('Optimistic first message');
+    expect(result.current.data?.metadata.messageCount).toBe(1);
+  });
 });
 
 describe('useInfiniteConversations', () => {
@@ -183,7 +241,7 @@ describe('useCreateConversation', () => {
 
     expect(conversationsApi.create).toHaveBeenCalledWith(dto);
     expect(result.current.data).toEqual(mockConversation);
-    expect(mockPush).toHaveBeenCalledWith(`/chat/${mockConversation.id}`);
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });
 

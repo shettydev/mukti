@@ -153,6 +153,7 @@ export function Sidebar({
         <nav aria-label="Dashboard navigation" className="flex-1 px-3 space-y-1 overflow-y-auto">
           {/* New Chat Button */}
           <Link
+            aria-label="New Chat"
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
               'min-h-[40px]',
@@ -175,22 +176,26 @@ export function Sidebar({
             label="Thinking Canvas"
           />
 
-          {/* Separator */}
-          <div className={cn('pt-4 pb-2', collapsed && 'hidden')}>
-            <div className="border-t border-white/10 mb-2" />
-            <p className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
-              Conversations
-            </p>
-          </div>
+          {!collapsed && (
+            <>
+              {/* Separator */}
+              <div className="pt-4 pb-2">
+                <div className="border-t border-white/10 mb-2" />
+                <p className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
+                  Conversations
+                </p>
+              </div>
 
-          {/* Conversation list */}
-          <ConversationList
-            collapsed={collapsed}
-            onConversationClick={() => {
-              // Close mobile sidebar if open, navigation happens in ConversationList
-              onMobileClose?.();
-            }}
-          />
+              {/* Conversation list */}
+              <ConversationList
+                collapsed={collapsed}
+                onConversationClick={() => {
+                  // Close mobile sidebar if open, navigation happens in ConversationList
+                  onMobileClose?.();
+                }}
+              />
+            </>
+          )}
         </nav>
 
         {/* User Profile */}
@@ -220,6 +225,7 @@ function NavItem({ active, collapsed, href, icon, label }: NavItemProps) {
   return (
     <Link
       aria-current={active ? 'page' : undefined}
+      aria-label={label}
       className={cn(
         'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
         'min-h-[40px]',
