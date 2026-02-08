@@ -86,18 +86,26 @@ describe('CreateConversationDialog', () => {
     expect(screen.getByText(/tags \(optional\)/i)).toBeInTheDocument();
   });
 
-  it('should show validation error for empty title', async () => {
+  it('should auto-generate a title when title is left blank', async () => {
     const user = userEvent.setup();
     render(
       <CreateConversationDialog onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} open />,
       { wrapper: createWrapper() }
     );
 
-    // Try to submit without filling title
+    // Select technique
+    await user.click(screen.getByRole('button', { name: /select socratic technique/i }));
+    await user.click(screen.getByText('Elenchus'));
+
+    // Submit without title
     await user.click(screen.getByRole('button', { name: /create conversation/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/title is required/i)).toBeInTheDocument();
+      expect(mockMutateAsync).toHaveBeenCalledWith({
+        tags: [],
+        technique: 'elenchus',
+        title: 'New Elenchus conversation',
+      });
     });
   });
 
