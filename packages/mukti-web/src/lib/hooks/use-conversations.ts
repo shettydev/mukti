@@ -39,7 +39,10 @@ import type {
 
 import { conversationsApi } from '@/lib/api/conversations';
 import { config } from '@/lib/config';
-import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
+import {
+  mergeConversationPreservingRecentMessages,
+  optimisticallyAppendUserMessage,
+} from '@/lib/conversation-cache';
 import { conversationKeys } from '@/lib/query-keys';
 
 /**
@@ -96,12 +99,24 @@ export function useArchivedMessages(conversationId: string) {
  * ```
  */
 export function useConversation(id: string) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     enabled: !!id,
     // Use centralized cache time
     gcTime: config.cache.defaultCacheTime,
-    queryFn: () => conversationsApi.getById(id),
+    queryFn: async () => {
+      const incomingConversation = await conversationsApi.getById(id);
+      const cachedConversation = queryClient.getQueryData<Conversation>(
+        conversationKeys.detail(id)
+      );
+
+      return mergeConversationPreservingRecentMessages(cachedConversation, incomingConversation);
+    },
     queryKey: conversationKeys.detail(id),
+    // SSE is the primary real-time source for message updates.
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     // Use centralized stale time (conversation details may change frequently)
     staleTime: config.cache.defaultStaleTime / 2, // 30 seconds
   });
@@ -111,7 +126,7 @@ export function useConversation(id: string) {
  * Create new conversation with optimistic update
  *
  * Optimistically adds the conversation to the list before server confirmation.
- * Automatically rolls back on error and navigates to the new conversation on success.
+ * Automatically rolls back on error.
  *
  * @returns Mutation result with create function
  *
@@ -128,7 +143,6 @@ export function useConversation(id: string) {
  */
 export function useCreateConversation() {
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   return useMutation<
     Conversation,
@@ -206,12 +220,9 @@ export function useCreateConversation() {
       return { previousData };
     },
 
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate and refetch to get accurate data from server
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
-
-      // Navigate to new conversation (using new route structure)
-      router.push(`/chat/${data.id}`);
     },
   });
 }

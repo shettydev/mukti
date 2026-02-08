@@ -115,7 +115,10 @@ export const tagsSchema = z.array(tagSchema).max(10, 'Maximum 10 tags allowed');
 export const createConversationSchema = z.object({
   tags: tagsSchema,
   technique: techniqueSchema,
-  title: titleSchema,
+  title: z
+    .string()
+    .max(100, 'Title must be less than 100 characters')
+    .transform((val) => val.trim()),
 });
 
 export type CreateConversationFormData = z.infer<typeof createConversationSchema>;

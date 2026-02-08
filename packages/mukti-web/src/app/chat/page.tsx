@@ -16,7 +16,6 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
 import type { SocraticTechnique } from '@/types/conversation.types';
@@ -39,7 +38,6 @@ export default function ChatPage() {
 }
 
 function ChatContent() {
-  const router = useRouter();
   const { toggleMobileMenu } = useLayout();
   const [selectedTechnique, setSelectedTechnique] = useState<SocraticTechnique>('elenchus');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -52,8 +50,8 @@ function ChatContent() {
    * Flow:
    * 1. Generate temporary title from message content
    * 2. Create conversation with title and technique
-   * 3. Start transition animation
-   * 4. Navigate to /chat/:id with smooth transition
+   * 3. Seed detail cache for immediate first render
+   * 4. Start transition animation (navigation happens after optimistic append)
    * 5. Send message to new conversation (handled by ChatInterface)
    */
   const handleCreateConversation = useCallback(
@@ -68,21 +66,16 @@ function ChatContent() {
         title,
       });
 
+      // Ensure /chat/[id] can render immediately from cache before any network refetch.
       queryClient.setQueryData(conversationKeys.detail(conversation.id), conversation);
 
       // Start transition animation
       setIsTransitioning(true);
 
-      // Small delay for smooth animation before navigation
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      // Navigate to conversation detail
-      router.push(`/chat/${conversation.id}`);
-
       // Return conversation ID for message sending
       return conversation.id;
     },
-    [createConversation, queryClient, router]
+    [createConversation, queryClient]
   );
 
   const handleTechniqueChange = useCallback((technique: SocraticTechnique) => {

@@ -11,6 +11,57 @@ interface ListSnapshot {
   queryKey: readonly unknown[];
 }
 
+/**
+ * Merge fetched conversation data with the existing cached conversation without
+ * dropping optimistic/newer messages that may not be reflected server-side yet.
+ */
+export function mergeConversationPreservingRecentMessages(
+  cachedConversation: Conversation | undefined,
+  incomingConversation: Conversation
+): Conversation {
+  if (!cachedConversation || cachedConversation.id !== incomingConversation.id) {
+    return incomingConversation;
+  }
+
+  const mergedMessages = mergeMessages(
+    cachedConversation.recentMessages,
+    incomingConversation.recentMessages
+  );
+  const mergedMessageCount = Math.max(
+    cachedConversation.metadata.messageCount,
+    incomingConversation.metadata.messageCount,
+    mergedMessages.length
+  );
+  const mergedLastMessageAt = getLatestTimestamp(
+    cachedConversation.metadata.lastMessageAt,
+    incomingConversation.metadata.lastMessageAt,
+    mergedMessages[mergedMessages.length - 1]?.timestamp
+  );
+
+  return {
+    ...incomingConversation,
+    hasArchivedMessages:
+      incomingConversation.hasArchivedMessages || cachedConversation.hasArchivedMessages,
+    metadata: {
+      ...incomingConversation.metadata,
+      estimatedCost: Math.max(
+        incomingConversation.metadata.estimatedCost,
+        cachedConversation.metadata.estimatedCost
+      ),
+      lastMessageAt: mergedLastMessageAt,
+      messageCount: mergedMessageCount,
+      totalTokens: Math.max(
+        incomingConversation.metadata.totalTokens,
+        cachedConversation.metadata.totalTokens
+      ),
+    },
+    recentMessages: mergedMessages,
+    updatedAt:
+      getLatestTimestamp(incomingConversation.updatedAt, cachedConversation.updatedAt) ||
+      incomingConversation.updatedAt,
+  };
+}
+
 export async function optimisticallyAppendUserMessage(
   queryClient: QueryClient,
   conversationId: string,
@@ -223,6 +274,32 @@ function findConversationInLists(
   }
 
   return null;
+}
+
+function getLatestTimestamp(...timestamps: Array<string | undefined>): string | undefined {
+  const validTimestamps = timestamps.filter((timestamp): timestamp is string => !!timestamp);
+  if (validTimestamps.length === 0) {
+    return undefined;
+  }
+
+  return validTimestamps.reduce((latest, current) =>
+    new Date(current).getTime() > new Date(latest).getTime() ? current : latest
+  );
+}
+
+function mergeMessages(cachedMessages: Message[], incomingMessages: Message[]): Message[] {
+  const messageBySequence = new Map<number, Message>();
+
+  cachedMessages.forEach((message) => {
+    messageBySequence.set(message.sequence, message);
+  });
+
+  // Prefer incoming messages on sequence collisions to align with server-authoritative payloads.
+  incomingMessages.forEach((message) => {
+    messageBySequence.set(message.sequence, message);
+  });
+
+  return Array.from(messageBySequence.values()).sort((a, b) => a.sequence - b.sequence);
 }
 
 function snapshotListConversations(
