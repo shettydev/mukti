@@ -461,7 +461,7 @@ export class QueueService extends WorkerHost {
       this.streamService.emitToConversation(conversationId, {
         data: {
           jobId: job.id!,
-          status: 'AI is thinking...',
+          status: 'Mukti is thinking...',
         },
         type: 'progress',
       });

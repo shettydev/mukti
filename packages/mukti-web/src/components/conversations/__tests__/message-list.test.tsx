@@ -251,7 +251,7 @@ describe('MessageList', () => {
           hasArchivedMessages={false}
           processingState={{
             isProcessing: true,
-            status: 'AI is thinking...',
+            status: 'Mukti is thinking...',
           }}
           recentMessages={mockRecentMessages}
         />,
@@ -260,7 +260,7 @@ describe('MessageList', () => {
 
       // LoadingMessage should be visible
       expect(screen.getByRole('status')).toBeInTheDocument();
-      expect(screen.getByText('AI is thinking...')).toBeInTheDocument();
+      expect(screen.getByText('Mukti is thinking...')).toBeInTheDocument();
     });
 
     it('should not show LoadingMessage when processing state is inactive', () => {
@@ -327,7 +327,7 @@ describe('MessageList', () => {
           hasArchivedMessages={false}
           processingState={{
             isProcessing: true,
-            status: 'AI is thinking...',
+            status: 'Mukti is thinking...',
           }}
           recentMessages={mockRecentMessages}
         />,
