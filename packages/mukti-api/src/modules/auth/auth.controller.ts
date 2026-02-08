@@ -330,19 +330,19 @@ export class AuthController {
   @ApiLogout()
   @HttpCode(HttpStatus.NO_CONTENT)
   @Post('logout')
+  @Public()
   async logout(
-    @CurrentUser('_id') userId: string,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    this.logger.log(`Logout request for user ${userId}`);
+    this.logger.log('Logout request');
 
     // Get refresh token from cookie
     const refreshToken = (req.cookies as Record<string, string> | undefined)
       ?.refreshToken;
 
     if (refreshToken) {
-      await this.authService.logout(userId.toString(), refreshToken);
+      await this.authService.logout('unknown', refreshToken);
       await this.sessionService.revokeSessionByToken(refreshToken);
     }
 

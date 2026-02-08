@@ -7,20 +7,27 @@ import { apiClient, ApiClientError } from '../client';
 // Mock fetch globally
 global.fetch = jest.fn() as unknown as typeof fetch;
 
+const mockAuthState = {
+  accessToken: 'mock-access-token',
+  clearAuth: jest.fn(),
+  isAuthenticated: true,
+  setAccessToken: jest.fn(),
+  user: { id: 'user-1' },
+};
+
 // Mock auth store
 jest.mock('@/lib/stores/auth-store', () => ({
   useAuthStore: {
-    getState: jest.fn(() => ({
-      accessToken: 'mock-access-token',
-      clearAuth: jest.fn(),
-      setAccessToken: jest.fn(),
-    })),
+    getState: jest.fn(() => mockAuthState),
   },
 }));
 
 describe('ApiClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAuthState.accessToken = 'mock-access-token';
+    mockAuthState.isAuthenticated = true;
+    mockAuthState.user = { id: 'user-1' };
     // Reset CSRF token to ensure predictable test behavior
     (apiClient as any).csrfToken = null;
     apiClient.configureRetry({
@@ -145,6 +152,60 @@ describe('ApiClient', () => {
       (global.fetch as unknown as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 
       await expect(apiClient.get('/test')).rejects.toThrow(ApiClientError);
+    });
+
+    it('should clear auth session when refresh endpoint returns 401', async () => {
+      const refreshError = {
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid refresh token',
+        },
+        meta: {
+          timestamp: new Date().toISOString(),
+        },
+        success: false,
+      };
+
+      // CSRF token fetch for initial /auth/refresh request
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ csrfToken: 'cleanup-csrf-token' }),
+        ok: true,
+        status: 200,
+      });
+
+      // Original /auth/refresh request
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => refreshError,
+        ok: false,
+        status: 401,
+        url: 'http://localhost:3000/api/v1/auth/refresh',
+      });
+
+      // Logout request during cleanup
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
+        headers: new Headers(),
+        ok: true,
+        status: 204,
+      });
+
+      await expect(apiClient.post('/auth/refresh')).rejects.toThrow(ApiClientError);
+
+      expect(mockAuthState.clearAuth).toHaveBeenCalledTimes(1);
+
+      const logoutCall = (global.fetch as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('/auth/logout')
+      );
+
+      expect(logoutCall).toBeDefined();
+
+      const logoutOptions = logoutCall?.[1] as RequestInit;
+      const logoutHeaders = new Headers(logoutOptions.headers);
+
+      expect(logoutOptions.credentials).toBe('include');
+      expect(logoutOptions.method).toBe('POST');
+      expect(logoutHeaders.get('X-CSRF-Token')).toBe('cleanup-csrf-token');
     });
   });
 
