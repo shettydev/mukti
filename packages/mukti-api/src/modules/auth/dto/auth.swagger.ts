@@ -180,17 +180,13 @@ export const ApiRefresh = () =>
 export const ApiLogout = () =>
   applyDecorators(
     ApiOperation({
-      description: 'Logs out the current user by revoking their refresh token.',
-      summary: 'Logout current user',
+      description:
+        'Logs out the current user by revoking their refresh token and clearing the cookie. This endpoint is idempotent.',
+      summary: 'Logout current session',
     }),
-    ApiBearerAuth(),
     ApiResponse({
       description: 'User successfully logged out',
       status: 204,
-    }),
-    ApiResponse({
-      description: 'Unauthorized - JWT token missing or invalid',
-      status: 401,
     }),
   );
 

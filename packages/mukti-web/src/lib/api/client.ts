@@ -238,6 +238,39 @@ class ApiClient {
   }
 
   /**
+   * Clear local auth state and request server-side cookie cleanup.
+   */
+  private async clearAuthAndSession(): Promise<void> {
+    useAuthStore.getState().clearAuth();
+
+    try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      const csrfToken = await this.fetchCsrfToken();
+
+      if (csrfToken) {
+        const csrfHeaders = new Headers(headers);
+        csrfHeaders.set('X-CSRF-Token', csrfToken);
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+          credentials: 'include',
+          headers: csrfHeaders,
+          method: 'POST',
+        });
+        return;
+      }
+
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        credentials: 'include',
+        headers,
+        method: 'POST',
+      });
+    } catch {
+      // Ignore cleanup failures; local auth state has already been cleared.
+    }
+  }
+
+  /**
    * CSRF interceptor - adds X-CSRF-Token header
    */
   private async csrfInterceptor(
@@ -375,16 +408,7 @@ class ApiClient {
 
       return data.data.accessToken;
     } catch (error) {
-      // Clear auth state on refresh failure
-      useAuthStore.getState().clearAuth();
-
-      // Attempt to clear cookies via logout endpoint to prevent middleware loops
-      try {
-        await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
-      } catch {
-        // Ignore errors
-      }
-
+      await this.clearAuthAndSession();
       throw error;
     }
   }
@@ -568,16 +592,7 @@ class ApiClient {
 
     // Don't retry refresh endpoint itself
     if (response.url.includes('/auth/refresh')) {
-      // Clear auth state on refresh failure
-      useAuthStore.getState().clearAuth();
-
-      // Attempt to clear cookies via logout endpoint to prevent middleware loops
-      try {
-        await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
-      } catch {
-        // Ignore errors
-      }
-
+      await this.clearAuthAndSession();
       return response;
     }
 
@@ -596,15 +611,7 @@ class ApiClient {
         return this.retryRequest(response, newToken);
       } catch {
         // Refresh failed, clear auth and return original response
-        useAuthStore.getState().clearAuth();
-
-        // Attempt to clear cookies via logout endpoint
-        try {
-          await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
-        } catch {
-          // Ignore errors
-        }
-
+        await this.clearAuthAndSession();
         return response;
       }
     }
@@ -619,15 +626,7 @@ class ApiClient {
       return this.retryRequest(response, newToken);
     } catch {
       // Refresh failed, clear auth and return original response
-      useAuthStore.getState().clearAuth();
-
-      // Attempt to clear cookies via logout endpoint
-      try {
-        await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
-      } catch {
-        // Ignore errors
-      }
-
+      await this.clearAuthAndSession();
       return response;
     } finally {
       this.isRefreshing = false;
