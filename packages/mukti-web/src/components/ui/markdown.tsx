@@ -12,15 +12,6 @@ import remarkGfm from 'remark-gfm';
 
 import { cn } from '@/lib/utils';
 
-interface MarkdownProps {
-  children: string;
-  className?: string;
-}
-
-type NodeData = {
-  hProperties?: Record<string, string>;
-};
-
 export type AssistantMarkdownNode = {
   children?: AssistantMarkdownNode[];
   data?: NodeData;
@@ -30,6 +21,15 @@ export type AssistantMarkdownNode = {
   start?: number;
   type: string;
   value?: string;
+};
+
+interface MarkdownProps {
+  children: string;
+  className?: string;
+}
+
+type NodeData = {
+  hProperties?: Record<string, string>;
 };
 
 const SECTION_LABELS = new Map<string, string>([
@@ -48,149 +48,6 @@ type ParsedSection = {
   rest: string;
   title: string;
 };
-
-function extractText(node: AssistantMarkdownNode | undefined): string {
-  if (!node) {
-    return '';
-  }
-
-  if (typeof node.value === 'string') {
-    return node.value;
-  }
-
-  if (!node.children || node.children.length === 0) {
-    return '';
-  }
-
-  return node.children.map((child) => extractText(child)).join('');
-}
-
-function parseSectionLabel(text: string): ParsedSection | null {
-  const trimmed = text.trim();
-  const match = trimmed.match(
-    /^(summary|details|implementation details|next steps?|question|questions to consider)(?:\s*[:\-]\s*([\s\S]*))?$/i
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const normalizedLabel = match[1].trim().toLowerCase();
-  const title = SECTION_LABELS.get(normalizedLabel);
-
-  if (!title) {
-    return null;
-  }
-
-  return {
-    rest: match[2]?.trim() ?? '',
-    title,
-  };
-}
-
-function parseSection(node: AssistantMarkdownNode): ParsedSection | null {
-  if (node.type !== 'heading' && node.type !== 'paragraph') {
-    return null;
-  }
-
-  const text = extractText(node).trim();
-  if (!text) {
-    return null;
-  }
-
-  return parseSectionLabel(text);
-}
-
-function createHeading(text: string): AssistantMarkdownNode {
-  return {
-    children: [{ type: 'text', value: text }],
-    depth: 3,
-    type: 'heading',
-  };
-}
-
-function createParagraph(text: string): AssistantMarkdownNode {
-  return {
-    children: [{ type: 'text', value: text }],
-    type: 'paragraph',
-  };
-}
-
-function createQuestionLabelParagraph(): AssistantMarkdownNode {
-  return {
-    children: [
-      {
-        children: [{ type: 'text', value: 'Question:' }],
-        type: 'strong',
-      },
-    ],
-    type: 'paragraph',
-  };
-}
-
-function createOrderedQuestionList(questionItems: string[]): AssistantMarkdownNode {
-  return {
-    children: questionItems.map((item) => ({
-      children: [createParagraph(item)],
-      spread: false,
-      type: 'listItem',
-    })),
-    ordered: true,
-    spread: false,
-    start: 1,
-    type: 'list',
-  };
-}
-
-function isEmptyParagraph(node: AssistantMarkdownNode): boolean {
-  return node.type === 'paragraph' && extractText(node).trim().length === 0;
-}
-
-function normalizeQuestionContent(nodes: AssistantMarkdownNode[]): AssistantMarkdownNode[] {
-  const trimmedNodes = nodes.filter((node) => !isEmptyParagraph(node));
-
-  if (trimmedNodes.length === 0) {
-    return [];
-  }
-
-  const containsOnlyParagraphs = trimmedNodes.every((node) => node.type === 'paragraph');
-  if (containsOnlyParagraphs) {
-    const paragraphTexts = trimmedNodes.map((node) => extractText(node).trim()).filter(Boolean);
-    const areAllQuestions =
-      paragraphTexts.length > 1 &&
-      paragraphTexts.every((paragraphText) => paragraphText.endsWith('?'));
-
-    if (areAllQuestions) {
-      return [createOrderedQuestionList(paragraphTexts)];
-    }
-  }
-
-  return trimmedNodes.map((node) => {
-    if (node.type === 'list') {
-      return {
-        ...node,
-        ordered: true,
-        start: 1,
-      };
-    }
-
-    return node;
-  });
-}
-
-function createQuestionCallout(contentNodes: AssistantMarkdownNode[]): AssistantMarkdownNode {
-  const normalizedQuestionContent = normalizeQuestionContent(contentNodes);
-
-  return {
-    children: [createQuestionLabelParagraph(), ...normalizedQuestionContent],
-    data: {
-      hProperties: {
-        'data-callout': 'question',
-      },
-    },
-    type: 'blockquote',
-  };
-}
 
 export function transformAssistantMarkdownNodes(
   nodes: AssistantMarkdownNode[]
@@ -250,6 +107,77 @@ function assistantStructurePlugin() {
   };
 }
 
+function createHeading(text: string): AssistantMarkdownNode {
+  return {
+    children: [{ type: 'text', value: text }],
+    depth: 3,
+    type: 'heading',
+  };
+}
+
+function createOrderedQuestionList(questionItems: string[]): AssistantMarkdownNode {
+  return {
+    children: questionItems.map((item) => ({
+      children: [createParagraph(item)],
+      spread: false,
+      type: 'listItem',
+    })),
+    ordered: true,
+    spread: false,
+    start: 1,
+    type: 'list',
+  };
+}
+
+function createParagraph(text: string): AssistantMarkdownNode {
+  return {
+    children: [{ type: 'text', value: text }],
+    type: 'paragraph',
+  };
+}
+
+function createQuestionCallout(contentNodes: AssistantMarkdownNode[]): AssistantMarkdownNode {
+  const normalizedQuestionContent = normalizeQuestionContent(contentNodes);
+
+  return {
+    children: [createQuestionLabelParagraph(), ...normalizedQuestionContent],
+    data: {
+      hProperties: {
+        'data-callout': 'question',
+      },
+    },
+    type: 'blockquote',
+  };
+}
+
+function createQuestionLabelParagraph(): AssistantMarkdownNode {
+  return {
+    children: [
+      {
+        children: [{ type: 'text', value: 'Question:' }],
+        type: 'strong',
+      },
+    ],
+    type: 'paragraph',
+  };
+}
+
+function extractText(node: AssistantMarkdownNode | undefined): string {
+  if (!node) {
+    return '';
+  }
+
+  if (typeof node.value === 'string') {
+    return node.value;
+  }
+
+  if (!node.children || node.children.length === 0) {
+    return '';
+  }
+
+  return node.children.map((child) => extractText(child)).join('');
+}
+
 function getCalloutType(node: unknown): null | string {
   if (!node || typeof node !== 'object') {
     return null;
@@ -259,6 +187,78 @@ function getCalloutType(node: unknown): null | string {
   const callout = data?.hProperties?.['data-callout'];
 
   return typeof callout === 'string' ? callout : null;
+}
+
+function isEmptyParagraph(node: AssistantMarkdownNode): boolean {
+  return node.type === 'paragraph' && extractText(node).trim().length === 0;
+}
+
+function normalizeQuestionContent(nodes: AssistantMarkdownNode[]): AssistantMarkdownNode[] {
+  const trimmedNodes = nodes.filter((node) => !isEmptyParagraph(node));
+
+  if (trimmedNodes.length === 0) {
+    return [];
+  }
+
+  const containsOnlyParagraphs = trimmedNodes.every((node) => node.type === 'paragraph');
+  if (containsOnlyParagraphs) {
+    const paragraphTexts = trimmedNodes.map((node) => extractText(node).trim()).filter(Boolean);
+    const areAllQuestions =
+      paragraphTexts.length > 1 &&
+      paragraphTexts.every((paragraphText) => paragraphText.endsWith('?'));
+
+    if (areAllQuestions) {
+      return [createOrderedQuestionList(paragraphTexts)];
+    }
+  }
+
+  return trimmedNodes.map((node) => {
+    if (node.type === 'list') {
+      return {
+        ...node,
+        ordered: true,
+        start: 1,
+      };
+    }
+
+    return node;
+  });
+}
+
+function parseSection(node: AssistantMarkdownNode): null | ParsedSection {
+  if (node.type !== 'heading' && node.type !== 'paragraph') {
+    return null;
+  }
+
+  const text = extractText(node).trim();
+  if (!text) {
+    return null;
+  }
+
+  return parseSectionLabel(text);
+}
+
+function parseSectionLabel(text: string): null | ParsedSection {
+  const trimmed = text.trim();
+  const match = trimmed.match(
+    /^(summary|details|implementation details|next steps?|question|questions to consider)(?:\s*[:\-]\s*([\s\S]*))?$/i
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const normalizedLabel = match[1].trim().toLowerCase();
+  const title = SECTION_LABELS.get(normalizedLabel);
+
+  if (!title) {
+    return null;
+  }
+
+  return {
+    rest: match[2]?.trim() ?? '',
+    title,
+  };
 }
 
 const components: Components = {

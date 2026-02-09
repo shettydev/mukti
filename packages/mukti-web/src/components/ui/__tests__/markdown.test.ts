@@ -2,6 +2,13 @@ import type { AssistantMarkdownNode } from '@/components/ui/markdown';
 
 import { transformAssistantMarkdownNodes } from '@/components/ui/markdown';
 
+function createTextParagraph(text: string): AssistantMarkdownNode {
+  return {
+    children: [{ type: 'text', value: text }],
+    type: 'paragraph',
+  };
+}
+
 function textFromNode(node: AssistantMarkdownNode | undefined): string {
   if (!node) {
     return '';
@@ -16,13 +23,6 @@ function textFromNode(node: AssistantMarkdownNode | undefined): string {
   }
 
   return node.children.map((child) => textFromNode(child)).join('');
-}
-
-function createTextParagraph(text: string): AssistantMarkdownNode {
-  return {
-    children: [{ type: 'text', value: text }],
-    type: 'paragraph',
-  };
 }
 
 describe('transformAssistantMarkdownNodes', () => {
