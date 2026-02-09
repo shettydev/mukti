@@ -157,7 +157,8 @@ function normalizeQuestionContent(nodes: AssistantMarkdownNode[]): AssistantMark
   if (containsOnlyParagraphs) {
     const paragraphTexts = trimmedNodes.map((node) => extractText(node).trim()).filter(Boolean);
     const areAllQuestions =
-      paragraphTexts.length > 1 && paragraphTexts.every((paragraphText) => paragraphText.endsWith('?'));
+      paragraphTexts.length > 1 &&
+      paragraphTexts.every((paragraphText) => paragraphText.endsWith('?'));
 
     if (areAllQuestions) {
       return [createOrderedQuestionList(paragraphTexts)];
@@ -263,12 +264,7 @@ function getCalloutType(node: unknown): null | string {
 const components: Components = {
   // Links
   a: ({ children, href }) => (
-    <a
-      className="assistant-link"
-      href={href}
-      rel="noopener noreferrer"
-      target="_blank"
-    >
+    <a className="assistant-link" href={href} rel="noopener noreferrer" target="_blank">
       {children}
     </a>
   ),
@@ -297,11 +293,7 @@ const components: Components = {
       return <code className="assistant-inline-code">{children}</code>;
     }
 
-    return (
-      <code className={cn('assistant-code-block-content', className)}>
-        {children}
-      </code>
-    );
+    return <code className={cn('assistant-code-block-content', className)}>{children}</code>;
   },
   // Emphasis
   em: ({ children }) => <em className="italic">{children}</em>,
@@ -316,11 +308,7 @@ const components: Components = {
   ol: ({ children }) => <ol className="assistant-list assistant-list-ordered">{children}</ol>,
   // Paragraphs
   p: ({ children }) => <p className="assistant-paragraph">{children}</p>,
-  pre: ({ children }) => (
-    <pre className="assistant-pre">
-      {children}
-    </pre>
-  ),
+  pre: ({ children }) => <pre className="assistant-pre">{children}</pre>,
   // Strong
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
   // Tables
