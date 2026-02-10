@@ -1,8 +1,8 @@
 'use client';
 
+import { ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
 
 export default function LandingResearch() {
   return (
@@ -45,9 +45,9 @@ export default function LandingResearch() {
               ownership over one's work.
             </p>
             <Link
+              className="inline-flex items-center text-sm text-japandi-stone/60 hover:text-japandi-terracotta transition-colors group"
               href="https://arxiv.org/pdf/2506.08872"
               target="_blank"
-              className="inline-flex items-center text-sm text-japandi-stone/60 hover:text-japandi-terracotta transition-colors group"
             >
               <span className="border-b border-transparent group-hover:border-japandi-terracotta transition-colors">
                 Read the study
@@ -76,9 +76,9 @@ export default function LandingResearch() {
               to something, especially when thinking a liiiiittle bit can get you there."
             </p>
             <Link
+              className="inline-flex items-center text-sm text-japandi-stone/60 hover:text-japandi-terracotta transition-colors group"
               href="https://cassidoo.co/post/good-brain/"
               target="_blank"
-              className="inline-flex items-center text-sm text-japandi-stone/60 hover:text-japandi-terracotta transition-colors group"
             >
               <span className="border-b border-transparent group-hover:border-japandi-terracotta transition-colors">
                 Read full post
