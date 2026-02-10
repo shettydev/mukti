@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 
@@ -74,7 +74,7 @@ export default function LandingCTA() {
         <AnimatePresence mode="wait">
           {state === 'idle' || state === 'loading' || state === 'error' ? (
             <motion.form
-              className="flex flex-col md:flex-row items-center justify-center gap-4 max-w-md mx-auto"
+              className="flex flex-col md:flex-row items-center justify-center gap-4 max-w-xl mx-auto"
               exit={{ opacity: 0, scale: 0.95 }}
               initial={{ opacity: 0, y: 20 }}
               key="form"
@@ -93,7 +93,7 @@ export default function LandingCTA() {
                 value={email}
               />
               <button
-                className="w-full md:w-auto px-8 py-4 bg-japandi-terracotta text-japandi-cream font-medium tracking-wide rounded-sm hover:bg-japandi-timber transition-colors duration-300 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-japandi-terracotta"
+                className="w-full md:w-auto px-8 py-4 bg-japandi-terracotta text-japandi-cream font-medium tracking-wide rounded-sm hover:bg-japandi-timber transition-colors duration-300 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-japandi-terracotta cursor-pointer"
                 disabled={state === 'loading'}
                 type="submit"
               >
@@ -110,107 +110,57 @@ export default function LandingCTA() {
                 )}
               </button>
             </motion.form>
-          ) : state === 'success' ? (
+          ) : (
             <motion.div
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-md mx-auto"
+              className="max-w-xl mx-auto py-12"
               exit={{ opacity: 0, scale: 0.95 }}
               initial={{ opacity: 0, scale: 0.9 }}
-              key="success"
+              key="result"
               transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <div className="bg-japandi-cream/50 backdrop-blur-sm border border-japandi-sage/20 rounded-sm p-8">
+              <div className="flex flex-col items-center justify-center text-center">
                 <motion.div
                   animate={{ rotate: 0, scale: 1 }}
                   initial={{ rotate: -180, scale: 0 }}
                   transition={{ delay: 0.1, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
                 >
-                  <CheckCircle2 className="w-16 h-16 text-japandi-sage mx-auto mb-4" />
+                  <CheckCircle2
+                    className={`w-16 h-16 mx-auto mb-6 ${
+                      state === 'success' ? 'text-japandi-sage' : 'text-japandi-terracotta'
+                    }`}
+                  />
                 </motion.div>
 
                 <motion.h3
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-2xl font-light text-japandi-stone mb-2 tracking-wide"
+                  className="text-3xl md:text-4xl font-light text-japandi-stone mb-4 tracking-wide"
                   initial={{ opacity: 0, y: 10 }}
                   transition={{ delay: 0.3, duration: 0.5 }}
                 >
-                  Welcome to the Journey
+                  {state === 'success' ? "You're on the list" : "You're already on the list"}
                 </motion.h3>
 
                 <motion.p
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-japandi-stone/70 font-light leading-relaxed"
+                  className="text-japandi-stone/70 text-lg font-light leading-relaxed max-w-lg mx-auto"
                   initial={{ opacity: 0, y: 10 }}
                   transition={{ delay: 0.4, duration: 0.5 }}
                 >
-                  You&apos;ve successfully joined the waitlist. We&apos;ll notify you when Mukti is
-                  ready to liberate your thinking.
+                  {state === 'success'
+                    ? "We'll be in touch soon. Get ready to liberate your thinking."
+                    : "We've got you covered. No need to sign up again."}
                 </motion.p>
 
                 <motion.button
                   animate={{ opacity: 1 }}
-                  className="mt-6 text-sm text-japandi-terracotta hover:text-japandi-timber transition-colors duration-300"
+                  className="mt-8 text-sm uppercase tracking-widest text-japandi-terracotta hover:text-japandi-timber transition-colors duration-300 border-b border-transparent hover:border-japandi-timber pb-0.5"
                   initial={{ opacity: 0 }}
                   onClick={resetState}
                   transition={{ delay: 0.6, duration: 0.5 }}
                   type="button"
                 >
-                  Join another email →
-                </motion.button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-md mx-auto"
-              exit={{ opacity: 0, scale: 0.95 }}
-              initial={{ opacity: 0, scale: 0.9 }}
-              key="already-enrolled"
-              transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <div className="bg-japandi-cream/50 backdrop-blur-sm border border-japandi-indigo/20 rounded-sm p-8">
-                <motion.div
-                  animate={{ scale: 1, y: 0 }}
-                  initial={{ scale: 0.8, y: -10 }}
-                  transition={{
-                    delay: 0.1,
-                    duration: 0.6,
-                    ease: [0.34, 1.56, 0.64, 1],
-                    repeat: 2,
-                    repeatType: 'reverse',
-                  }}
-                >
-                  <AlertCircle className="w-16 h-16 text-japandi-indigo mx-auto mb-4" />
-                </motion.div>
-
-                <motion.h3
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-2xl font-light text-japandi-stone mb-2 tracking-wide"
-                  initial={{ opacity: 0, y: 10 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                >
-                  Already on the Path
-                </motion.h3>
-
-                <motion.p
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-japandi-stone/70 font-light leading-relaxed"
-                  initial={{ opacity: 0, y: 10 }}
-                  transition={{ delay: 0.4, duration: 0.5 }}
-                >
-                  This email is already on the waitlist. We&apos;ll reach out when it&apos;s time to
-                  begin your liberation journey.
-                </motion.p>
-
-                <motion.button
-                  animate={{ opacity: 1 }}
-                  className="mt-6 text-sm text-japandi-terracotta hover:text-japandi-timber transition-colors duration-300"
-                  initial={{ opacity: 0 }}
-                  onClick={resetState}
-                  transition={{ delay: 0.6, duration: 0.5 }}
-                  type="button"
-                >
-                  Try another email →
+                  {state === 'success' ? 'Register another email' : 'Try another email'}
                 </motion.button>
               </div>
             </motion.div>
