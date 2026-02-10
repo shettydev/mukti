@@ -1,17 +1,30 @@
 'use client';
 
+import { Moon, Sun } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
 export default function LandingNav() {
   const { scrollY } = useScroll();
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = resolvedTheme === 'dark';
 
   const backgroundColor = useTransform(
     scrollY,
     [0, 50],
-    ['rgba(245, 240, 235, 0)', 'rgba(245, 240, 235, 0.95)']
+    isDark
+      ? ['rgba(20, 20, 22, 0)', 'rgba(20, 20, 22, 0.95)']
+      : ['rgba(245, 240, 235, 0)', 'rgba(245, 240, 235, 0.95)']
   );
 
   const backdropFilter = useTransform(scrollY, [0, 50], ['blur(0px)', 'blur(8px)']);
@@ -19,14 +32,22 @@ export default function LandingNav() {
   const borderBottomColor = useTransform(
     scrollY,
     [0, 50],
-    ['rgba(212, 197, 178, 0)', 'rgba(212, 197, 178, 0.3)']
+    isDark
+      ? ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.1)']
+      : ['rgba(212, 197, 178, 0)', 'rgba(212, 197, 178, 0.3)']
   );
 
   const textColor = useTransform(
     scrollY,
     [0, 50],
-    ['rgba(255, 255, 255, 0.9)', 'rgba(44, 44, 43, 1)']
+    isDark
+      ? ['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.9)']
+      : ['rgba(255, 255, 255, 0.9)', 'rgba(44, 44, 43, 1)']
   );
+
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark');
+  };
 
   return (
     <motion.nav
@@ -47,17 +68,32 @@ export default function LandingNav() {
         </motion.span>
       </Link>
 
-      <motion.div style={{ color: textColor }}>
-        <Link
-          className={cn(
-            'text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
-            "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
-          )}
-          href="#join"
-        >
-          Join Waitlist
-        </Link>
-      </motion.div>
+      <div className="flex items-center gap-6">
+        <motion.div style={{ color: textColor }}>
+          <Link
+            className={cn(
+              'text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
+              "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
+            )}
+            href="#join"
+          >
+            Join Waitlist
+          </Link>
+        </motion.div>
+
+        {mounted && (
+          <motion.button
+            aria-label="Toggle theme"
+            className="relative flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-300 hover:bg-white/10 cursor-pointer"
+            onClick={toggleTheme}
+            style={{ color: textColor }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </motion.button>
+        )}
+      </div>
     </motion.nav>
   );
 }
