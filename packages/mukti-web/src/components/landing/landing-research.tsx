@@ -108,7 +108,16 @@ export default function LandingResearch() {
               for basic decision-making is &quot;bad and dangerous&quot; and can lead to a loss of
               autonomy.
             </p>
-            <div className="text-sm text-japandi-stone/40 italic">via Business Insider (2025)</div>
+            <Link
+              className="inline-flex items-center text-sm text-japandi-stone/60 hover:text-japandi-terracotta transition-colors group"
+              href="https://www.businessinsider.com/sam-altman-over-reliance-ai-chatgpt-common-young-people-2025-7"
+              target="_blank"
+            >
+              <span className="border-b border-transparent group-hover:border-japandi-terracotta transition-colors">
+                Read the article
+              </span>
+              <ExternalLink className="w-3 h-3 ml-1" />
+            </Link>
           </motion.div>
         </div>
       </div>
