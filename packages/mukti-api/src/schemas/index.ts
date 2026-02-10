@@ -17,6 +17,7 @@ export * from './usage-event.schema';
 // Export all schemas and their types for easy importing
 export * from './user.schema';
 export * from './vote.schema';
+export * from './waitlist.schema';
 
 import {
   ArchivedMessage,
@@ -46,6 +47,7 @@ import { UsageEvent, UsageEventSchema } from './usage-event.schema';
 // Re-export commonly used types
 import { User, UserSchema } from './user.schema';
 import { Vote, VoteSchema } from './vote.schema';
+import { Waitlist, WaitlistSchema } from './waitlist.schema';
 
 // Array of all schemas for bulk registration
 export const ALL_SCHEMAS = [
@@ -67,4 +69,5 @@ export const ALL_SCHEMAS = [
   { name: RateLimit.name, schema: RateLimitSchema },
   { name: RefreshToken.name, schema: RefreshTokenSchema },
   { name: Session.name, schema: SessionSchema },
+  { name: Waitlist.name, schema: WaitlistSchema },
 ];
