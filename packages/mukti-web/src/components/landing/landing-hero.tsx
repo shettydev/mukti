@@ -2,15 +2,21 @@
 
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Noto_Serif_Devanagari } from 'next/font/google';
 import Link from 'next/link';
+
+const notoSerifDevanagari = Noto_Serif_Devanagari({
+  subsets: ['devanagari'],
+  weight: '100',
+});
 
 export default function LandingHero() {
   return (
     <section className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden px-6 py-24 md:px-12">
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
         <motion.span
-          animate={{ opacity: 0.08 }}
-          className="text-[20vw] font-thin text-japandi-stone whitespace-nowrap leading-none"
+          animate={{ opacity: 0.04 }}
+          className={`${notoSerifDevanagari.className} text-[30vw] text-japandi-stone whitespace-nowrap leading-none tracking-widest`}
           initial={{ opacity: 0 }}
           style={{ writingMode: 'vertical-rl' }}
           transition={{ duration: 2, ease: [0.25, 0.1, 0.25, 1] }}
@@ -35,9 +41,9 @@ export default function LandingHero() {
           initial={{ opacity: 0, y: 30 }}
           transition={{ delay: 0.4, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
-          Reclaim your
+          Your mind,
           <br />
-          cognitive sovereignty
+          unprompted
         </motion.h1>
 
         <motion.p
@@ -46,7 +52,9 @@ export default function LandingHero() {
           initial={{ opacity: 0, y: 30 }}
           transition={{ delay: 0.6, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
-          Use AI as a mentor, not a crutch. Build your own brain, not just your prompt library.
+          In the silence between prompts, you exist.
+          <br />
+          Nurture the thoughts that are truly your own.
         </motion.p>
 
         <motion.div
