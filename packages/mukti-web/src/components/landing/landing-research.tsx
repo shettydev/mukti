@@ -40,9 +40,9 @@ export default function LandingResearch() {
               </h3>
             </div>
             <p className="text-japandi-stone/70 text-base leading-relaxed mb-8 flex-grow">
-              Researchers found that excessive reliance on AI assistants leads to "cognitive debt" —
-              a reduction in critical thinking capabilities, memory retention, and sense of
-              ownership over one's work.
+              Researchers found that excessive reliance on AI assistants leads to &quot;cognitive
+              debt&quot; — a reduction in critical thinking capabilities, memory retention, and
+              sense of ownership over one&apos;s work.
             </p>
             <Link
               className="inline-flex items-center text-sm text-japandi-stone/60 hover:text-japandi-terracotta transition-colors group"
@@ -68,12 +68,13 @@ export default function LandingResearch() {
                 Cassidy Williams (2026)
               </span>
               <h3 className="text-japandi-stone text-xl font-normal leading-tight">
-                "Do not give up your brain"
+                &quot;Do not give up your brain&quot;
               </h3>
             </div>
             <p className="text-japandi-stone/70 text-base leading-relaxed mb-8 flex-grow">
-              "I think it’s very important to not default to laziness and just asking for the answer
-              to something, especially when thinking a liiiiittle bit can get you there."
+              &quot;I think it’s very important to not default to laziness and just asking for the
+              answer to something, especially when thinking a liiiiittle bit can get you
+              there.&quot;
             </p>
             <Link
               className="inline-flex items-center text-sm text-japandi-stone/60 hover:text-japandi-terracotta transition-colors group"
@@ -99,12 +100,13 @@ export default function LandingResearch() {
                 Sam Altman (OpenAI)
               </span>
               <h3 className="text-japandi-stone text-xl font-normal leading-tight">
-                Warning on "Emotional Over-reliance"
+                Warning on &quot;Emotional Over-reliance&quot;
               </h3>
             </div>
             <p className="text-japandi-stone/70 text-base leading-relaxed mb-8 flex-grow">
               Even the creators of these tools are concerned. Altman has warned that relying on AI
-              for basic decision-making is "bad and dangerous" and can lead to a loss of autonomy.
+              for basic decision-making is &quot;bad and dangerous&quot; and can lead to a loss of
+              autonomy.
             </p>
             <div className="text-sm text-japandi-stone/40 italic">via Business Insider (2025)</div>
           </motion.div>
