@@ -6,8 +6,8 @@ import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
-import { Button } from './ui/button';
-import { Spotlight } from './ui/spotlight-new';
+import { Button } from '../ui/button';
+import { Spotlight } from '../ui/spotlight-new';
 
 export function Pricing() {
   const [billingCycle, setBillingCycle] = useState<'annually' | 'monthly'>('monthly');

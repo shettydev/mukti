@@ -3,7 +3,7 @@
 import { Quote } from 'lucide-react';
 import { motion } from 'motion/react';
 
-import { InfiniteMovingCards } from './ui/infinite-moving-cards';
+import { InfiniteMovingCards } from '../ui/infinite-moving-cards';
 
 const testimonials = [
   {
