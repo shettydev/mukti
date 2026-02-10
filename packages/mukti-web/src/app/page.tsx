@@ -1,6 +1,6 @@
 'use client';
 
-import './japandi/japandi.css';
+import './japandi.css';
 import LandingCTA from '@/components/landing/landing-cta';
 import LandingFooter from '@/components/landing/landing-footer';
 import LandingHero from '@/components/landing/landing-hero';
