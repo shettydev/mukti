@@ -7,6 +7,7 @@ import LandingHero from '@/components/landing/landing-hero';
 import LandingNav from '@/components/landing/landing-nav';
 import LandingPhilosophy from '@/components/landing/landing-philosophy';
 import LandingPillars from '@/components/landing/landing-pillars';
+import LandingProcess from '@/components/landing/landing-process';
 import LandingResearch from '@/components/landing/landing-research';
 
 export default function Home() {
@@ -15,8 +16,9 @@ export default function Home() {
       <LandingNav />
       <LandingHero />
       <LandingPhilosophy />
-      <LandingResearch />
       <LandingPillars />
+      <LandingProcess />
+      <LandingResearch />
       <LandingCTA />
       <LandingFooter />
     </main>
