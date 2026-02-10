@@ -80,7 +80,7 @@ export function ModelSelector({
           <DialogHeader>
             <DialogTitle>Select Model</DialogTitle>
             <DialogDescription>
-              Choose which OpenRouter model to use for your next message.
+              Choose which configured AI model to use for your next message.
             </DialogDescription>
           </DialogHeader>
 

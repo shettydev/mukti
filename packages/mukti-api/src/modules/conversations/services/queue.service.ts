@@ -1,6 +1,5 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
@@ -17,11 +16,8 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { User, UserDocument } from '../../../schemas/user.schema';
-import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import { AiGatewayService } from '../../ai/services/ai-gateway.service';
 import { MessageService } from './message.service';
-import { OpenRouterService } from './openrouter.service';
 import { StreamService } from './stream.service';
 
 /**
@@ -33,7 +29,6 @@ export interface ConversationRequestJobData {
   model: string;
   subscriptionTier: string;
   technique: string;
-  usedByok: boolean;
   userId: string;
 }
 
@@ -76,13 +71,8 @@ export class QueueService extends WorkerHost {
     private techniqueModel: Model<TechniqueDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
-    @InjectModel(User.name)
-    private userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
-    private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
+    private readonly aiGatewayService: AiGatewayService,
     private readonly messageService: MessageService,
-    private readonly openRouterService: OpenRouterService,
     private readonly streamService: StreamService,
   ) {
     super();
@@ -125,7 +115,6 @@ export class QueueService extends WorkerHost {
     subscriptionTier: string,
     technique: string,
     model: string,
-    usedByok: boolean,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = this.formatId(userId);
     const conversationIdString = this.formatId(conversationId);
@@ -145,7 +134,6 @@ export class QueueService extends WorkerHost {
         model,
         subscriptionTier,
         technique,
-        usedByok,
         userId: userIdString,
       };
 
@@ -370,7 +358,7 @@ export class QueueService extends WorkerHost {
    * Processing workflow:
    * 1. Load conversation context (conversation + technique template)
    * 2. Build AI prompt using MessageService
-   * 3. Call OpenRouterService to get AI response
+   * 3. Route request through AI gateway and provider adapters
    * 4. Add user message and AI response to conversation
    * 5. Archive messages if threshold exceeded
    * 6. Log usage event
@@ -392,7 +380,6 @@ export class QueueService extends WorkerHost {
       model,
       subscriptionTier: _subscriptionTier,
       technique,
-      usedByok,
       userId,
     } = job.data;
 
@@ -444,15 +431,12 @@ export class QueueService extends WorkerHost {
         type: 'progress',
       });
 
-      // 3. Build prompt and call OpenRouter
-      const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.resolveApiKey(userId, usedByok);
-      const messages = this.openRouterService.buildPrompt(
+      // 3. Build prompt and call configured AI provider
+      const messages = this.buildPrompt(
         techniqueDoc.template,
         context.messages.map((m) => ({
           content: m.content,
-          role: m.role as 'assistant' | 'system' | 'user',
-          timestamp: new Date(),
+          role: m.role as 'assistant' | 'user',
         })),
         message,
       );
@@ -466,12 +450,10 @@ export class QueueService extends WorkerHost {
         type: 'progress',
       });
 
-      const response = await this.openRouterService.sendChatCompletion(
+      const response = await this.aiGatewayService.createChatCompletion({
         messages,
-        effectiveModel,
-        apiKey,
-        techniqueDoc.template,
-      );
+        modelId: model,
+      });
 
       // 4. Add messages to conversation
       const updatedConversation =
@@ -481,8 +463,8 @@ export class QueueService extends WorkerHost {
           response.content,
           {
             completionTokens: response.completionTokens,
-            cost: response.cost,
-            latencyMs: Date.now() - startTime,
+            cost: response.costUsd,
+            latencyMs: response.latencyMs,
             model: response.model,
             promptTokens: response.promptTokens,
             totalTokens: response.totalTokens,
@@ -528,12 +510,15 @@ export class QueueService extends WorkerHost {
         metadata: {
           completionTokens: response.completionTokens,
           conversationId: new Types.ObjectId(conversationId),
-          cost: response.cost,
-          latencyMs: Date.now() - startTime,
+          cost: response.costUsd,
+          costUsd: response.costUsd,
+          latencyMs: response.latencyMs,
           model: response.model,
+          provider: response.provider,
           promptTokens: response.promptTokens,
           technique,
           tokens: response.totalTokens,
+          totalTokens: response.totalTokens,
         },
         timestamp: new Date(),
         userId: new Types.ObjectId(userId),
@@ -542,13 +527,13 @@ export class QueueService extends WorkerHost {
       const latency = Date.now() - startTime;
 
       this.logger.log(
-        `Job ${job.id} completed successfully in ${latency}ms. Tokens: ${response.totalTokens}, Cost: ${response.cost}`,
+        `Job ${job.id} completed successfully in ${latency}ms. Tokens: ${response.totalTokens}, Cost: ${response.costUsd}`,
       );
 
       // Emit complete event
       this.streamService.emitToConversation(conversationId, {
         data: {
-          cost: response.cost,
+          cost: response.costUsd,
           jobId: job.id!,
           latency,
           tokens: response.totalTokens,
@@ -558,7 +543,7 @@ export class QueueService extends WorkerHost {
 
       // 7. Return job result
       return {
-        cost: response.cost,
+        cost: response.costUsd,
         latency,
         messageId: updatedConversation._id.toString(),
         tokens: response.totalTokens,
@@ -600,35 +585,6 @@ export class QueueService extends WorkerHost {
     return error instanceof Error ? error.stack : undefined;
   }
 
-  private async resolveApiKey(
-    userId: string,
-    usedByok: boolean,
-  ): Promise<string> {
-    if (usedByok) {
-      const user = await this.userModel
-        .findById(userId)
-        .select('+openRouterApiKeyEncrypted')
-        .lean();
-
-      if (!user?.openRouterApiKeyEncrypted) {
-        throw new Error('OPENROUTER_KEY_MISSING');
-      }
-
-      return this.aiSecretsService.decryptString(
-        user.openRouterApiKeyEncrypted,
-      );
-    }
-
-    const serverKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-
-    return serverKey;
-  }
-
   /**
    * Sets up event listeners for job lifecycle events.
    * Listens to 'completed' and 'failed' events to log job outcomes.
@@ -647,23 +603,18 @@ export class QueueService extends WorkerHost {
     );
   }
 
-  private validateEffectiveModel(model: string, usedByok: boolean): string {
-    const trimmed = model.trim();
-
-    if (!trimmed) {
-      throw new Error('Model is required');
-    }
-
-    if (!usedByok) {
-      const isCurated = this.aiPolicyService
-        .getCuratedModels()
-        .some((allowed) => allowed.id === trimmed);
-
-      if (!isCurated) {
-        throw new Error('MODEL_NOT_ALLOWED');
-      }
-    }
-
-    return trimmed;
+  private buildPrompt(
+    technique: { systemPrompt: string },
+    conversationHistory: { content: string; role: 'assistant' | 'user' }[],
+    userMessage: string,
+  ): { content: string; role: 'assistant' | 'system' | 'user' }[] {
+    return [
+      { content: technique.systemPrompt, role: 'system' },
+      ...conversationHistory.map((message) => ({
+        content: message.content,
+        role: message.role,
+      })),
+      { content: userMessage, role: 'user' },
+    ];
   }
 }
