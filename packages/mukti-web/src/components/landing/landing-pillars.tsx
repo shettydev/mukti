@@ -109,7 +109,7 @@ export default function LandingPillars() {
                 <h4 className="text-japandi-stone text-xl font-normal">{pillar.english}</h4>
               </div>
 
-              <p className="text-japandi-stone/80 text-base leading-relaxed font-light mt-auto">
+              <p className="text-japandi-stone/80 text-base leading-relaxed font-light mt-10">
                 {pillar.description}
               </p>
             </motion.div>

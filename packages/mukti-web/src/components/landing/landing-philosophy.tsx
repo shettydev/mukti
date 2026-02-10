@@ -30,9 +30,9 @@ export default function LandingPhilosophy() {
             whileInView={{ opacity: 1, y: 0 }}
           >
             <p className="text-japandi-stone/90 text-xl md:text-2xl font-light leading-relaxed">
-              We believe the modern obsession with instant AI answers has cost us something precious
-              — the ability to think for ourselves. Mukti exists to restore that cognitive
-              sovereignty.
+              We believe the modern obsession with instant AI answers has cost us something precious{' '}
+              <br />— the ability to think for ourselves.
+              <br /> Mukti exists to restore that cognitive sovereignty.
             </p>
           </motion.div>
 
@@ -43,9 +43,11 @@ export default function LandingPhilosophy() {
             whileInView={{ opacity: 1, y: 0 }}
           >
             <p className="text-japandi-stone/80 text-lg md:text-xl font-light leading-relaxed">
-              Inspired by the Socratic method — the meaningful question — we&apos;ve created a
-              practice that makes space for both guidance and autonomy. We use AI to challenge your
-              assumptions, not to do the thinking for you.
+              Inspired by the Socratic method of <span className="italic">Maieutics</span> —
+              intellectual midwifery — we&apos;ve created a space where your ideas can be born, not
+              borrowed. <br />
+              We use AI to gently challenge your assumptions, providing just enough guidance to
+              spark your own autonomy, ensuring the final insight is always yours.
             </p>
           </motion.div>
         </div>
