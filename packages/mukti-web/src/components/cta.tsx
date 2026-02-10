@@ -4,7 +4,7 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 
-import { Button } from '../ui/button';
+import { Button } from './ui/button';
 
 export function Cta() {
   return (

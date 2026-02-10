@@ -3,15 +3,15 @@ import { useMemo, useState } from 'react';
 
 import { useWaitlist } from '@/lib/hooks/useWaitlist';
 
-import { RainbowButton } from '../magicui/rainbow-button';
-import AnimatedContent from '../reactbits/animated-content';
-import BlurText from '../reactbits/blur-text';
-import GlassSurface from '../reactbits/glass-surface';
-import Iridescence from '../reactbits/iridescence';
-import ShinyText from '../reactbits/shiny-text';
-import { Card, CardContent } from '../ui/card';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { RainbowButton } from './magicui/rainbow-button';
+import AnimatedContent from './reactbits/animated-content';
+import BlurText from './reactbits/blur-text';
+import GlassSurface from './reactbits/glass-surface';
+import Iridescence from './reactbits/iridescence';
+import ShinyText from './reactbits/shiny-text';
+import { Card, CardContent } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 export function Waitlist() {
   const [email, setEmail] = useState('');

@@ -3,7 +3,7 @@
 import { Brain, Key, MessageSquare, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
-import { Spotlight } from '../ui/spotlight-new';
+import { Spotlight } from './ui/spotlight-new';
 
 export function Feature() {
   const features = [
