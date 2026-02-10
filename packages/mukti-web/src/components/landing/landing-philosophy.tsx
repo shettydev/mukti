@@ -16,7 +16,7 @@ export default function LandingPhilosophy() {
           viewport={{ once: true }}
           whileInView={{ opacity: 1, y: 0 }}
         >
-          <span className="text-japandi-sage text-japandi-label block mb-4">Our Mission</span>
+          <span className="text-japandi-sage text-japandi-label block mb-4">Philosophy</span>
           <h2 className="text-japandi-stone text-4xl md:text-5xl lg:text-6xl font-light tracking-wide leading-tight">
             Not just another AI wrapper
           </h2>

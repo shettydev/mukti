@@ -15,7 +15,7 @@ export default function LandingFooter() {
             className="text-japandi-stone/60 hover:text-japandi-terracotta text-sm tracking-widest uppercase transition-colors duration-300"
             href="#philosophy"
           >
-            Mission
+            Philosophy
           </Link>
           <Link
             className="text-japandi-stone/60 hover:text-japandi-terracotta text-sm tracking-widest uppercase transition-colors duration-300"
