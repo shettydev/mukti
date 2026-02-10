@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
 
-import { DotPattern } from '../magicui/dot-pattern';
+import { DotPattern } from './magicui/dot-pattern';
 
 const stats = [
   {

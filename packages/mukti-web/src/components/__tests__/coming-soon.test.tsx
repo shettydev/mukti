@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 
-import { ComingSoon } from '../old-landing/coming-soon';
+import { ComingSoon } from '../coming-soon';
 
 describe('ComingSoon', () => {
   it('renders feature name correctly', () => {

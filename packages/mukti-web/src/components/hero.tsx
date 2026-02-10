@@ -7,8 +7,8 @@ import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
-import { Button } from '../ui/button';
-import { Spotlight } from '../ui/spotlight-new';
+import { Button } from './ui/button';
+import { Spotlight } from './ui/spotlight-new';
 
 const screenshots = [
   { alt: 'Mukti Dashboard - Your thinking workspace', src: '/dashboard.png' },

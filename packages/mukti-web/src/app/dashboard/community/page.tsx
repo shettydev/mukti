@@ -5,8 +5,8 @@
 
 import { Users } from 'lucide-react';
 
+import { ComingSoon } from '@/components/coming-soon';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
-import { ComingSoon } from '@/components/old-landing/coming-soon';
 
 /**
  * Community page

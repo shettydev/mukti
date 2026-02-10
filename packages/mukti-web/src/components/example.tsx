@@ -4,10 +4,10 @@ import { Bot, RefreshCcw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
-import { Button } from '../ui/button';
-import { Iphone } from '../ui/iphone';
-import { Spotlight } from '../ui/spotlight-new';
-import { TextGenerateEffect } from '../ui/text-generate-effect';
+import { Button } from './ui/button';
+import { Iphone } from './ui/iphone';
+import { Spotlight } from './ui/spotlight-new';
+import { TextGenerateEffect } from './ui/text-generate-effect';
 
 const SCENARIOS = [
   {
