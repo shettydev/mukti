@@ -23,8 +23,8 @@ export default function LandingNav() {
     scrollY,
     [0, 50],
     isDark
-      ? ['rgba(26, 25, 23, 0)', 'rgba(26, 25, 23, 0.95)']
-      : ['rgba(245, 240, 235, 0)', 'rgba(245, 240, 235, 0.95)']
+      ? ['rgba(26, 25, 23, 0)', 'rgba(245, 240, 235, 0.95)']
+      : ['rgba(245, 240, 235, 0)', 'rgba(44, 44, 43, 0.95)']
   );
 
   const backdropFilter = useTransform(scrollY, [0, 50], ['blur(0px)', 'blur(8px)']);
@@ -33,16 +33,16 @@ export default function LandingNav() {
     scrollY,
     [0, 50],
     isDark
-      ? ['rgba(61, 56, 48, 0)', 'rgba(61, 56, 48, 0.3)']
-      : ['rgba(212, 197, 178, 0)', 'rgba(212, 197, 178, 0.3)']
+      ? ['rgba(61, 56, 48, 0)', 'rgba(212, 197, 178, 0.2)']
+      : ['rgba(212, 197, 178, 0)', 'rgba(255, 255, 255, 0.1)']
   );
 
   const textColor = useTransform(
     scrollY,
     [0, 50],
     isDark
-      ? ['rgba(232, 224, 214, 0.9)', 'rgba(232, 224, 214, 0.9)']
-      : ['rgba(255, 255, 255, 0.9)', 'rgba(44, 44, 43, 1)']
+      ? ['rgba(232, 224, 214, 0.9)', 'rgba(44, 44, 43, 1)']
+      : ['rgba(44, 44, 43, 1)', 'rgba(245, 240, 235, 0.95)']
   );
 
   const toggleTheme = () => {
