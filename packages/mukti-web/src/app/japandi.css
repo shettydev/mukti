@@ -1,26 +1,62 @@
-@theme inline {
-  --color-japandi-cream: #f5f0eb;
-  --color-japandi-stone: #2c2c2b;
-  --color-japandi-terracotta: #c4785b;
-  --color-japandi-sage: #8b9e82;
-  --color-japandi-indigo: #5b6987;
-  --color-japandi-sand: #d4c5b2;
-  --color-japandi-timber: #6b4d3a;
-  --color-japandi-light-stone: #e8e0d6;
+/* ─────────────────────────────────────────────────────────
+   Japandi Design System – Light & Dark Tokens
+   ───────────────────────────────────────────────────────── */
+
+/* Light palette (default) */
+:root {
+  --japandi-cream: #f5f0eb;
+  --japandi-stone: #2c2c2b;
+  --japandi-terracotta: #c4785b;
+  --japandi-sage: #8b9e82;
+  --japandi-indigo: #5b6987;
+  --japandi-sand: #d4c5b2;
+  --japandi-timber: #6b4d3a;
+  --japandi-light-stone: #e8e0d6;
 }
 
+/* Dark palette – warm, muted tones that preserve the Japandi aesthetic */
+.dark {
+  --japandi-cream: #1a1917;
+  --japandi-stone: #e8e0d6;
+  --japandi-terracotta: #d4906e;
+  --japandi-sage: #9bb392;
+  --japandi-indigo: #7e94b3;
+  --japandi-sand: #3d3830;
+  --japandi-timber: #c4956e;
+  --japandi-light-stone: #26241f;
+}
+
+/* Wire Tailwind color tokens to the CSS custom properties */
+@theme inline {
+  --color-japandi-cream: var(--japandi-cream);
+  --color-japandi-stone: var(--japandi-stone);
+  --color-japandi-terracotta: var(--japandi-terracotta);
+  --color-japandi-sage: var(--japandi-sage);
+  --color-japandi-indigo: var(--japandi-indigo);
+  --color-japandi-sand: var(--japandi-sand);
+  --color-japandi-timber: var(--japandi-timber);
+  --color-japandi-light-stone: var(--japandi-light-stone);
+}
+
+/* ─── Base page styles ─────────────────────────────────── */
+
 .japandi-page {
-  background-color: var(--color-japandi-cream);
-  color: var(--color-japandi-stone);
+  background-color: var(--japandi-cream);
+  color: var(--japandi-stone);
   font-family: var(--font-geist-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
 }
 
 .japandi-page ::selection {
-  background-color: var(--color-japandi-sage);
+  background-color: var(--japandi-sage);
   color: white;
 }
+
+/* ─── Typography utilities ─────────────────────────────── */
 
 .text-japandi-heading {
   font-weight: 300;
@@ -41,22 +77,26 @@
   font-weight: 500;
 }
 
+/* ─── Scrollbar ────────────────────────────────────────── */
+
 .japandi-page ::-webkit-scrollbar {
   width: 8px;
 }
 
 .japandi-page ::-webkit-scrollbar-track {
-  background: var(--color-japandi-cream);
+  background: var(--japandi-cream);
 }
 
 .japandi-page ::-webkit-scrollbar-thumb {
-  background: var(--color-japandi-sand);
+  background: var(--japandi-sand);
   border-radius: 4px;
 }
 
 .japandi-page ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-japandi-terracotta);
+  background: var(--japandi-terracotta);
 }
+
+/* ─── Grain texture overlay ────────────────────────────── */
 
 .bg-grain {
   position: relative;
@@ -73,4 +113,10 @@
   pointer-events: none;
   z-index: 0;
   opacity: 0.4;
+  transition: opacity 0.4s ease;
+}
+
+/* Soften grain in dark mode to avoid washing out dark backgrounds */
+.dark .bg-grain::before {
+  opacity: 0.15;
 }

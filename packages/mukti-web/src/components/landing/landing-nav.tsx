@@ -2,8 +2,8 @@
 
 import { Moon, Sun } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import Link from 'next/link';
 import { useTheme } from 'next-themes';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -23,7 +23,7 @@ export default function LandingNav() {
     scrollY,
     [0, 50],
     isDark
-      ? ['rgba(20, 20, 22, 0)', 'rgba(20, 20, 22, 0.95)']
+      ? ['rgba(26, 25, 23, 0)', 'rgba(26, 25, 23, 0.95)']
       : ['rgba(245, 240, 235, 0)', 'rgba(245, 240, 235, 0.95)']
   );
 
@@ -33,7 +33,7 @@ export default function LandingNav() {
     scrollY,
     [0, 50],
     isDark
-      ? ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.1)']
+      ? ['rgba(61, 56, 48, 0)', 'rgba(61, 56, 48, 0.3)']
       : ['rgba(212, 197, 178, 0)', 'rgba(212, 197, 178, 0.3)']
   );
 
@@ -41,7 +41,7 @@ export default function LandingNav() {
     scrollY,
     [0, 50],
     isDark
-      ? ['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.9)']
+      ? ['rgba(232, 224, 214, 0.9)', 'rgba(232, 224, 214, 0.9)']
       : ['rgba(255, 255, 255, 0.9)', 'rgba(44, 44, 43, 1)']
   );
 
