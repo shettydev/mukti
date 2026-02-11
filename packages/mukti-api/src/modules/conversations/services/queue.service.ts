@@ -12,14 +12,19 @@ import {
 import {
   Technique,
   TechniqueDocument,
+  type TechniqueTemplate,
 } from '../../../schemas/technique.schema';
 import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
 import { User, UserDocument } from '../../../schemas/user.schema';
-import { AiPolicyService } from '../../ai/services/ai-policy.service';
+import {
+  AiPolicyService,
+  type AiProvider,
+} from '../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import { GeminiService } from './gemini.service';
 import { MessageService } from './message.service';
 import { OpenRouterService } from './openrouter.service';
 import { StreamService } from './stream.service';
@@ -31,6 +36,7 @@ export interface ConversationRequestJobData {
   conversationId: string;
   message: string;
   model: string;
+  provider: AiProvider;
   subscriptionTier: string;
   technique: string;
   usedByok: boolean;
@@ -81,6 +87,7 @@ export class QueueService extends WorkerHost {
     private readonly configService: ConfigService,
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiSecretsService: AiSecretsService,
+    private readonly geminiService: GeminiService,
     private readonly messageService: MessageService,
     private readonly openRouterService: OpenRouterService,
     private readonly streamService: StreamService,
@@ -125,6 +132,7 @@ export class QueueService extends WorkerHost {
     subscriptionTier: string,
     technique: string,
     model: string,
+    provider: AiProvider,
     usedByok: boolean,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = this.formatId(userId);
@@ -143,6 +151,7 @@ export class QueueService extends WorkerHost {
         conversationId: conversationIdString,
         message,
         model,
+        provider,
         subscriptionTier,
         technique,
         usedByok,
@@ -390,6 +399,7 @@ export class QueueService extends WorkerHost {
       conversationId,
       message,
       model,
+      provider,
       subscriptionTier: _subscriptionTier,
       technique,
       usedByok,
@@ -444,18 +454,12 @@ export class QueueService extends WorkerHost {
         type: 'progress',
       });
 
-      // 3. Build prompt and call OpenRouter
-      const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.resolveApiKey(userId, usedByok);
-      const messages = this.openRouterService.buildPrompt(
-        techniqueDoc.template,
-        context.messages.map((m) => ({
-          content: m.content,
-          role: m.role as 'assistant' | 'system' | 'user',
-          timestamp: new Date(),
-        })),
-        message,
-      );
+      // 3. Build prompt and call provider
+      const effectiveModel = this.validateEffectiveModel({
+        model,
+        provider,
+        usedByok,
+      });
 
       // Emit progress event - calling AI
       this.streamService.emitToConversation(conversationId, {
@@ -466,12 +470,28 @@ export class QueueService extends WorkerHost {
         type: 'progress',
       });
 
-      const response = await this.openRouterService.sendChatCompletion(
-        messages,
-        effectiveModel,
-        apiKey,
-        techniqueDoc.template,
-      );
+      const response =
+        provider === 'gemini'
+          ? await this.geminiService.sendMessage({
+              apiKey: await this.resolveApiKey({
+                provider,
+                usedByok,
+                userId,
+              }),
+              conversationHistory: context.messages,
+              model: effectiveModel,
+              technique: techniqueDoc.template,
+              userMessage: message,
+            })
+          : await this.runOpenRouterCompletion({
+              contextMessages: context.messages,
+              model: effectiveModel,
+              provider,
+              techniqueTemplate: techniqueDoc.template,
+              usedByok,
+              userId,
+              userMessage: message,
+            });
 
       // 4. Add messages to conversation
       const updatedConversation =
@@ -489,10 +509,16 @@ export class QueueService extends WorkerHost {
           },
         );
 
-      // Get the sequence numbers for the messages
-      const userMessageSequence = updatedConversation.recentMessages.length - 1;
-      const assistantMessageSequence =
-        updatedConversation.recentMessages.length;
+      const userMessageSequence = updatedConversation.totalMessageCount - 1;
+      const assistantMessageSequence = updatedConversation.totalMessageCount;
+      const userMessageTimestamp =
+        updatedConversation.recentMessages[
+          updatedConversation.recentMessages.length - 2
+        ]?.timestamp ?? new Date();
+      const assistantMessageTimestamp =
+        updatedConversation.recentMessages[
+          updatedConversation.recentMessages.length - 1
+        ]?.timestamp ?? new Date();
 
       // Emit message event for user message
       this.streamService.emitToConversation(conversationId, {
@@ -500,7 +526,7 @@ export class QueueService extends WorkerHost {
           content: message,
           role: 'user',
           sequence: userMessageSequence,
-          timestamp: new Date().toISOString(),
+          timestamp: userMessageTimestamp.toISOString(),
         },
         type: 'message',
       });
@@ -511,7 +537,7 @@ export class QueueService extends WorkerHost {
           content: response.content,
           role: 'assistant',
           sequence: assistantMessageSequence,
-          timestamp: new Date().toISOString(),
+          timestamp: assistantMessageTimestamp.toISOString(),
           tokens: response.totalTokens,
         },
         type: 'message',
@@ -600,13 +626,27 @@ export class QueueService extends WorkerHost {
     return error instanceof Error ? error.stack : undefined;
   }
 
-  private async resolveApiKey(
-    userId: string,
-    usedByok: boolean,
-  ): Promise<string> {
-    if (usedByok) {
+  private async resolveApiKey(params: {
+    provider: AiProvider;
+    usedByok: boolean;
+    userId: string;
+  }): Promise<string> {
+    if (params.provider === 'gemini') {
       const user = await this.userModel
-        .findById(userId)
+        .findById(params.userId)
+        .select('+geminiApiKeyEncrypted')
+        .lean();
+
+      if (!user?.geminiApiKeyEncrypted) {
+        throw new Error('GEMINI_KEY_MISSING');
+      }
+
+      return this.aiSecretsService.decryptString(user.geminiApiKeyEncrypted);
+    }
+
+    if (params.usedByok) {
+      const user = await this.userModel
+        .findById(params.userId)
         .select('+openRouterApiKeyEncrypted')
         .lean();
 
@@ -647,14 +687,60 @@ export class QueueService extends WorkerHost {
     );
   }
 
-  private validateEffectiveModel(model: string, usedByok: boolean): string {
-    const trimmed = model.trim();
+  private async runOpenRouterCompletion(params: {
+    contextMessages: { content: string; role: string }[];
+    model: string;
+    provider: AiProvider;
+    techniqueTemplate: TechniqueTemplate;
+    usedByok: boolean;
+    userId: string;
+    userMessage: string;
+  }) {
+    const messages = this.openRouterService.buildPrompt(
+      params.techniqueTemplate,
+      params.contextMessages.map((message) => ({
+        content: message.content,
+        role: message.role as 'assistant' | 'system' | 'user',
+        timestamp: new Date(),
+      })),
+      params.userMessage,
+    );
+
+    const apiKey = await this.resolveApiKey({
+      provider: params.provider,
+      usedByok: params.usedByok,
+      userId: params.userId,
+    });
+
+    return this.openRouterService.sendChatCompletion(
+      messages,
+      params.model,
+      apiKey,
+      params.techniqueTemplate,
+    );
+  }
+
+  private validateEffectiveModel(params: {
+    model: string;
+    provider: AiProvider;
+    usedByok: boolean;
+  }): string {
+    const trimmed = params.model.trim();
 
     if (!trimmed) {
       throw new Error('Model is required');
     }
 
-    if (!usedByok) {
+    if (params.provider === 'gemini') {
+      const isGemini = this.aiPolicyService.isGeminiModel(trimmed);
+      if (!isGemini) {
+        throw new Error('MODEL_NOT_ALLOWED');
+      }
+
+      return trimmed;
+    }
+
+    if (!params.usedByok) {
       const isCurated = this.aiPolicyService
         .getCuratedModels()
         .some((allowed) => allowed.id === trimmed);

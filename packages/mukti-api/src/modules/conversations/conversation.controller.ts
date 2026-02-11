@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -306,41 +307,78 @@ export class ConversationController {
 
     const userRecord = await this.userModel
       .findById(user._id)
-      .select('+openRouterApiKeyEncrypted preferences')
+      .select('+openRouterApiKeyEncrypted +geminiApiKeyEncrypted preferences')
       .lean();
 
     if (!userRecord) {
       throw new Error('User not found');
     }
 
-    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
     const serverApiKey =
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
+    const hasOpenRouterByok =
+      this.aiPolicyService.hasUserOpenRouterKey(userRecord);
+    const hasGeminiKey = this.aiPolicyService.hasUserGeminiKey(userRecord);
+    const activeProvider = this.aiPolicyService.resolveActiveProvider({
+      hasGeminiKey,
+      hasOpenRouterAccess: hasOpenRouterByok || !!serverApiKey,
+      preferredProvider: userRecord.preferences?.activeProvider,
+    });
 
-    if (!usedByok && !serverApiKey) {
+    if (activeProvider === 'gemini' && !hasGeminiKey) {
+      throw new BadRequestException({
+        error: {
+          code: 'GEMINI_KEY_MISSING',
+          message: 'Gemini API key is required for Gemini provider',
+        },
+      });
+    }
+
+    if (
+      activeProvider === 'openrouter' &&
+      !hasOpenRouterByok &&
+      !serverApiKey
+    ) {
       throw new Error('OPENROUTER_API_KEY not configured');
     }
 
-    const validationApiKey = usedByok
-      ? this.aiSecretsService.decryptString(
-          userRecord.openRouterApiKeyEncrypted!,
-        )
-      : serverApiKey;
+    const validationApiKey =
+      activeProvider === 'openrouter'
+        ? hasOpenRouterByok
+          ? this.aiSecretsService.decryptString(
+              userRecord.openRouterApiKeyEncrypted!,
+            )
+          : serverApiKey
+        : undefined;
+    const normalizedActiveModel = this.aiPolicyService.coerceModelForProvider({
+      activeProvider,
+      hasOpenRouterByok,
+      model: userRecord.preferences?.activeModel,
+    });
 
     const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok: usedByok,
+      activeProvider,
+      hasByok: hasOpenRouterByok,
       requestedModel: sendMessageDto.model,
-      userActiveModel: userRecord.preferences?.activeModel,
+      userActiveModel: normalizedActiveModel,
       validationApiKey,
     });
 
     const shouldPersistModel =
-      !!sendMessageDto.model || !userRecord.preferences?.activeModel;
+      !!sendMessageDto.model ||
+      !userRecord.preferences?.activeModel ||
+      userRecord.preferences?.activeModel !== normalizedActiveModel ||
+      userRecord.preferences?.activeProvider !== activeProvider;
 
     if (shouldPersistModel) {
       await this.userModel.updateOne(
         { _id: user._id },
-        { $set: { 'preferences.activeModel': effectiveModel } },
+        {
+          $set: {
+            'preferences.activeModel': effectiveModel,
+            'preferences.activeProvider': activeProvider,
+          },
+        },
       );
     }
 
@@ -351,7 +389,8 @@ export class ConversationController {
       subscriptionTier,
       conversation.technique,
       effectiveModel,
-      usedByok,
+      activeProvider,
+      hasOpenRouterByok,
     );
 
     return {

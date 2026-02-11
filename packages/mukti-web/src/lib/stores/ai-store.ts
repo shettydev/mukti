@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
-import { aiApi, type AiSettings } from '@/lib/api/ai';
+import { aiApi, type AiProvider, type AiSettings } from '@/lib/api/ai';
 
-export type AiModelMode = 'curated' | 'openrouter';
+export type AiModelMode = 'curated' | 'gemini' | 'openrouter';
 
 export type AiModelOption = {
   id: string;
@@ -11,6 +11,7 @@ export type AiModelOption = {
 
 interface AiStoreState {
   activeModel: null | string;
+  activeProvider: AiProvider;
   deleteGeminiKey: () => Promise<void>;
   deleteOpenRouterKey: () => Promise<void>;
   geminiKeyLast4: null | string;
@@ -30,6 +31,7 @@ interface AiStoreState {
 
 export const useAiStore = create<AiStoreState>((set, get) => ({
   activeModel: 'openai/gpt-5-mini',
+  activeProvider: 'openrouter',
   deleteGeminiKey: async () => {
     await aiApi.deleteGeminiKey();
     await get().hydrate();
@@ -47,6 +49,7 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
       set({
         activeModel: settings.activeModel ?? 'openai/gpt-5-mini',
+        activeProvider: settings.activeProvider,
         geminiKeyLast4: settings.geminiKeyLast4,
         hasGeminiKey: settings.hasGeminiKey,
         hasOpenRouterKey: settings.hasOpenRouterKey,
@@ -73,13 +76,24 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
       if (modelsResponse.mode === 'curated') {
         set({
+          activeProvider: modelsResponse.provider,
           mode: 'curated',
           models: modelsResponse.models.map((m) => ({ id: m.id, label: m.label })),
         });
         return;
       }
 
+      if (modelsResponse.mode === 'gemini') {
+        set({
+          activeProvider: modelsResponse.provider,
+          mode: 'gemini',
+          models: modelsResponse.models.map((m) => ({ id: m.id, label: m.label })),
+        });
+        return;
+      }
+
       set({
+        activeProvider: modelsResponse.provider,
         mode: 'openrouter',
         models: modelsResponse.models.map((m) => ({ id: m.id, label: m.name })),
       });
@@ -90,7 +104,11 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
   setActiveModel: async (model: string) => {
     set({ activeModel: model });
-    await aiApi.updateSettings({ activeModel: model });
+    const updated = await aiApi.updateSettings({ activeModel: model });
+    set({
+      activeModel: updated.activeModel,
+      activeProvider: updated.activeProvider,
+    });
   },
 
   setGeminiKey: async (apiKey: string) => {

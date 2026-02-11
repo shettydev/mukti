@@ -5,6 +5,7 @@ export type UserDocument = Document & User;
 
 export interface UserPreferences {
   activeModel?: string;
+  activeProvider?: 'gemini' | 'openrouter';
   defaultTechnique?: string;
   emailNotifications?: boolean;
   language?: string;
