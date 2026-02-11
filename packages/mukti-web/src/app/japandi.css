@@ -121,36 +121,10 @@
   opacity: 0.15;
 }
 
-/* ─── Theme toggle – View Transitions API ──────────────── */
+/* ─── Theme toggle – View Transitions API (ink-wash reveal) */
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 500ms;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-::view-transition-old(root) {
-  animation-name: japandi-fade-out;
-}
-
-::view-transition-new(root) {
-  animation-name: japandi-fade-in;
-}
-
-@keyframes japandi-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes japandi-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  animation: none;
+  mix-blend-mode: normal;
 }
