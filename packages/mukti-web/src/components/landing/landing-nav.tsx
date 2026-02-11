@@ -46,7 +46,13 @@ export default function LandingNav() {
   );
 
   const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark');
+    const next = isDark ? 'light' : 'dark';
+
+    if (document.startViewTransition) {
+      document.startViewTransition(() => setTheme(next));
+    } else {
+      setTheme(next);
+    }
   };
 
   return (
