@@ -40,7 +40,7 @@ const pillars = [
       'Building mental muscle through active problem solving. Structured struggle that leads to genuine understanding.',
     english: 'Resilience',
     id: '02',
-    japanese: 'तप',
+    japanese: 'तपस',
     romanized: 'Tapas',
   },
   {

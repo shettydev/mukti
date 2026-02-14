@@ -19,7 +19,10 @@ export default function LandingNav() {
     setMounted(true);
   }, []);
 
-  const isDark = resolvedTheme === 'dark';
+  // Avoid hydration mismatches by not using the resolved theme during SSR / first client render.
+  // next-themes can resolve theme from storage before hydration, which would otherwise cause
+  // server/client style attribute differences.
+  const isDark = mounted ? resolvedTheme === 'dark' : false;
 
   const backgroundColor = useTransform(
     scrollY,

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 
 import { authApi } from '@/lib/api/auth';
+import { ApiClientError } from '@/lib/api/client';
 import { useAiStore } from '@/lib/stores/ai-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -62,10 +63,18 @@ export function AuthInitializer() {
             // Ignore AI settings failures during auth init
           }
         }
-      } catch {
+      } catch (error) {
         // If refresh fails (e.g., no cookie or expired), clear auth state
         // We don't show an error here as it's expected for unauthenticated users
         clearAuth();
+
+        // If the API isn't reachable, don't attempt cleanup calls (prevents noisy console errors).
+        if (
+          error instanceof ApiClientError &&
+          (error.code === 'NETWORK_ERROR' || error.status === 0)
+        ) {
+          return;
+        }
 
         // Ensure cookies are cleared to prevent middleware redirect loops
         try {
