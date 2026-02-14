@@ -319,10 +319,10 @@ export function ChatInterface({
   // Show empty state if no conversation is selected
   if (!conversationId) {
     return (
-      <div className="relative flex h-full min-h-0 flex-col">
+      <div className="relative flex h-full min-h-0 flex-col bg-transparent">
         <ChatHeader conversation={null} onMobileMenuToggle={onMobileMenuToggle} />
         <EmptyState
-          className="pt-12"
+          className="pt-14 md:pt-16"
           isCreating={isCreating}
           isTransitioning={isTransitioning}
           onSendMessage={handleSendFirstMessage}
@@ -336,7 +336,7 @@ export function ChatInterface({
   // Show error state if conversation failed to load
   if (conversationError && conversationId) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center px-4">
         <ErrorState error={conversationError} onRetry={() => window.location.reload()} showRetry />
       </div>
     );
@@ -362,13 +362,13 @@ export function ChatInterface({
 
   // Show active conversation state
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col bg-transparent">
       {/* Floating chat header */}
       <ChatHeader conversation={conversation} onMobileMenuToggle={onMobileMenuToggle} />
 
       {/* Rate limit banner */}
       {rateLimitInfo && (
-        <div className="relative z-0 border-b p-4 mt-12">
+        <div className="relative z-0 mt-16 border-b border-japandi-sand/60 bg-japandi-cream/60 p-4">
           <RateLimitBanner
             onDismiss={handleDismissRateLimit}
             retryAfter={rateLimitInfo.retryAfter}
@@ -378,12 +378,12 @@ export function ChatInterface({
 
       {/* Streaming error banner */}
       {streamError && streamError.type !== 'rate_limit' && (
-        <div className="border-b bg-destructive/10 p-4">
+        <div className="border-b border-red-500/25 bg-red-500/10 p-4">
           <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-destructive" />
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-300" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-destructive">Connection Error</p>
-              <p className="text-sm text-muted-foreground">{streamError.message}</p>
+              <p className="text-sm font-medium text-red-700 dark:text-red-200">Connection Error</p>
+              <p className="text-sm text-japandi-stone/75">{streamError.message}</p>
             </div>
             {streamError.type === 'connection' || streamError.type === 'server' ? (
               <Button onClick={handleRetryStream} size="sm" variant="outline">
@@ -396,8 +396,8 @@ export function ChatInterface({
 
       {/* Connection status indicator (subtle) */}
       {conversationId && !isConnected && !streamError && (
-        <div className="border-b bg-muted/50 px-4 py-2">
-          <p className="text-xs text-muted-foreground">Connecting to real-time updates...</p>
+        <div className="border-b border-japandi-sand/60 bg-japandi-light-stone/45 px-4 py-2">
+          <p className="text-xs text-japandi-stone/60">Connecting to real-time updates...</p>
         </div>
       )}
 
@@ -411,10 +411,12 @@ export function ChatInterface({
 
       {/* Send error banner (shown above input) */}
       {sendError && (
-        <div className="border-t bg-destructive/10 p-3">
+        <div className="border-t border-red-500/25 bg-red-500/10 p-3">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <p className="text-sm text-destructive">Failed to send message. Please try again.</p>
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-300" />
+            <p className="text-sm text-red-700 dark:text-red-200">
+              Failed to send message. Please try again.
+            </p>
           </div>
         </div>
       )}
@@ -434,6 +436,17 @@ function ConversationLoading({ isExiting }: { isExiting: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const dotsRef = useRef<HTMLSpanElement[]>([]);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener('change', update);
+
+    return () => mediaQuery.removeEventListener('change', update);
+  }, []);
 
   // Entrance + looping animation
   useEffect(() => {
@@ -448,7 +461,7 @@ function ConversationLoading({ isExiting }: { isExiting: boolean }) {
         { duration: 0.25, ease: 'power2.out', opacity: 1 }
       );
 
-      if (glowRef.current) {
+      if (glowRef.current && !prefersReducedMotion) {
         gsap.to(glowRef.current, {
           duration: 1.8,
           ease: 'sine.inOut',
@@ -464,19 +477,19 @@ function ConversationLoading({ isExiting }: { isExiting: boolean }) {
         dotsRef.current,
         { opacity: 0.25, y: 0 },
         {
-          duration: 0.6,
+          duration: prefersReducedMotion ? 0 : 0.6,
           ease: 'sine.inOut',
           opacity: 0.8,
-          repeat: -1,
+          repeat: prefersReducedMotion ? 0 : -1,
           stagger: 0.12,
           y: -6,
-          yoyo: true,
+          yoyo: !prefersReducedMotion,
         }
       );
     }, containerRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [prefersReducedMotion]);
 
   // Exit animation
   useEffect(() => {
@@ -501,17 +514,17 @@ function ConversationLoading({ isExiting }: { isExiting: boolean }) {
         className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
       >
         <div
-          className="h-[420px] w-[420px] rounded-full bg-gradient-to-tr from-indigo-500/30 via-purple-500/30 to-blue-500/30 blur-[110px] opacity-50"
+          className="h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(196,120,91,0.2),rgba(139,158,130,0.14),transparent_65%)] blur-[105px] opacity-60"
           ref={glowRef}
         />
       </div>
 
       <div className="relative z-10 flex flex-col items-center gap-3">
-        <p className="text-sm text-muted-foreground/70">Opening conversation</p>
+        <p className="text-sm text-japandi-stone/65">Opening conversation</p>
         <div className="flex items-center gap-2">
           {Array.from({ length: 3 }).map((_, i) => (
             <span
-              className="h-1.5 w-1.5 rounded-full bg-white/70"
+              className="h-1.5 w-1.5 rounded-full bg-japandi-timber/65"
               key={i}
               ref={(el) => {
                 if (el) {

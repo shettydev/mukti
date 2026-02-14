@@ -20,18 +20,17 @@ export function Message({ message }: MessageProps) {
   return (
     <div
       className={cn(
-        'flex w-full gap-3 py-6', // increased py for better spacing
+        'flex w-full gap-3 py-4 md:py-5',
         isUser ? 'justify-end' : 'justify-start',
-        // Smooth slide-up animation on mount
-        'animate-fade-in-up'
+        'animate-fade-in-up motion-reduce:animate-none'
       )}
     >
       <div
         className={cn(
-          'max-w-[85%] rounded-2xl px-6 py-4 transition-all duration-300',
+          'max-w-[min(90%,48rem)] rounded-2xl px-5 py-3.5 transition-colors duration-200 md:px-6 md:py-4',
           isUser
-            ? 'bg-white/10 text-foreground backdrop-blur-sm'
-            : 'bg-transparent text-foreground px-0 pl-2'
+            ? 'border border-japandi-sand/75 bg-japandi-light-stone/70 text-japandi-stone shadow-sm'
+            : 'border-l-2 border-japandi-sage/60 bg-japandi-cream/45 text-japandi-stone/95'
         )}
       >
         <div className="flex items-start gap-2">
@@ -41,16 +40,14 @@ export function Message({ message }: MessageProps) {
                 {message.content}
               </p>
             ) : (
-              <Markdown className="text-base leading-relaxed prose-invert prose-p:leading-relaxed prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10">
+              <Markdown className="text-base leading-relaxed prose-p:leading-relaxed prose-pre:border prose-pre:border-japandi-sand/70 prose-pre:bg-japandi-light-stone/40 prose-code:text-japandi-indigo">
                 {message.content}
               </Markdown>
             )}
 
-            {/* Minimal timestamp - only show on hover or for active messages if desired, 
-                but keeping it visible and subtle for now */}
             <div
               className={cn(
-                'flex items-center gap-2 text-[10px] opacity-40 uppercase tracking-widest mt-2',
+                'mt-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-japandi-stone/50',
                 isUser ? 'justify-end' : 'justify-start'
               )}
             >

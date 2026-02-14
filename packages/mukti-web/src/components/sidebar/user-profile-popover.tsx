@@ -53,14 +53,14 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
       <DropdownMenuTrigger asChild>
         <Button
           className={cn(
-            'w-full justify-start p-2 h-auto hover:bg-white/10 rounded-xl transition-all',
+            'h-auto w-full justify-start rounded-xl p-2 transition-all hover:bg-japandi-cream/70',
             collapsed && 'justify-center px-2'
           )}
           variant="ghost"
         >
           <div className="flex items-center gap-3 w-full">
             {/* User Avatar */}
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 text-white">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber">
               {user?.firstName?.[0]}
               {user?.lastName?.[0]}
             </div>
@@ -68,10 +68,10 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
             {/* User Info - Hidden when collapsed */}
             {!collapsed && (
               <div className="flex flex-col items-start text-sm truncate overflow-hidden">
-                <span className="font-medium truncate w-full text-left text-white">
+                <span className="w-full truncate text-left font-medium text-japandi-stone">
                   {user?.firstName} {user?.lastName}
                 </span>
-                <span className="text-xs text-white/60 truncate w-full text-left">
+                <span className="w-full truncate text-left text-xs text-japandi-stone/65">
                   {user?.email}
                 </span>
               </div>
@@ -82,7 +82,7 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
 
       <DropdownMenuContent
         align="start"
-        className="w-56 bg-[#1A1A1A] border-white/10 text-white"
+        className="w-56 border-japandi-sand/80 bg-japandi-cream text-japandi-stone"
         side="top"
         sideOffset={10}
       >
@@ -99,7 +99,7 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
 
         {/* Logout Button */}
         <DropdownMenuItem
-          className="text-red-400 focus:text-red-400 focus:bg-red-900/10 cursor-pointer"
+          className="cursor-pointer text-red-600 focus:bg-red-500/10 focus:text-red-700 dark:text-red-300 dark:focus:text-red-200"
           onClick={onLogout}
           variant="destructive"
         >

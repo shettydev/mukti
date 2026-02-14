@@ -76,14 +76,14 @@ export function LoadingMessage({ duration = 0, status }: LoadingMessageProps) {
     <div
       aria-label="AI is generating a response"
       aria-live="polite"
-      className="flex w-full gap-3 py-4 animate-fade-in pl-4"
+      className="animate-fade-in flex w-full gap-3 py-4 pl-1 md:pl-2"
       role="status"
     >
       {/* Loading message bubble */}
-      <div className="flex-1 max-w-[80%]">
+      <div className="max-w-[min(90%,48rem)] flex-1 rounded-2xl border-l-2 border-japandi-sage/60 bg-japandi-cream/45 px-4 py-3">
         <div
           className={cn(
-            'text-sm text-muted-foreground flex items-center gap-2',
+            'flex items-center gap-2 text-sm text-japandi-stone/70',
             'transition-all duration-300'
           )}
         >

@@ -204,7 +204,7 @@ export function MessageList({
     return (
       <div className="flex flex-1 items-center justify-center text-center">
         <div className="space-y-2">
-          <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
+          <p className="text-japandi-stone/65">No messages yet. Start the conversation!</p>
         </div>
       </div>
     );
@@ -228,7 +228,7 @@ export function MessageList({
           />
         )}
 
-        <div className="space-y-1 px-4 pt-14 md:pt-16">
+        <div className="space-y-1 px-3 pb-4 pt-16 md:px-5 md:pt-[4.5rem]">
           {allMessages.map((message) => (
             <Message key={`${message.sequence}-${message.timestamp}`} message={message} />
           ))}
@@ -247,10 +247,10 @@ export function MessageList({
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <Button
             aria-label={hasNewMessages ? 'New messages' : 'Scroll to bottom'}
-            className="shadow-lg"
+            className="border border-japandi-sand/80 bg-japandi-cream text-japandi-stone shadow-md hover:bg-japandi-light-stone/75"
             onClick={() => scrollToBottom('smooth')}
             size="sm"
-            variant="secondary"
+            variant="outline"
           >
             <ArrowDown aria-hidden="true" className="mr-2 h-4 w-4" />
             {hasNewMessages ? 'New messages' : 'Scroll to bottom'}

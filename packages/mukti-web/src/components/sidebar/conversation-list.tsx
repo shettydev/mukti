@@ -209,7 +209,7 @@ export function ConversationList({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-white/50" />
+        <Loader2 className="h-5 w-5 animate-spin text-japandi-stone/55" />
       </div>
     );
   }
@@ -218,7 +218,7 @@ export function ConversationList({
   if (error) {
     return (
       <div className="px-3 py-4 text-center">
-        <p className="text-xs text-red-400">Failed to load conversations</p>
+        <p className="text-xs text-red-600 dark:text-red-300">Failed to load conversations</p>
       </div>
     );
   }
@@ -230,10 +230,11 @@ export function ConversationList({
         <div className="flex items-center gap-2 px-3 py-2 mb-2">
           <Checkbox
             checked={showArchived}
+            className="border-japandi-sand/90 data-[state=checked]:border-japandi-sage data-[state=checked]:bg-japandi-sage data-[state=checked]:text-white"
             id="show-archived"
             onCheckedChange={(checked) => setShowArchived(checked === true)}
           />
-          <Label className="text-xs text-white/50 cursor-pointer" htmlFor="show-archived">
+          <Label className="cursor-pointer text-xs text-japandi-stone/60" htmlFor="show-archived">
             Show archived
           </Label>
         </div>
@@ -242,10 +243,12 @@ export function ConversationList({
       {/* Empty state */}
       {conversations.length === 0 ? (
         <div className={cn('px-3 py-4 text-center', collapsed && 'hidden')}>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-japandi-stone/60">
             {showArchived ? 'No archived conversations' : 'No conversations yet'}
           </p>
-          {!showArchived && <p className="text-xs text-white/30 mt-1">Start a new chat to begin</p>}
+          {!showArchived && (
+            <p className="mt-1 text-xs text-japandi-stone/45">Start a new chat to begin</p>
+          )}
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto space-y-1" ref={scrollContainerRef}>
@@ -264,7 +267,7 @@ export function ConversationList({
 
           {isFetchingNextPage && (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-4 h-4 animate-spin text-white/50" />
+              <Loader2 className="h-4 w-4 animate-spin text-japandi-stone/55" />
             </div>
           )}
         </div>
@@ -275,15 +278,18 @@ export function ConversationList({
         onOpenChange={(open) => !open && setRenameDialog({ id: '', open: false, title: '' })}
         open={renameDialog.open}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] border-japandi-sand/75 bg-japandi-cream text-japandi-stone">
           <DialogHeader>
             <DialogTitle>Rename conversation</DialogTitle>
-            <DialogDescription>Enter a new title for this conversation.</DialogDescription>
+            <DialogDescription className="text-japandi-stone/70">
+              Enter a new title for this conversation.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="title">Title</Label>
               <Input
+                className="border-japandi-sand/80 bg-japandi-light-stone/45 text-japandi-stone focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/30"
                 id="title"
                 onChange={(e) => setRenameDialog((prev) => ({ ...prev, title: e.target.value }))}
                 onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
@@ -294,12 +300,15 @@ export function ConversationList({
           </div>
           <DialogFooter>
             <Button
+              className="border-japandi-sand/80 bg-japandi-cream text-japandi-stone hover:bg-japandi-light-stone/70"
               onClick={() => setRenameDialog({ id: '', open: false, title: '' })}
               variant="outline"
             >
               Cancel
             </Button>
-            <Button onClick={handleRenameSubmit}>Save</Button>
+            <Button className="bg-japandi-terracotta text-white hover:bg-japandi-timber" onClick={handleRenameSubmit}>
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -309,16 +318,17 @@ export function ConversationList({
         onOpenChange={(open) => !open && setDeleteDialog({ id: '', open: false, title: '' })}
         open={deleteDialog.open}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] border-japandi-sand/75 bg-japandi-cream text-japandi-stone">
           <DialogHeader>
             <DialogTitle>Delete conversation</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-japandi-stone/70">
               Are you sure you want to delete &quot;{deleteDialog.title}&quot;? This action cannot
               be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
+              className="border-japandi-sand/80 bg-japandi-cream text-japandi-stone hover:bg-japandi-light-stone/70"
               onClick={() => setDeleteDialog({ id: '', open: false, title: '' })}
               variant="outline"
             >
@@ -352,7 +362,7 @@ function ConversationItem({
   const MenuItems = () => (
     <>
       <ContextMenuItem
-        className="gap-2 cursor-pointer"
+        className="cursor-pointer gap-2 focus:bg-japandi-light-stone/80 focus:text-japandi-stone"
         onClick={(e) => {
           e.stopPropagation();
           onRename(conversation.id, conversation.title);
@@ -362,7 +372,7 @@ function ConversationItem({
         Rename
       </ContextMenuItem>
       <ContextMenuItem
-        className="gap-2 cursor-pointer"
+        className="cursor-pointer gap-2 focus:bg-japandi-light-stone/80 focus:text-japandi-stone"
         onClick={(e) => {
           e.stopPropagation();
           onArchive(conversation.id, conversation.isArchived);
@@ -382,7 +392,7 @@ function ConversationItem({
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
-        className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+        className="cursor-pointer gap-2 text-destructive focus:bg-red-500/10 focus:text-destructive"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(conversation.id);
@@ -398,7 +408,7 @@ function ConversationItem({
   const DropdownItems = () => (
     <>
       <DropdownMenuItem
-        className="gap-2 cursor-pointer"
+        className="cursor-pointer gap-2 focus:bg-japandi-light-stone/80 focus:text-japandi-stone"
         onClick={(e) => {
           e.stopPropagation();
           onRename(conversation.id, conversation.title);
@@ -408,7 +418,7 @@ function ConversationItem({
         Rename
       </DropdownMenuItem>
       <DropdownMenuItem
-        className="gap-2 cursor-pointer"
+        className="cursor-pointer gap-2 focus:bg-japandi-light-stone/80 focus:text-japandi-stone"
         onClick={(e) => {
           e.stopPropagation();
           onArchive(conversation.id, conversation.isArchived);
@@ -428,7 +438,7 @@ function ConversationItem({
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
-        className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+        className="cursor-pointer gap-2 text-destructive focus:bg-red-500/10 focus:text-destructive"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(conversation.id);
@@ -446,13 +456,13 @@ function ConversationItem({
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            'group relative w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer',
+            'group relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
             'min-h-[40px] text-left',
             active
-              ? 'bg-white/10 text-white font-medium'
-              : 'text-white/80 hover:text-white hover:bg-white/5',
+              ? 'bg-japandi-sage/20 text-japandi-stone font-medium'
+              : 'text-japandi-stone/75 hover:bg-japandi-cream/75 hover:text-japandi-stone',
             collapsed && 'justify-center px-2',
-            conversation.isArchived && 'opacity-60'
+            conversation.isArchived && 'opacity-70'
           )}
           onClick={onClick}
           onKeyDown={(e) => e.key === 'Enter' && onClick()}
@@ -461,7 +471,7 @@ function ConversationItem({
           title={conversation.title}
         >
           {collapsed ? (
-            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-xs font-semibold text-purple-300">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-japandi-sage/20 text-xs font-semibold text-japandi-timber">
               {conversation.title[0]?.toUpperCase() || 'C'}
             </div>
           ) : (
@@ -472,7 +482,7 @@ function ConversationItem({
                     {conversation.title}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-white/50">
+                <div className="flex items-center gap-2 text-xs text-japandi-stone/55">
                   <span>{relativeTime}</span>
                   {conversation.metadata.messageCount > 0 && (
                     <>
@@ -494,8 +504,8 @@ function ConversationItem({
                 <DropdownMenuTrigger asChild>
                   <Button
                     className={cn(
-                      'h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity',
-                      'hover:bg-white/10',
+                      'h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100',
+                      'hover:bg-japandi-light-stone/70',
                       menuOpen && 'opacity-100'
                     )}
                     onClick={(e) => {
@@ -508,7 +518,10 @@ function ConversationItem({
                     <span className="sr-only">Open menu</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent
+                  align="end"
+                  className="w-48 border-japandi-sand/80 bg-japandi-cream text-japandi-stone"
+                >
                   <DropdownItems />
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -516,7 +529,7 @@ function ConversationItem({
           )}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
+      <ContextMenuContent className="w-48 border-japandi-sand/80 bg-japandi-cream text-japandi-stone">
         <MenuItems />
       </ContextMenuContent>
     </ContextMenu>

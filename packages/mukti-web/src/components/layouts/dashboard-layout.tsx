@@ -120,7 +120,7 @@ export function DashboardLayout({
 
   return (
     <LayoutContext.Provider value={contextValue}>
-      <div className="flex h-screen bg-[#050505] text-white overflow-hidden">
+      <div className="japandi-page bg-grain relative flex h-dvh min-h-dvh overflow-hidden text-japandi-stone">
         {/* Sidebar */}
         {showSidebar && (
           <Sidebar
@@ -132,16 +132,18 @@ export function DashboardLayout({
         )}
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col overflow-hidden" role="main">
+        <main className="flex flex-1 flex-col overflow-hidden" role="main">
           {/* Navbar */}
           {showNavbar && (
-            <header className="bg-[#111111] border-b border-white/10 px-4 md:px-6 py-3 md:py-4 flex items-center gap-2">
+            <header className="flex items-center gap-2 border-b border-japandi-sand/70 bg-japandi-cream/70 px-4 py-3 backdrop-blur md:px-6 md:py-4">
               {/* Mobile menu button */}
               {showSidebar && <MobileMenuButton onClick={toggleMobileMenu} />}
 
               {/* Page title */}
               {state.pageTitle && (
-                <h1 className="text-lg md:text-xl font-semibold">{state.pageTitle}</h1>
+                <h1 className="text-lg font-medium tracking-wide text-japandi-stone md:text-xl">
+                  {state.pageTitle}
+                </h1>
               )}
 
               {/* Spacer */}
