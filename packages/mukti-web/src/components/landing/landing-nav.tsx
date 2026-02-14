@@ -3,6 +3,7 @@
 import { Moon, Sun } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { useTheme } from 'next-themes';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
@@ -45,6 +46,9 @@ export default function LandingNav() {
       ? ['rgba(232, 224, 214, 0.9)', 'rgba(44, 44, 43, 1)']
       : ['rgba(44, 44, 43, 1)', 'rgba(245, 240, 235, 0.95)']
   );
+
+  const darkLogoOpacity = useTransform(scrollY, [0, 50], isDark ? [0, 1] : [1, 0]);
+  const lightLogoOpacity = useTransform(scrollY, [0, 50], isDark ? [1, 0] : [0, 1]);
 
   const toggleTheme = async () => {
     const next = isDark ? 'light' : 'dark';
@@ -89,12 +93,37 @@ export default function LandingNav() {
       }}
     >
       <Link className="group" href="/">
-        <motion.span
-          className="text-xl font-light tracking-[0.15em] lowercase transition-opacity"
-          style={{ color: textColor }}
-        >
-          mukti
-        </motion.span>
+        <div className="flex items-center gap-3">
+          <span className="relative h-8 w-8">
+            <motion.span className="absolute inset-0" style={{ opacity: darkLogoOpacity }}>
+              <Image
+                alt="Mukti"
+                className="h-8 w-8 object-contain"
+                height={32}
+                priority
+                src="/mukti-enso-inverted/mukti-enso-no-bg.png"
+                width={32}
+              />
+            </motion.span>
+            <motion.span className="absolute inset-0" style={{ opacity: lightLogoOpacity }}>
+              <Image
+                alt="Mukti"
+                className="h-8 w-8 object-contain"
+                height={32}
+                priority
+                src="/mukti-enso/mukti-inverted-enso-no-bg.png"
+                width={32}
+              />
+            </motion.span>
+          </span>
+
+          <motion.span
+            className="text-xl font-light tracking-[0.15em] lowercase transition-opacity"
+            style={{ color: textColor }}
+          >
+            mukti
+          </motion.span>
+        </div>
       </Link>
 
       <div className="flex items-center gap-6">

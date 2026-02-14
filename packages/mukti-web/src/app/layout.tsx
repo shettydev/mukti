@@ -23,7 +23,10 @@ export const metadata: Metadata = {
   description:
     'Break free from cognitive dependency with Mukti, your AI mentor that uses the Socratic method to guide you toward your own insights and rediscover independent thinking.',
   icons: {
-    icon: '/mukti-logo-2.png',
+    icon: [
+      { media: '(prefers-color-scheme: light)', url: '/mukti-enso-inverted/mukti-enso-no-bg.png' },
+      { media: '(prefers-color-scheme: dark)', url: '/mukti-enso/mukti-inverted-enso-no-bg.png' },
+    ],
   },
   keywords: ['AI', 'Socratic method', 'cognitive independence', 'critical thinking', 'learning'],
   openGraph: {
