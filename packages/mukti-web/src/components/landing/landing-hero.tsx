@@ -1,7 +1,7 @@
 'use client';
 
-import { ArrowRight } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
+import { motion, useScroll, useTransform } from 'motion/react';
 import { Noto_Serif_Devanagari } from 'next/font/google';
 import Link from 'next/link';
 
@@ -11,6 +11,9 @@ const notoSerifDevanagari = Noto_Serif_Devanagari({
 });
 
 export default function LandingHero() {
+  const { scrollY } = useScroll();
+  const opacity = useTransform(scrollY, [0, 100], [1, 0]);
+
   return (
     <section className="relative flex min-h-[100svh] md:min-h-screen w-full flex-col items-center justify-center overflow-hidden px-5 xs:px-6 pt-28 pb-16 sm:pt-32 sm:pb-20 md:px-12 md:py-24">
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
@@ -72,14 +75,21 @@ export default function LandingHero() {
       </div>
 
       <motion.div
-        animate={{ opacity: 1, width: '100%' }}
-        className="absolute bottom-10 sm:bottom-16 md:bottom-24 left-0 right-0 flex items-center justify-center"
-        initial={{ opacity: 0, width: 0 }}
-        transition={{ delay: 1.2, duration: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
+        animate={{ opacity: 1 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        initial={{ opacity: 0 }}
+        transition={{ delay: 1.2, duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        <div className="h-[1px] w-full max-w-xs bg-japandi-sand/50 relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-japandi-sand bg-japandi-cream" />
-        </div>
+        <motion.div style={{ opacity }}>
+          <Link aria-label="Scroll to content" href="#philosophy">
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 1.5, ease: 'easeInOut', repeat: Infinity }}
+            >
+              <ChevronDown className="w-8 h-8 text-japandi-stone/60" />
+            </motion.div>
+          </Link>
+        </motion.div>
       </motion.div>
     </section>
   );
