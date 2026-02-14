@@ -1,19 +1,18 @@
 'use client';
 
-import { Moon, Sun } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import { JapandiThemeToggle } from '@/components/theme/japandi-theme-toggle';
 import { cn } from '@/lib/utils';
 
 export default function LandingNav() {
   const { scrollY } = useScroll();
-  const { resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -52,38 +51,6 @@ export default function LandingNav() {
 
   const darkLogoOpacity = useTransform(scrollY, [0, 50], isDark ? [0, 1] : [1, 0]);
   const lightLogoOpacity = useTransform(scrollY, [0, 50], isDark ? [1, 0] : [0, 1]);
-
-  const toggleTheme = async () => {
-    const next = isDark ? 'light' : 'dark';
-
-    if (
-      !toggleRef.current ||
-      !document.startViewTransition ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      setTheme(next);
-      return;
-    }
-
-    const transition = document.startViewTransition(() => setTheme(next));
-    await transition.ready;
-
-    const { height, left, top, width } = toggleRef.current.getBoundingClientRect();
-    const x = left + width / 2;
-    const y = top + height / 2;
-    const right = window.innerWidth - left;
-    const bottom = window.innerHeight - top;
-    const maxRadius = Math.hypot(Math.max(left, right), Math.max(top, bottom));
-
-    document.documentElement.animate(
-      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${maxRadius}px at ${x}px ${y}px)`] },
-      {
-        duration: 700,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        pseudoElement: '::view-transition-new(root)',
-      }
-    );
-  };
 
   return (
     <motion.nav
@@ -142,19 +109,13 @@ export default function LandingNav() {
           </Link>
         </motion.div>
 
-        {mounted && (
-          <motion.button
-            aria-label="Toggle theme"
-            className="relative flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-300 hover:bg-white/10 cursor-pointer"
-            onClick={toggleTheme}
-            ref={toggleRef}
-            style={{ color: textColor }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </motion.button>
-        )}
+        <motion.div style={{ color: textColor }}>
+          <JapandiThemeToggle
+            ariaLabel="Toggle theme"
+            buttonClassName="h-8 w-8 border-transparent bg-transparent text-current shadow-none hover:bg-white/10"
+            contentClassName="border-japandi-sand/60 bg-japandi-cream/95"
+          />
+        </motion.div>
       </div>
     </motion.nav>
   );
