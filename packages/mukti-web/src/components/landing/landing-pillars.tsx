@@ -67,7 +67,7 @@ const pillars = [
 
 export default function LandingPillars() {
   return (
-    <section className="relative w-full px-6 py-24 md:px-12 lg:py-32 bg-japandi-cream">
+    <section className="relative w-full px-5 xs:px-6 py-20 sm:py-24 md:px-12 lg:py-32 bg-japandi-cream">
       <div className="max-w-7xl mx-auto">
         <motion.div
           className="mb-16 text-center md:text-left"
@@ -82,7 +82,7 @@ export default function LandingPillars() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
           {pillars.map((pillar, index) => (
             <motion.div
-              className="group relative flex flex-col p-8 md:p-10 bg-japandi-light-stone/40 rounded-sm hover:bg-japandi-light-stone/60 transition-colors duration-700"
+              className="group relative flex flex-col p-6 sm:p-8 md:p-10 bg-japandi-light-stone/40 rounded-sm hover:bg-japandi-light-stone/60 transition-colors duration-700"
               initial={{ opacity: 0, y: 40 }}
               key={pillar.id}
               transition={{
@@ -93,11 +93,11 @@ export default function LandingPillars() {
               viewport={{ once: true }}
               whileInView={{ opacity: 1, y: 0 }}
             >
-              <div className="absolute top-8 right-8 opacity-50 group-hover:opacity-100 transition-opacity duration-700">
+              <div className="absolute top-6 right-6 sm:top-8 sm:right-8 opacity-50 group-hover:opacity-100 transition-opacity duration-700">
                 {pillar.decoration}
               </div>
 
-              <span className="text-japandi-sand text-6xl font-thin mb-8 block opacity-40">
+              <span className="text-japandi-sand text-5xl sm:text-6xl font-thin mb-8 block opacity-40">
                 {pillar.id}
               </span>
 

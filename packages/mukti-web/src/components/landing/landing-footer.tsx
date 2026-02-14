@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export default function LandingFooter() {
   return (
-    <footer className="w-full px-6 py-12 md:px-12 bg-japandi-cream border-t border-japandi-sand/20">
+    <footer className="w-full px-5 xs:px-6 py-10 sm:py-12 md:px-12 bg-japandi-cream border-t border-japandi-sand/20">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="text-japandi-stone/60 text-sm tracking-widest lowercase">
           © {new Date().getFullYear()} mukti

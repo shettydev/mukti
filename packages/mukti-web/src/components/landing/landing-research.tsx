@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function LandingResearch() {
   return (
-    <section className="relative w-full px-6 py-24 md:px-12 lg:py-32 bg-japandi-light-stone/20">
+    <section className="relative w-full px-5 xs:px-6 py-20 sm:py-24 md:px-12 lg:py-32 bg-japandi-light-stone/20">
       <div className="max-w-6xl mx-auto">
         <motion.div
           className="mb-16 text-center"
@@ -25,7 +25,7 @@ export default function LandingResearch() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <motion.div
-            className="flex flex-col p-8 bg-japandi-cream rounded-sm border border-japandi-sand/30 hover:border-japandi-terracotta/30 transition-colors duration-500"
+            className="flex flex-col p-6 sm:p-8 bg-japandi-cream rounded-sm border border-japandi-sand/30 hover:border-japandi-terracotta/30 transition-colors duration-500"
             initial={{ opacity: 0, y: 30 }}
             transition={{ delay: 0.2, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
             viewport={{ once: true }}
@@ -57,7 +57,7 @@ export default function LandingResearch() {
           </motion.div>
 
           <motion.div
-            className="flex flex-col p-8 bg-japandi-cream rounded-sm border border-japandi-sand/30 hover:border-japandi-terracotta/30 transition-colors duration-500"
+            className="flex flex-col p-6 sm:p-8 bg-japandi-cream rounded-sm border border-japandi-sand/30 hover:border-japandi-terracotta/30 transition-colors duration-500"
             initial={{ opacity: 0, y: 30 }}
             transition={{ delay: 0.4, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
             viewport={{ once: true }}
@@ -89,7 +89,7 @@ export default function LandingResearch() {
           </motion.div>
 
           <motion.div
-            className="flex flex-col p-8 bg-japandi-cream rounded-sm border border-japandi-sand/30 hover:border-japandi-terracotta/30 transition-colors duration-500"
+            className="flex flex-col p-6 sm:p-8 bg-japandi-cream rounded-sm border border-japandi-sand/30 hover:border-japandi-terracotta/30 transition-colors duration-500"
             initial={{ opacity: 0, y: 30 }}
             transition={{ delay: 0.6, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
             viewport={{ once: true }}

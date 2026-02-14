@@ -50,7 +50,10 @@ export default function LandingCTA() {
   };
 
   return (
-    <section className="relative w-full px-6 py-24 md:px-12 lg:py-32 bg-japandi-sand/30" id="join">
+    <section
+      className="relative w-full px-5 xs:px-6 py-20 sm:py-24 md:px-12 lg:py-32 bg-japandi-sand/30"
+      id="join"
+    >
       <div className="max-w-4xl mx-auto text-center">
         <motion.div
           className="mb-8"
@@ -84,7 +87,7 @@ export default function LandingCTA() {
               whileInView={{ opacity: 1, y: 0 }}
             >
               <input
-                className="w-full md:w-auto flex-1 px-6 py-4 bg-japandi-cream border border-japandi-stone/10 rounded-sm text-japandi-stone placeholder:text-japandi-stone/40 focus:outline-none focus:border-japandi-terracotta transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full md:w-auto flex-1 px-5 sm:px-6 py-3.5 sm:py-4 bg-japandi-cream border border-japandi-stone/10 rounded-sm text-japandi-stone placeholder:text-japandi-stone/40 focus:outline-none focus:border-japandi-terracotta transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={state === 'loading'}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
@@ -93,7 +96,7 @@ export default function LandingCTA() {
                 value={email}
               />
               <button
-                className="w-full md:w-auto px-8 py-4 bg-japandi-terracotta text-japandi-cream font-medium tracking-wide rounded-sm hover:bg-japandi-timber transition-colors duration-300 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-japandi-terracotta cursor-pointer"
+                className="w-full md:w-auto px-7 sm:px-8 py-3.5 sm:py-4 bg-japandi-terracotta text-japandi-cream font-medium tracking-wide rounded-sm hover:bg-japandi-timber transition-colors duration-300 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-japandi-terracotta cursor-pointer"
                 disabled={state === 'loading'}
                 type="submit"
               >

@@ -80,10 +80,10 @@ const steps = [
 
 export default function LandingProcess() {
   return (
-    <section className="relative w-full px-6 py-24 md:px-12 lg:py-32 bg-japandi-cream overflow-hidden">
+    <section className="relative w-full px-5 xs:px-6 py-20 sm:py-24 md:px-12 lg:py-32 bg-japandi-cream overflow-hidden">
       <div className="max-w-4xl mx-auto">
         <motion.div
-          className="mb-24 text-center"
+          className="mb-16 sm:mb-24 text-center"
           initial={{ opacity: 0, y: 20 }}
           transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
           viewport={{ once: true }}
@@ -101,10 +101,10 @@ export default function LandingProcess() {
         </motion.div>
 
         <div className="relative">
-          <div className="absolute left-[27px] md:left-1/2 top-0 bottom-0 w-[1px] bg-japandi-sand/30 -translate-x-1/2" />
+          <div className="absolute left-[24px] sm:left-[28px] md:left-1/2 top-0 bottom-0 w-[1px] bg-japandi-sand/30 -translate-x-1/2" />
 
           <motion.div
-            className="absolute left-[27px] md:left-1/2 top-0 w-[1px] bg-japandi-terracotta/50 -translate-x-1/2 origin-top"
+            className="absolute left-[24px] sm:left-[28px] md:left-1/2 top-0 w-[1px] bg-japandi-terracotta/50 -translate-x-1/2 origin-top"
             initial={{ height: 0 }}
             transition={{ duration: 2.5, ease: [0.25, 0.1, 0.25, 1] }}
             viewport={{ once: true }}
@@ -115,7 +115,7 @@ export default function LandingProcess() {
             {steps.map((step, index) => (
               <motion.div
                 className={cn(
-                  'relative flex items-center gap-8 md:gap-16',
+                  'relative flex items-center gap-6 sm:gap-8 md:gap-16',
                   index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
                 )}
                 initial={{ opacity: 0, y: 30 }}
@@ -136,7 +136,7 @@ export default function LandingProcess() {
                   </span>
                 </div>
 
-                <div className="relative z-10 flex-shrink-0 w-14 h-14 rounded-full bg-japandi-cream border border-japandi-sand flex items-center justify-center shadow-sm">
+                <div className="relative z-10 flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-japandi-cream border border-japandi-sand flex items-center justify-center shadow-sm">
                   {step.icon}
                 </div>
 

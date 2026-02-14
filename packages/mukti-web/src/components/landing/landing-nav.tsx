@@ -87,7 +87,7 @@ export default function LandingNav() {
 
   return (
     <motion.nav
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12 md:py-6 transition-all duration-500"
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 sm:px-6 sm:py-4 md:px-12 md:py-6 transition-all duration-500"
       style={{
         backdropFilter,
         backgroundColor,
@@ -96,7 +96,7 @@ export default function LandingNav() {
       }}
     >
       <Link className="group" href="/">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <span className="relative h-8 w-8">
             <motion.span className="absolute inset-0" style={{ opacity: darkLogoOpacity }}>
               <Image
@@ -121,7 +121,7 @@ export default function LandingNav() {
           </span>
 
           <motion.span
-            className="text-xl font-light tracking-[0.15em] lowercase transition-opacity"
+            className="text-lg sm:text-xl font-light tracking-[0.15em] lowercase transition-opacity"
             style={{ color: textColor }}
           >
             mukti
@@ -129,11 +129,11 @@ export default function LandingNav() {
         </div>
       </Link>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 sm:gap-6">
         <motion.div style={{ color: textColor }}>
           <Link
             className={cn(
-              'text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
+              'text-xs xs:text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
               "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
             )}
             href="#join"

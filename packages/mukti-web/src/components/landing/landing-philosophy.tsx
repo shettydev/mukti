@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 export default function LandingPhilosophy() {
   return (
     <section
-      className="relative w-full px-6 py-24 md:px-12 lg:py-32 bg-japandi-cream"
+      className="relative w-full px-5 xs:px-6 py-20 sm:py-24 md:px-12 lg:py-32 bg-japandi-cream"
       id="philosophy"
     >
       <div className="max-w-6xl mx-auto">
