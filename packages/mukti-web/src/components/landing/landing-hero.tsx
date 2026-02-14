@@ -16,9 +16,8 @@ export default function LandingHero() {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
         <motion.span
           animate={{ opacity: 0.04 }}
-          className={`${notoSerifDevanagari.className} text-[55vw] xs:text-[45vw] sm:text-[38vw] md:text-[30vw] text-japandi-stone whitespace-nowrap leading-none tracking-widest`}
+          className={`${notoSerifDevanagari.className} text-[50vw] xs:text-[35vw] sm:text-[30vw] md:text-[24vw] translate-x-2 text-japandi-stone whitespace-nowrap leading-none tracking-widest md:[writing-mode:vertical-rl]`}
           initial={{ opacity: 0 }}
-          style={{ writingMode: 'vertical-rl' }}
           transition={{ duration: 2, ease: [0.25, 0.1, 0.25, 1] }}
         >
           मुक्ति
