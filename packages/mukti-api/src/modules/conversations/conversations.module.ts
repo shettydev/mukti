@@ -21,6 +21,7 @@ import { User, UserSchema } from '../../schemas/user.schema';
 import { AiModule } from '../ai/ai.module';
 import { ConversationController } from './conversation.controller';
 import { ConversationService } from './services/conversation.service';
+import { GeminiService } from './services/gemini.service';
 import { MessageService } from './services/message.service';
 import { OpenRouterService } from './services/openrouter.service';
 import { QueueService } from './services/queue.service';
@@ -45,6 +46,7 @@ import { StreamService } from './services/stream.service';
   exports: [
     SeedService,
     ConversationService,
+    GeminiService,
     MessageService,
     OpenRouterService,
     QueueService,
@@ -97,6 +99,7 @@ import { StreamService } from './services/stream.service';
   providers: [
     SeedService,
     ConversationService,
+    GeminiService,
     MessageService,
     OpenRouterService,
     QueueService,

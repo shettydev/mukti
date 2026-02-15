@@ -320,6 +320,65 @@ describe('useSendMessage', () => {
     expect(conversationsApi.sendMessage).toHaveBeenCalledWith('507f1f77bcf86cd799439011', dto);
     expect(result.current.data).toEqual(mockResponse);
   });
+
+  it('falls back to refetching conversation details when SSE assistant message is delayed', async () => {
+    const conversationId = '507f1f77bcf86cd799439011';
+    const { queryClient, wrapper } = createWrapperWithClient();
+    queryClient.setQueryData(conversationKeys.detail(conversationId), {
+      ...mockConversation,
+      metadata: {
+        ...mockConversation.metadata,
+        messageCount: 1,
+      },
+      recentMessages: [
+        {
+          content: 'Hello',
+          role: 'user',
+          sequence: 1,
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+      ],
+    });
+
+    (
+      conversationsApi.sendMessage as jest.MockedFunction<typeof conversationsApi.sendMessage>
+    ).mockResolvedValue({
+      jobId: 'job-fallback',
+      position: 1,
+    });
+    (
+      conversationsApi.getById as jest.MockedFunction<typeof conversationsApi.getById>
+    ).mockResolvedValue({
+      ...mockConversation,
+      metadata: {
+        ...mockConversation.metadata,
+        messageCount: 2,
+      },
+      recentMessages: [
+        {
+          content: 'Hello',
+          role: 'user',
+          sequence: 1,
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        {
+          content: 'Fallback assistant response',
+          role: 'assistant',
+          sequence: 2,
+          timestamp: '2024-01-01T00:00:02Z',
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useSendMessage(conversationId), {
+      wrapper,
+    });
+
+    result.current.mutate({ content: 'Trigger fallback' });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(conversationsApi.getById).toHaveBeenCalledWith(conversationId));
+  });
 });
 
 describe('useArchivedMessages', () => {
