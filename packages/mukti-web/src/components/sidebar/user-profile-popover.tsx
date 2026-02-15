@@ -107,26 +107,17 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onClick={() => setTheme('system')}
-        >
+        <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('system')}>
           <Monitor className="mr-2 h-4 w-4" />
           <span>System</span>
           {activeTheme === 'system' && <Check className="ml-auto h-3.5 w-3.5" />}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onClick={() => setTheme('light')}
-        >
+        <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('light')}>
           <Sun className="mr-2 h-4 w-4" />
           <span>Light</span>
           {activeTheme === 'light' && <Check className="ml-auto h-3.5 w-3.5" />}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onClick={() => setTheme('dark')}
-        >
+        <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('dark')}>
           <Moon className="mr-2 h-4 w-4" />
           <span>Dark</span>
           {activeTheme === 'dark' && <Check className="ml-auto h-3.5 w-3.5" />}

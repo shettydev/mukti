@@ -97,7 +97,9 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
             name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-japandi-label text-japandi-stone/85">First Name</FormLabel>
+                <FormLabel className="text-japandi-label text-japandi-stone/85">
+                  First Name
+                </FormLabel>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-japandi-timber/60" />
                   <FormControl>
@@ -119,7 +121,9 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-japandi-label text-japandi-stone/85">Last Name</FormLabel>
+                <FormLabel className="text-japandi-label text-japandi-stone/85">
+                  Last Name
+                </FormLabel>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-japandi-timber/60" />
                   <FormControl>
@@ -166,7 +170,9 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-japandi-label text-japandi-stone/85">Phone (Optional)</FormLabel>
+              <FormLabel className="text-japandi-label text-japandi-stone/85">
+                Phone (Optional)
+              </FormLabel>
               <FormControl>
                 <PhoneInput
                   {...field}
@@ -274,7 +280,10 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
         {/* Terms & Service */}
         <p className="text-center text-[10px] leading-relaxed text-japandi-stone/55 sm:text-xs">
           By creating an account, you agree to our{' '}
-          <a className="underline decoration-japandi-sand underline-offset-3 hover:text-japandi-timber touch-manipulation" href="/terms">
+          <a
+            className="underline decoration-japandi-sand underline-offset-3 hover:text-japandi-timber touch-manipulation"
+            href="/terms"
+          >
             Terms of Service
           </a>{' '}
           and{' '}

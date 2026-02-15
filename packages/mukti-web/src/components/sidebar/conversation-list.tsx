@@ -306,7 +306,10 @@ export function ConversationList({
             >
               Cancel
             </Button>
-            <Button className="bg-japandi-terracotta text-white hover:bg-japandi-timber" onClick={handleRenameSubmit}>
+            <Button
+              className="bg-japandi-terracotta text-white hover:bg-japandi-timber"
+              onClick={handleRenameSubmit}
+            >
               Save
             </Button>
           </DialogFooter>

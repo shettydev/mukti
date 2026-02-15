@@ -200,9 +200,7 @@ export function Sidebar({
               {/* Separator */}
               <div className="pt-4 pb-2">
                 <div className="mb-2 border-t border-japandi-sand/70" />
-                <p className="text-japandi-label px-3 text-japandi-stone/60">
-                  Conversations
-                </p>
+                <p className="text-japandi-label px-3 text-japandi-stone/60">Conversations</p>
               </div>
 
               {/* Conversation list */}

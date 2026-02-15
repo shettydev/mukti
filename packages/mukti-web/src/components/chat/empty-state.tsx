@@ -100,7 +100,11 @@ export function EmptyState({
       }
 
       if (title) {
-        gsap.fromTo(title, { opacity: 0, y: 12 }, { duration: 0.65, ease: 'power2.out', opacity: 1, y: 0 });
+        gsap.fromTo(
+          title,
+          { opacity: 0, y: 12 },
+          { duration: 0.65, ease: 'power2.out', opacity: 1, y: 0 }
+        );
       }
     }, containerRef);
 
