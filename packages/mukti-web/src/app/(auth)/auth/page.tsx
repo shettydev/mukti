@@ -10,23 +10,6 @@ import { cn } from '@/lib/utils';
 
 type AuthTab = 'signin' | 'signup';
 
-/**
- * Full-page authentication page with gradient background and tab switching.
- *
- * Features:
- * - Full-page gradient background (purple to blue)
- * - Centered dark card with backdrop blur
- * - Tab switching between sign up and sign in
- * - Smooth animations for tab transitions
- * - Responsive design for all screen sizes
- * - URL query parameter support (?tab=signup or ?tab=signin)
- * - Automatic redirect to dashboard on successful authentication
- *
- * @example
- * Navigate to /auth?tab=signup to show sign up form
- * Navigate to /auth?tab=signin to show sign in form
- * Navigate to /auth to show sign in form by default
- */
 export default function AuthPage() {
   return (
     <Suspense
@@ -34,12 +17,10 @@ export default function AuthPage() {
         <GradientBackground>
           <div
             className={cn(
-              'bg-black/60 backdrop-blur-xl',
-              'border border-white/10',
-              'rounded-2xl sm:rounded-3xl',
-              'w-full max-w-[95%] xs:max-w-md sm:max-w-lg',
+              'mx-auto w-full max-w-[95%] xs:max-w-md sm:max-w-lg',
+              'rounded-3xl border border-japandi-sand/70 bg-japandi-cream/80',
               'p-6 sm:p-8 md:p-10',
-              'shadow-2xl shadow-black/50',
+              'shadow-[0_24px_70px_-42px_rgba(107,77,58,0.45)] dark:shadow-[0_24px_70px_-42px_rgba(0,0,0,0.65)] backdrop-blur-sm',
               'animate-pulse'
             )}
           >
@@ -85,119 +66,99 @@ function AuthContent() {
 
   return (
     <GradientBackground>
-      {/* Centered dark card with backdrop blur */}
-      <div
-        className={cn(
-          // Card styling
-          'bg-black/60 backdrop-blur-xl',
-          'border border-white/10',
-          'rounded-2xl sm:rounded-3xl',
-          // Responsive sizing
-          'w-full max-w-[95%] xs:max-w-md sm:max-w-lg',
-          // Responsive padding
-          'p-6 sm:p-8 md:p-10',
-          // Shadow for depth
-          'shadow-2xl shadow-black/50',
-          // Animation
-          'animate-in fade-in-0 zoom-in-95 duration-300'
-        )}
-        suppressHydrationWarning
-      >
-        {/* Logo/Title */}
-        <div className="text-center mb-6 sm:mb-8" suppressHydrationWarning>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
-            Welcome to Mukti
-          </h1>
-          <p className="text-xs sm:text-sm text-white/60">
-            {activeTab === 'signup'
-              ? 'Create your account to get started'
-              : 'Sign in to continue your journey'}
-          </p>
-        </div>
-
-        {/* Tab Navigation */}
+      <div className="relative mx-auto w-full max-w-[95%] xs:max-w-md sm:max-w-lg">
         <div
-          className="flex gap-2 mb-6 sm:mb-8 p-1 bg-white/5 rounded-lg sm:rounded-xl border border-white/10"
+          className={cn(
+            'relative w-full rounded-3xl border border-japandi-sand/70 bg-japandi-cream/80 backdrop-blur-sm',
+            'p-6 sm:p-8 md:p-10',
+            'shadow-[0_24px_70px_-42px_rgba(107,77,58,0.45)] dark:shadow-[0_24px_70px_-42px_rgba(0,0,0,0.65)]',
+            'animate-in fade-in-0 zoom-in-95 duration-300'
+          )}
           suppressHydrationWarning
         >
-          <button
-            className={cn(
-              'flex-1 py-2.5 sm:py-3 px-4 rounded-md sm:rounded-lg',
-              'text-sm sm:text-base font-medium',
-              'transition-all duration-300 ease-in-out',
-              'touch-manipulation',
-              activeTab === 'signin'
-                ? 'bg-white/10 text-white shadow-lg'
-                : 'text-white/60 hover:text-white/80'
-            )}
-            onClick={() => handleTabChange('signin')}
-            type="button"
-          >
-            Sign In
-          </button>
-          <button
-            className={cn(
-              'flex-1 py-2.5 sm:py-3 px-4 rounded-md sm:rounded-lg',
-              'text-sm sm:text-base font-medium',
-              'transition-all duration-300 ease-in-out',
-              'touch-manipulation',
-              activeTab === 'signup'
-                ? 'bg-white/10 text-white shadow-lg'
-                : 'text-white/60 hover:text-white/80'
-            )}
-            onClick={() => handleTabChange('signup')}
-            type="button"
-          >
-            Sign Up
-          </button>
-        </div>
+          {/* Logo/Title */}
+          <div className="mb-6 text-center sm:mb-8" suppressHydrationWarning>
+            <p className="text-japandi-label mb-3 text-japandi-timber/85">Mukti</p>
+            <h1 className="text-japandi-heading mb-2 text-2xl sm:text-3xl md:text-[2rem]">
+              Welcome back
+            </h1>
+            <p className="text-japandi-body text-sm text-japandi-stone/75">
+              {activeTab === 'signup'
+                ? 'Create your account to begin your inquiry practice.'
+                : 'Sign in to continue your inquiry journey.'}
+            </p>
+          </div>
 
-        {/* Form Content with smooth transition */}
-        <div className="relative" suppressHydrationWarning>
-          {/* Sign In Form */}
+          {/* Tab Navigation */}
           <div
-            className={cn(
-              'transition-all duration-300 ease-in-out',
-              activeTab === 'signin'
-                ? 'opacity-100 translate-x-0 relative'
-                : 'opacity-0 -translate-x-4 absolute inset-0 pointer-events-none'
-            )}
+            className="mb-6 flex gap-2 rounded-xl border border-japandi-sand/80 bg-japandi-light-stone/55 p-1 sm:mb-8"
+            suppressHydrationWarning
           >
-            {activeTab === 'signin' && (
-              <>
+            <button
+              className={cn(
+                'min-h-11 flex-1 rounded-lg px-4 py-2.5 text-sm font-medium sm:text-base',
+                'transition-all duration-200 ease-out touch-manipulation',
+                'focus-visible:ring-2 focus-visible:ring-japandi-sage/60 focus-visible:outline-none',
+                activeTab === 'signin'
+                  ? 'bg-japandi-cream text-japandi-stone shadow-sm'
+                  : 'text-japandi-stone/70 hover:text-japandi-timber hover:bg-japandi-cream/55'
+              )}
+              onClick={() => handleTabChange('signin')}
+              type="button"
+            >
+              Sign In
+            </button>
+            <button
+              className={cn(
+                'min-h-11 flex-1 rounded-lg px-4 py-2.5 text-sm font-medium sm:text-base',
+                'transition-all duration-200 ease-out touch-manipulation',
+                'focus-visible:ring-2 focus-visible:ring-japandi-sage/60 focus-visible:outline-none',
+                activeTab === 'signup'
+                  ? 'bg-japandi-cream text-japandi-stone shadow-sm'
+                  : 'text-japandi-stone/70 hover:text-japandi-timber hover:bg-japandi-cream/55'
+              )}
+              onClick={() => handleTabChange('signup')}
+              type="button"
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {/* Form Content with smooth transition */}
+          <div className="relative" suppressHydrationWarning>
+            {/* Sign In Form */}
+            <div
+              className={cn(
+                'transition-all duration-300 ease-in-out',
+                activeTab === 'signin'
+                  ? 'relative translate-x-0 opacity-100'
+                  : 'pointer-events-none absolute inset-0 -translate-x-4 opacity-0'
+              )}
+            >
+              {activeTab === 'signin' && (
                 <SignInForm
                   onSuccess={handleAuthSuccess}
                   onSwitchToSignUp={() => handleTabChange('signup')}
                 />
-                {/* TODO: Enable once oauth configuration is complete */}
-                {/*<div className="mt-4 sm:mt-6">
-                  <OAuthButtons />
-                </div>*/}
-              </>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* Sign Up Form */}
-          <div
-            className={cn(
-              'transition-all duration-300 ease-in-out',
-              activeTab === 'signup'
-                ? 'opacity-100 translate-x-0 relative'
-                : 'opacity-0 translate-x-4 absolute inset-0 pointer-events-none'
-            )}
-          >
-            {activeTab === 'signup' && (
-              <>
+            {/* Sign Up Form */}
+            <div
+              className={cn(
+                'transition-all duration-300 ease-in-out',
+                activeTab === 'signup'
+                  ? 'relative translate-x-0 opacity-100'
+                  : 'pointer-events-none absolute inset-0 translate-x-4 opacity-0'
+              )}
+            >
+              {activeTab === 'signup' && (
                 <SignUpForm
                   onSuccess={handleAuthSuccess}
                   onSwitchToSignIn={() => handleTabChange('signin')}
                 />
-                {/* TODO: Enable once oauth configuration is complete */}
-                {/*<div className="mt-4 sm:mt-6">
-                  <OAuthButtons />
-                </div>*/}
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

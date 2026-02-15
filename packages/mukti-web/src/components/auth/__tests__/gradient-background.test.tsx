@@ -14,7 +14,7 @@ describe('GradientBackground', () => {
     expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 
-  it('applies gradient background classes', () => {
+  it('applies Japandi background classes', () => {
     const { container } = render(
       <GradientBackground>
         <div>Content</div>
@@ -22,10 +22,8 @@ describe('GradientBackground', () => {
     );
 
     const backgroundDiv = container.firstChild as HTMLElement;
-    expect(backgroundDiv).toHaveClass('bg-gradient-to-b');
-    expect(backgroundDiv).toHaveClass('from-black');
-    expect(backgroundDiv).toHaveClass('via-purple-900');
-    expect(backgroundDiv).toHaveClass('to-blue-600');
+    expect(backgroundDiv).toHaveClass('japandi-page');
+    expect(backgroundDiv).toHaveClass('bg-grain');
   });
 
   it('applies full viewport height and width classes', () => {
@@ -36,7 +34,7 @@ describe('GradientBackground', () => {
     );
 
     const backgroundDiv = container.firstChild as HTMLElement;
-    expect(backgroundDiv).toHaveClass('min-h-screen');
+    expect(backgroundDiv).toHaveClass('min-h-dvh');
     expect(backgroundDiv).toHaveClass('w-full');
   });
 
@@ -48,9 +46,9 @@ describe('GradientBackground', () => {
     );
 
     const backgroundDiv = container.firstChild as HTMLElement;
-    expect(backgroundDiv).toHaveClass('p-4');
-    expect(backgroundDiv).toHaveClass('sm:p-6');
-    expect(backgroundDiv).toHaveClass('md:p-8');
+    expect(backgroundDiv).toHaveClass('px-4');
+    expect(backgroundDiv).toHaveClass('sm:px-6');
+    expect(backgroundDiv).toHaveClass('md:px-8');
   });
 
   it('applies flexbox centering classes', () => {

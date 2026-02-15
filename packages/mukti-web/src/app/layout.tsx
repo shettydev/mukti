@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import Script from 'next/script';
 
 import './globals.css';
+import './japandi.css';
 import { Providers } from '@/app/providers';
 import { ThemeProvider } from '@/components/old-landing/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -77,7 +78,7 @@ export default function RootLayout({
         <Providers>
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="system"
             disableTransitionOnChange
             enableSystem
           >

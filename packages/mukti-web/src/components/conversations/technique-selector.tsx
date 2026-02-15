@@ -56,11 +56,13 @@ export function TechniqueSelector({
         aria-haspopup="dialog"
         aria-label="Select Socratic technique"
         className={cn(
-          'w-full justify-between font-normal',
-          !value && 'text-muted-foreground',
+          'h-11 w-full justify-between border-japandi-sand/80 bg-japandi-cream/70 text-japandi-stone font-normal hover:bg-japandi-light-stone/70',
+          'focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/35',
+          !value && 'text-japandi-stone/60',
           className
         )}
         disabled={disabled}
+        id="technique-selector"
         onClick={() => setOpen(true)}
         type="button"
         variant="outline"
@@ -72,10 +74,10 @@ export function TechniqueSelector({
       </Button>
 
       <Dialog onOpenChange={setOpen} open={open}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg border-japandi-sand/80 !bg-japandi-cream text-japandi-stone shadow-2xl opacity-100">
           <DialogHeader>
             <DialogTitle>Select Socratic Technique</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-japandi-stone/70">
               Choose a questioning methodology for your dialogue.
             </DialogDescription>
           </DialogHeader>
@@ -89,9 +91,9 @@ export function TechniqueSelector({
                   aria-selected={isSelected}
                   className={cn(
                     'flex items-start gap-3 rounded-lg border p-3 text-left transition-colors',
-                    'hover:bg-accent hover:text-accent-foreground',
-                    'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                    isSelected && 'border-primary bg-primary/5'
+                    'border-japandi-sand/70 hover:bg-japandi-light-stone/70',
+                    'focus:outline-none focus:ring-2 focus:ring-japandi-sage/35',
+                    isSelected && 'border-japandi-sage bg-japandi-sage/10'
                   )}
                   key={technique}
                   onClick={() => handleSelect(technique)}
@@ -102,15 +104,15 @@ export function TechniqueSelector({
                     className={cn(
                       'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
                       isSelected
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-muted'
+                        ? 'border-japandi-sage bg-japandi-sage text-white'
+                        : 'border-japandi-sand'
                     )}
                   >
                     {isSelected && <Check className="h-3 w-3" />}
                   </div>
                   <div className="flex-1 space-y-1">
                     <p className="font-medium leading-none">{info.name}</p>
-                    <p className="text-sm text-muted-foreground">{info.description}</p>
+                    <p className="text-sm text-japandi-stone/65">{info.description}</p>
                   </div>
                 </button>
               );

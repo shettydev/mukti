@@ -88,24 +88,18 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
 
   return (
     <>
-      {/* Floating header with gradient fade */}
-      <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none h-16 md:h-20">
-        {/* Gradient background - fades from solid to transparent */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#050505] from-40% via-[#050505]/60 via-70% to-transparent" />
-
-        {/* Header content */}
-        <div className="relative flex items-center justify-between p-2 md:p-3">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 px-2 pt-2 md:px-4 md:pt-3">
+        <div className="pointer-events-auto flex items-center justify-between rounded-2xl border border-japandi-sand/70 bg-japandi-cream/80 px-2 py-2 shadow-sm backdrop-blur-sm md:px-3">
           {/* Left side - Sidebar toggle + Title */}
-          <div className="flex items-center gap-2 pointer-events-auto min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
             {/* Sidebar toggle */}
             {onMobileMenuToggle && (
               <Button
                 aria-label="Toggle sidebar"
                 className={cn(
-                  'h-8 w-8 shrink-0',
+                  'h-8 w-8 shrink-0 text-japandi-stone/75',
                   'md:hidden', // Hide on desktop
-                  'bg-transparent hover:bg-white/5',
-                  'text-white/50 hover:text-white/80',
+                  'bg-transparent hover:bg-japandi-light-stone/75',
                   'transition-colors duration-200'
                 )}
                 onClick={onMobileMenuToggle}
@@ -119,8 +113,8 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
             {/* Title */}
             <h1
               className={cn(
-                'text-sm font-medium truncate',
-                isNewChat ? 'text-white/40' : 'text-white/70'
+                'truncate text-sm font-medium tracking-wide',
+                isNewChat ? 'text-japandi-stone/45' : 'text-japandi-stone/80'
               )}
               title={title}
             >
@@ -129,25 +123,25 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
 
             {/* Archived badge */}
             {conversation?.isArchived && (
-              <span className="shrink-0 text-[10px] text-amber-500/70 bg-amber-500/10 px-1.5 py-0.5 rounded">
+              <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-300">
                 Archived
               </span>
             )}
           </div>
 
           {/* Right side - Options */}
-          {!isNewChat && (
-            <div className="pointer-events-auto">
+          <div className="flex items-center gap-1">
+            {!isNewChat && (
               <Popover onOpenChange={setPopoverOpen} open={popoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     aria-label="More options"
                     className={cn(
                       'h-8 w-8',
-                      'bg-transparent hover:bg-white/5',
-                      'text-white/50 hover:text-white/80',
+                      'bg-transparent hover:bg-japandi-light-stone/75',
+                      'text-japandi-stone/70 hover:text-japandi-stone',
                       'transition-colors duration-200',
-                      popoverOpen && 'bg-white/5 text-white/80'
+                      popoverOpen && 'bg-japandi-light-stone/75 text-japandi-stone'
                     )}
                     size="icon"
                     variant="ghost"
@@ -157,14 +151,14 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
-                  className="w-48 p-1 bg-[#1a1a1a] border-white/10"
+                  className="w-48 border-japandi-sand/80 !bg-japandi-cream p-1 text-japandi-stone shadow-xl opacity-100"
                   sideOffset={8}
                 >
                   {/* Archive/Restore option */}
                   <button
                     className={cn(
-                      'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm',
-                      'text-white/70 hover:text-white hover:bg-white/5',
+                      'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm',
+                      'text-japandi-stone/80 hover:bg-japandi-light-stone/75 hover:text-japandi-stone',
                       'transition-colors duration-150 cursor-pointer'
                     )}
                     onClick={handleArchive}
@@ -186,8 +180,8 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                   {/* Delete option */}
                   <button
                     className={cn(
-                      'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm',
-                      'text-red-400 hover:text-red-300 hover:bg-red-500/10',
+                      'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm',
+                      'text-red-600 hover:bg-red-500/10 hover:text-red-700 dark:text-red-300 dark:hover:text-red-200',
                       'transition-colors duration-150 cursor-pointer'
                     )}
                     onClick={handleDeleteClick}
@@ -198,24 +192,24 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                   </button>
                 </PopoverContent>
               </Popover>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog onOpenChange={setDeleteDialogOpen} open={deleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px] bg-[#1a1a1a] border-white/10">
+        <DialogContent className="sm:max-w-[400px] border-japandi-sand/80 bg-japandi-cream text-japandi-stone">
           <DialogHeader>
-            <DialogTitle className="text-white">Delete conversation?</DialogTitle>
-            <DialogDescription className="text-white/50">
+            <DialogTitle>Delete conversation?</DialogTitle>
+            <DialogDescription className="text-japandi-stone/70">
               This will permanently delete &quot;{conversation?.title}&quot;. This action cannot be
               undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0 mt-4">
             <Button
-              className="bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/5"
+              className="border-japandi-sand/80 bg-japandi-cream text-japandi-stone hover:bg-japandi-light-stone/75"
               onClick={() => setDeleteDialogOpen(false)}
               variant="outline"
             >

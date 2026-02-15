@@ -30,7 +30,10 @@ import { generateTemporaryTitle } from '@/lib/utils/title-generation';
 export default function ChatPage() {
   return (
     <ProtectedRoute redirectTo="/auth">
-      <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar={false}>
+      <DashboardLayout
+        contentClassName="flex min-h-0 flex-col overflow-hidden bg-japandi-cream/35 p-0"
+        showNavbar={false}
+      >
         <ChatContent />
       </DashboardLayout>
     </ProtectedRoute>

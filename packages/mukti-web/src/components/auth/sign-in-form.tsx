@@ -99,28 +99,28 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
 
   return (
     <Form {...form}>
-      <form className="space-y-3 sm:space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="space-y-4 sm:space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
         {/* Email */}
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white text-sm">Email</FormLabel>
+              <FormLabel className="text-japandi-label text-japandi-stone/85">Email</FormLabel>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-japandi-timber/60" />
                 <FormControl>
                   <Input
                     {...field}
                     autoComplete="email"
-                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base disabled:opacity-50"
+                    className="h-11 border-japandi-sand/80 bg-japandi-cream/65 pl-10 text-japandi-stone placeholder:text-japandi-stone/45 focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/30 sm:h-12 sm:text-base disabled:opacity-50"
                     disabled={isLoading}
                     placeholder="john@example.com"
                     type="email"
                   />
                 </FormControl>
               </div>
-              <FormMessage className="text-red-300 text-xs" />
+              <FormMessage className="text-xs text-red-600 dark:text-red-300" />
             </FormItem>
           )}
         />
@@ -131,13 +131,13 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white text-sm">Password</FormLabel>
+              <FormLabel className="text-japandi-label text-japandi-stone/85">Password</FormLabel>
               <div className="relative">
                 <FormControl>
                   <Input
                     {...field}
                     autoComplete="current-password"
-                    className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base disabled:opacity-50"
+                    className="h-11 border-japandi-sand/80 bg-japandi-cream/65 pr-10 text-japandi-stone placeholder:text-japandi-stone/45 focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/30 sm:h-12 sm:text-base disabled:opacity-50"
                     disabled={isLoading}
                     placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
@@ -145,7 +145,7 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 </FormControl>
                 <button
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation disabled:opacity-50"
+                  className="absolute right-3 top-1/2 min-h-[44px] min-w-[44px] -translate-y-1/2 text-japandi-timber/65 transition-colors hover:text-japandi-timber focus-visible:outline-none disabled:opacity-50"
                   disabled={isLoading}
                   onClick={() => setShowPassword(!showPassword)}
                   type="button"
@@ -153,13 +153,13 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <FormMessage className="text-red-300 text-xs" />
+              <FormMessage className="text-xs text-red-600 dark:text-red-300" />
             </FormItem>
           )}
         />
 
         {/* Remember Me and Forgot Password - responsive layout */}
-        <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-0">
+        <div className="flex flex-col items-start justify-between gap-2 xs:flex-row xs:items-center xs:gap-0">
           <FormField
             control={form.control}
             name="rememberMe"
@@ -168,12 +168,12 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 <FormControl>
                   <Checkbox
                     checked={field.value}
-                    className="border-white/20 data-[state=checked]:bg-white data-[state=checked]:text-purple-600 touch-manipulation disabled:opacity-50"
+                    className="h-4 w-4 border-japandi-sand/90 bg-japandi-cream/70 data-[state=checked]:border-japandi-sage data-[state=checked]:bg-japandi-sage data-[state=checked]:text-white touch-manipulation disabled:opacity-50"
                     disabled={isLoading}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <FormLabel className="text-xs sm:text-sm text-white/70 font-normal cursor-pointer touch-manipulation">
+                <FormLabel className="cursor-pointer text-xs font-normal text-japandi-stone/70 touch-manipulation sm:text-sm">
                   Remember me
                 </FormLabel>
               </FormItem>
@@ -181,7 +181,7 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
           />
 
           <button
-            className="text-xs sm:text-sm text-white/70 hover:text-white transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs text-japandi-timber/80 transition-colors hover:text-japandi-timber hover:underline touch-manipulation disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
             disabled={isLoading}
             onClick={() => {
               if (onForgotPassword) {
@@ -198,8 +198,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
 
         {/* API Error Message */}
         {loginMutation.error && (
-          <div className="rounded-md bg-red-500/10 border border-red-500/20 p-2.5 sm:p-3">
-            <p className="text-xs sm:text-sm text-red-300">
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-2.5 sm:p-3">
+            <p className="text-xs text-red-700 dark:text-red-300 sm:text-sm">
               {loginMutation.error instanceof Error
                 ? loginMutation.error.message
                 : 'Login failed. Please check your credentials and try again.'}
@@ -209,7 +209,7 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
 
         {/* Submit Button - blue gradient, touch-friendly */}
         <Button
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium touch-manipulation h-11 sm:h-12 text-sm sm:text-base shadow-lg shadow-blue-500/20 disabled:opacity-70"
+          className="h-11 w-full bg-japandi-terracotta text-sm font-medium text-white shadow-sm shadow-japandi-timber/20 transition-colors hover:bg-japandi-timber focus-visible:ring-japandi-sage/40 touch-manipulation sm:h-12 sm:text-base disabled:opacity-70"
           disabled={isLoading}
           type="submit"
         >
@@ -233,10 +233,10 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
 
         {/* Switch to Sign Up */}
         <div className="text-center">
-          <p className="text-xs sm:text-sm text-white/70">
+          <p className="text-xs text-japandi-stone/70 sm:text-sm">
             Don&apos;t have an account?{' '}
             <button
-              className="text-white font-medium hover:underline touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              className="font-medium text-japandi-timber underline-offset-4 hover:underline touch-manipulation disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isLoading}
               onClick={onSwitchToSignUp}
               type="button"
