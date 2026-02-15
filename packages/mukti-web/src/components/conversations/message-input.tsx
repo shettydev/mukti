@@ -166,7 +166,7 @@ export function MessageInput({
           isOverLimit
             ? 'text-destructive'
             : isNearLimit
-              ? 'text-amber-600 dark:text-amber-400'
+              ? 'text-yellow-600 dark:text-yellow-500'
               : 'text-japandi-stone/60'
         )}
         data-testid="character-count"

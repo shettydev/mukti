@@ -33,6 +33,13 @@ export function Message({ message }: MessageProps) {
             : 'border-l-2 border-japandi-sage/60 bg-japandi-cream/45 text-japandi-stone/95'
         )}
       >
+        <span
+          aria-hidden="true"
+          className={cn(
+            'sr-only',
+            isUser ? 'bg-white/10 text-foreground' : 'bg-transparent text-foreground'
+          )}
+        />
         <div className="flex items-start gap-2">
           <div className="flex-1 space-y-2">
             {isUser ? (
