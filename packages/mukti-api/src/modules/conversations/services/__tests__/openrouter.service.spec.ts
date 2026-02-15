@@ -167,6 +167,7 @@ describe('OpenRouterService', () => {
             expect(result).toHaveProperty('completionTokens');
             expect(result).toHaveProperty('totalTokens');
             expect(result).toHaveProperty('cost');
+            expect(result).toHaveProperty('costUsd');
             expect(result).toHaveProperty('model');
 
             // Property: Content should match response
@@ -185,6 +186,7 @@ describe('OpenRouterService', () => {
             // Property: Cost is currently treated as unknown
             expect(typeof result.cost).toBe('number');
             expect(result.cost).toBe(0);
+            expect(result.costUsd).toBe(0);
           },
         ),
         { numRuns: 100 },
@@ -203,6 +205,7 @@ describe('OpenRouterService', () => {
       expect(result.completionTokens).toBe(0);
       expect(result.totalTokens).toBe(0);
       expect(result.cost).toBe(0);
+      expect(result.costUsd).toBe(0);
     });
 
     it('should handle empty content', () => {
@@ -219,6 +222,27 @@ describe('OpenRouterService', () => {
 
       expect(result.content).toBe('');
       expect(result.promptTokens).toBe(10);
+    });
+
+    it('should compute cost from pricing and token usage', () => {
+      const response: any = {
+        choices: [{ message: { content: 'Test response' } }],
+        usage: {
+          completion_tokens: 1000,
+          prompt_tokens: 2000,
+        },
+      };
+
+      const result = service.parseResponse(response, 'openai/gpt-5-mini', {
+        completionUsdPer1M: 0.8,
+        promptUsdPer1M: 0.2,
+      });
+
+      expect(result.promptTokens).toBe(2000);
+      expect(result.completionTokens).toBe(1000);
+      expect(result.totalTokens).toBe(3000);
+      expect(result.costUsd).toBeCloseTo(0.0012, 8);
+      expect(result.cost).toBeCloseTo(0.0012, 8);
     });
   });
 

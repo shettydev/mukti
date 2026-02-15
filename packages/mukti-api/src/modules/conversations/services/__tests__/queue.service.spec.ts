@@ -1,5 +1,4 @@
 import { getQueueToken } from '@nestjs/bullmq';
-import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
@@ -11,11 +10,8 @@ jest.mock('@openrouter/sdk', () => ({
 import { Conversation } from '../../../../schemas/conversation.schema';
 import { Technique } from '../../../../schemas/technique.schema';
 import { UsageEvent } from '../../../../schemas/usage-event.schema';
-import { User } from '../../../../schemas/user.schema';
-import { AiPolicyService } from '../../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
+import { AiGatewayService } from '../../../ai/services/ai-gateway.service';
 import { MessageService } from '../message.service';
-import { OpenRouterService } from '../openrouter.service';
 import { QueueService } from '../queue.service';
 import { StreamService } from '../stream.service';
 
@@ -90,27 +86,8 @@ describe('QueueService', () => {
       create: jest.fn(),
     };
 
-    const mockUserModel = {
-      findById: jest.fn(),
-    };
-
-    const mockConfigService = {
-      get: jest.fn((key: string) => {
-        if (key === 'OPENROUTER_API_KEY') {
-          return 'test-api-key';
-        }
-        return undefined;
-      }),
-    };
-
-    const mockAiPolicyService = {
-      getCuratedModels: jest.fn(() => [
-        { id: 'openai/gpt-5-mini', label: 'GPT-5 Mini' },
-      ]),
-    };
-
-    const mockAiSecretsService = {
-      decryptString: jest.fn(),
+    const mockAiGatewayService = {
+      createChatCompletion: jest.fn(),
     };
 
     // Create mock services
@@ -118,12 +95,6 @@ describe('QueueService', () => {
       addMessageToConversation: jest.fn(),
       archiveOldMessages: jest.fn(),
       buildConversationContext: jest.fn(),
-    };
-
-    const mockOpenRouterService = {
-      buildPrompt: jest.fn(),
-      selectModel: jest.fn(),
-      sendChatCompletion: jest.fn(),
     };
 
     const mockStreamService = {
@@ -153,28 +124,12 @@ describe('QueueService', () => {
           useValue: mockUsageEventModel,
         },
         {
-          provide: getModelToken(User.name),
-          useValue: mockUserModel,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-        {
-          provide: AiPolicyService,
-          useValue: mockAiPolicyService,
-        },
-        {
-          provide: AiSecretsService,
-          useValue: mockAiSecretsService,
+          provide: AiGatewayService,
+          useValue: mockAiGatewayService,
         },
         {
           provide: MessageService,
           useValue: mockMessageService,
-        },
-        {
-          provide: OpenRouterService,
-          useValue: mockOpenRouterService,
         },
         {
           provide: StreamService,
@@ -232,7 +187,6 @@ describe('QueueService', () => {
               subscriptionTier,
               technique,
               'openai/gpt-5-mini',
-              false,
             );
 
             // Assert
@@ -252,7 +206,6 @@ describe('QueueService', () => {
             expect(job!.data.subscriptionTier).toBe(subscriptionTier);
             expect(job!.data.technique).toBe(technique);
             expect(job!.data.model).toBe('openai/gpt-5-mini');
-            expect(job!.data.usedByok).toBe(false);
 
             // Verify priority is set correctly
             const expectedPriority = subscriptionTier === 'paid' ? 10 : 1;
@@ -272,7 +225,6 @@ describe('QueueService', () => {
         'free',
         'elenchus',
         'openai/gpt-5-mini',
-        false,
       );
 
       // Enqueue a paid tier request
@@ -283,7 +235,6 @@ describe('QueueService', () => {
         'paid',
         'dialectic',
         'openai/gpt-5-mini',
-        false,
       );
 
       // Get jobs
@@ -306,7 +257,6 @@ describe('QueueService', () => {
         'free',
         'elenchus',
         'openai/gpt-5-mini',
-        false,
       );
 
       // Get job status
@@ -342,7 +292,6 @@ describe('QueueService', () => {
         'free',
         'elenchus',
         'openai/gpt-5-mini',
-        false,
       );
       await service.enqueueRequest(
         '507f1f77bcf86cd799439013',
@@ -351,7 +300,6 @@ describe('QueueService', () => {
         'paid',
         'dialectic',
         'openai/gpt-5-mini',
-        false,
       );
 
       // Get metrics
@@ -413,7 +361,6 @@ describe('QueueService', () => {
               subscriptionTier,
               technique,
               'openai/gpt-5-mini',
-              false,
             );
 
             // Verify job was created
@@ -427,7 +374,6 @@ describe('QueueService', () => {
               model: 'openai/gpt-5-mini',
               subscriptionTier,
               technique,
-              usedByok: false,
               userId,
             });
 
@@ -466,7 +412,6 @@ describe('QueueService', () => {
         'free',
         'elenchus',
         'openai/gpt-5-mini',
-        false,
       );
 
       // Get the job

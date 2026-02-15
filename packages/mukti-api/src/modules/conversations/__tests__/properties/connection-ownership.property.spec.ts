@@ -1,5 +1,4 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
@@ -11,8 +10,7 @@ jest.mock('@openrouter/sdk', () => ({
 }));
 
 import { User } from '../../../../schemas/user.schema';
-import { AiPolicyService } from '../../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
+import { AiConfigService } from '../../../ai/services/ai-config.service';
 import { ConversationController } from '../../conversation.controller';
 import { ConversationService } from '../../services/conversation.service';
 import { MessageService } from '../../services/message.service';
@@ -76,21 +74,9 @@ describe('ConversationController - SSE Authentication (Property-Based)', () => {
           },
         },
         {
-          provide: ConfigService,
+          provide: AiConfigService,
           useValue: {
-            get: jest.fn(),
-          },
-        },
-        {
-          provide: AiPolicyService,
-          useValue: {
-            resolveEffectiveModel: jest.fn(),
-          },
-        },
-        {
-          provide: AiSecretsService,
-          useValue: {
-            decryptString: jest.fn(),
+            resolveModelSelection: jest.fn(),
           },
         },
       ],

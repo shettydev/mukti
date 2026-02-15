@@ -86,9 +86,14 @@ export class DialogueService {
     role: MessageRole,
     content: string,
     metadata?: {
+      completionTokens?: number;
+      costUsd?: number;
       latencyMs?: number;
       model?: string;
+      promptTokens?: number;
+      provider?: string;
       tokens?: number;
+      totalTokens?: number;
     },
   ): Promise<DialogueMessage> {
     const dialogueObjectId =
