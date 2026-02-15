@@ -6,7 +6,6 @@ import { Suspense, useEffect, useState } from 'react';
 import { GradientBackground } from '@/components/auth/gradient-background';
 import { SignInForm } from '@/components/auth/sign-in-form';
 import { SignUpForm } from '@/components/auth/sign-up-form';
-import { JapandiThemeToggle } from '@/components/theme/japandi-theme-toggle';
 import { cn } from '@/lib/utils';
 
 type AuthTab = 'signin' | 'signup';
@@ -18,7 +17,7 @@ export default function AuthPage() {
         <GradientBackground>
           <div
             className={cn(
-              'w-full max-w-[95%] xs:max-w-md sm:max-w-lg',
+              'mx-auto w-full max-w-[95%] xs:max-w-md sm:max-w-lg',
               'rounded-3xl border border-japandi-sand/70 bg-japandi-cream/80',
               'p-6 sm:p-8 md:p-10',
               'shadow-[0_24px_70px_-42px_rgba(107,77,58,0.45)] dark:shadow-[0_24px_70px_-42px_rgba(0,0,0,0.65)] backdrop-blur-sm',
@@ -67,7 +66,7 @@ function AuthContent() {
 
   return (
     <GradientBackground>
-      <div className="relative w-full max-w-[95%] xs:max-w-md sm:max-w-lg">
+      <div className="relative mx-auto w-full max-w-[95%] xs:max-w-md sm:max-w-lg">
         <div
           className={cn(
             'relative w-full rounded-3xl border border-japandi-sand/70 bg-japandi-cream/80 backdrop-blur-sm',
@@ -77,12 +76,8 @@ function AuthContent() {
           )}
           suppressHydrationWarning
         >
-          <div className="absolute right-4 top-4">
-            <JapandiThemeToggle ariaLabel="Toggle theme on auth page" />
-          </div>
-
           {/* Logo/Title */}
-          <div className="mb-6 pt-2 text-center sm:mb-8" suppressHydrationWarning>
+          <div className="mb-6 text-center sm:mb-8" suppressHydrationWarning>
             <p className="text-japandi-label mb-3 text-japandi-timber/85">Mukti</p>
             <h1 className="text-japandi-heading mb-2 text-2xl sm:text-3xl md:text-[2rem]">
               Welcome back

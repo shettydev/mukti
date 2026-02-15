@@ -1,7 +1,9 @@
 'use client';
 
-import { LogOut, Settings } from 'lucide-react';
+import { Check, LogOut, Monitor, Moon, Settings, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 import type { User } from '@/types/user.types';
 
@@ -48,6 +50,15 @@ interface UserProfilePopoverProps {
  * ```
  */
 export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePopoverProps) {
+  const { setTheme, theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const activeTheme = mounted ? theme : 'system';
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -82,7 +93,7 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
 
       <DropdownMenuContent
         align="start"
-        className="w-56 border-japandi-sand/80 bg-japandi-cream text-japandi-stone"
+        className="w-56 border-japandi-sand/80 !bg-japandi-cream text-japandi-stone shadow-xl opacity-100"
         side="top"
         sideOffset={10}
       >
@@ -94,7 +105,33 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
           </Link>
         </DropdownMenuItem>
 
-        {/* Separator before logout */}
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={() => setTheme('system')}
+        >
+          <Monitor className="mr-2 h-4 w-4" />
+          <span>System</span>
+          {activeTheme === 'system' && <Check className="ml-auto h-3.5 w-3.5" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={() => setTheme('light')}
+        >
+          <Sun className="mr-2 h-4 w-4" />
+          <span>Light</span>
+          {activeTheme === 'light' && <Check className="ml-auto h-3.5 w-3.5" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={() => setTheme('dark')}
+        >
+          <Moon className="mr-2 h-4 w-4" />
+          <span>Dark</span>
+          {activeTheme === 'dark' && <Check className="ml-auto h-3.5 w-3.5" />}
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
 
         {/* Logout Button */}

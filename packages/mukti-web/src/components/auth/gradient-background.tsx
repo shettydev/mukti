@@ -32,7 +32,7 @@ export function GradientBackground({ children, className }: GradientBackgroundPr
         className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_18%,rgba(196,120,91,0.12),transparent_40%),radial-gradient(circle_at_80%_12%,rgba(139,158,130,0.1),transparent_35%),radial-gradient(circle_at_48%_88%,rgba(91,105,135,0.1),transparent_46%)] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(212,144,110,0.1),transparent_40%),radial-gradient(circle_at_80%_12%,rgba(155,179,146,0.1),transparent_35%),radial-gradient(circle_at_48%_88%,rgba(126,148,179,0.09),transparent_46%)]"
       />
 
-      <div className="relative z-10 w-full">{children}</div>
+      <div className="relative z-10 flex w-full justify-center">{children}</div>
     </div>
   );
 }

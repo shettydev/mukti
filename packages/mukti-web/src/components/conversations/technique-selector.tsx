@@ -74,7 +74,7 @@ export function TechniqueSelector({
       </Button>
 
       <Dialog onOpenChange={setOpen} open={open}>
-        <DialogContent className="sm:max-w-lg border-japandi-sand/80 bg-japandi-cream text-japandi-stone">
+        <DialogContent className="sm:max-w-lg border-japandi-sand/80 !bg-japandi-cream text-japandi-stone shadow-2xl opacity-100">
           <DialogHeader>
             <DialogTitle>Select Socratic Technique</DialogTitle>
             <DialogDescription className="text-japandi-stone/70">

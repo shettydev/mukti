@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 
 import type { Conversation } from '@/types/conversation.types';
 
-import { JapandiThemeToggle } from '@/components/theme/japandi-theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -132,10 +131,6 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
 
           {/* Right side - Options */}
           <div className="flex items-center gap-1">
-            <JapandiThemeToggle
-              ariaLabel="Toggle theme in chat"
-              buttonClassName="h-8 w-8 border-japandi-sand/70 bg-japandi-cream/60"
-            />
             {!isNewChat && (
               <Popover onOpenChange={setPopoverOpen} open={popoverOpen}>
                 <PopoverTrigger asChild>
@@ -156,7 +151,7 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
-                  className="w-48 border-japandi-sand/80 bg-japandi-cream p-1 text-japandi-stone"
+                  className="w-48 border-japandi-sand/80 !bg-japandi-cream p-1 text-japandi-stone shadow-xl opacity-100"
                   sideOffset={8}
                 >
                   {/* Archive/Restore option */}

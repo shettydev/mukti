@@ -1,13 +1,14 @@
 'use client';
 
 import { Brain, Menu, PanelLeft, Plus, X } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import { ConversationList } from '@/components/sidebar/conversation-list';
 import { UserProfilePopover } from '@/components/sidebar/user-profile-popover';
-import { JapandiThemeToggle } from '@/components/theme/japandi-theme-toggle';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -77,7 +78,18 @@ export function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
   const { logout, user } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const logoSrc =
+    mounted && resolvedTheme === 'dark'
+      ? '/mukti-enso/mukti-inverted-enso-no-bg.png'
+      : '/mukti-enso-inverted/mukti-enso-no-bg.png';
 
   return (
     <>
@@ -118,14 +130,15 @@ export function Sidebar({
             )}
           >
             <div className="relative w-8 h-8">
-              <Image alt="Mukti" className="object-contain" fill priority src="/mukti-logo-2.png" />
+              <Image alt="Mukti" className="object-contain" fill priority src={logoSrc} />
             </div>
-            <span className="whitespace-nowrap text-sm font-medium tracking-[0.08em]">Mukti AI</span>
+            <span className="whitespace-nowrap text-sm font-medium tracking-[0.15em] lowercase">
+              mukti
+            </span>
           </div>
 
           {/* Desktop collapse button */}
           <div className={cn('hidden items-center gap-1 md:flex', collapsed && 'mx-auto')}>
-            {!collapsed && <JapandiThemeToggle ariaLabel="Toggle theme in chat sidebar" />}
             <Button
               className={cn(
                 'h-8 w-8 text-japandi-stone/70 hover:bg-japandi-cream/70 hover:text-japandi-stone',

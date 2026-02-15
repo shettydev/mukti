@@ -520,7 +520,7 @@ function ConversationItem({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-48 border-japandi-sand/80 bg-japandi-cream text-japandi-stone"
+                  className="w-48 border-japandi-sand/80 !bg-japandi-cream text-japandi-stone shadow-xl opacity-100"
                 >
                   <DropdownItems />
                 </DropdownMenuContent>
@@ -529,7 +529,7 @@ function ConversationItem({
           )}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-48 border-japandi-sand/80 bg-japandi-cream text-japandi-stone">
+      <ContextMenuContent className="w-48 border-japandi-sand/80 !bg-japandi-cream text-japandi-stone shadow-xl opacity-100">
         <MenuItems />
       </ContextMenuContent>
     </ContextMenu>
