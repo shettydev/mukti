@@ -87,6 +87,12 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
     }
   };
 
+  const registrationErrorMessage =
+    registerMutation.error instanceof Error
+      ? registerMutation.error.message
+      : 'Registration failed. Please try again.';
+  const waitlistRestrictionError = registrationErrorMessage.toLowerCase().includes('waitlist');
+
   return (
     <Form {...form}>
       <form className="space-y-4 sm:space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
@@ -236,10 +242,16 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
         {registerMutation.error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-2.5 sm:p-3">
             <p className="text-xs text-red-700 dark:text-red-300 sm:text-sm">
-              {registerMutation.error instanceof Error
-                ? registerMutation.error.message
-                : 'Registration failed. Please try again.'}
+              {registrationErrorMessage}
             </p>
+            {waitlistRestrictionError && (
+              <a
+                className="mt-1 inline-block text-xs font-medium text-japandi-timber underline underline-offset-2 hover:text-japandi-terracotta"
+                href="/#join"
+              >
+                Join the waitlist for access
+              </a>
+            )}
           </div>
         )}
 

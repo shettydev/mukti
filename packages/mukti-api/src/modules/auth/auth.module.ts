@@ -11,6 +11,7 @@ import {
 } from '../../schemas/refresh-token.schema';
 import { Session, SessionSchema } from '../../schemas/session.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
+import { WaitlistModule } from '../waitlist/waitlist.module';
 import { AuthController } from './auth.controller';
 import { EmailVerifiedGuard } from './guards/email-verified.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -94,6 +95,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     ]),
 
     ConfigModule,
+    WaitlistModule,
   ],
   providers: [
     AuthService,
