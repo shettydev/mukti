@@ -55,7 +55,6 @@ export function TechniqueSelector({
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label="Select Socratic technique"
-        id="technique-selector"
         className={cn(
           'h-11 w-full justify-between border-japandi-sand/80 bg-japandi-cream/70 text-japandi-stone font-normal hover:bg-japandi-light-stone/70',
           'focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/35',
@@ -63,6 +62,7 @@ export function TechniqueSelector({
           className
         )}
         disabled={disabled}
+        id="technique-selector"
         onClick={() => setOpen(true)}
         type="button"
         variant="outline"

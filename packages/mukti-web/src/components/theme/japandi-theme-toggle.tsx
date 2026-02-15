@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Moon, Monitor, Sun } from 'lucide-react';
+import { Check, Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -13,8 +13,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-type ThemeOption = 'dark' | 'light' | 'system';
-
 interface JapandiThemeToggleProps {
   align?: 'center' | 'end' | 'start';
   ariaLabel?: string;
@@ -22,6 +20,8 @@ interface JapandiThemeToggleProps {
   className?: string;
   contentClassName?: string;
 }
+
+type ThemeOption = 'dark' | 'light' | 'system';
 
 const themeOptions: Array<{
   icon: typeof Sun;

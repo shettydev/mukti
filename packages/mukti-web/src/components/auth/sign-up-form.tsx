@@ -343,9 +343,9 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
         <span className="text-japandi-stone/70">Password strength:</span>
         <span
           className={cn('font-medium', {
+            'text-amber-600 dark:text-amber-400': strength === 'medium',
             'text-japandi-sage': strength === 'strong',
             'text-red-500 dark:text-red-300': strength === 'weak',
-            'text-amber-600 dark:text-amber-400': strength === 'medium',
           })}
         >
           {config.label}
