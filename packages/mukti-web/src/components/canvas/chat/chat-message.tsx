@@ -87,7 +87,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           {isUser ? (
             <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
           ) : (
-            <Markdown className="text-sm">{message.content}</Markdown>
+            <Markdown className="text-[0.94rem] leading-6">{message.content}</Markdown>
           )}
         </div>
 

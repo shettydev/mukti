@@ -28,10 +28,10 @@ export function Message({ message }: MessageProps) {
     >
       <div
         className={cn(
-          'max-w-[85%] rounded-2xl px-6 py-4 transition-all duration-300',
+          'w-full max-w-[85%] rounded-2xl px-6 py-4 transition-all duration-300',
           isUser
             ? 'bg-white/10 text-foreground backdrop-blur-sm'
-            : 'bg-transparent text-foreground px-0 pl-2'
+            : 'bg-transparent px-0 pl-2 text-[var(--assistant-text)]'
         )}
       >
         <div className="flex items-start gap-2">
@@ -41,7 +41,7 @@ export function Message({ message }: MessageProps) {
                 {message.content}
               </p>
             ) : (
-              <Markdown className="text-base leading-relaxed prose-invert prose-p:leading-relaxed prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10">
+              <Markdown className="text-[0.99rem] leading-7 md:max-w-[76ch]">
                 {message.content}
               </Markdown>
             )}
@@ -51,7 +51,7 @@ export function Message({ message }: MessageProps) {
             <div
               className={cn(
                 'flex items-center gap-2 text-[10px] opacity-40 uppercase tracking-widest mt-2',
-                isUser ? 'justify-end' : 'justify-start'
+                isUser ? 'justify-end' : 'justify-start text-[var(--assistant-muted)]'
               )}
             >
               <time dateTime={message.timestamp}>
