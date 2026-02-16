@@ -359,6 +359,22 @@ export const canvasApi = {
   },
 
   /**
+   * Delete a canvas session
+   *
+   * @param id - Canvas session ID
+   * @returns void
+   * @throws {ApiClientError} If deletion fails or session not found
+   *
+   * @example
+   * ```typescript
+   * await canvasApi.deleteSession('507f1f77bcf86cd799439011');
+   * ```
+   */
+  deleteSession: async (id: string): Promise<void> => {
+    await apiClient.delete<void>(`/canvas/sessions/${id}`);
+  },
+
+  /**
    * Get all insight nodes for a canvas session
    *
    * @param sessionId - Canvas session ID

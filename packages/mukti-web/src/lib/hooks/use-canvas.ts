@@ -55,6 +55,10 @@ interface DeleteInsightContext {
   previousInsights: InsightNode[] | undefined;
 }
 
+interface DeleteCanvasSessionContext {
+  previousSessions: CanvasSession[] | undefined;
+}
+
 /**
  * Delete insight mutation variables
  */
@@ -200,6 +204,63 @@ export function useCreateCanvasSession() {
     onSuccess: () => {
       // Invalidate canvas queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: canvasKeys.all });
+    },
+  });
+}
+
+/**
+ * Delete canvas session with optimistic update
+ *
+ * Deletes a canvas session.
+ * Implements optimistic updates for immediate UI feedback with automatic
+ * rollback on errors.
+ *
+ * @returns Mutation result with delete function
+ *
+ * @example
+ * ```typescript
+ * const { mutate: deleteSession, isPending } = useDeleteCanvasSession();
+ *
+ * deleteSession('507f1f77bcf86cd799439011');
+ * ```
+ */
+export function useDeleteCanvasSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string, DeleteCanvasSessionContext>({
+    mutationFn: (id: string) => canvasApi.deleteSession(id),
+
+    onError: (_err, _id, context) => {
+      // Rollback to previous state on error
+      if (context?.previousSessions) {
+        queryClient.setQueryData(canvasKeys.sessions(), context.previousSessions);
+      }
+    },
+
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: canvasKeys.sessions() });
+
+      // Snapshot the previous value
+      const previousSessions = queryClient.getQueryData<CanvasSession[]>(canvasKeys.sessions());
+
+      // Optimistically remove the session
+      if (previousSessions) {
+        queryClient.setQueryData<CanvasSession[]>(
+          canvasKeys.sessions(),
+          previousSessions.filter((session) => session.id !== id)
+        );
+      }
+
+      // Return context with previous value for rollback
+      return { previousSessions };
+    },
+
+    onSuccess: (_data, id) => {
+      // Invalidate queries to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: canvasKeys.all });
+      // Remove detail query from cache
+      queryClient.removeQueries({ queryKey: canvasKeys.detail(id) });
     },
   });
 }
