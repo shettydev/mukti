@@ -72,7 +72,11 @@ describe('ConversationController', () => {
   };
 
   const mockAiPolicyService = {
+    coerceModelForProvider: jest.fn().mockReturnValue('test-model'),
+    hasUserGeminiKey: jest.fn().mockReturnValue(false),
+    hasUserOpenRouterKey: jest.fn().mockReturnValue(false),
     resolveEffectiveModel: jest.fn().mockResolvedValue(undefined),
+    resolveActiveProvider: jest.fn().mockReturnValue('openrouter'),
   };
 
   const mockAiSecretsService = {
@@ -555,6 +559,7 @@ describe('ConversationController', () => {
         'free',
         'elenchus',
         undefined,
+        'openrouter',
         false,
       );
     });

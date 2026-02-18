@@ -18,7 +18,9 @@ import { cn } from '@/lib/utils';
 
 interface ModelSelectorProps {
   className?: string;
+  description?: string;
   disabled?: boolean;
+  title?: string;
   models: AiModelOption[];
   onChange: (modelId: string) => void;
   value?: null | string;
@@ -28,9 +30,11 @@ const MAX_RENDERED_MODELS = 250;
 
 export function ModelSelector({
   className,
+  description = 'Choose which model to use for your next message.',
   disabled = false,
   models,
   onChange,
+  title = 'Select Model',
   value,
 }: ModelSelectorProps) {
   const [open, setOpen] = React.useState(false);
@@ -78,10 +82,8 @@ export function ModelSelector({
       <Dialog onOpenChange={setOpen} open={open}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Select Model</DialogTitle>
-            <DialogDescription>
-              Choose which OpenRouter model to use for your next message.
-            </DialogDescription>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">

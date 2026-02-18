@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
 
 /**
  * Union type of all possible stream events.
@@ -102,6 +104,25 @@ interface StreamConnection {
   userId: string;
 }
 
+interface StreamBridgeEnvelope {
+  event: StreamEvent;
+  scope: 'conversation' | 'user';
+  sourceId: string;
+  userId?: string;
+}
+
+interface RedisPubSubClient {
+  disconnect?: () => void;
+  duplicate?: () => RedisPubSubClient;
+  on?: (event: string, listener: (...args: any[]) => void) => void;
+  publish?: (channel: string, message: string) => Promise<number> | number;
+  quit?: () => Promise<unknown>;
+  subscribe?: (
+    channel: string,
+    listener?: (message: string, channel: string) => void,
+  ) => Promise<unknown> | unknown;
+}
+
 /**
  * Service responsible for managing Server-Sent Events (SSE) connections for real-time conversation updates.
  * Handles connection lifecycle, event emission, and cleanup for multiple concurrent connections.
@@ -118,15 +139,33 @@ interface StreamConnection {
  * manage multiple connections per conversation while maintaining O(1) lookup performance.
  */
 @Injectable()
-export class StreamService {
+export class StreamService implements OnModuleDestroy {
   /**
    * Map of conversation IDs to arrays of active connections.
    * Key: conversationId
    * Value: Array of StreamConnection objects for that conversation
    */
   private readonly connections = new Map<string, StreamConnection[]>();
+  private readonly streamBridgeChannel = 'mukti:conversation-stream-events:v1';
+  private readonly streamSourceId = `${process.pid}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
 
+  private bridgeInitialized = false;
+  private bridgeInitialization?: Promise<void>;
   private readonly logger = new Logger(StreamService.name);
+  private redisPublisher: null | RedisPubSubClient = null;
+  private redisSubscriber: null | RedisPubSubClient = null;
+
+  constructor(
+    @Optional()
+    @InjectQueue('conversation-requests')
+    private readonly conversationRequestsQueue?: Queue,
+  ) {
+    if (process.env.NODE_ENV !== 'test') {
+      void this.ensureBridge();
+    }
+  }
 
   /**
    * Registers a new SSE connection for a conversation.
@@ -160,6 +199,10 @@ export class StreamService {
     connectionId: string,
     emitFn: (event: StreamEvent) => void,
   ): void {
+    if (process.env.NODE_ENV !== 'test') {
+      void this.ensureBridge();
+    }
+
     this.logger.log(
       `Adding SSE connection: conversationId=${conversationId}, userId=${userId}, connectionId=${connectionId}`,
     );
@@ -262,46 +305,18 @@ export class StreamService {
     conversationId: string,
     event: Omit<StreamEvent, 'conversationId' | 'timestamp'>,
   ): void {
-    const connections = this.connections.get(conversationId);
-
-    if (!connections || connections.length === 0) {
-      this.logger.debug(
-        `No active connections for conversation ${conversationId}. Event not emitted.`,
-      );
-      return;
-    }
-
-    // Add timestamp and conversationId to the event
     const fullEvent: StreamEvent = {
       ...event,
       conversationId,
       timestamp: new Date().toISOString(),
     } as StreamEvent;
 
-    this.logger.log(
-      `Emitting event to conversation ${conversationId}: type=${event.type}, connections=${connections.length}`,
-    );
-
-    // Emit to all connections for this conversation
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const connection of connections) {
-      try {
-        connection.emitFn(fullEvent);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        this.logger.error(
-          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
-          this.getErrorStack(error),
-        );
-      }
-    }
-
-    this.logger.log(
-      `Event emitted to conversation ${conversationId}: success=${successCount}, errors=${errorCount}`,
-    );
+    this.emitToConversationLocal(conversationId, fullEvent);
+    this.publishToBridge({
+      event: fullEvent,
+      scope: 'conversation',
+      sourceId: this.streamSourceId,
+    });
   }
 
   /**
@@ -341,58 +356,19 @@ export class StreamService {
     userId: string,
     event: Omit<StreamEvent, 'conversationId' | 'timestamp'>,
   ): void {
-    const connections = this.connections.get(conversationId);
-
-    if (!connections || connections.length === 0) {
-      this.logger.debug(
-        `No active connections for conversation ${conversationId}. Event not emitted.`,
-      );
-      return;
-    }
-
-    // Filter connections for the specific user
-    const userConnections = connections.filter(
-      (conn) => conn.userId === userId,
-    );
-
-    if (userConnections.length === 0) {
-      this.logger.debug(
-        `No active connections for user ${userId} in conversation ${conversationId}. Event not emitted.`,
-      );
-      return;
-    }
-
-    // Add timestamp and conversationId to the event
     const fullEvent: StreamEvent = {
       ...event,
       conversationId,
       timestamp: new Date().toISOString(),
     } as StreamEvent;
 
-    this.logger.log(
-      `Emitting event to user ${userId} in conversation ${conversationId}: type=${event.type}, connections=${userConnections.length}`,
-    );
-
-    // Emit to all of the user's connections
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const connection of userConnections) {
-      try {
-        connection.emitFn(fullEvent);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        this.logger.error(
-          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
-          this.getErrorStack(error),
-        );
-      }
-    }
-
-    this.logger.log(
-      `Event emitted to user ${userId}: success=${successCount}, errors=${errorCount}`,
-    );
+    this.emitToUserLocal(conversationId, userId, fullEvent);
+    this.publishToBridge({
+      event: fullEvent,
+      scope: 'user',
+      sourceId: this.streamSourceId,
+      userId,
+    });
   }
 
   /**
@@ -492,6 +468,247 @@ export class StreamService {
         `SSE connection removed. Remaining connections for conversation ${conversationId}: ${updatedConnections.length}`,
       );
     }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.redisSubscriber?.quit) {
+      try {
+        await this.redisSubscriber.quit();
+      } catch {
+        this.redisSubscriber.disconnect?.();
+      }
+    } else {
+      this.redisSubscriber?.disconnect?.();
+    }
+
+    this.redisSubscriber = null;
+    this.redisPublisher = null;
+    this.bridgeInitialized = false;
+  }
+
+  private async ensureBridge(): Promise<void> {
+    if (this.bridgeInitialized || this.bridgeInitialization) {
+      return this.bridgeInitialization;
+    }
+
+    const queue = this.conversationRequestsQueue;
+    if (!queue) {
+      return;
+    }
+
+    this.bridgeInitialization = (async () => {
+      try {
+        const queueClient =
+          (await queue.client) as unknown as RedisPubSubClient;
+
+        if (!queueClient?.publish || !queueClient.duplicate) {
+          this.logger.warn(
+            'Redis bridge disabled: queue client does not support pub/sub',
+          );
+          return;
+        }
+
+        const subscriber = queueClient.duplicate();
+        if (!subscriber.subscribe) {
+          this.logger.warn(
+            'Redis bridge disabled: duplicate client does not support subscribe',
+          );
+          return;
+        }
+
+        subscriber.on?.('error', (error: unknown) => {
+          this.logger.error(
+            `Redis stream bridge subscriber error: ${this.getErrorMessage(error)}`,
+            this.getErrorStack(error),
+          );
+        });
+
+        if (subscriber.on) {
+          subscriber.on('message', (channel: string, payload: string) => {
+            if (channel !== this.streamBridgeChannel) {
+              return;
+            }
+
+            this.handleBridgePayload(payload);
+          });
+        }
+
+        await subscriber.subscribe(this.streamBridgeChannel);
+
+        this.redisPublisher = queueClient;
+        this.redisSubscriber = subscriber;
+        this.bridgeInitialized = true;
+
+        this.logger.log(
+          `Redis stream bridge initialized on channel ${this.streamBridgeChannel}`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Redis stream bridge unavailable: ${this.getErrorMessage(error)}`,
+        );
+      } finally {
+        this.bridgeInitialization = undefined;
+      }
+    })();
+
+    return this.bridgeInitialization;
+  }
+
+  private emitToConversationLocal(
+    conversationId: string,
+    event: StreamEvent,
+  ): void {
+    const connections = this.connections.get(conversationId);
+
+    if (!connections || connections.length === 0) {
+      this.logger.debug(
+        `No active connections for conversation ${conversationId}. Event not emitted locally.`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `Emitting local event to conversation ${conversationId}: type=${event.type}, connections=${connections.length}`,
+    );
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const connection of connections) {
+      try {
+        connection.emitFn(event);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        this.logger.error(
+          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
+          this.getErrorStack(error),
+        );
+      }
+    }
+
+    this.logger.log(
+      `Local event emitted to conversation ${conversationId}: success=${successCount}, errors=${errorCount}`,
+    );
+  }
+
+  private emitToUserLocal(
+    conversationId: string,
+    userId: string,
+    event: StreamEvent,
+  ): void {
+    const connections = this.connections.get(conversationId);
+
+    if (!connections || connections.length === 0) {
+      this.logger.debug(
+        `No active connections for conversation ${conversationId}. Event not emitted locally.`,
+      );
+      return;
+    }
+
+    const userConnections = connections.filter(
+      (connection) => connection.userId === userId,
+    );
+
+    if (userConnections.length === 0) {
+      this.logger.debug(
+        `No active connections for user ${userId} in conversation ${conversationId}. Event not emitted locally.`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `Emitting local event to user ${userId} in conversation ${conversationId}: type=${event.type}, connections=${userConnections.length}`,
+    );
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const connection of userConnections) {
+      try {
+        connection.emitFn(event);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        this.logger.error(
+          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
+          this.getErrorStack(error),
+        );
+      }
+    }
+
+    this.logger.log(
+      `Local event emitted to user ${userId}: success=${successCount}, errors=${errorCount}`,
+    );
+  }
+
+  private handleBridgePayload(payload: string): void {
+    try {
+      const envelope = JSON.parse(payload) as StreamBridgeEnvelope;
+
+      if (envelope.sourceId === this.streamSourceId) {
+        return;
+      }
+
+      if (envelope.scope === 'user' && envelope.userId) {
+        this.emitToUserLocal(
+          envelope.event.conversationId,
+          envelope.userId,
+          envelope.event,
+        );
+        return;
+      }
+
+      this.emitToConversationLocal(
+        envelope.event.conversationId,
+        envelope.event,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to process bridged stream payload: ${this.getErrorMessage(error)}`,
+        this.getErrorStack(error),
+      );
+    }
+  }
+
+  private publishToBridge(envelope: StreamBridgeEnvelope): void {
+    if (process.env.NODE_ENV === 'test' || !this.conversationRequestsQueue) {
+      return;
+    }
+
+    if (!this.bridgeInitialized || !this.redisPublisher?.publish) {
+      void this.ensureBridge().then(() => {
+        if (!this.bridgeInitialized || !this.redisPublisher?.publish) {
+          return;
+        }
+
+        void Promise.resolve(
+          this.redisPublisher.publish(
+            this.streamBridgeChannel,
+            JSON.stringify(envelope),
+          ),
+        ).catch((error: unknown) => {
+          this.logger.error(
+            `Failed to publish bridged event: ${this.getErrorMessage(error)}`,
+            this.getErrorStack(error),
+          );
+        });
+      });
+
+      return;
+    }
+
+    void Promise.resolve(
+      this.redisPublisher.publish(
+        this.streamBridgeChannel,
+        JSON.stringify(envelope),
+      ),
+    ).catch((error: unknown) => {
+      this.logger.error(
+        `Failed to publish bridged event: ${this.getErrorMessage(error)}`,
+        this.getErrorStack(error),
+      );
+    });
   }
 
   private getErrorMessage(error: unknown): string {

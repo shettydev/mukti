@@ -20,7 +20,7 @@ export class SendMessageDto {
   content: string;
 
   @ApiPropertyOptional({
-    description: 'OpenRouter model id to use for this message',
+    description: 'Model id to use for this message (provider-aware)',
     example: 'openai/gpt-5-mini',
   })
   @IsOptional()

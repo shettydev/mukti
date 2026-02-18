@@ -19,7 +19,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
 import { SetGeminiKeyDto } from './dto/gemini-key.dto';
 import { SetOpenRouterKeyDto } from './dto/openrouter-key.dto';
-import { AiPolicyService } from './services/ai-policy.service';
+import { AiPolicyService, type AiProvider } from './services/ai-policy.service';
 import { AiSecretsService } from './services/ai-secrets.service';
 import { OpenRouterModelsService } from './services/openrouter-models.service';
 
@@ -40,7 +40,7 @@ export class AiController {
     const user = await this.userModel
       .findById(userId)
       .select(
-        'preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt geminiApiKeyLast4 geminiApiKeyUpdatedAt',
+        'preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt geminiApiKeyLast4 geminiApiKeyUpdatedAt +openRouterApiKeyEncrypted +geminiApiKeyEncrypted',
       )
       .lean();
 
@@ -48,12 +48,43 @@ export class AiController {
       throw new Error('User not found');
     }
 
+    const hasOpenRouterByok = this.aiPolicyService.hasUserOpenRouterKey(user);
+    const hasGeminiKey = this.aiPolicyService.hasUserGeminiKey(user);
+    const activeProvider = this.aiPolicyService.resolveActiveProvider({
+      hasGeminiKey,
+      hasOpenRouterAccess: hasOpenRouterByok || this.hasServerOpenRouterKey(),
+      preferredProvider: user.preferences?.activeProvider,
+    });
+    const activeModel = this.aiPolicyService.coerceModelForProvider({
+      activeProvider,
+      hasOpenRouterByok,
+      model: user.preferences?.activeModel,
+    });
+
+    const settingsPatch: Record<string, string> = {};
+    if (user.preferences?.activeProvider !== activeProvider) {
+      settingsPatch['preferences.activeProvider'] = activeProvider;
+    }
+    if (user.preferences?.activeModel !== activeModel) {
+      settingsPatch['preferences.activeModel'] = activeModel;
+    }
+
+    if (Object.keys(settingsPatch).length > 0) {
+      await this.userModel.updateOne(
+        { _id: userId },
+        {
+          $set: settingsPatch,
+        },
+      );
+    }
+
     return {
       data: {
-        activeModel: user.preferences?.activeModel,
+        activeModel,
+        activeProvider,
         geminiKeyLast4: user.geminiApiKeyLast4 ?? null,
-        hasGeminiKey: !!user.geminiApiKeyUpdatedAt,
-        hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,
+        hasGeminiKey,
+        hasOpenRouterKey: hasOpenRouterByok,
         openRouterKeyLast4: user.openRouterApiKeyLast4 ?? null,
       },
       success: true,
@@ -65,40 +96,56 @@ export class AiController {
     @CurrentUser('_id') userId: string,
     @Body() dto: UpdateAiSettingsDto,
   ) {
-    if (!dto.activeModel) {
-      return {
-        data: { activeModel: null },
-        success: true,
-      };
-    }
-
     const user = await this.userModel
       .findById(userId)
-      .select('+openRouterApiKeyEncrypted preferences')
+      .select('+openRouterApiKeyEncrypted +geminiApiKeyEncrypted preferences')
       .lean();
 
     if (!user) {
       throw new Error('User not found');
     }
 
-    const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
-
-    const validationApiKey = this.getValidationApiKey({ hasByok, user });
-
-    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok,
-      requestedModel: dto.activeModel,
-      userActiveModel: user.preferences?.activeModel,
-      validationApiKey,
+    const hasOpenRouterByok = this.aiPolicyService.hasUserOpenRouterKey(user);
+    const hasGeminiKey = this.aiPolicyService.hasUserGeminiKey(user);
+    const activeProvider = this.aiPolicyService.resolveActiveProvider({
+      hasGeminiKey,
+      hasOpenRouterAccess: hasOpenRouterByok || this.hasServerOpenRouterKey(),
+      preferredProvider: user.preferences?.activeProvider,
     });
+    const validationApiKey =
+      activeProvider === 'openrouter'
+        ? this.getValidationApiKey({ hasByok: hasOpenRouterByok, user })
+        : undefined;
+
+    const effectiveModel = dto.activeModel
+      ? await this.aiPolicyService.resolveEffectiveModel({
+          activeProvider,
+          hasByok: hasOpenRouterByok,
+          requestedModel: dto.activeModel,
+          userActiveModel: user.preferences?.activeModel,
+          validationApiKey,
+        })
+      : this.aiPolicyService.coerceModelForProvider({
+          activeProvider,
+          hasOpenRouterByok,
+          model: user.preferences?.activeModel,
+        });
 
     await this.userModel.updateOne(
       { _id: userId },
-      { $set: { 'preferences.activeModel': effectiveModel } },
+      {
+        $set: {
+          'preferences.activeModel': effectiveModel,
+          'preferences.activeProvider': activeProvider,
+        },
+      },
     );
 
     return {
-      data: { activeModel: effectiveModel },
+      data: {
+        activeModel: effectiveModel,
+        activeProvider,
+      },
       success: true,
     };
   }
@@ -134,6 +181,15 @@ export class AiController {
 
     const encrypted = this.aiSecretsService.encryptString(apiKey);
     const last4 = apiKey.slice(-4);
+    const user = await this.userModel
+      .findById(userId)
+      .select('preferences')
+      .lean();
+    const activeModel = this.aiPolicyService.coerceModelForProvider({
+      activeProvider: 'openrouter',
+      hasOpenRouterByok: true,
+      model: user?.preferences?.activeModel,
+    });
 
     await this.userModel.updateOne(
       { _id: userId },
@@ -142,12 +198,23 @@ export class AiController {
           openRouterApiKeyEncrypted: encrypted,
           openRouterApiKeyLast4: last4,
           openRouterApiKeyUpdatedAt: new Date(),
+          'preferences.activeModel': activeModel,
+          'preferences.activeProvider': 'openrouter',
+        },
+        $unset: {
+          geminiApiKeyEncrypted: 1,
+          geminiApiKeyLast4: 1,
+          geminiApiKeyUpdatedAt: 1,
         },
       },
     );
 
     return {
       data: {
+        activeModel,
+        activeProvider: 'openrouter',
+        geminiKeyLast4: null,
+        hasGeminiKey: false,
         hasOpenRouterKey: true,
         openRouterKeyLast4: last4,
       },
@@ -158,9 +225,38 @@ export class AiController {
   @Delete('openrouter-key')
   @HttpCode(HttpStatus.OK)
   async deleteOpenRouterKey(@CurrentUser('_id') userId: string) {
+    const user = await this.userModel
+      .findById(userId)
+      .select('+geminiApiKeyEncrypted preferences')
+      .lean();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const hasGeminiKey = this.aiPolicyService.hasUserGeminiKey(user);
+    const nextPreferredProvider: AiProvider | undefined =
+      user.preferences?.activeProvider === 'openrouter' && hasGeminiKey
+        ? 'gemini'
+        : user.preferences?.activeProvider;
+    const activeProvider = this.aiPolicyService.resolveActiveProvider({
+      hasGeminiKey,
+      hasOpenRouterAccess: this.hasServerOpenRouterKey(),
+      preferredProvider: nextPreferredProvider,
+    });
+    const activeModel = this.aiPolicyService.coerceModelForProvider({
+      activeProvider,
+      hasOpenRouterByok: false,
+      model: user.preferences?.activeModel,
+    });
+
     await this.userModel.updateOne(
       { _id: userId },
       {
+        $set: {
+          'preferences.activeModel': activeModel,
+          'preferences.activeProvider': activeProvider,
+        },
         $unset: {
           openRouterApiKeyEncrypted: 1,
           openRouterApiKeyLast4: 1,
@@ -169,29 +265,10 @@ export class AiController {
       },
     );
 
-    // If activeModel is not curated, reset to default.
-    const user = await this.userModel
-      .findById(userId)
-      .select('preferences')
-      .lean();
-    const activeModel = user?.preferences?.activeModel;
-    const isCurated = this.aiPolicyService
-      .getCuratedModels()
-      .some((m) => m.id === activeModel);
-
-    if (!isCurated) {
-      await this.userModel.updateOne(
-        { _id: userId },
-        {
-          $set: {
-            'preferences.activeModel': this.aiPolicyService.getDefaultModel(),
-          },
-        },
-      );
-    }
-
     return {
       data: {
+        activeModel,
+        activeProvider,
         hasOpenRouterKey: false,
         openRouterKeyLast4: null,
       },
@@ -221,6 +298,15 @@ export class AiController {
 
     const encrypted = this.aiSecretsService.encryptString(apiKey);
     const last4 = apiKey.slice(-4);
+    const user = await this.userModel
+      .findById(userId)
+      .select('preferences')
+      .lean();
+    const activeModel = this.aiPolicyService.coerceModelForProvider({
+      activeProvider: 'gemini',
+      hasOpenRouterByok: false,
+      model: user?.preferences?.activeModel,
+    });
 
     await this.userModel.updateOne(
       { _id: userId },
@@ -229,14 +315,25 @@ export class AiController {
           geminiApiKeyEncrypted: encrypted,
           geminiApiKeyLast4: last4,
           geminiApiKeyUpdatedAt: new Date(),
+          'preferences.activeModel': activeModel,
+          'preferences.activeProvider': 'gemini',
+        },
+        $unset: {
+          openRouterApiKeyEncrypted: 1,
+          openRouterApiKeyLast4: 1,
+          openRouterApiKeyUpdatedAt: 1,
         },
       },
     );
 
     return {
       data: {
+        activeModel,
+        activeProvider: 'gemini',
         geminiKeyLast4: last4,
         hasGeminiKey: true,
+        hasOpenRouterKey: false,
+        openRouterKeyLast4: null,
       },
       success: true,
     };
@@ -245,9 +342,38 @@ export class AiController {
   @Delete('gemini-key')
   @HttpCode(HttpStatus.OK)
   async deleteGeminiKey(@CurrentUser('_id') userId: string) {
+    const user = await this.userModel
+      .findById(userId)
+      .select('+openRouterApiKeyEncrypted preferences')
+      .lean();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const hasOpenRouterByok = this.aiPolicyService.hasUserOpenRouterKey(user);
+    const nextPreferredProvider: AiProvider | undefined =
+      user.preferences?.activeProvider === 'gemini'
+        ? 'openrouter'
+        : user.preferences?.activeProvider;
+    const activeProvider = this.aiPolicyService.resolveActiveProvider({
+      hasGeminiKey: false,
+      hasOpenRouterAccess: hasOpenRouterByok || this.hasServerOpenRouterKey(),
+      preferredProvider: nextPreferredProvider,
+    });
+    const activeModel = this.aiPolicyService.coerceModelForProvider({
+      activeProvider,
+      hasOpenRouterByok,
+      model: user.preferences?.activeModel,
+    });
+
     await this.userModel.updateOne(
       { _id: userId },
       {
+        $set: {
+          'preferences.activeModel': activeModel,
+          'preferences.activeProvider': activeProvider,
+        },
         $unset: {
           geminiApiKeyEncrypted: 1,
           geminiApiKeyLast4: 1,
@@ -258,6 +384,8 @@ export class AiController {
 
     return {
       data: {
+        activeModel,
+        activeProvider,
         geminiKeyLast4: null,
         hasGeminiKey: false,
       },
@@ -269,16 +397,50 @@ export class AiController {
   async getModels(@CurrentUser('_id') userId: string) {
     const user = await this.userModel
       .findById(userId)
-      .select('+openRouterApiKeyEncrypted preferences')
+      .select('+openRouterApiKeyEncrypted +geminiApiKeyEncrypted preferences')
       .lean();
 
     if (!user) {
       throw new Error('User not found');
     }
 
-    const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
+    const hasOpenRouterByok = this.aiPolicyService.hasUserOpenRouterKey(user);
+    const hasGeminiKey = this.aiPolicyService.hasUserGeminiKey(user);
+    const activeProvider = this.aiPolicyService.resolveActiveProvider({
+      hasGeminiKey,
+      hasOpenRouterAccess: hasOpenRouterByok || this.hasServerOpenRouterKey(),
+      preferredProvider: user.preferences?.activeProvider,
+    });
+    const activeModel = this.aiPolicyService.coerceModelForProvider({
+      activeProvider,
+      hasOpenRouterByok,
+      model: user.preferences?.activeModel,
+    });
 
-    if (!hasByok) {
+    if (user.preferences?.activeModel !== activeModel) {
+      await this.userModel.updateOne(
+        { _id: userId },
+        {
+          $set: {
+            'preferences.activeModel': activeModel,
+            'preferences.activeProvider': activeProvider,
+          },
+        },
+      );
+    }
+
+    if (activeProvider === 'gemini') {
+      return {
+        data: {
+          mode: 'gemini',
+          models: this.aiPolicyService.getGeminiModels(),
+          provider: 'gemini',
+        },
+        success: true,
+      };
+    }
+
+    if (!hasOpenRouterByok) {
       const validationApiKey =
         this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
       if (validationApiKey) {
@@ -297,6 +459,7 @@ export class AiController {
         data: {
           mode: 'curated',
           models: this.aiPolicyService.getCuratedModels(),
+          provider: 'openrouter',
         },
         success: true,
       };
@@ -314,6 +477,7 @@ export class AiController {
           id: m.id,
           name: m.name,
         })),
+        provider: 'openrouter',
       },
       success: true,
     };
@@ -334,5 +498,9 @@ export class AiController {
     }
 
     return serverKey;
+  }
+
+  private hasServerOpenRouterKey(): boolean {
+    return !!(this.configService.get<string>('OPENROUTER_API_KEY') ?? '');
   }
 }

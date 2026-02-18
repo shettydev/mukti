@@ -14,6 +14,7 @@ import { UsageEvent } from '../../../../schemas/usage-event.schema';
 import { User } from '../../../../schemas/user.schema';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
+import { GeminiService } from '../gemini.service';
 import { MessageService } from '../message.service';
 import { OpenRouterService } from '../openrouter.service';
 import { QueueService } from '../queue.service';
@@ -126,6 +127,10 @@ describe('QueueService', () => {
       sendChatCompletion: jest.fn(),
     };
 
+    const mockGeminiService = {
+      sendMessage: jest.fn(),
+    };
+
     const mockStreamService = {
       addConnection: jest.fn(),
       cleanupConversation: jest.fn(),
@@ -175,6 +180,10 @@ describe('QueueService', () => {
         {
           provide: OpenRouterService,
           useValue: mockOpenRouterService,
+        },
+        {
+          provide: GeminiService,
+          useValue: mockGeminiService,
         },
         {
           provide: StreamService,
@@ -232,6 +241,7 @@ describe('QueueService', () => {
               subscriptionTier,
               technique,
               'openai/gpt-5-mini',
+              'openrouter',
               false,
             );
 
@@ -272,6 +282,7 @@ describe('QueueService', () => {
         'free',
         'elenchus',
         'openai/gpt-5-mini',
+        'openrouter',
         false,
       );
 
@@ -283,6 +294,7 @@ describe('QueueService', () => {
         'paid',
         'dialectic',
         'openai/gpt-5-mini',
+        'openrouter',
         false,
       );
 
@@ -306,6 +318,7 @@ describe('QueueService', () => {
         'free',
         'elenchus',
         'openai/gpt-5-mini',
+        'openrouter',
         false,
       );
 
@@ -342,6 +355,7 @@ describe('QueueService', () => {
         'free',
         'elenchus',
         'openai/gpt-5-mini',
+        'openrouter',
         false,
       );
       await service.enqueueRequest(
@@ -351,6 +365,7 @@ describe('QueueService', () => {
         'paid',
         'dialectic',
         'openai/gpt-5-mini',
+        'openrouter',
         false,
       );
 
@@ -413,6 +428,7 @@ describe('QueueService', () => {
               subscriptionTier,
               technique,
               'openai/gpt-5-mini',
+              'openrouter',
               false,
             );
 
@@ -425,6 +441,7 @@ describe('QueueService', () => {
               conversationId,
               message,
               model: 'openai/gpt-5-mini',
+              provider: 'openrouter',
               subscriptionTier,
               technique,
               usedByok: false,
@@ -466,6 +483,7 @@ describe('QueueService', () => {
         'free',
         'elenchus',
         'openai/gpt-5-mini',
+        'openrouter',
         false,
       );
 

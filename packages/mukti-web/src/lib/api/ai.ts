@@ -1,7 +1,10 @@
 import { apiClient } from './client';
 
+export type AiProvider = 'gemini' | 'openrouter';
+
 export type AiSettings = {
   activeModel?: string;
+  activeProvider: AiProvider;
   geminiKeyLast4: null | string;
   hasGeminiKey: boolean;
   hasOpenRouterKey: boolean;
@@ -9,8 +12,9 @@ export type AiSettings = {
 };
 
 type AiModelsResponse =
-  | { mode: 'curated'; models: CuratedModel[] }
-  | { mode: 'openrouter'; models: OpenRouterModel[] };
+  | { mode: 'curated'; models: CuratedModel[]; provider: 'openrouter' }
+  | { mode: 'gemini'; models: CuratedModel[]; provider: 'gemini' }
+  | { mode: 'openrouter'; models: OpenRouterModel[]; provider: 'openrouter' };
 
 type CuratedModel = { id: string; label: string };
 
@@ -34,20 +38,39 @@ export const aiApi = {
   },
 
   getModels: async (): Promise<AiModelsResponse> => {
-    const response = await apiClient.get<{ mode: 'curated' | 'openrouter'; models: any[] }>(
-      '/ai/models'
-    );
+    const response = await apiClient.get<{
+      mode: 'curated' | 'gemini' | 'openrouter';
+      models: any[];
+      provider: AiProvider;
+    }>('/ai/models');
 
     if (response.mode === 'curated') {
-      return { mode: 'curated', models: response.models as CuratedModel[] };
+      return {
+        mode: 'curated',
+        models: response.models as CuratedModel[],
+        provider: 'openrouter',
+      };
     }
 
-    return { mode: 'openrouter', models: response.models as OpenRouterModel[] };
+    if (response.mode === 'gemini') {
+      return {
+        mode: 'gemini',
+        models: response.models as CuratedModel[],
+        provider: 'gemini',
+      };
+    }
+
+    return {
+      mode: 'openrouter',
+      models: response.models as OpenRouterModel[],
+      provider: 'openrouter',
+    };
   },
 
   getSettings: async (): Promise<AiSettings> => {
     const response = await apiClient.get<{
       activeModel?: string;
+      activeProvider: AiProvider;
       geminiKeyLast4: null | string;
       hasGeminiKey: boolean;
       hasOpenRouterKey: boolean;
@@ -71,7 +94,15 @@ export const aiApi = {
     );
   },
 
-  updateSettings: async (dto: { activeModel: string }): Promise<{ activeModel: string }> => {
-    return apiClient.patch<{ activeModel: string }>('/ai/settings', dto);
+  updateSettings: async (dto: {
+    activeModel: string;
+  }): Promise<{
+    activeModel: string;
+    activeProvider: AiProvider;
+  }> => {
+    return apiClient.patch<{ activeModel: string; activeProvider: AiProvider }>(
+      '/ai/settings',
+      dto
+    );
   },
 };

@@ -21,7 +21,7 @@
 
 'use client';
 
-import type { InfiniteData } from '@tanstack/react-query';
+import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -360,7 +360,7 @@ export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'pa
  * Send message with optimistic update
  *
  * Optimistically adds the user message to the conversation before server confirmation.
- * Automatically rolls back on error. AI response is delivered via SSE, so no manual refetch is needed.
+ * Automatically rolls back on error. AI response is delivered via SSE and backed by a short polling fallback.
  *
  * @param conversationId - Conversation ID to send message to
  * @returns Mutation result with send function
@@ -377,7 +377,12 @@ export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'pa
 export function useSendMessage(conversationId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<SendMessageResponse, Error, SendMessageDto, { rollback: () => void }>({
+  return useMutation<
+    SendMessageResponse,
+    Error,
+    SendMessageDto,
+    { baselineAssistantCount: number; rollback: () => void }
+  >({
     mutationFn: (dto: SendMessageDto) => conversationsApi.sendMessage(conversationId, dto),
 
     onError: (err, message, context) => {
@@ -385,20 +390,82 @@ export function useSendMessage(conversationId: string) {
     },
 
     onMutate: async (message) => {
+      const currentConversation = queryClient.getQueryData<Conversation>(
+        conversationKeys.detail(conversationId)
+      );
+      const baselineAssistantCount =
+        currentConversation?.recentMessages.filter((entry) => entry.role === 'assistant').length ||
+        0;
+
       const { rollback } = await optimisticallyAppendUserMessage(
         queryClient,
         conversationId,
         message.content
       );
 
-      return { rollback };
+      return { baselineAssistantCount, rollback };
     },
 
-    onSuccess: () => {
-      // No need to refetch - SSE will deliver the AI response in real-time
-      // The useConversationStream hook automatically updates the cache when messages arrive
+    onSuccess: (_response, _message, context) => {
+      // SSE is still the primary path. This fallback only runs if cache doesn't
+      // receive an assistant message quickly (e.g. cross-instance stream delivery lag).
+      void pollConversationUntilAssistantArrives(
+        queryClient,
+        conversationId,
+        context?.baselineAssistantCount ?? 0
+      );
     },
   });
+}
+
+async function pollConversationUntilAssistantArrives(
+  queryClient: QueryClient,
+  conversationId: string,
+  baselineAssistantCount: number
+) {
+  if (!conversationId) {
+    return;
+  }
+
+  const DELAYS_MS = config.env.isTest ? [5] : [1200, 1800, 3000, 5000];
+
+  for (const delayMs of DELAYS_MS) {
+    const cachedConversation = queryClient.getQueryData<Conversation>(
+      conversationKeys.detail(conversationId)
+    );
+    const cachedAssistantCount =
+      cachedConversation?.recentMessages.filter((message) => message.role === 'assistant').length ??
+      0;
+
+    if (cachedAssistantCount > baselineAssistantCount) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+    try {
+      const freshConversation = await conversationsApi.getById(conversationId);
+      const existingConversation = queryClient.getQueryData<Conversation>(
+        conversationKeys.detail(conversationId)
+      );
+      const mergedConversation = mergeConversationPreservingRecentMessages(
+        existingConversation,
+        freshConversation
+      );
+
+      queryClient.setQueryData(conversationKeys.detail(conversationId), mergedConversation);
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
+
+      const assistantCount =
+        mergedConversation.recentMessages.filter((message) => message.role === 'assistant')
+          .length ?? 0;
+      if (assistantCount > baselineAssistantCount) {
+        return;
+      }
+    } catch {
+      // Fallback polling is best-effort; failures should not break the send flow.
+    }
+  }
 }
 
 /**
