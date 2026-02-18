@@ -48,6 +48,10 @@ interface CreateInsightVariables {
   sessionId: string;
 }
 
+interface DeleteCanvasSessionContext {
+  previousSessions: CanvasSession[] | undefined;
+}
+
 /**
  * Context for optimistic update rollback on insight deletion
  */
@@ -286,6 +290,63 @@ export function useCreateInsight() {
       queryClient.invalidateQueries({ queryKey: canvasKeys.insights(variables.sessionId) });
       // Also invalidate session to update any session-level state
       queryClient.invalidateQueries({ queryKey: canvasKeys.session(variables.sessionId) });
+    },
+  });
+}
+
+/**
+ * Delete canvas session with optimistic update
+ *
+ * Deletes a canvas session.
+ * Implements optimistic updates for immediate UI feedback with automatic
+ * rollback on errors.
+ *
+ * @returns Mutation result with delete function
+ *
+ * @example
+ * ```typescript
+ * const { mutate: deleteSession, isPending } = useDeleteCanvasSession();
+ *
+ * deleteSession('507f1f77bcf86cd799439011');
+ * ```
+ */
+export function useDeleteCanvasSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string, DeleteCanvasSessionContext>({
+    mutationFn: (id: string) => canvasApi.deleteSession(id),
+
+    onError: (_err, _id, context) => {
+      // Rollback to previous state on error
+      if (context?.previousSessions) {
+        queryClient.setQueryData(canvasKeys.sessions(), context.previousSessions);
+      }
+    },
+
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: canvasKeys.sessions() });
+
+      // Snapshot the previous value
+      const previousSessions = queryClient.getQueryData<CanvasSession[]>(canvasKeys.sessions());
+
+      // Optimistically remove the session
+      if (previousSessions) {
+        queryClient.setQueryData<CanvasSession[]>(
+          canvasKeys.sessions(),
+          previousSessions.filter((session) => session.id !== id)
+        );
+      }
+
+      // Return context with previous value for rollback
+      return { previousSessions };
+    },
+
+    onSuccess: (_data, id) => {
+      // Invalidate queries to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: canvasKeys.all });
+      // Remove detail query from cache
+      queryClient.removeQueries({ queryKey: canvasKeys.detail(id) });
     },
   });
 }

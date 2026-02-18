@@ -699,6 +699,54 @@ export class CanvasService {
     return updatedSession;
   }
 
+  /**
+   * Deletes a canvas session and all associated insight nodes (cascade deletion).
+   *
+   * @param sessionId - The canvas session ID to delete
+   * @param userId - The ID of the user requesting the deletion
+   * @returns void
+   * @throws {NotFoundException} If the session doesn't exist
+   * @throws {ForbiddenException} If the user doesn't own the session
+   *
+   * @example
+   * ```typescript
+   * await canvasService.deleteSession(sessionId, userId);
+   * ```
+   */
+  async deleteSession(
+    sessionId: string,
+    userId: string | Types.ObjectId,
+  ): Promise<void> {
+    const userIdStr = userId.toString();
+    this.logger.log(
+      `Deleting canvas session ${sessionId} by user ${userIdStr}`,
+    );
+
+    // Validate session ownership (throws NotFoundException or ForbiddenException)
+    await this.findSessionById(sessionId, userId);
+
+    // Delete all associated insight nodes (cascade deletion)
+    const deleteInsightsResult = await this.insightNodeModel.deleteMany({
+      sessionId: new Types.ObjectId(sessionId),
+    });
+
+    this.logger.log(
+      `Deleted ${deleteInsightsResult.deletedCount} insight nodes for session ${sessionId}`,
+    );
+
+    // Delete the canvas session
+    const deleteSessionResult =
+      await this.canvasSessionModel.findByIdAndDelete(sessionId);
+
+    if (!deleteSessionResult) {
+      throw new NotFoundException(
+        `Canvas session with ID ${sessionId} not found`,
+      );
+    }
+
+    this.logger.log(`Canvas session ${sessionId} deleted successfully`);
+  }
+
   // ============================================
   // Dynamic Node Methods (Requirements 2.3, 2.5, 2.6, 5.3, 5.5, 5.6, 6.2)
   // ============================================
