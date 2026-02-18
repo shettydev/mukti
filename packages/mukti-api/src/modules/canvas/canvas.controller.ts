@@ -35,6 +35,7 @@ import {
   ApiDeleteContext,
   ApiDeleteInsight,
   ApiDeleteRelationship,
+  ApiDeleteSession,
   ApiGetCanvasSessionById,
   ApiGetCanvasSessions,
   ApiGetInsights,
@@ -189,6 +190,27 @@ export class CanvasController {
 
     return {
       data: CanvasSessionResponseDto.fromDocument(session),
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Deletes a canvas session and all associated insight nodes.
+   *
+   * @param id - The canvas session ID
+   * @param user - The authenticated user from JWT token
+   * @returns Success response
+   */
+  @ApiDeleteSession()
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteSession(@Param('id') id: string, @CurrentUser() user: User) {
+    await this.canvasService.deleteSession(id, user._id);
+    return {
       meta: {
         requestId: this.generateRequestId(),
         timestamp: new Date().toISOString(),
