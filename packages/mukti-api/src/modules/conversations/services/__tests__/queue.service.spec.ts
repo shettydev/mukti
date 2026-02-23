@@ -552,7 +552,9 @@ describe('QueueService', () => {
         .filter((payload) => payload.type === 'message');
 
       expect(messageEvents).toHaveLength(2);
-      expect(messageEvents.map((event) => event.data.sequence)).toEqual([103, 104]);
+      expect(messageEvents.map((event) => event.data.sequence)).toEqual([
+        103, 104,
+      ]);
       expect(messageEvents.map((event) => event.data.role)).toEqual([
         'user',
         'assistant',
