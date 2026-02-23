@@ -72,6 +72,14 @@ export function ChatInterface({
     status: '',
   });
 
+  const [prefillState, setPrefillState] = useState<null | { text: string; timestamp: number }>(
+    null
+  );
+
+  const handleQuestionClick = useCallback((question: string) => {
+    setPrefillState({ text: question, timestamp: Date.now() });
+  }, []);
+
   // Error states
   const [streamError, setStreamError] = useState<null | SSEError>(null);
   const [rateLimitInfo, setRateLimitInfo] = useState<null | { retryAfter: number }>(null);
@@ -446,6 +454,7 @@ export function ChatInterface({
       <MessageList
         conversationId={conversationId}
         hasArchivedMessages={conversation.hasArchivedMessages}
+        onQuestionClick={handleQuestionClick}
         processingState={effectiveProcessingState}
         recentMessages={conversation.recentMessages}
       />
@@ -467,6 +476,7 @@ export function ChatInterface({
         conversationId={conversationId}
         disabled={isSending || conversation.isArchived || !!rateLimitInfo}
         onSend={handleSendMessage}
+        prefillState={prefillState}
         technique={conversation.technique}
       />
     </div>
