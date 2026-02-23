@@ -4,8 +4,9 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import Script from 'next/script';
 
 import './globals.css';
+import './japandi.css';
 import { Providers } from '@/app/providers';
-import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeProvider } from '@/components/old-landing/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 
 const geistSans = Geist({
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
   description:
     'Break free from cognitive dependency with Mukti, your AI mentor that uses the Socratic method to guide you toward your own insights and rediscover independent thinking.',
   icons: {
-    icon: '/mukti-logo-2.png',
+    icon: [
+      { media: '(prefers-color-scheme: light)', url: '/mukti-enso-inverted/mukti-enso-no-bg.png' },
+      { media: '(prefers-color-scheme: dark)', url: '/mukti-enso/mukti-inverted-enso-no-bg.png' },
+    ],
   },
   keywords: ['AI', 'Socratic method', 'cognitive independence', 'critical thinking', 'learning'],
   openGraph: {
@@ -74,7 +78,7 @@ export default function RootLayout({
         <Providers>
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="system"
             disableTransitionOnChange
             enableSystem
           >

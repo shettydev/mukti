@@ -3,7 +3,7 @@
 import { HelpCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 
 const faqs = [
   {

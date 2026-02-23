@@ -114,7 +114,7 @@ export function MessageInput({
   }, []);
 
   return (
-    <div className="border-t bg-background p-4">
+    <div className="sticky bottom-0 z-10 border-t border-japandi-sand/70 bg-japandi-cream/88 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur md:px-4">
       {/* Technique indicator */}
       {technique && (
         <div className="mb-2 flex items-center justify-between">
@@ -127,11 +127,11 @@ export function MessageInput({
           aria-describedby="character-count"
           aria-label="Message input"
           className={cn(
-            'w-full resize-none rounded-2xl border-none bg-[#111111] px-4 py-4 pr-14',
-            'text-base placeholder:text-muted-foreground/50',
-            'focus:outline-none focus:ring-1 focus:ring-white/10',
+            'min-h-[56px] max-h-[200px] w-full resize-none rounded-2xl border border-japandi-sand/80 bg-japandi-light-stone/45 px-4 py-3.5 pr-14',
+            'text-base text-japandi-stone placeholder:text-japandi-stone/45',
+            'focus:outline-none focus:ring-2 focus:ring-japandi-sage/35',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            'min-h-[56px] max-h-[200px]',
+            'shadow-sm',
             isOverLimit && 'focus:ring-destructive'
           )}
           data-testid="message-input"
@@ -145,7 +145,7 @@ export function MessageInput({
 
         <Button
           aria-label="Send message"
-          className="absolute bottom-6 right-2 h-10 min-h-[44px] w-10 min-w-[44px] rounded-full bg-white text-black hover:bg-white/90"
+          className="absolute bottom-2 right-2 h-10 min-h-[44px] w-10 min-w-[44px] rounded-full bg-japandi-terracotta text-white hover:bg-japandi-timber focus-visible:ring-japandi-sage/50"
           data-testid="send-button"
           disabled={!canSend || isOverLimit}
           onClick={handleSend}
@@ -167,7 +167,7 @@ export function MessageInput({
             ? 'text-destructive'
             : isNearLimit
               ? 'text-yellow-600 dark:text-yellow-500'
-              : 'text-muted-foreground'
+              : 'text-japandi-stone/60'
         )}
         data-testid="character-count"
         id="character-count"

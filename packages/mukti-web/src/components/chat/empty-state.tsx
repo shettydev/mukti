@@ -62,12 +62,23 @@ export function EmptyState({
   const [heading, setHeading] = useState<string>('');
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
 
-  // Initialize GSAP Animations
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener('change', update);
+
+    return () => mediaQuery.removeEventListener('change', update);
+  }, []);
+
+  // Initialize ambient animations
   useEffect(() => {
     if (!containerRef.current || !glowRef.current) {
       return;
@@ -77,27 +88,30 @@ export function EmptyState({
     const title = titleRef.current;
 
     const ctx = gsap.context(() => {
-      // 1. Deep Void Breathing
-      gsap.to(glow, {
-        duration: 8,
-        ease: 'sine.inOut',
-        opacity: 0.4,
-        repeat: -1,
-        scale: 1.2,
-        yoyo: true,
-      });
+      if (!prefersReducedMotion) {
+        gsap.to(glow, {
+          duration: 8,
+          ease: 'sine.inOut',
+          opacity: 0.45,
+          repeat: -1,
+          scale: 1.08,
+          yoyo: true,
+        });
+      }
 
-      // 2. Title Entrance (Slide Up + Fade In)
       if (title) {
         gsap.fromTo(
           title,
-          { opacity: 0, y: 20 },
-          { duration: 1.5, ease: 'power3.out', opacity: 1, y: 0 }
+          { opacity: 0, y: 12 },
+          { duration: 0.65, ease: 'power2.out', opacity: 1, y: 0 }
         );
       }
     }, containerRef);
 
-    // Mouse Follow Interaction
+    if (prefersReducedMotion) {
+      return () => ctx.revert();
+    }
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) {
         return;
@@ -111,12 +125,12 @@ export function EmptyState({
 
       // Move glow slightly towards mouse (parallax feel)
       gsap.to(glow, {
-        duration: 1.5,
+        duration: 1.2,
         ease: 'power2.out',
         overwrite: 'auto',
-        rotation: x * 10,
-        x: x * 80,
-        y: y * 80,
+        rotation: x * 5,
+        x: x * 50,
+        y: y * 50,
       });
     };
 
@@ -126,7 +140,7 @@ export function EmptyState({
       window.removeEventListener('mousemove', handleMouseMove);
       ctx.revert();
     };
-  }, []);
+  }, [prefersReducedMotion]);
 
   // Set heading on mount
   useEffect(() => {
@@ -195,7 +209,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'relative flex flex-1 items-center justify-center p-4 overflow-hidden',
+        'relative flex flex-1 items-center justify-center overflow-hidden p-4',
         'transition-all duration-300 ease-out',
         isTransitioning && 'opacity-0 scale-95 translate-y-4',
         className
@@ -208,7 +222,7 @@ export function EmptyState({
         className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden"
       >
         <div
-          className="w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-indigo-500/40 via-purple-500/40 to-blue-500/40 blur-[120px]"
+          className="h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(196,120,91,0.2),rgba(139,158,130,0.16),transparent_68%)] blur-[95px]"
           ref={glowRef}
         />
       </div>
@@ -216,7 +230,7 @@ export function EmptyState({
       <div className="w-full max-w-2xl space-y-6 relative z-10">
         {/* Quirky heading */}
         <h1
-          className="text-center text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white via-white/80 to-white/20 sm:text-4xl pb-1"
+          className="text-japandi-heading pb-1 text-center text-2xl text-japandi-stone sm:text-4xl"
           ref={titleRef}
         >
           {heading}
@@ -225,7 +239,7 @@ export function EmptyState({
         {/* Technique selector */}
         <div className="space-y-2">
           <label
-            className="block text-center text-sm font-medium text-muted-foreground"
+            className="text-japandi-label block text-center text-japandi-stone/65"
             htmlFor="technique-selector"
           >
             Choose your inquiry method
@@ -242,11 +256,11 @@ export function EmptyState({
           <textarea
             aria-label="Message input"
             className={cn(
-              'w-full resize-none rounded-2xl border-none bg-[#111111] px-4 py-4 pr-14',
-              'text-base placeholder:text-muted-foreground/50',
-              'focus:outline-none focus:ring-1 focus:ring-white/10',
+              'min-h-[56px] max-h-[200px] w-full resize-none rounded-2xl border border-japandi-sand/75 bg-japandi-cream/75 px-4 py-4 pr-14',
+              'text-base text-japandi-stone placeholder:text-japandi-stone/45',
+              'focus:outline-none focus:ring-2 focus:ring-japandi-sage/35',
               'disabled:cursor-not-allowed disabled:opacity-50',
-              'min-h-[56px] max-h-[200px]'
+              'shadow-sm'
             )}
             disabled={isCreating || isSending}
             onChange={(e) => setContent(e.target.value)}
@@ -258,7 +272,7 @@ export function EmptyState({
 
           <Button
             aria-label="Send message"
-            className="absolute bottom-6 right-2 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90"
+            className="absolute bottom-6 right-2 h-10 w-10 rounded-full bg-japandi-terracotta text-white hover:bg-japandi-timber focus-visible:ring-japandi-sage/50"
             disabled={!canSend}
             onClick={handleSend}
             size="icon"
@@ -269,7 +283,7 @@ export function EmptyState({
         </div>
 
         {/* Helper text */}
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-japandi-stone/55">
           Start your journey of inquiry. Press Enter to send, Shift+Enter for a new line.
         </p>
       </div>

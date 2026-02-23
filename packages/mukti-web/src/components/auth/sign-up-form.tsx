@@ -89,7 +89,7 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
 
   return (
     <Form {...form}>
-      <form className="space-y-3 sm:space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="space-y-4 sm:space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
         {/* First Name and Last Name - responsive grid */}
         <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
           <FormField
@@ -97,19 +97,21 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
             name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white text-sm">First Name</FormLabel>
+                <FormLabel className="text-japandi-label text-japandi-stone/85">
+                  First Name
+                </FormLabel>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-japandi-timber/60" />
                   <FormControl>
                     <Input
                       {...field}
-                      className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
+                      className="h-11 border-japandi-sand/80 bg-japandi-cream/65 pl-10 text-japandi-stone placeholder:text-japandi-stone/45 focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/30 sm:h-12 sm:text-base"
                       placeholder="John"
                       type="text"
                     />
                   </FormControl>
                 </div>
-                <FormMessage className="text-red-300 text-xs" />
+                <FormMessage className="text-xs text-red-600 dark:text-red-300" />
               </FormItem>
             )}
           />
@@ -119,19 +121,21 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white text-sm">Last Name</FormLabel>
+                <FormLabel className="text-japandi-label text-japandi-stone/85">
+                  Last Name
+                </FormLabel>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-japandi-timber/60" />
                   <FormControl>
                     <Input
                       {...field}
-                      className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
+                      className="h-11 border-japandi-sand/80 bg-japandi-cream/65 pl-10 text-japandi-stone placeholder:text-japandi-stone/45 focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/30 sm:h-12 sm:text-base"
                       placeholder="Doe"
                       type="text"
                     />
                   </FormControl>
                 </div>
-                <FormMessage className="text-red-300 text-xs" />
+                <FormMessage className="text-xs text-red-600 dark:text-red-300" />
               </FormItem>
             )}
           />
@@ -143,19 +147,19 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white text-sm">Email</FormLabel>
+              <FormLabel className="text-japandi-label text-japandi-stone/85">Email</FormLabel>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-japandi-timber/60" />
                 <FormControl>
                   <Input
                     {...field}
-                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
+                    className="h-11 border-japandi-sand/80 bg-japandi-cream/65 pl-10 text-japandi-stone placeholder:text-japandi-stone/45 focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/30 sm:h-12 sm:text-base"
                     placeholder="john@example.com"
                     type="email"
                   />
                 </FormControl>
               </div>
-              <FormMessage className="text-red-300 text-xs" />
+              <FormMessage className="text-xs text-red-600 dark:text-red-300" />
             </FormItem>
           )}
         />
@@ -166,31 +170,33 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white text-sm">Phone (Optional)</FormLabel>
+              <FormLabel className="text-japandi-label text-japandi-stone/85">
+                Phone (Optional)
+              </FormLabel>
               <FormControl>
                 <PhoneInput
                   {...field}
                   className={cn(
                     'phone-input',
-                    '[&_.PhoneInputInput]:bg-white/10',
-                    '[&_.PhoneInputInput]:border-white/20',
-                    '[&_.PhoneInputInput]:text-white',
-                    '[&_.PhoneInputInput]:placeholder:text-white/40',
-                    '[&_.PhoneInputInput]:focus-visible:border-white/40',
-                    '[&_.PhoneInputInput]:focus-visible:ring-white/20',
-                    '[&_.PhoneInputInput]:h-10 sm:[&_.PhoneInputInput]:h-11',
+                    '[&_.PhoneInputInput]:h-11 sm:[&_.PhoneInputInput]:h-12',
+                    '[&_.PhoneInputInput]:border-japandi-sand/80',
+                    '[&_.PhoneInputInput]:bg-japandi-cream/65',
                     '[&_.PhoneInputInput]:text-sm sm:[&_.PhoneInputInput]:text-base',
-                    '[&_.PhoneInputCountrySelect]:bg-white/10',
-                    '[&_.PhoneInputCountrySelect]:border-white/20',
-                    '[&_.PhoneInputCountrySelect]:text-white',
-                    '[&_.PhoneInputCountrySelectArrow]:text-white/50'
+                    '[&_.PhoneInputInput]:text-japandi-stone',
+                    '[&_.PhoneInputInput]:placeholder:text-japandi-stone/45',
+                    '[&_.PhoneInputInput]:focus-visible:border-japandi-sage',
+                    '[&_.PhoneInputInput]:focus-visible:ring-japandi-sage/30',
+                    '[&_.PhoneInputCountrySelect]:border-japandi-sand/80',
+                    '[&_.PhoneInputCountrySelect]:bg-japandi-cream/65',
+                    '[&_.PhoneInputCountrySelect]:text-japandi-stone',
+                    '[&_.PhoneInputCountrySelectArrow]:text-japandi-stone/55'
                   )}
                   defaultCountry="US"
                   international
                   placeholder="Enter phone number"
                 />
               </FormControl>
-              <FormMessage className="text-red-300 text-xs" />
+              <FormMessage className="text-xs text-red-600 dark:text-red-300" />
             </FormItem>
           )}
         />
@@ -201,26 +207,26 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white text-sm">Password</FormLabel>
+              <FormLabel className="text-japandi-label text-japandi-stone/85">Password</FormLabel>
               <div className="relative">
                 <FormControl>
                   <Input
                     {...field}
-                    className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:border-white/40 h-10 sm:h-11 text-sm sm:text-base"
+                    className="h-11 border-japandi-sand/80 bg-japandi-cream/65 pr-10 text-japandi-stone placeholder:text-japandi-stone/45 focus-visible:border-japandi-sage focus-visible:ring-japandi-sage/30 sm:h-12 sm:text-base"
                     placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
                   />
                 </FormControl>
                 <button
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation"
+                  className="absolute right-3 top-1/2 min-h-[44px] min-w-[44px] -translate-y-1/2 text-japandi-timber/65 transition-colors hover:text-japandi-timber focus-visible:outline-none touch-manipulation"
                   onClick={() => setShowPassword(!showPassword)}
                   type="button"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <FormMessage className="text-red-300 text-xs" />
+              <FormMessage className="text-xs text-red-600 dark:text-red-300" />
               <PasswordStrengthIndicator password={password} />
             </FormItem>
           )}
@@ -228,8 +234,8 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
 
         {/* API Error Message */}
         {registerMutation.error && (
-          <div className="rounded-md bg-red-500/10 border border-red-500/20 p-2.5 sm:p-3">
-            <p className="text-xs sm:text-sm text-red-300">
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-2.5 sm:p-3">
+            <p className="text-xs text-red-700 dark:text-red-300 sm:text-sm">
               {registerMutation.error instanceof Error
                 ? registerMutation.error.message
                 : 'Registration failed. Please try again.'}
@@ -239,7 +245,7 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
 
         {/* Submit Button - blue gradient, touch-friendly */}
         <Button
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium touch-manipulation h-11 sm:h-12 text-sm sm:text-base shadow-lg shadow-blue-500/20"
+          className="h-11 w-full bg-japandi-terracotta text-sm font-medium text-white shadow-sm shadow-japandi-timber/20 transition-colors hover:bg-japandi-timber focus-visible:ring-japandi-sage/40 touch-manipulation sm:h-12 sm:text-base"
           disabled={registerMutation.isPending}
           type="submit"
         >
@@ -259,10 +265,10 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
 
         {/* Switch to Sign In */}
         <div className="text-center">
-          <p className="text-xs sm:text-sm text-white/70">
+          <p className="text-xs text-japandi-stone/70 sm:text-sm">
             Already have an account?{' '}
             <button
-              className="text-white font-medium hover:underline touch-manipulation"
+              className="font-medium text-japandi-timber underline-offset-4 hover:underline touch-manipulation"
               onClick={onSwitchToSignIn}
               type="button"
             >
@@ -272,13 +278,19 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
         </div>
 
         {/* Terms & Service */}
-        <p className="text-[10px] sm:text-xs text-white/50 text-center leading-relaxed">
+        <p className="text-center text-[10px] leading-relaxed text-japandi-stone/55 sm:text-xs">
           By creating an account, you agree to our{' '}
-          <a className="underline hover:text-white/70 touch-manipulation" href="/terms">
+          <a
+            className="underline decoration-japandi-sand underline-offset-3 hover:text-japandi-timber touch-manipulation"
+            href="/terms"
+          >
             Terms of Service
           </a>{' '}
           and{' '}
-          <a className="underline hover:text-white/70 touch-manipulation" href="/privacy">
+          <a
+            className="underline decoration-japandi-sand underline-offset-3 hover:text-japandi-timber touch-manipulation"
+            href="/privacy"
+          >
             Privacy Policy
           </a>
         </p>
@@ -303,12 +315,12 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
 
   const strengthConfig = {
     medium: {
-      color: 'bg-yellow-500',
+      color: 'bg-amber-500',
       label: 'Medium',
       width: 'w-2/3',
     },
     strong: {
-      color: 'bg-green-500',
+      color: 'bg-japandi-sage',
       label: 'Strong',
       width: 'w-full',
     },
@@ -328,18 +340,18 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-white/70">Password strength:</span>
+        <span className="text-japandi-stone/70">Password strength:</span>
         <span
           className={cn('font-medium', {
-            'text-green-400': strength === 'strong',
-            'text-red-400': strength === 'weak',
-            'text-yellow-400': strength === 'medium',
+            'text-amber-600 dark:text-amber-400': strength === 'medium',
+            'text-japandi-sage': strength === 'strong',
+            'text-red-500 dark:text-red-300': strength === 'weak',
           })}
         >
           {config.label}
         </span>
       </div>
-      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-japandi-light-stone/80">
         <div className={cn('h-full transition-all duration-300', config.color, config.width)} />
       </div>
     </div>

@@ -15,52 +15,24 @@ interface GradientBackgroundProps {
   className?: string;
 }
 
-/**
- * Full-page gradient background component for authentication pages.
- *
- * Creates a beautiful gradient that transitions from dark/black at the top
- * through deep purple to vibrant blue at the bottom, providing an engaging
- * visual experience for the authentication flow.
- *
- * The gradient uses the following color scheme:
- * - Top: #000000 (black) - Creates dramatic dark atmosphere
- * - Middle: #581C87 (purple-900) - Deep purple transition
- * - Bottom: #2563EB (blue-600) - Vibrant blue
- *
- * @example
- * ```tsx
- * <GradientBackground>
- *   <AuthCard />
- * </GradientBackground>
- * ```
- *
- * @remarks
- * This component is designed to be used as a full-page wrapper for authentication
- * pages. It ensures the gradient covers the entire viewport and is responsive
- * across all screen sizes.
- *
- * @see {@link https://tailwindcss.com/docs/gradient-color-stops} for Tailwind gradient documentation
- */
 export function GradientBackground({ children, className }: GradientBackgroundProps) {
   return (
     <div
       className={cn(
-        // Full viewport height and width
-        'min-h-screen w-full',
-        // Gradient from dark/black (top) through purple to vibrant blue (bottom)
-        // Matches the design reference with darker tones at top
-        'bg-gradient-to-b from-black via-purple-900 to-blue-600',
-        // Ensure gradient covers entire viewport on all devices
-        'relative overflow-hidden',
-        // Flexbox for centering content
+        'japandi-page bg-grain relative min-h-dvh w-full overflow-hidden',
         'flex items-center justify-center',
-        // Padding for mobile responsiveness
-        'p-4 sm:p-6 md:p-8',
+        'px-4 py-6 sm:px-6 sm:py-8 md:px-8',
+        'before:z-0',
         className
       )}
       suppressHydrationWarning
     >
-      {children}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_18%,rgba(196,120,91,0.12),transparent_40%),radial-gradient(circle_at_80%_12%,rgba(139,158,130,0.1),transparent_35%),radial-gradient(circle_at_48%_88%,rgba(91,105,135,0.1),transparent_46%)] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(212,144,110,0.1),transparent_40%),radial-gradient(circle_at_80%_12%,rgba(155,179,146,0.1),transparent_35%),radial-gradient(circle_at_48%_88%,rgba(126,148,179,0.09),transparent_46%)]"
+      />
+
+      <div className="relative z-10 flex w-full justify-center">{children}</div>
     </div>
   );
 }

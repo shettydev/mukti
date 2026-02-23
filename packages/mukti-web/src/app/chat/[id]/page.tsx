@@ -38,7 +38,10 @@ export default function ChatDetailPage({ params }: ChatDetailPageProps) {
 
   return (
     <ProtectedRoute redirectTo="/auth">
-      <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar={false}>
+      <DashboardLayout
+        contentClassName="flex min-h-0 flex-col overflow-hidden bg-japandi-cream/35 p-0"
+        showNavbar={false}
+      >
         <ChatDetailContent conversationId={id} />
       </DashboardLayout>
     </ProtectedRoute>
