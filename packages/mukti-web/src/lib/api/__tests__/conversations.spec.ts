@@ -135,6 +135,49 @@ describe('conversationsApi', () => {
       expect(result.technique).toBe('elenchus');
     });
 
+    it('should derive recent message sequences from total message count', async () => {
+      const mockBackendResponse = {
+        _id: '507f1f77bcf86cd799439011',
+        createdAt: '2024-01-01T00:00:00Z',
+        hasArchivedMessages: true,
+        isArchived: false,
+        isFavorite: false,
+        metadata: { estimatedCost: 1.2, messageCount: 120, totalTokens: 1234 },
+        recentMessages: [
+          {
+            content: 'Older recent message',
+            role: 'user' as const,
+            timestamp: '2024-01-01T00:00:01Z',
+          },
+          {
+            content: 'Assistant reply',
+            metadata: { totalTokens: 25 },
+            role: 'assistant' as const,
+            timestamp: '2024-01-01T00:00:02Z',
+          },
+          {
+            content: 'Latest user message',
+            role: 'user' as const,
+            timestamp: '2024-01-01T00:00:03Z',
+          },
+        ],
+        tags: [],
+        technique: 'elenchus',
+        title: 'Long Conversation',
+        totalMessageCount: 120,
+        updatedAt: '2024-01-01T00:00:03Z',
+        userId: 'user123',
+      };
+      (apiClient.get as jest.Mock).mockResolvedValue(mockBackendResponse);
+
+      const result = await conversationsApi.getById('507f1f77bcf86cd799439011');
+
+      expect(result.recentMessages.map((msg) => msg.sequence)).toEqual([
+        118, 119, 120,
+      ]);
+      expect(result.recentMessages[1]?.tokens).toBe(25);
+    });
+
     it('should throw error for non-existent conversation', async () => {
       const error = new ApiClientError('Conversation not found', 'NOT_FOUND', 404);
       (apiClient.get as jest.Mock).mockRejectedValue(error);

@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 import { type SSEError, useConversationStream } from '@/lib/hooks/use-conversation-stream';
 import { useConversation, useSendMessage } from '@/lib/hooks/use-conversations';
+import { conversationKeys } from '@/lib/query-keys';
 
 import { ChatHeader } from './chat-header';
 import { EmptyState } from './empty-state';
@@ -88,6 +89,8 @@ export function ChatInterface({
   const [showLoading, setShowLoading] = useState(false);
   const [isLoadingExiting, setIsLoadingExiting] = useState(false);
   const loadingStartRef = useRef(0);
+  const isConnectedRef = useRef(false);
+  const sseFallbackRefetchTimeoutRef = useRef<null | number>(null);
 
   useEffect(() => {
     const MIN_LOADING_MS = 350;
@@ -214,6 +217,42 @@ export function ChatInterface({
     },
   });
 
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+  }, [isConnected]);
+
+  useEffect(
+    () => () => {
+      if (sseFallbackRefetchTimeoutRef.current !== null) {
+        window.clearTimeout(sseFallbackRefetchTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  const scheduleSseFallbackRefetch = useCallback(
+    (targetConversationId: string) => {
+      if (!targetConversationId) {
+        return;
+      }
+
+      if (sseFallbackRefetchTimeoutRef.current !== null) {
+        window.clearTimeout(sseFallbackRefetchTimeoutRef.current);
+      }
+
+      sseFallbackRefetchTimeoutRef.current = window.setTimeout(() => {
+        if (isConnectedRef.current) {
+          return;
+        }
+
+        void queryClient.invalidateQueries({
+          queryKey: conversationKeys.detail(targetConversationId),
+        });
+      }, 1500);
+    },
+    [queryClient]
+  );
+
   /**
    * Handle sending first message (creates conversation)
    *
@@ -248,6 +287,7 @@ export function ChatInterface({
         // the mutation hook set up for this conversation yet
         const { conversationsApi } = await import('@/lib/api/conversations');
         await conversationsApi.sendMessage(newConversationId, { content });
+        scheduleSseFallbackRefetch(newConversationId);
       } catch (error) {
         setProcessingState({
           isProcessing: false,
@@ -260,7 +300,7 @@ export function ChatInterface({
         throw error;
       }
     },
-    [onCreateConversation, queryClient, router, selectedTechnique]
+    [onCreateConversation, queryClient, router, scheduleSseFallbackRefetch, selectedTechnique]
   );
 
   /**
@@ -280,6 +320,7 @@ export function ChatInterface({
           status: 'AI is thinking...',
         });
         await sendMessage({ content });
+        scheduleSseFallbackRefetch(conversationId);
       } catch (error) {
         setProcessingState({
           isProcessing: false,
@@ -293,7 +334,7 @@ export function ChatInterface({
         throw error; // Re-throw so MessageInput can handle it
       }
     },
-    [conversationId, sendMessage, resetSendMutation]
+    [conversationId, sendMessage, resetSendMutation, scheduleSseFallbackRefetch]
   );
 
   /**
