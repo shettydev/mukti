@@ -7,7 +7,7 @@
 
 import type { Components } from 'react-markdown';
 
-import { createContext, useContext } from 'react';
+import { createContext, type ReactNode, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -112,6 +112,30 @@ function assistantStructurePlugin() {
   };
 }
 
+function Blockquote({ children, node }: { children?: ReactNode; node?: unknown }) {
+  const isQuestionCallout = getCalloutType(node) === 'question';
+  const onQuestionClick = useContext(QuestionClickContext);
+
+  return (
+    <blockquote
+      aria-label={isQuestionCallout ? 'Question callout' : undefined}
+      className={cn(
+        'assistant-blockquote',
+        isQuestionCallout ? 'assistant-question-callout' : 'assistant-default-callout'
+      )}
+      role={isQuestionCallout ? 'note' : undefined}
+    >
+      {isQuestionCallout && onQuestionClick ? (
+        <InsideQuestionCalloutContext.Provider value>
+          {children}
+        </InsideQuestionCalloutContext.Provider>
+      ) : (
+        children
+      )}
+    </blockquote>
+  );
+}
+
 function createHeading(text: string): AssistantMarkdownNode {
   return {
     children: [{ type: 'text', value: text }],
@@ -198,6 +222,32 @@ function isEmptyParagraph(node: AssistantMarkdownNode): boolean {
   return node.type === 'paragraph' && extractText(node).trim().length === 0;
 }
 
+function Li({ children }: { children?: ReactNode }) {
+  const onQuestionClick = useContext(QuestionClickContext);
+  const insideQuestionCallout = useContext(InsideQuestionCalloutContext);
+
+  if (insideQuestionCallout && onQuestionClick) {
+    return (
+      <li className="assistant-list-item">
+        <button
+          className="assistant-question-item-btn"
+          onClick={(e) => {
+            const text = e.currentTarget.textContent?.trim() ?? '';
+            if (text) {
+              onQuestionClick(text);
+            }
+          }}
+          type="button"
+        >
+          {children}
+        </button>
+      </li>
+    );
+  }
+
+  return <li className="assistant-list-item">{children}</li>;
+}
+
 function normalizeQuestionContent(nodes: AssistantMarkdownNode[]): AssistantMarkdownNode[] {
   const trimmedNodes = nodes.filter((node) => !isEmptyParagraph(node));
 
@@ -274,29 +324,7 @@ const components: Components = {
     </a>
   ),
   // Blockquotes
-  blockquote: ({ children, node }) => {
-    const isQuestionCallout = getCalloutType(node) === 'question';
-    const onQuestionClick = useContext(QuestionClickContext);
-
-    return (
-      <blockquote
-        aria-label={isQuestionCallout ? 'Question callout' : undefined}
-        className={cn(
-          'assistant-blockquote',
-          isQuestionCallout ? 'assistant-question-callout' : 'assistant-default-callout'
-        )}
-        role={isQuestionCallout ? 'note' : undefined}
-      >
-        {isQuestionCallout && onQuestionClick ? (
-          <InsideQuestionCalloutContext.Provider value>
-            {children}
-          </InsideQuestionCalloutContext.Provider>
-        ) : (
-          children
-        )}
-      </blockquote>
-    );
-  },
+  blockquote: Blockquote,
   // Code
   code: ({ children, className }) => {
     const isInline = !className;
@@ -316,31 +344,7 @@ const components: Components = {
   // Horizontal rule
   hr: () => <hr className="assistant-rule" />,
   // Lists
-  li: ({ children }) => {
-    const onQuestionClick = useContext(QuestionClickContext);
-    const insideQuestionCallout = useContext(InsideQuestionCalloutContext);
-
-    if (insideQuestionCallout && onQuestionClick) {
-      return (
-        <li className="assistant-list-item">
-          <button
-            className="assistant-question-item-btn"
-            onClick={(e) => {
-              const text = e.currentTarget.textContent?.trim() ?? '';
-              if (text) {
-                onQuestionClick(text);
-              }
-            }}
-            type="button"
-          >
-            {children}
-          </button>
-        </li>
-      );
-    }
-
-    return <li className="assistant-list-item">{children}</li>;
-  },
+  li: Li,
   ol: ({ children }) => <ol className="assistant-list assistant-list-ordered">{children}</ol>,
   // Paragraphs
   p: ({ children }) => <p className="assistant-paragraph">{children}</p>,
