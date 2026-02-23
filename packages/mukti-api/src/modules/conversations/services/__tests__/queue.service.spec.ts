@@ -38,6 +38,20 @@ describe('QueueService', () => {
     id: string;
     opts: any;
   }[];
+  let conversationModel: { findById: jest.Mock };
+  let techniqueModel: { findOne: jest.Mock };
+  let usageEventModel: { create: jest.Mock };
+  let messageService: {
+    addMessageToConversation: jest.Mock;
+    archiveOldMessages: jest.Mock;
+    buildConversationContext: jest.Mock;
+  };
+  let openRouterService: {
+    buildPrompt: jest.Mock;
+    selectModel: jest.Mock;
+    sendChatCompletion: jest.Mock;
+  };
+  let streamService: { emitToConversation: jest.Mock };
 
   beforeEach(async () => {
     jobs = [];
@@ -188,6 +202,12 @@ describe('QueueService', () => {
     }).compile();
 
     service = module.get<QueueService>(QueueService);
+    conversationModel = module.get(getModelToken(Conversation.name));
+    techniqueModel = module.get(getModelToken(Technique.name));
+    usageEventModel = module.get(getModelToken(UsageEvent.name));
+    messageService = module.get(MessageService);
+    openRouterService = module.get(OpenRouterService);
+    streamService = module.get(StreamService);
   });
 
   afterEach(() => {
@@ -479,6 +499,66 @@ describe('QueueService', () => {
         delay: 1000,
         type: 'exponential',
       });
+    });
+  });
+
+  describe('process', () => {
+    it('should emit globally monotonic SSE message sequences when recent messages are truncated', async () => {
+      conversationModel.findById.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439012',
+      });
+      techniqueModel.findOne.mockResolvedValue({
+        template: 'Technique template',
+      });
+      messageService.buildConversationContext.mockReturnValue({
+        messages: [],
+      });
+      openRouterService.buildPrompt.mockReturnValue([]);
+      openRouterService.sendChatCompletion.mockResolvedValue({
+        completionTokens: 21,
+        content: 'Assistant response',
+        cost: 0.01,
+        model: 'openai/gpt-5-mini',
+        promptTokens: 13,
+        totalTokens: 34,
+      });
+      messageService.addMessageToConversation.mockResolvedValue({
+        _id: { toString: () => '507f1f77bcf86cd799439012' },
+        metadata: { messageCount: 104 },
+        recentMessages: Array.from({ length: 50 }, (_, i) => ({
+          content: `message-${i}`,
+          role: i % 2 === 0 ? 'user' : 'assistant',
+          timestamp: new Date().toISOString(),
+        })),
+        totalMessageCount: 104,
+      });
+      usageEventModel.create.mockResolvedValue({});
+
+      await service.process({
+        data: {
+          conversationId: '507f1f77bcf86cd799439012',
+          message: 'New user message',
+          model: 'openai/gpt-5-mini',
+          subscriptionTier: 'free',
+          technique: 'elenchus',
+          usedByok: false,
+          userId: '507f1f77bcf86cd799439011',
+        },
+        id: 'job-1',
+      } as any);
+
+      const messageEvents = streamService.emitToConversation.mock.calls
+        .map(([, payload]) => payload)
+        .filter((payload) => payload.type === 'message');
+
+      expect(messageEvents).toHaveLength(2);
+      expect(messageEvents.map((event) => event.data.sequence)).toEqual([
+        103, 104,
+      ]);
+      expect(messageEvents.map((event) => event.data.role)).toEqual([
+        'user',
+        'assistant',
+      ]);
     });
   });
 });

@@ -76,13 +76,24 @@ function transformConversation(backend: BackendConversation | Conversation): Con
 
   // Handle recentMessages - might be undefined
   // Cast to backend format since we're transforming from backend response
-  const backendMessages = (backend.recentMessages || []) as BackendConversation['recentMessages'];
+  const backendMessages = (backend.recentMessages || []) as Array<
+    BackendConversation['recentMessages'][number] & { sequence?: number; tokens?: number }
+  >;
+  const recentMessageCount = backendMessages.length;
+  const totalCount =
+    ('totalMessageCount' in backend && typeof backend.totalMessageCount === 'number'
+      ? backend.totalMessageCount
+      : undefined) ??
+    (typeof metadata.messageCount === 'number' ? metadata.messageCount : undefined) ??
+    recentMessageCount;
+  const recentStartSequence = Math.max(1, totalCount - recentMessageCount + 1);
+
   const recentMessages = backendMessages.map((msg, index) => ({
     content: msg.content,
     role: msg.role as 'assistant' | 'user',
-    sequence: index + 1, // Backend doesn't return sequence, so we generate it
+    sequence: typeof msg.sequence === 'number' ? msg.sequence : recentStartSequence + index,
     timestamp: msg.timestamp,
-    tokens: msg.metadata?.totalTokens,
+    tokens: msg.metadata?.totalTokens ?? msg.tokens,
   }));
 
   return {
