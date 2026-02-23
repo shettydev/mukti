@@ -71,7 +71,7 @@ export function ChatInterface({
     status: '',
   });
 
-  const [prefillState, setPrefillState] = useState<{ text: string; timestamp: number } | null>(
+  const [prefillState, setPrefillState] = useState<null | { text: string; timestamp: number }>(
     null
   );
 

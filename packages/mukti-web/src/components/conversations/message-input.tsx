@@ -20,7 +20,7 @@ interface MessageInputProps {
   disabled?: boolean;
   maxLength?: number;
   onSend: (content: string) => Promise<void>;
-  prefillState?: { text: string; timestamp: number } | null;
+  prefillState?: null | { text: string; timestamp: number };
   technique?: SocraticTechnique;
 }
 

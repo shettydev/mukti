@@ -288,7 +288,7 @@ const components: Components = {
         role={isQuestionCallout ? 'note' : undefined}
       >
         {isQuestionCallout && onQuestionClick ? (
-          <InsideQuestionCalloutContext.Provider value={true}>
+          <InsideQuestionCalloutContext.Provider value>
             {children}
           </InsideQuestionCalloutContext.Provider>
         ) : (
@@ -327,7 +327,9 @@ const components: Components = {
             className="assistant-question-item-btn"
             onClick={(e) => {
               const text = e.currentTarget.textContent?.trim() ?? '';
-              if (text) onQuestionClick(text);
+              if (text) {
+                onQuestionClick(text);
+              }
             }}
             type="button"
           >
