@@ -91,8 +91,7 @@ function transformConversation(backend: BackendConversation | Conversation): Con
   const recentMessages = backendMessages.map((msg, index) => ({
     content: msg.content,
     role: msg.role as 'assistant' | 'user',
-    sequence:
-      typeof msg.sequence === 'number' ? msg.sequence : recentStartSequence + index,
+    sequence: typeof msg.sequence === 'number' ? msg.sequence : recentStartSequence + index,
     timestamp: msg.timestamp,
     tokens: msg.metadata?.totalTokens ?? msg.tokens,
   }));

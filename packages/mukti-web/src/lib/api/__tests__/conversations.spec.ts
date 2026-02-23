@@ -172,9 +172,7 @@ describe('conversationsApi', () => {
 
       const result = await conversationsApi.getById('507f1f77bcf86cd799439011');
 
-      expect(result.recentMessages.map((msg) => msg.sequence)).toEqual([
-        118, 119, 120,
-      ]);
+      expect(result.recentMessages.map((msg) => msg.sequence)).toEqual([118, 119, 120]);
       expect(result.recentMessages[1]?.tokens).toBe(25);
     });
 
