@@ -7,10 +7,14 @@
 
 import type { Components } from 'react-markdown';
 
+import { createContext, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { cn } from '@/lib/utils';
+
+const QuestionClickContext = createContext<((q: string) => void) | undefined>(undefined);
+const InsideQuestionCalloutContext = createContext(false);
 
 export type AssistantMarkdownNode = {
   children?: AssistantMarkdownNode[];
@@ -26,6 +30,7 @@ export type AssistantMarkdownNode = {
 interface MarkdownProps {
   children: string;
   className?: string;
+  onQuestionClick?: (question: string) => void;
 }
 
 type NodeData = {
@@ -271,6 +276,7 @@ const components: Components = {
   // Blockquotes
   blockquote: ({ children, node }) => {
     const isQuestionCallout = getCalloutType(node) === 'question';
+    const onQuestionClick = useContext(QuestionClickContext);
 
     return (
       <blockquote
@@ -281,7 +287,13 @@ const components: Components = {
         )}
         role={isQuestionCallout ? 'note' : undefined}
       >
-        {children}
+        {isQuestionCallout && onQuestionClick ? (
+          <InsideQuestionCalloutContext.Provider value={true}>
+            {children}
+          </InsideQuestionCalloutContext.Provider>
+        ) : (
+          children
+        )}
       </blockquote>
     );
   },
@@ -304,7 +316,29 @@ const components: Components = {
   // Horizontal rule
   hr: () => <hr className="assistant-rule" />,
   // Lists
-  li: ({ children }) => <li className="assistant-list-item">{children}</li>,
+  li: ({ children }) => {
+    const onQuestionClick = useContext(QuestionClickContext);
+    const insideQuestionCallout = useContext(InsideQuestionCalloutContext);
+
+    if (insideQuestionCallout && onQuestionClick) {
+      return (
+        <li className="assistant-list-item">
+          <button
+            className="assistant-question-item-btn"
+            onClick={(e) => {
+              const text = e.currentTarget.textContent?.trim() ?? '';
+              if (text) onQuestionClick(text);
+            }}
+            type="button"
+          >
+            {children}
+          </button>
+        </li>
+      );
+    }
+
+    return <li className="assistant-list-item">{children}</li>;
+  },
   ol: ({ children }) => <ol className="assistant-list assistant-list-ordered">{children}</ol>,
   // Paragraphs
   p: ({ children }) => <p className="assistant-paragraph">{children}</p>,
@@ -327,12 +361,17 @@ const components: Components = {
  * Markdown component for rendering markdown content
  * Supports GitHub Flavored Markdown (tables, strikethrough, etc.)
  */
-export function Markdown({ children, className }: MarkdownProps) {
+export function Markdown({ children, className, onQuestionClick }: MarkdownProps) {
   return (
-    <div className={cn('assistant-markdown', className)}>
-      <ReactMarkdown components={components} remarkPlugins={[remarkGfm, assistantStructurePlugin]}>
-        {children}
-      </ReactMarkdown>
-    </div>
+    <QuestionClickContext.Provider value={onQuestionClick}>
+      <div className={cn('assistant-markdown', className)}>
+        <ReactMarkdown
+          components={components}
+          remarkPlugins={[remarkGfm, assistantStructurePlugin]}
+        >
+          {children}
+        </ReactMarkdown>
+      </div>
+    </QuestionClickContext.Provider>
   );
 }

@@ -20,6 +20,7 @@ interface MessageInputProps {
   disabled?: boolean;
   maxLength?: number;
   onSend: (content: string) => Promise<void>;
+  prefillState?: { text: string; timestamp: number } | null;
   technique?: SocraticTechnique;
 }
 
@@ -30,6 +31,7 @@ export function MessageInput({
   disabled = false,
   maxLength = DEFAULT_MAX_LENGTH,
   onSend,
+  prefillState,
   technique,
 }: MessageInputProps) {
   const [content, setContent] = useState('');
@@ -60,6 +62,14 @@ export function MessageInput({
   useEffect(() => {
     adjustTextareaHeight();
   }, [content, adjustTextareaHeight]);
+
+  // Prefill input when a question is clicked
+  useEffect(() => {
+    if (prefillState) {
+      setContent(prefillState.text);
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    }
+  }, [prefillState]);
 
   /**
    * Handle sending message
