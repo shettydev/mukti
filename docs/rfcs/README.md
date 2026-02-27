@@ -8,33 +8,75 @@ This directory contains technical design documents (RFCs) for major features and
 
 | RFC #                                                    | Title                          | Status | Author     | Date       | Target           |
 | -------------------------------------------------------- | ------------------------------ | ------ | ---------- | ---------- | ---------------- |
-| [RFC-0001](./RFC-0001-Adaptive-Scaffolding-Framework.md) | Adaptive Scaffolding Framework | Draft  | Mukti Team | 2026-02-28 | v1.0.0 / Q2 2026 |
+| [RFC-0001](./RFC-0001-knowledge-gap-detection.md)        | Knowledge Gap Detection System | Draft  | Mukti Team | 2026-02-28 | v1.0.0 / Q2 2026 |
+| [RFC-0002](./RFC-0002-adaptive-scaffolding-framework.md) | Adaptive Scaffolding Framework | Draft  | Mukti Team | 2026-02-28 | v1.0.0 / Q2 2026 |
 
 ### Quick Links
 
-- **[RFC-0001 Full Specification](./RFC-0001-Adaptive-Scaffolding-Framework.md)** (1034 lines, implementation-ready)
-- **[RFC-0001 Executive Summary](./RFC-0001-SUMMARY.md)** (TL;DR for stakeholders)
-- **[RFC-0001 Implementation Checklist](./RFC-0001-IMPLEMENTATION-CHECKLIST.md)** (12-week development plan)
+- **[RFC-0001: Knowledge Gap Detection](./RFC-0001-knowledge-gap-detection.md)** — Foundational system for detecting when users lack prerequisite knowledge
+- **[RFC-0002: Adaptive Scaffolding Framework](./RFC-0002-adaptive-scaffolding-framework.md)** — 5-level progressive scaffolding system (depends on RFC-0001)
+- **[Executive Summary](./KNOWLEDGE-GAP-SUMMARY.md)** — TL;DR for stakeholders
+- **[Implementation Checklist](./KNOWLEDGE-GAP-IMPLEMENTATION-CHECKLIST.md)** — 12-week development plan
 
 ---
 
-## RFC-0001: Adaptive Scaffolding Framework
+## RFC-0001: Knowledge Gap Detection System
 
 **Status**: Draft → Awaiting Review  
 **Target**: Mukti v1.0.0 / Q2 2026  
-**Estimated Effort**: 12 weeks (3 months) with 5-person team
+**Estimated Effort**: 4 weeks
 
 ### What It Does
 
-Implements a **5-level progressive hint system** with **struggle detection** and **learning profile tracking** to provide adaptive scaffolding that balances Socratic inquiry with minimal assistance.
+Detects when users genuinely lack foundational knowledge (vs. being temporarily stuck) using multi-signal analysis. This is the **foundational system** that RFC-0002 builds upon.
 
 ### Key Features
 
-- **5-Level Hints**: Conceptual → Strategic → Tactical → Computational → Answer
-- **Struggle Detection**: Attempt-based thresholds (1, 3, 5+) with time/sentiment signals
-- **Learning Profiles**: Tracks gaps, strengths, mastery levels per user
-- **Credit System**: 200/week allowance, 0-25 cost per hint, earning opportunities
-- **Socratic Integrity**: Never gives direct answers until level 5; maintains inquiry-first approach
+- **Multi-Signal Detection**: Linguistic markers ("don't know", "no idea"), behavioral patterns (consecutive failures, help-seeking loops), temporal signals (abandonment)
+- **Bayesian Knowledge Tracing (BKT)**: Probabilistic knowledge state estimation per-user, per-concept
+- **Recursive Prerequisite Checking**: Traces knowledge gaps to root causes (depth=3)
+- **Gap Score Calculation**: 0.0-1.0 score quantifying knowledge gap severity
+
+### Core Problem Solved
+
+The **Knowledge Gap Paradox**: Mukti's Socratic method assumes users have latent knowledge that questions can surface. When users genuinely don't know something, continued questioning leads to frustration rather than discovery.
+
+### Integration Point
+
+```typescript
+// packages/mukti-api/src/modules/dialogue/services/dialogue-queue.service.ts
+// BEFORE: AI prompt generation
+// INSERT: KnowledgeGapDetector.analyze(dialogue, user)
+```
+
+---
+
+## RFC-0002: Adaptive Scaffolding Framework
+
+**Status**: Draft → Awaiting Review  
+**Target**: Mukti v1.0.0 / Q2 2026  
+**Estimated Effort**: 8 weeks  
+**Depends On**: RFC-0001
+
+### What It Does
+
+Implements a **5-level progressive scaffolding system** that adjusts support based on detected knowledge gaps while preserving Socratic principles.
+
+### Scaffold Levels
+
+| Level | Name               | Description                                    | Gap Score |
+| ----- | ------------------ | ---------------------------------------------- | --------- |
+| 0     | Pure Socratic      | Current behavior (probing questions)           | < 0.3     |
+| 1     | Meta-Cognitive     | "What strategy are you using?"                 | 0.3–0.5   |
+| 2     | Strategic Hints    | Problem decomposition, approach suggestions    | 0.5–0.7   |
+| 3     | Worked Examples    | Analogies (not solutions)                      | 0.7–0.85  |
+| 4     | Direct Instruction | Brief concept explanation → return to Socratic | > 0.85    |
+
+### Key Features
+
+- **Automatic Fading**: Up one level after 2 consecutive failures, down after 2 successes
+- **Socratic Preservation**: Even Level 4 immediately returns to questioning
+- **Prompt Augmentation**: `ScaffoldPromptAugmenter` injects level-appropriate guidance
 
 ### Expected Impact
 
@@ -42,41 +84,32 @@ Implements a **5-level progressive hint system** with **struggle detection** and
 - **+4-9% mastery rate** — Tutor CoPilot production data
 - **Reduced cognitive debt** — Per MIT research on AI assistance
 
-### Evidence Base
+### Integration Point
 
-- **Production Systems**: Khanmigo (1M+ students), Tutor CoPilot (+4% mastery)
-- **Research**: Wharton 2026, SEELE Framework, MIT "Brain on ChatGPT"
-- **Open-Source**: 4 repositories analyzed (Math Tutor, Socratic Tutor, AI Tutor, GenMentor)
+```typescript
+// packages/mukti-api/src/modules/dialogue/utils/prompt-builder.ts
+// AFTER: KnowledgeGapDetector result received
+// INSERT: ScaffoldPromptAugmenter.augment(prompt, scaffoldLevel, rootGap)
+```
 
-### Documents
+---
 
-1. **[Full RFC](./RFC-0001-Adaptive-Scaffolding-Framework.md)** (41KB) — Complete technical specification with:
-   - 15 sections covering motivation, design, API, database, security, observability, rollout
-   - Architecture diagrams (Mermaid)
-   - Code examples (TypeScript)
-   - Database schema (ER diagrams)
-   - 5 open questions for team discussion
+## Evidence Base
 
-2. **[Executive Summary](./RFC-0001-SUMMARY.md)** (7KB) — High-level overview for stakeholders:
-   - TL;DR
-   - Core components
-   - API summary
-   - Rollout plan
-   - Evidence base
+### Research Foundation
 
-3. **[Implementation Checklist](./RFC-0001-IMPLEMENTATION-CHECKLIST.md)** (19KB) — Step-by-step development plan:
-   - 8 phases (Pre-Implementation → Post-Launch)
-   - 200+ actionable tasks with checkboxes
-   - 12-week timeline
-   - Success metrics
-   - Risk mitigation
+| Source                       | Key Findings                                                                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------------- |
+| **ZPD & Scaffolding Theory** | 5-level scaffolding hierarchy, fading rules (2 successes/failures), expertise reversal effect |
+| **Educational AI Systems**   | Khan Academy mastery, Carnegie Learning BKT, ALEKS knowledge spaces                           |
+| **AI Tutoring Research**     | Khanmigo prompts, minimal assistance principle (64% vs 30% improvement)                       |
+| **MIT "Brain on ChatGPT"**   | Cognitive debt from over-assistance; justifies graduated scaffolding                          |
 
-### Next Steps
+### Production Systems Analyzed
 
-1. **Review**: Engineering, Product, Design, Security, DBA sign-off
-2. **Open Questions**: Resolve 5 open questions (Section 13 of RFC)
-3. **Implementation**: Begin Phase 1 (Data Layer) after approvals
-4. **Tracking**: Use implementation checklist to track progress
+- **Khanmigo** (Khan Academy): 1M+ students, Socratic-first with struggle detection
+- **Tutor CoPilot**: +4-9% mastery rate with adaptive hints
+- **Carnegie Learning**: BKT for knowledge state tracking
 
 ---
 
@@ -85,7 +118,7 @@ Implements a **5-level progressive hint system** with **struggle detection** and
 ### 1. Proposal
 
 - Create RFC document using [RFC template](../templates/RFC-TEMPLATE.md)
-- Follow numbering convention: `RFC-NNNN-Title.md`
+- Follow numbering convention: `RFC-NNNN-title.md`
 - Include all required sections (Abstract, Motivation, Design, etc.)
 
 ### 2. Review
@@ -126,6 +159,12 @@ Implements a **5-level progressive hint system** with **struggle detection** and
 | **Rejected**    | Not moving forward; see rationale in RFC    |
 | **Superseded**  | Replaced by a newer RFC (link provided)     |
 | **Implemented** | Shipped to production; archived             |
+
+---
+
+## Archive
+
+Historical RFCs and superseded documents are stored in [`archive/`](./archive/).
 
 ---
 

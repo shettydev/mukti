@@ -1,6 +1,6 @@
-# RFC-0001 Implementation Checklist
+# Knowledge Gap Solution: Implementation Checklist
 
-**RFC**: Adaptive Scaffolding Framework  
+**RFCs**: RFC-0001 (Detection) + RFC-0002 (Scaffolding)  
 **Status**: Draft → Implementation  
 **Target**: Mukti v1.0.0 / Q2 2026
 
@@ -8,16 +8,15 @@
 
 ## Phase 0: Pre-Implementation
 
-- [ ] **RFC Approval**: Get stakeholder sign-off on RFC-0001
-- [ ] **Open Questions Resolved**: Address all 5 open questions in Section 13
-- [ ] **API Contract Review**: Frontend team validates API endpoints (Section 6)
-- [ ] **Database Review**: DBA approves schema changes (Section 7)
-- [ ] **Security Review**: Security team approves mitigations (Section 9)
+- [ ] **RFC Approval**: Get stakeholder sign-off on RFC-0001 and RFC-0002
+- [ ] **Open Questions Resolved**: Address all open questions in Section 13 of each RFC
+- [ ] **API Contract Review**: Frontend team validates API endpoints
+- [ ] **Database Review**: DBA approves schema changes
+- [ ] **Security Review**: Security team approves mitigations
 - [ ] **Create Feature Flags**: Set up flags in LaunchDarkly/ConfigCat/etc.
+  - [ ] `knowledge_gap_detection_enabled`
   - [ ] `adaptive_scaffolding_enabled`
-  - [ ] `adaptive_scaffolding.struggle_detection`
-  - [ ] `adaptive_scaffolding.credit_system`
-  - [ ] `adaptive_scaffolding.gap_detection`
+  - [ ] `adaptive_scaffolding.prerequisite_tracking`
   - [ ] `adaptive_scaffolding.emergency_disable`
 
 ---
