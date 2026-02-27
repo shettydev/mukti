@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/shettydev/mukti">
-      <img src="packages/mukti-web/public/mukti-enso-inverted/mukti-inverted.png" alt="Mukti Logo" width="300">
+      <img src="packages/mukti-web/public/mukti-enso-inverted/mukti-no-bg.png" alt="Mukti Logo" width="300">
   </a>
 
   <h1 align="center">mukti</h1>
