@@ -1,7 +1,11 @@
 <div align="center">
-  <a href="https://github.com/shettydev/mukti">
-      <img src="packages/mukti-web/public/mukti-enso-inverted/mukti-no-bg.png" alt="Mukti Logo" width="300">
-  </a>
+    <a href="https://github.com/shettydev/mukti">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/mukti-web/public/mukti-enso/mukti-inverted-no-bg.png">
+          <source media="(prefers-color-scheme: light)" srcset="packages/mukti-web/public/mukti-enso-inverted/mukti-no-bg.png">
+          <img src="packages/mukti-web/public/mukti-enso-inverted/mukti-no-bg.png" alt="Mukti Logo" width="300">
+        </picture>
+    </a>
 
   <h1 align="center">mukti</h1>
 
