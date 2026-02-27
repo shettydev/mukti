@@ -1,159 +1,110 @@
 <div align="center">
-    <a href="https://github.com/shettydev/mukti">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="packages/mukti-web/public/mukti-enso/mukti-inverted-no-bg.png">
-          <source media="(prefers-color-scheme: light)" srcset="packages/mukti-web/public/mukti-enso-inverted/mukti-no-bg.png">
-          <img src="packages/mukti-web/public/mukti-enso-inverted/mukti-no-bg.png" alt="Mukti Logo" width="300">
-        </picture>
-    </a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="packages/mukti-web/public/mukti-enso/mukti-inverted-no-bg.png" />
+    <source media="(prefers-color-scheme: light)" srcset="packages/mukti-web/public/mukti-enso-inverted/mukti-no-bg.png" />
+    <img alt="Mukti logo" src="packages/mukti-web/public/mukti-enso-inverted/mukti-inverted.png" width="320" />
+  </picture>
 
-  <h1 align="center">mukti</h1>
+  <h1>mukti</h1>
+  <p><strong>Liberation from AI Dependency</strong></p>
+  <p><em>Mukti (mook-tee /ˈmʊkti/) translates to <strong>Liberation</strong> from Hindi.</em></p>
 
-  <p align="center">
-    <strong>Liberation from AI Dependency</strong>
-    <br />
-    <em>Mukti (mook-tee /ˈmʊkti/) translates to <strong>Liberation</strong> from Hindi.</em>
+  <p>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" /></a>
+    <img src="https://img.shields.io/badge/Built%20with-Nx-143055.svg" alt="Nx" />
+    <img src="https://img.shields.io/badge/Backend-NestJS-E0234E.svg" alt="NestJS" />
+    <img src="https://img.shields.io/badge/Frontend-Next.js-000000.svg" alt="Next.js" />
+    <img src="https://img.shields.io/badge/Runtime-Bun-f472b6.svg" alt="Bun" />
+    <img src="https://img.shields.io/badge/Language-TypeScript-3178c6.svg" alt="TypeScript" />
   </p>
 
-  <p align="center">
-    <a href="LICENSE">
-      <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
-    </a>
-    <img src="https://img.shields.io/badge/Built%20with-Nx-143055.svg" alt="Nx">
-    <img src="https://img.shields.io/badge/Backend-NestJS-E0234E.svg" alt="NestJS">
-    <img src="https://img.shields.io/badge/Frontend-Next.js-000000.svg" alt="Next.js">
-    <img src="https://img.shields.io/badge/Runtime-Bun-f472b6.svg" alt="Bun">
-    <img src="https://img.shields.io/badge/Language-TypeScript-3178c6.svg" alt="TypeScript">
+  <p>
+    <a href="DEVELOPMENT.md">Setup</a> |
+    <a href="packages/ARCHITECTURE.md">Architecture</a> |
+    <a href="RELEASE.md">Release</a> |
+    <a href="packages/mukti-api/README.md">API</a> |
+    <a href="mukti-mcp-server/README.md">MCP server</a>
   </p>
-
-  <br />
-
-  <div align="center">
-    <img src="packages/mukti-web/public/dashboard.png" alt="Mukti Dashboard" width="75%" />
-    &nbsp;
-    <img src="packages/mukti-web/public/canvas.png" alt="Mukti Thinking Canvas" width="75%" />
-  </div>
 </div>
 
-<br />
+## Why Mukti
 
-AI is everywhere—like glitter at a kid’s party. It’s fun until you realize it’s stuck to everything, including your critical thinking. Welcome to Mukti, where we hand out brooms, not blindfolds.
+AI tools are useful, but they are easy to overuse. When every task gets auto-completed, people can slowly lose the habit of asking better questions, testing assumptions, and building original ideas.
+
+Mukti is built around a different default: use AI as a thought partner, not a replacement for thought. The goal is not to ban AI. The goal is to stay intellectually in the loop while still benefiting from modern tooling.
+
+That concern is not just philosophical. A relevant reference is MIT's paper, [Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task](https://arxiv.org/pdf/2506.08872), which explores how assistance patterns can affect cognitive effort.
 
 > [!WARNING]
-> If you’re here to get spoon-fed answers and let your brain rot, you’re in the wrong place. Mukti is for those who want to wrestle with their brains, not outsource them. If that sounds exhausting, the exit is that way. For the rest of you—welcome to the dojo.
+> Mukti is not a shortcut machine. If you want final answers without reflection, this product will feel uncomfortable by design.
 
-## Motivation
+## What Mukti Does
 
-Let’s be honest: AI is the new comfort food for your brain. Tastes great, zero effort, but eat enough of it and you’ll forget how to cook up ideas on your own. I’ve watched too many people trade their creativity for convenience—and I refuse to join the zombie parade.
+Mukti is a thinking workspace powered by a Socratic assistant: it guides you through problems with questions, structure, and references so you produce better reasoning, not just faster output.
 
-After the boom of AI, everyone wants to jump on the hypetrain of ChatGPT, or Claude, or Gemini, or Grok, or some other model. Well, who am I to complain, after all, I too am a passenger on this train. But lately I have noticed that people have gotten so dependent and reliant on these models that they are either "in the process of losing" or have "already lost" the ability to think for themselves.
-
-<br />
-
-Now this is a huge problem. Whether you see it or not.
-
-<br />
-
-_Why?_
-
-<br />
-
-Because people in the process are sacrificing their **own thoughts**, **ideas**, **creativity**, **critical thinking**, and even their **own selves**. And this is something I have witnessed firsthand :(
-
-Take a look at this study conducted by MIT on users by assigning participants to three groups (Brain only, LLM -> Brain, Brain -> LLM):
-
-Here is the link to the research paper: [Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task](https://arxiv.org/pdf/2506.08872)
-
-> TLDR; turns out, AI isn't making us more productive. It's making us cognitively bankrupt.
+- Turns vague prompts into clearer problem statements.
+- Gives you canvases to break work into assumptions, options, and tradeoffs.
+- Builds inquiry paths that keep investigation focused.
+- Suggests relevant resources and follow-up reading.
+- Prompts reflection so decisions are explicit and reviewable.
 
 > [!CAUTION]
-> Final Warning!: If you still think using AI as a crutch is peak productivity, Mukti isn’t for you. We’re here to build brains, not babysit them. Still with me? Good. Let’s get uncomfortable.
+> Expect more questions than answers. Progress in Mukti comes from active thinking, not passive consumption.
 
-So I have decided to break free from the norms of the world and start my journey towards liberation or **Mukti**.
+## How It Works (Socratic Method)
 
-But this brings me to the next question:
+Mukti uses dialogue to push thinking forward without taking control of your work.
 
-<br />
+- **Probing questions:** surfaces missing context, constraints, and assumptions.
+- **Self-discovery prompts:** helps you generate and compare your own options.
+- **Iterative dialogue:** each turn builds on your latest answer.
+- **Guided autonomy:** provides hints and resources without solving everything for you.
+- **Reflection loops:** asks you to summarize decisions and reasoning before moving on.
 
-How can we help people regain their ability to think for themselves? And more over, how can you not use AI, which is such an advanced and groundbreaking tool, said to shape the future of mankind and bring us closer to a utopian society?
+**Example**
 
-## Approach
+You ask: "I'm getting `TypeError: NoneType object is not iterable` in Python."
 
-So how do we solve this issue? Simply by using AI (_PLOT TWIST_).
+Mukti responds with a compact sequence:
 
-Weird isn't, makes us go a full circle. :trollface:
+- "Which variable is `None` at the failure point?"
+- "What input path can produce that `None` value?"
+- "Can you add a guard and a focused test for that path?"
+- "Here is a debugging reference for this exact error class."
 
-Well my approach towards this problem is to use AI but not rely on it completely.
+## Screenshots
 
-_How is that possible?_
+![Mukti Dashboard](packages/mukti-web/public/dashboard.png)
+![Mukti Thinking Canvas](packages/mukti-web/public/canvas.png)
 
-By using it as a companion or as a peer or even better as a **mentor**. Now this way, you are getting the guidance you require by using the platform to bounce of ideas and discover things on your own.
+## Repo Structure
 
-![SMAART!](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExc3MwZnBseXQ4YjV1cHFvMnhyaTZlYWowYjBrcm9jZHhteWNyeTZhbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VEsfbW0pBu145PPhOi/giphy.gif)
+```text
+.
+├── packages/mukti-web        # Next.js app
+├── packages/mukti-api        # NestJS API
+├── mukti-mcp-server          # MCP prototype
+└── packages/mukti-docs       # docs assets
+```
 
-I am not saying that you should not use AI, but rather that you should use it as a tool to enhance your own thinking and creativity, and not let it replace your own thoughts and ideas.
+## Quickstart (Local Dev)
 
-Forget autopilot—Mukti is manual drive all the way (yes, I own a manual car). We use AI as a sounding board, not a steering wheel. If you want someone to do your thinking for you, you’re lost. If you want to actually get better at thinking, you’re home.
+For full setup variants and troubleshooting, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
-Let's take an example to better understand how this works:
+```bash
+bun run dev
+```
 
----
+Optional dependencies:
 
-#### Example 1: Coding Problem
+```bash
+docker compose up -d mongodb redis
+```
 
-**User**:
-“I’m getting a ‘TypeError: NoneType object is not iterable’ in my Python code. What should I do?”
+Default local ports from `docker-compose.yml`:
 
-**Mukti**:
-
-- “What part of your code is producing this error?”
-- “Have you checked if any of your variables might be set to ‎`None` before this line?”
-- “Here’s an article on common Python errors and how to debug them.”
-- “What steps have you already tried to fix the issue?”
-
-#### Example 2: Creative Writing
-
-**User**:
-"I'm stuck on how to end my short story, which is about a lost traveler."
-
-**Mukti**
-
-- “What emotions do you want your reader to feel at the end?”
-- “Have you considered any unexpected twists or resolutions?”
-- “Here’s a guide on writing impactful story endings.”
-- “Can you summarize the main conflict in your story so far?”
-
-#### Example 3: Personal Productivity
-
-**User**:
-“I can’t seem to stay focused while studying. Any advice?”
-
-**Mukti**:
-
-- “What usually distracts you during study sessions?”
-- “Have you tried breaking your study time into shorter intervals?”
-- “Here’s an article on effective study techniques.”
-- “What has worked for you in the past when you needed to concentrate?”
-
-## Methodology
-
-At the heart of Mukti lies a commitment to empowering users to think for themselves. To achieve this rather than simply providing answers, Mukti employs a socratic approach by engaging users in a dialogue that challenges their assumptions and invites deeper exploration.
-
-"But how on earth would you do this???" you may ask
-
-- **Asking Probing Questions:** Rather than spoon-feeding solutions, Mukti challenges you with clever, thought-provoking questions. It nudges you to dig deeper into your dilemma, consider alternative angles, and really understand the core of the problem.
-- **Encouraging Self-Discovery:** Think of Mukti as your intellectual sparring partner. With open-ended prompts, it sparks your curiosity and pushes you to unearth your own insights, making every discovery a personal triumph.
-- **Iterative Dialogue:** Conversations with Mukti aren’t one-off Q&As—they’re dynamic journeys. Every question builds on your responses, gently steering you towards clarity while keeping the dialogue lively and engaging.
-- **Balancing Guidance with Autonomy:** Mukti walks the fine line between mentorship and independence. With hints here and resourceful nudges there, it fuels your problem-solving drive without ever taking the reins.
-- **Cultivating Cognitive Resilience:** By constantly challenging assumptions and fostering a reflective mindset, Mukti isn’t just about quick fixes. It’s about building long-term mental agility, ensuring you're never overly dependent on ready-made answers.
-
-With these Socratic twists, the goal is to transform problem-solving into an adventure—be it specific to coding (debugging, planning, optimization, designing, etc), or any other domain.
-
-<br />
-
-<br />
-
-“If you made it this far, congratulations—you’re officially ready to outsmart the machine—or at least yourself”
+- API: `3000`
+- Web: `3001`
 
 ## License
 
@@ -161,12 +112,6 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## Acknowledgments
 
-Inspired by my mentor [Shaik Noorullah](https://github.com/shaiknoorullah) and by the philosophical traditions of Socrates, Plato, and the broader Socratic method of inquiry.
-
-<br />
-
-<br />
-
-<br />
+Inspired by my mentor [Shaik Noorullah](https://github.com/shaiknoorullah) and the Socratic tradition of inquiry.
 
 _"The only true wisdom is in knowing you know nothing."_ - Socrates
