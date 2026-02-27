@@ -12,9 +12,10 @@ import { cn } from '@/lib/utils';
 
 interface MessageProps {
   message: MessageType;
+  onQuestionClick?: (question: string) => void;
 }
 
-export function Message({ message }: MessageProps) {
+export function Message({ message, onQuestionClick }: MessageProps) {
   const isUser = message.role === 'user';
 
   return (
@@ -47,7 +48,10 @@ export function Message({ message }: MessageProps) {
                 {message.content}
               </p>
             ) : (
-              <Markdown className="text-base leading-relaxed prose-p:leading-relaxed prose-pre:border prose-pre:border-japandi-sand/70 prose-pre:bg-japandi-light-stone/40 prose-code:text-japandi-indigo">
+              <Markdown
+                className="text-base leading-relaxed prose-p:leading-relaxed prose-pre:border prose-pre:border-japandi-sand/70 prose-pre:bg-japandi-light-stone/40 prose-code:text-japandi-indigo"
+                onQuestionClick={onQuestionClick}
+              >
                 {message.content}
               </Markdown>
             )}

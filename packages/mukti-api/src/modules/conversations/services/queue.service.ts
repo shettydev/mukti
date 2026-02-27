@@ -489,10 +489,14 @@ export class QueueService extends WorkerHost {
           },
         );
 
-      // Get the sequence numbers for the messages
-      const userMessageSequence = updatedConversation.recentMessages.length - 1;
-      const assistantMessageSequence =
+      // Use the conversation-wide total count so sequences remain monotonic even when
+      // recentMessages is truncated/archived.
+      const totalMessageCount =
+        updatedConversation.totalMessageCount ??
+        updatedConversation.metadata?.messageCount ??
         updatedConversation.recentMessages.length;
+      const assistantMessageSequence = Math.max(1, totalMessageCount);
+      const userMessageSequence = Math.max(1, assistantMessageSequence - 1);
 
       // Emit message event for user message
       this.streamService.emitToConversation(conversationId, {

@@ -27,6 +27,7 @@ import { Message } from './message';
 interface MessageListProps {
   conversationId: string;
   hasArchivedMessages: boolean;
+  onQuestionClick?: (question: string) => void;
   processingState?: {
     isProcessing: boolean;
     status: string;
@@ -40,6 +41,7 @@ const SCROLL_THRESHOLD = 100;
 export function MessageList({
   conversationId,
   hasArchivedMessages,
+  onQuestionClick,
   processingState,
   recentMessages,
 }: MessageListProps) {
@@ -230,7 +232,11 @@ export function MessageList({
 
         <div className="space-y-1 px-3 pb-4 pt-16 md:px-5 md:pt-[4.5rem]">
           {allMessages.map((message) => (
-            <Message key={`${message.sequence}-${message.timestamp}`} message={message} />
+            <Message
+              key={`${message.sequence}-${message.timestamp}`}
+              message={message}
+              onQuestionClick={onQuestionClick}
+            />
           ))}
 
           {/* Loading indicator when AI is processing */}
