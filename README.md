@@ -35,7 +35,7 @@ Mukti is built around a different default: use AI as a thought partner, not a re
 
 That concern is not just philosophical. A relevant reference is MIT's paper, [Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task](https://arxiv.org/pdf/2506.08872), which explores how assistance patterns can affect cognitive effort.
 
-> [!WARNING]
+> [!IMPORTANT]
 > Mukti is not a shortcut machine. If you want final answers without reflection, this product will feel uncomfortable by design.
 
 ## What Mukti Does
@@ -48,7 +48,7 @@ Mukti is a thinking workspace powered by a Socratic assistant: it guides you thr
 - Suggests relevant resources and follow-up reading.
 - Prompts reflection so decisions are explicit and reviewable.
 
-> [!CAUTION]
+> [!NOTE]
 > Expect more questions than answers. Progress in Mukti comes from active thinking, not passive consumption.
 
 ## How It Works (Socratic Method)
