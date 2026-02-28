@@ -2,10 +2,11 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Eye, EyeOff, Loader2, Mail, User } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
+import 'react-phone-number-input/style.css';
 import { useForm } from 'react-hook-form';
 import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -245,12 +246,12 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
               {registrationErrorMessage}
             </p>
             {waitlistRestrictionError && (
-              <a
+              <Link
                 className="mt-1 inline-block text-xs font-medium text-japandi-timber underline underline-offset-2 hover:text-japandi-terracotta"
                 href="/#join"
               >
                 Join the waitlist for access
-              </a>
+              </Link>
             )}
           </div>
         )}

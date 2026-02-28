@@ -34,6 +34,7 @@ import type {
   VerifyEmailDto,
 } from './dto';
 
+import { WaitlistService } from '../waitlist/waitlist.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import {
@@ -57,7 +58,6 @@ import {
 } from './dto/auth.swagger';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { PasswordResetRateLimitGuard } from './guards/password-reset-rate-limit.guard';
-import { WaitlistService } from '../waitlist/waitlist.service';
 import { AuthService } from './services/auth.service';
 import { OAuthProfile, OAuthService } from './services/oauth.service';
 import { SessionService } from './services/session.service';
