@@ -4,11 +4,13 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
   Ip,
   Logger,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -32,6 +34,7 @@ import type {
   VerifyEmailDto,
 } from './dto';
 
+import { WaitlistService } from '../waitlist/waitlist.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import {
@@ -79,6 +82,7 @@ export class AuthController {
     private readonly sessionService: SessionService,
     private readonly oauthService: OAuthService,
     private readonly configService: ConfigService,
+    private readonly waitlistService: WaitlistService,
   ) {
     this.cookieDomain = this.getCookieDomainFromConfig();
   }
@@ -429,6 +433,21 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponseDto> {
     this.logger.log(`Registration attempt from IP ${ip}`);
+
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    dto.email = normalizedEmail;
+
+    // Signups are restricted to emails already present in waitlist.
+    try {
+      await this.waitlistService.checkEmail(normalizedEmail);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new ForbiddenException(
+          'Sign up is currently limited to waitlisted emails. Join the waitlist first.',
+        );
+      }
+      throw error;
+    }
 
     // Register user
     const result = await this.authService.register(dto);
