@@ -175,7 +175,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="flex flex-1 min-h-0 flex-col">
         <div className="shrink-0 border-b p-4">
           <div className="flex items-center gap-4">
             <Skeleton className="h-10 w-10" />
@@ -254,7 +254,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex flex-1 min-h-0 flex-col">
       {/* Header - responsive padding and layout */}
       <header className="shrink-0 border-b bg-background p-3 md:p-4" role="banner">
         <div className="flex items-center gap-2 md:gap-4">

@@ -4,6 +4,8 @@ import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 
+import { ApiClientError, apiClient } from '@/lib/api/client';
+
 type SubmissionState = 'already_enrolled' | 'error' | 'idle' | 'loading' | 'success';
 
 export default function LandingCTA() {
@@ -17,29 +19,22 @@ export default function LandingCTA() {
     setErrorMessage('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/join`, {
-        body: JSON.stringify({ email }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setState('success');
-        setEmail('');
-      } else if (response.status === 409) {
-        setState('already_enrolled');
-      } else {
-        setState('error');
-        setErrorMessage(data.error?.message || 'Something went wrong. Please try again.');
-      }
+      await apiClient.post('/waitlist/join', { email });
+      setState('success');
+      setEmail('');
     } catch (error) {
-      console.error(error);
-      setState('error');
-      setErrorMessage('Network error. Please check your connection and try again.');
+      if (error instanceof ApiClientError) {
+        if (error.status === 409) {
+          setState('already_enrolled');
+        } else {
+          setState('error');
+          setErrorMessage(error.message || 'Something went wrong. Please try again.');
+        }
+      } else {
+        console.error(error);
+        setState('error');
+        setErrorMessage('Network error. Please check your connection and try again.');
+      }
     }
   };
 

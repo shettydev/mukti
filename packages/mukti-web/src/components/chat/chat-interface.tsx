@@ -368,7 +368,7 @@ export function ChatInterface({
   // Show empty state if no conversation is selected
   if (!conversationId) {
     return (
-      <div className="relative flex h-full min-h-0 flex-col bg-transparent">
+      <div className="relative flex flex-1 min-h-0 flex-col bg-transparent">
         <ChatHeader conversation={null} onMobileMenuToggle={onMobileMenuToggle} />
         <EmptyState
           className="pt-14 md:pt-16"
@@ -411,7 +411,7 @@ export function ChatInterface({
 
   // Show active conversation state
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-transparent">
+    <div className="relative flex flex-1 min-h-0 flex-col bg-transparent">
       {/* Floating chat header */}
       <ChatHeader conversation={conversation} onMobileMenuToggle={onMobileMenuToggle} />
 

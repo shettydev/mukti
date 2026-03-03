@@ -204,7 +204,7 @@ export function MessageList({
 
   if (allMessages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center text-center">
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center text-center">
         <div className="space-y-2">
           <p className="text-japandi-stone/65">No messages yet. Start the conversation!</p>
         </div>
