@@ -12,9 +12,8 @@
 
 'use client';
 
-import { useMemo } from 'react';
-
 import { motion, useReducedMotion } from 'motion/react';
+import { useMemo } from 'react';
 
 /**
  * Props for the LoadingMessage component
@@ -72,9 +71,9 @@ function EnsoAnimation({ duration }: { duration: number }) {
           d="M 82,53 C 80,30 65,14 47,14 C 28,14 13,32 13,52 C 13,72 28,88 50,88 C 70,88 83,74 83,56"
           fill="none"
           stroke="currentColor"
+          strokeDasharray="92 100"
           strokeLinecap="round"
           strokeWidth={7}
-          strokeDasharray="92 100"
         />
         <circle cx={63} cy={67} fill="currentColor" r={3} />
       </svg>
@@ -108,8 +107,8 @@ function EnsoAnimation({ duration }: { duration: number }) {
 
       <motion.path
         animate={{
-          pathLength: [0, 0.92, 0.92, 0],
           opacity: [0, 1, 1, 0],
+          pathLength: [0, 0.92, 0.92, 0],
         }}
         d="M 82,53 C 80,30 65,14 47,14 C 28,14 13,32 13,52 C 13,72 28,88 50,88 C 70,88 83,74 83,56"
         fill="none"

@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 
-import { ApiClientError, apiClient } from '@/lib/api/client';
+import { apiClient, ApiClientError } from '@/lib/api/client';
 
 type SubmissionState = 'already_enrolled' | 'error' | 'idle' | 'loading' | 'success';
 
