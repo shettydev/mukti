@@ -12,11 +12,17 @@
 
 'use client';
 
+import { useMemo } from 'react';
+
 import { motion, useReducedMotion } from 'motion/react';
 
 /**
  * Props for the LoadingMessage component
  * @property {number} [duration] - Time elapsed in seconds since processing started
+ * @property {string} [status] - Current processing status text. Rendered as screen-reader-only
+ *   text inside the aria-live region so assistive technology announces status updates.
+ *   Kept in the public interface for forward-compatibility; visual display may be
+ *   reintroduced alongside the animation in a future iteration.
  */
 interface LoadingMessageProps {
   duration?: number;
@@ -27,18 +33,28 @@ interface LoadingMessageProps {
  * LoadingMessage component
  *
  * Displays a loading state with a continuously looping animated SVG Enso.
+ * Status text is surfaced to screen readers via a visually-hidden element inside
+ * the aria-live region so progressive status updates are still announced
+ * accessibly even though they are not shown visually.
  */
-export function LoadingMessage({ duration = 0 }: LoadingMessageProps) {
+export function LoadingMessage({ duration = 0, status }: LoadingMessageProps) {
+  const displayStatus = useMemo(() => {
+    if (duration > 10) {
+      return 'This is taking longer than usual. Your response will arrive shortly.';
+    }
+    if (duration > 5) {
+      return 'Still working on it...';
+    }
+    return status ?? 'AI is generating a response';
+  }, [duration, status]);
+
   return (
-    <div
-      aria-label="AI is generating a response"
-      aria-live="polite"
-      className="flex items-center py-4 pl-1 md:pl-2"
-      role="status"
-    >
+    <div aria-live="polite" className="flex items-center py-4 pl-1 md:pl-2" role="status">
       <div aria-hidden="true" className="h-10 w-10 shrink-0">
         <EnsoAnimation duration={duration} />
       </div>
+      {/* Visually hidden — surfaced to screen readers via the aria-live region */}
+      <span className="sr-only">{displayStatus}</span>
     </div>
   );
 }
@@ -79,6 +95,9 @@ function EnsoAnimation({ duration }: { duration: number }) {
           fill="none"
           r={44}
           strokeWidth={1.5}
+          // transformBox + transformOrigin ensure scale is relative to the circle's own
+          // centre rather than the SVG viewport origin (which defaults to 0 0 in SVG).
+          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
           transition={{
             duration: 2.5,
             ease: 'easeInOut',
@@ -115,10 +134,14 @@ function EnsoAnimation({ duration }: { duration: number }) {
         cy={67}
         fill="currentColor"
         r={3}
+        // transformBox + transformOrigin ensure scale is relative to the dot's own centre.
+        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
         transition={{
           duration: 3.2,
           ease: 'easeInOut',
           repeat: Infinity,
+          // The last time value (0.85) is intentionally < 1 to create a brief pause
+          // with the dot hidden before the next loop, for a more natural ink-brush rhythm.
           times: [0.5, 0.6, 0.75, 0.85],
         }}
       />
