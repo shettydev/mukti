@@ -124,7 +124,7 @@ export function MessageInput({
   }, []);
 
   return (
-    <div className="sticky bottom-0 z-10 border-t border-japandi-sand/70 bg-japandi-cream/88 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur md:px-4">
+    <div className="shrink-0 z-10 border-t border-japandi-sand/70 bg-japandi-cream/88 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur md:px-4">
       {/* Technique indicator */}
       {technique && (
         <div className="mb-2 flex items-center justify-between">
