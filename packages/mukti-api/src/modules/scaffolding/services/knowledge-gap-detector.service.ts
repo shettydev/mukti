@@ -47,10 +47,10 @@ import { PrerequisiteCheckerService } from './prerequisite-checker.service';
  */
 @Injectable()
 export class KnowledgeGapDetectorService {
-  private readonly logger = new Logger(KnowledgeGapDetectorService.name);
-
   /** In-memory rate limit tracking: userId -> timestamps of concept creations */
   private readonly conceptCreationLog = new Map<string, number[]>();
+
+  private readonly logger = new Logger(KnowledgeGapDetectorService.name);
 
   constructor(
     @InjectModel(KnowledgeState.name)
@@ -352,6 +352,32 @@ export class KnowledgeGapDetectorService {
   }
 
   /**
+   * Auto-create a Concept document from LLM extraction.
+   */
+  private async autoCreateConcept(concept: ExtractedConcept): Promise<void> {
+    const bktParams = getDefaultBktParamsForDifficulty(concept.difficulty);
+
+    await this.conceptModel.create({
+      autoDiscovered: true,
+      bktParameters: bktParams,
+      conceptId: concept.id,
+      depthLevel: concept.prerequisites.length > 0 ? 1 : 0,
+      difficulty: concept.difficulty,
+      domain: concept.domain,
+      interactionCount: 0,
+      isActive: true,
+      keywords: [
+        ...concept.keywords,
+        concept.name.toLowerCase(),
+        concept.id.replace(/_/g, ' '),
+      ],
+      name: concept.name,
+      prerequisites: concept.prerequisites,
+      verified: false,
+    });
+  }
+
+  /**
    * Calculate weighted gap score from all signals.
    */
   private calculateGapScore(
@@ -383,6 +409,18 @@ export class KnowledgeGapDetectorService {
     const union = new Set([...words1, ...words2]);
 
     return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  /**
+   * Check if a user has exceeded the concept creation rate limit.
+   */
+  private checkConceptCreationRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const oneHourAgo = now - 3600000;
+    const timestamps = this.conceptCreationLog.get(userId) || [];
+    const recentTimestamps = timestamps.filter((t) => t > oneHourAgo);
+    this.conceptCreationLog.set(userId, recentTimestamps);
+    return recentTimestamps.length < CONCEPT_CREATION_RATE_LIMIT;
   }
 
   /**
@@ -536,6 +574,78 @@ export class KnowledgeGapDetectorService {
   }
 
   /**
+   * Determine scaffold level from gap score.
+   */
+  private determineScaffoldLevel(gapScore: number): ScaffoldLevel {
+    if (gapScore < GAP_SCORE_THRESHOLDS.PURE_SOCRATIC_MAX) {
+      return ScaffoldLevel.PURE_SOCRATIC;
+    } else if (gapScore < GAP_SCORE_THRESHOLDS.META_COGNITIVE_MAX) {
+      return ScaffoldLevel.META_COGNITIVE;
+    } else if (gapScore < GAP_SCORE_THRESHOLDS.STRATEGIC_HINTS_MAX) {
+      return ScaffoldLevel.STRATEGIC_HINTS;
+    } else if (gapScore < GAP_SCORE_THRESHOLDS.WORKED_EXAMPLES_MAX) {
+      return ScaffoldLevel.WORKED_EXAMPLES;
+    } else {
+      return ScaffoldLevel.DIRECT_INSTRUCTION;
+    }
+  }
+
+  /**
+   * Ensure prerequisite concepts exist as stub entries.
+   */
+  private async ensurePrerequisiteConceptsExist(
+    extracted: ExtractedConcept[],
+    userId?: string,
+  ): Promise<void> {
+    const allPrereqIds = new Set<string>();
+    const knownIds = new Set(extracted.map((c) => c.id));
+
+    for (const concept of extracted) {
+      for (const prereqId of concept.prerequisites) {
+        if (!knownIds.has(prereqId)) {
+          allPrereqIds.add(prereqId);
+        }
+      }
+    }
+
+    for (const prereqId of allPrereqIds) {
+      const exists = await this.conceptModel.exists({ conceptId: prereqId });
+      if (exists) {
+        continue;
+      }
+
+      if (userId && !this.checkConceptCreationRateLimit(userId)) {
+        break;
+      }
+
+      try {
+        await this.conceptModel.create({
+          autoDiscovered: true,
+          conceptId: prereqId,
+          depthLevel: 0,
+          difficulty: 'beginner',
+          domain: 'general',
+          interactionCount: 0,
+          isActive: true,
+          keywords: [prereqId.replace(/_/g, ' ')],
+          name: prereqId
+            .split('_')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' '),
+          prerequisites: [],
+          verified: false,
+        });
+
+        if (userId) {
+          this.recordConceptCreation(userId);
+        }
+      } catch {
+        // Ignore duplicate key errors from race conditions
+      }
+    }
+  }
+
+  /**
    * Phase B: Extract concepts from user message via LLM structured output.
    */
   private async extractConceptsViaLLM(
@@ -606,152 +716,9 @@ export class KnowledgeGapDetectorService {
   }
 
   /**
-   * Reconcile LLM-extracted concepts with existing DB concepts.
-   * Creates new Concept documents for truly novel concepts.
-   */
-  private async reconcileExtractedConcepts(
-    extracted: ExtractedConcept[],
-    userId?: string,
-  ): Promise<string[]> {
-    const conceptIds: string[] = [];
-
-    for (const concept of extracted) {
-      // Check if concept already exists
-      const existing = await this.conceptModel
-        .findOne({ conceptId: concept.id, isActive: true })
-        .select('conceptId')
-        .lean();
-
-      if (existing) {
-        conceptIds.push(existing.conceptId);
-        continue;
-      }
-
-      // Rate-limit concept creation per user
-      if (userId && !this.checkConceptCreationRateLimit(userId)) {
-        this.logger.warn(
-          `Concept creation rate limit reached for user ${userId}`,
-        );
-        continue;
-      }
-
-      // Auto-create the concept
-      try {
-        await this.autoCreateConcept(concept);
-        conceptIds.push(concept.id);
-
-        if (userId) {
-          this.recordConceptCreation(userId);
-        }
-
-        this.logger.log(
-          `Auto-discovered concept: ${concept.id} (${concept.name})`,
-        );
-      } catch (error) {
-        // Likely a duplicate key race condition — just use the existing one
-        if (error instanceof Error && error.message.includes('duplicate key')) {
-          conceptIds.push(concept.id);
-        } else {
-          this.logger.warn(
-            `Failed to auto-create concept ${concept.id}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
-        }
-      }
-    }
-
-    // Also auto-create prerequisite concepts that don't exist yet
-    await this.ensurePrerequisiteConceptsExist(extracted, userId);
-
-    return conceptIds;
-  }
-
-  /**
-   * Auto-create a Concept document from LLM extraction.
-   */
-  private async autoCreateConcept(concept: ExtractedConcept): Promise<void> {
-    const bktParams = getDefaultBktParamsForDifficulty(concept.difficulty);
-
-    await this.conceptModel.create({
-      autoDiscovered: true,
-      bktParameters: bktParams,
-      conceptId: concept.id,
-      depthLevel: concept.prerequisites.length > 0 ? 1 : 0,
-      difficulty: concept.difficulty,
-      domain: concept.domain,
-      interactionCount: 0,
-      isActive: true,
-      keywords: [
-        ...concept.keywords,
-        concept.name.toLowerCase(),
-        concept.id.replace(/_/g, ' '),
-      ],
-      name: concept.name,
-      prerequisites: concept.prerequisites,
-      verified: false,
-    });
-  }
-
-  /**
-   * Ensure prerequisite concepts exist as stub entries.
-   */
-  private async ensurePrerequisiteConceptsExist(
-    extracted: ExtractedConcept[],
-    userId?: string,
-  ): Promise<void> {
-    const allPrereqIds = new Set<string>();
-    const knownIds = new Set(extracted.map((c) => c.id));
-
-    for (const concept of extracted) {
-      for (const prereqId of concept.prerequisites) {
-        if (!knownIds.has(prereqId)) {
-          allPrereqIds.add(prereqId);
-        }
-      }
-    }
-
-    for (const prereqId of allPrereqIds) {
-      const exists = await this.conceptModel.exists({ conceptId: prereqId });
-      if (exists) {
-        continue;
-      }
-
-      if (userId && !this.checkConceptCreationRateLimit(userId)) {
-        break;
-      }
-
-      try {
-        await this.conceptModel.create({
-          autoDiscovered: true,
-          conceptId: prereqId,
-          depthLevel: 0,
-          difficulty: 'beginner',
-          domain: 'general',
-          interactionCount: 0,
-          isActive: true,
-          keywords: [prereqId.replace(/_/g, ' ')],
-          name: prereqId
-            .split('_')
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' '),
-          prerequisites: [],
-          verified: false,
-        });
-
-        if (userId) {
-          this.recordConceptCreation(userId);
-        }
-      } catch {
-        // Ignore duplicate key errors from race conditions
-      }
-    }
-  }
-
-  /**
    * Extract text content from OpenRouter response.
    */
-  private extractResponseContent(response: unknown): string | null {
+  private extractResponseContent(response: unknown): null | string {
     if (
       typeof response === 'object' &&
       response !== null &&
@@ -760,7 +727,7 @@ export class KnowledgeGapDetectorService {
       const choices = (response as { choices?: unknown[] }).choices;
       if (Array.isArray(choices) && choices.length > 0) {
         const first = choices[0] as {
-          message?: { content?: string | null };
+          message?: { content?: null | string };
         };
         if (typeof first?.message?.content === 'string') {
           return first.message.content;
@@ -768,44 +735,6 @@ export class KnowledgeGapDetectorService {
       }
     }
     return null;
-  }
-
-  /**
-   * Check if a user has exceeded the concept creation rate limit.
-   */
-  private checkConceptCreationRateLimit(userId: string): boolean {
-    const now = Date.now();
-    const oneHourAgo = now - 3600000;
-    const timestamps = this.conceptCreationLog.get(userId) || [];
-    const recentTimestamps = timestamps.filter((t) => t > oneHourAgo);
-    this.conceptCreationLog.set(userId, recentTimestamps);
-    return recentTimestamps.length < CONCEPT_CREATION_RATE_LIMIT;
-  }
-
-  /**
-   * Record a concept creation event for rate limiting.
-   */
-  private recordConceptCreation(userId: string): void {
-    const timestamps = this.conceptCreationLog.get(userId) || [];
-    timestamps.push(Date.now());
-    this.conceptCreationLog.set(userId, timestamps);
-  }
-
-  /**
-   * Determine scaffold level from gap score.
-   */
-  private determineScaffoldLevel(gapScore: number): ScaffoldLevel {
-    if (gapScore < GAP_SCORE_THRESHOLDS.PURE_SOCRATIC_MAX) {
-      return ScaffoldLevel.PURE_SOCRATIC;
-    } else if (gapScore < GAP_SCORE_THRESHOLDS.META_COGNITIVE_MAX) {
-      return ScaffoldLevel.META_COGNITIVE;
-    } else if (gapScore < GAP_SCORE_THRESHOLDS.STRATEGIC_HINTS_MAX) {
-      return ScaffoldLevel.STRATEGIC_HINTS;
-    } else if (gapScore < GAP_SCORE_THRESHOLDS.WORKED_EXAMPLES_MAX) {
-      return ScaffoldLevel.WORKED_EXAMPLES;
-    } else {
-      return ScaffoldLevel.DIRECT_INSTRUCTION;
-    }
   }
 
   /**
@@ -875,6 +804,77 @@ export class KnowledgeGapDetectorService {
     } else {
       return 'teach';
     }
+  }
+
+  /**
+   * Reconcile LLM-extracted concepts with existing DB concepts.
+   * Creates new Concept documents for truly novel concepts.
+   */
+  private async reconcileExtractedConcepts(
+    extracted: ExtractedConcept[],
+    userId?: string,
+  ): Promise<string[]> {
+    const conceptIds: string[] = [];
+
+    for (const concept of extracted) {
+      // Check if concept already exists
+      const existing = await this.conceptModel
+        .findOne({ conceptId: concept.id, isActive: true })
+        .select('conceptId')
+        .lean();
+
+      if (existing) {
+        conceptIds.push(existing.conceptId);
+        continue;
+      }
+
+      // Rate-limit concept creation per user
+      if (userId && !this.checkConceptCreationRateLimit(userId)) {
+        this.logger.warn(
+          `Concept creation rate limit reached for user ${userId}`,
+        );
+        continue;
+      }
+
+      // Auto-create the concept
+      try {
+        await this.autoCreateConcept(concept);
+        conceptIds.push(concept.id);
+
+        if (userId) {
+          this.recordConceptCreation(userId);
+        }
+
+        this.logger.log(
+          `Auto-discovered concept: ${concept.id} (${concept.name})`,
+        );
+      } catch (error) {
+        // Likely a duplicate key race condition — just use the existing one
+        if (error instanceof Error && error.message.includes('duplicate key')) {
+          conceptIds.push(concept.id);
+        } else {
+          this.logger.warn(
+            `Failed to auto-create concept ${concept.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+    }
+
+    // Also auto-create prerequisite concepts that don't exist yet
+    await this.ensurePrerequisiteConceptsExist(extracted, userId);
+
+    return conceptIds;
+  }
+
+  /**
+   * Record a concept creation event for rate limiting.
+   */
+  private recordConceptCreation(userId: string): void {
+    const timestamps = this.conceptCreationLog.get(userId) || [];
+    timestamps.push(Date.now());
+    this.conceptCreationLog.set(userId, timestamps);
   }
 
   private toObjectId(userId: string): Types.ObjectId {

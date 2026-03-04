@@ -705,44 +705,6 @@ export class QueueService extends WorkerHost {
     }
   }
 
-  /**
-   * Persist scaffold state updates to the conversation document.
-   * Mirrors the pattern from DialogueService.updateScaffoldState.
-   */
-  private async updateConversationScaffoldState(
-    conversationId: string,
-    transition: { changed: boolean; newLevel: number; reason: string },
-    gapResult: GapDetectionResult,
-    isSuccess: boolean,
-  ): Promise<void> {
-    const updateDoc: Record<string, unknown> = {
-      $set: {
-        currentScaffoldLevel: transition.newLevel,
-        detectedConcepts: gapResult.detectedConcepts,
-      },
-    };
-
-    const shouldResetCounters =
-      transition.changed ||
-      transition.reason === 'At minimum level - cannot fade further' ||
-      transition.reason === 'At maximum level - cannot escalate further';
-
-    if (shouldResetCounters) {
-      (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;
-      (updateDoc.$set as Record<string, unknown>).consecutiveSuccesses = 0;
-    } else {
-      if (isSuccess) {
-        updateDoc.$inc = { consecutiveSuccesses: 1 };
-        (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;
-      } else {
-        updateDoc.$inc = { consecutiveFailures: 1 };
-        (updateDoc.$set as Record<string, unknown>).consecutiveSuccesses = 0;
-      }
-    }
-
-    await this.conversationModel.updateOne({ _id: conversationId }, updateDoc);
-  }
-
   private formatId(id: string | Types.ObjectId): string {
     return typeof id === 'string' ? id : id.toString();
   }
@@ -804,6 +766,44 @@ export class QueueService extends WorkerHost {
     this.logger.log(
       'Job event listeners configured via WorkerHost lifecycle hooks',
     );
+  }
+
+  /**
+   * Persist scaffold state updates to the conversation document.
+   * Mirrors the pattern from DialogueService.updateScaffoldState.
+   */
+  private async updateConversationScaffoldState(
+    conversationId: string,
+    transition: { changed: boolean; newLevel: number; reason: string },
+    gapResult: GapDetectionResult,
+    isSuccess: boolean,
+  ): Promise<void> {
+    const updateDoc: Record<string, unknown> = {
+      $set: {
+        currentScaffoldLevel: transition.newLevel,
+        detectedConcepts: gapResult.detectedConcepts,
+      },
+    };
+
+    const shouldResetCounters =
+      transition.changed ||
+      transition.reason === 'At minimum level - cannot fade further' ||
+      transition.reason === 'At maximum level - cannot escalate further';
+
+    if (shouldResetCounters) {
+      (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;
+      (updateDoc.$set as Record<string, unknown>).consecutiveSuccesses = 0;
+    } else {
+      if (isSuccess) {
+        updateDoc.$inc = { consecutiveSuccesses: 1 };
+        (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;
+      } else {
+        updateDoc.$inc = { consecutiveFailures: 1 };
+        (updateDoc.$set as Record<string, unknown>).consecutiveSuccesses = 0;
+      }
+    }
+
+    await this.conversationModel.updateOne({ _id: conversationId }, updateDoc);
   }
 
   private validateEffectiveModel(model: string, usedByok: boolean): string {

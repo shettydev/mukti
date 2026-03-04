@@ -17,6 +17,10 @@ Rules:
 
 Return ONLY valid JSON, no markdown fences or explanation.`;
 
+export interface ConceptExtractionResult {
+  concepts: ExtractedConcept[];
+}
+
 export interface ExtractedConcept {
   /** Estimated difficulty */
   difficulty: 'advanced' | 'beginner' | 'intermediate';
@@ -37,10 +41,6 @@ export interface ExtractedConcept {
   prerequisites: string[];
 }
 
-export interface ConceptExtractionResult {
-  concepts: ExtractedConcept[];
-}
-
 export function buildConceptExtractionUserPrompt(message: string): string {
   return `Extract concepts from this user message:
 
@@ -57,12 +57,12 @@ export function getDefaultBktParamsForDifficulty(
   difficulty: 'advanced' | 'beginner' | 'intermediate',
 ) {
   switch (difficulty) {
+    case 'advanced':
+      return { pGuess: 0.2, pInit: 0.2, pLearn: 0.1, pSlip: 0.12 };
     case 'beginner':
       return { pGuess: 0.3, pInit: 0.4, pLearn: 0.2, pSlip: 0.08 };
     case 'intermediate':
       return { pGuess: 0.25, pInit: 0.3, pLearn: 0.15, pSlip: 0.1 };
-    case 'advanced':
-      return { pGuess: 0.2, pInit: 0.2, pLearn: 0.1, pSlip: 0.12 };
   }
 }
 

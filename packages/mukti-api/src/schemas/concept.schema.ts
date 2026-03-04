@@ -45,6 +45,13 @@ export class Concept {
   _id: Types.ObjectId;
 
   /**
+   * Whether this concept was auto-discovered by LLM extraction.
+   * false = manually curated, true = created by LLM concept discovery pipeline.
+   */
+  @Prop({ default: false, index: true, type: Boolean })
+  autoDiscovered: boolean;
+
+  /**
    * Custom BKT parameters for this concept.
    * Allows tuning based on concept difficulty.
    *
@@ -125,32 +132,17 @@ export class Concept {
   exampleQuestions?: string[];
 
   /**
-   * Whether this concept is currently active in the system.
-   */
-  @Prop({ default: true, index: true, type: Boolean })
-  isActive: boolean;
-
-  /**
-   * Whether this concept was auto-discovered by LLM extraction.
-   * false = manually curated, true = created by LLM concept discovery pipeline.
-   */
-  @Prop({ default: false, index: true, type: Boolean })
-  autoDiscovered: boolean;
-
-  /**
-   * Whether this concept has been verified as accurate.
-   * Manually curated concepts start verified. Auto-discovered concepts
-   * get auto-verified after N users interact with them successfully.
-   */
-  @Prop({ default: false, type: Boolean })
-  verified: boolean;
-
-  /**
    * Number of unique users who have interacted with this concept.
    * Used for auto-verification threshold (e.g., 5 users with P(L) > 0.6).
    */
   @Prop({ default: 0, min: 0, type: Number })
   interactionCount: number;
+
+  /**
+   * Whether this concept is currently active in the system.
+   */
+  @Prop({ default: true, index: true, type: Boolean })
+  isActive: boolean;
 
   /**
    * Keywords/aliases that can trigger this concept detection.
@@ -182,7 +174,15 @@ export class Concept {
    */
   @Prop({ default: [], type: [String] })
   prerequisites: string[];
+
   updatedAt: Date;
+  /**
+   * Whether this concept has been verified as accurate.
+   * Manually curated concepts start verified. Auto-discovered concepts
+   * get auto-verified after N users interact with them successfully.
+   */
+  @Prop({ default: false, type: Boolean })
+  verified: boolean;
 }
 
 export const ConceptSchema = SchemaFactory.createForClass(Concept);

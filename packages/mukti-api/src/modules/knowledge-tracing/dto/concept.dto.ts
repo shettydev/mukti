@@ -14,97 +14,127 @@ import {
 
 class BKTParametersDto {
   @IsNumber()
-  @Min(0)
   @Max(1)
+  @Min(0)
   pGuess: number;
 
   @IsNumber()
-  @Min(0)
   @Max(1)
+  @Min(0)
   pInit: number;
 
   @IsNumber()
-  @Min(0)
   @Max(1)
+  @Min(0)
   pLearn: number;
 
   @IsNumber()
-  @Min(0)
   @Max(1)
+  @Min(0)
   pSlip: number;
 }
 
 export class CreateConceptDto {
+  @IsOptional()
+  @Type(() => BKTParametersDto)
+  @ValidateNested()
+  bktParameters?: BKTParametersDto;
+
+  @IsOptional()
+  @IsString()
+  briefExplanation?: string;
+
   @IsNotEmpty()
   @IsString()
   conceptId: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  depthLevel?: number;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsEnum(['beginner', 'intermediate', 'advanced'])
+  @IsOptional()
+  difficulty?: 'advanced' | 'beginner' | 'intermediate';
+
+  @IsEnum(['programming', 'mathematics', 'logic', 'problem-solving', 'general'])
+  @IsOptional()
+  domain?:
+    | 'general'
+    | 'logic'
+    | 'mathematics'
+    | 'problem-solving'
+    | 'programming';
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  exampleQuestions?: string[];
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  keywords?: string[];
 
   @IsNotEmpty()
   @IsString()
   name: string;
 
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsEnum(['beginner', 'intermediate', 'advanced'])
-  difficulty?: 'advanced' | 'beginner' | 'intermediate';
-
-  @IsOptional()
-  @IsEnum(['programming', 'mathematics', 'logic', 'problem-solving', 'general'])
-  domain?:
-    | 'general'
-    | 'logic'
-    | 'mathematics'
-    | 'problem-solving'
-    | 'programming';
-
-  @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  keywords?: string[];
-
   @IsOptional()
-  @IsArray()
   @IsString({ each: true })
   prerequisites?: string[];
+}
 
+export class ListConceptsQueryDto {
+  @IsBoolean()
   @IsOptional()
-  @IsString()
-  briefExplanation?: string;
+  @Type(() => Boolean)
+  autoDiscovered?: boolean;
 
+  @IsEnum(['beginner', 'intermediate', 'advanced'])
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  exampleQuestions?: string[];
+  difficulty?: string;
 
+  @IsEnum(['programming', 'mathematics', 'logic', 'problem-solving', 'general'])
   @IsOptional()
-  @ValidateNested()
-  @Type(() => BKTParametersDto)
-  bktParameters?: BKTParametersDto;
+  domain?: string;
 
+  @IsBoolean()
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  depthLevel?: number;
+  @Type(() => Boolean)
+  verified?: boolean;
 }
 
 export class UpdateConceptDto {
   @IsOptional()
+  @Type(() => BKTParametersDto)
+  @ValidateNested()
+  bktParameters?: BKTParametersDto;
+
+  @IsOptional()
   @IsString()
-  name?: string;
+  briefExplanation?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  depthLevel?: number;
 
   @IsOptional()
   @IsString()
   description?: string;
 
-  @IsOptional()
   @IsEnum(['beginner', 'intermediate', 'advanced'])
+  @IsOptional()
   difficulty?: 'advanced' | 'beginner' | 'intermediate';
 
-  @IsOptional()
   @IsEnum(['programming', 'mathematics', 'logic', 'problem-solving', 'general'])
+  @IsOptional()
   domain?:
     | 'general'
     | 'logic'
@@ -112,60 +142,30 @@ export class UpdateConceptDto {
     | 'problem-solving'
     | 'programming';
 
-  @IsOptional()
   @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  exampleQuestions?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsArray()
+  @IsOptional()
   @IsString({ each: true })
   keywords?: string[];
 
   @IsOptional()
+  @IsString()
+  name?: string;
+
   @IsArray()
+  @IsOptional()
   @IsString({ each: true })
   prerequisites?: string[];
 
-  @IsOptional()
-  @IsString()
-  briefExplanation?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  exampleQuestions?: string[];
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => BKTParametersDto)
-  bktParameters?: BKTParametersDto;
-
-  @IsOptional()
   @IsBoolean()
-  verified?: boolean;
-
   @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  depthLevel?: number;
-}
-
-export class ListConceptsQueryDto {
-  @IsOptional()
-  @IsEnum(['programming', 'mathematics', 'logic', 'problem-solving', 'general'])
-  domain?: string;
-
-  @IsOptional()
-  @IsEnum(['beginner', 'intermediate', 'advanced'])
-  difficulty?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
-  autoDiscovered?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
   verified?: boolean;
 }
