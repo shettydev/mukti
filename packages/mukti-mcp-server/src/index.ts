@@ -809,7 +809,30 @@ Remember: The most important conversations are the ones we have with ourselves.`
 /**
  * Start the server using stdio transport
  */
+function maybeHandleCliFlags() {
+  const args = process.argv.slice(2);
+
+  if (args.includes('--version') || args.includes('-v')) {
+    console.log('mukti-mcp-server v0.1.0');
+    process.exit(0);
+  }
+
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(`Mukti MCP Server
+
+Usage:
+  node build/index.js
+
+Options:
+  -h, --help       Show this help message
+  -v, --version    Show version
+`);
+    process.exit(0);
+  }
+}
+
 async function main() {
+  maybeHandleCliFlags();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
