@@ -14,6 +14,9 @@ import { UsageEvent } from '../../../../schemas/usage-event.schema';
 import { User } from '../../../../schemas/user.schema';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
+import { KnowledgeGapDetectorService } from '../../../scaffolding/services/knowledge-gap-detector.service';
+import { ResponseEvaluatorService } from '../../../scaffolding/services/response-evaluator.service';
+import { ScaffoldFadeService } from '../../../scaffolding/services/scaffold-fade.service';
 import { MessageService } from '../message.service';
 import { OpenRouterService } from '../openrouter.service';
 import { QueueService } from '../queue.service';
@@ -94,6 +97,7 @@ describe('QueueService', () => {
     const mockConversationModel = {
       create: jest.fn(),
       findById: jest.fn(),
+      updateOne: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
     };
 
     const mockTechniqueModel = {
@@ -181,6 +185,49 @@ describe('QueueService', () => {
         {
           provide: AiSecretsService,
           useValue: mockAiSecretsService,
+        },
+        {
+          provide: KnowledgeGapDetectorService,
+          useValue: {
+            analyze: jest.fn().mockResolvedValue({
+              detectedConcepts: [],
+              gapScore: 0.1,
+              knowledgeProbability: 0.5,
+              missingPrerequisites: [],
+              recommendation: 'socratic',
+              rootGap: null,
+              scaffoldLevel: 0,
+              signals: { behavioral: 0, linguistic: 0, temporal: 0 },
+            }),
+            updateKnowledgeState: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ScaffoldFadeService,
+          useValue: {
+            evaluateAndTransition: jest.fn().mockReturnValue({
+              changed: false,
+              newLevel: 0,
+              reason: 'No change needed',
+            }),
+          },
+        },
+        {
+          provide: ResponseEvaluatorService,
+          useValue: {
+            evaluate: jest.fn().mockReturnValue({
+              quality: {
+                confidence: 0.5,
+                demonstratesUnderstanding: false,
+                signals: {
+                  appliesPattern: false,
+                  asksRelevantQuestion: false,
+                  hasExplanation: false,
+                  mentionsConcept: false,
+                },
+              },
+            }),
+          },
         },
         {
           provide: MessageService,
@@ -506,6 +553,11 @@ describe('QueueService', () => {
     it('should emit globally monotonic SSE message sequences when recent messages are truncated', async () => {
       conversationModel.findById.mockResolvedValue({
         _id: '507f1f77bcf86cd799439012',
+        consecutiveFailures: 0,
+        consecutiveSuccesses: 0,
+        currentScaffoldLevel: 0,
+        detectedConcepts: [],
+        recentMessages: [],
       });
       techniqueModel.findOne.mockResolvedValue({
         template: 'Technique template',

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { Concept, ConceptSchema } from '../../schemas/concept.schema';
 import {
   KnowledgeState,
   KnowledgeStateSchema,
@@ -32,6 +33,7 @@ import { KnowledgeStateTrackerService } from './services/knowledge-state-tracker
   imports: [
     MongooseModule.forFeature([
       { name: KnowledgeState.name, schema: KnowledgeStateSchema },
+      { name: Concept.name, schema: ConceptSchema },
     ]),
     EventEmitterModule.forRoot(),
   ],

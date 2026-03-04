@@ -4,10 +4,21 @@ import {
   Delete,
   Get,
   Logger,
+  NotFoundException,
   Param,
+  Patch,
   Post,
+  Query,
 } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
+import { Concept, ConceptDocument } from '../../schemas/concept.schema';
+import {
+  CreateConceptDto,
+  ListConceptsQueryDto,
+  UpdateConceptDto,
+} from './dto/concept.dto';
 import { UpdateKnowledgeStateDto } from './dto/update-knowledge-state.dto';
 import { KnowledgeStateTrackerService } from './services/knowledge-state-tracker.service';
 
@@ -28,6 +39,8 @@ export class KnowledgeTracingController {
 
   constructor(
     private readonly knowledgeStateTracker: KnowledgeStateTrackerService,
+    @InjectModel(Concept.name)
+    private readonly conceptModel: Model<ConceptDocument>,
   ) {}
 
   /**
@@ -188,5 +201,124 @@ export class KnowledgeTracingController {
       message: 'Knowledge state reset successfully',
       userId,
     };
+  }
+
+  // ─── Concept CRUD Endpoints ─────────────────────────────────────
+
+  /**
+   * Create a new concept.
+   *
+   * POST /knowledge-tracing/concepts
+   */
+  @Post('concepts')
+  async createConcept(@Body() dto: CreateConceptDto) {
+    this.logger.log(`Create concept: ${dto.conceptId}`);
+
+    const concept = await this.conceptModel.create({
+      ...dto,
+      autoDiscovered: false,
+      isActive: true,
+      verified: true,
+    });
+
+    return concept;
+  }
+
+  /**
+   * List concepts with optional filtering.
+   *
+   * GET /knowledge-tracing/concepts
+   */
+  @Get('concepts')
+  async listConcepts(@Query() query: ListConceptsQueryDto) {
+    const filter: Record<string, unknown> = { isActive: true };
+
+    if (query.domain) {
+      filter.domain = query.domain;
+    }
+    if (query.difficulty) {
+      filter.difficulty = query.difficulty;
+    }
+    if (query.autoDiscovered !== undefined) {
+      filter.autoDiscovered = query.autoDiscovered;
+    }
+    if (query.verified !== undefined) {
+      filter.verified = query.verified;
+    }
+
+    const concepts = await this.conceptModel
+      .find(filter)
+      .sort({ conceptId: 1 })
+      .lean();
+
+    return {
+      concepts,
+      total: concepts.length,
+    };
+  }
+
+  /**
+   * Get a single concept by conceptId.
+   *
+   * GET /knowledge-tracing/concepts/:conceptId
+   */
+  @Get('concepts/:conceptId')
+  async getConcept(@Param('conceptId') conceptId: string) {
+    const concept = await this.conceptModel
+      .findOne({ conceptId, isActive: true })
+      .lean();
+
+    if (!concept) {
+      throw new NotFoundException(`Concept '${conceptId}' not found`);
+    }
+
+    return concept;
+  }
+
+  /**
+   * Update a concept.
+   *
+   * PATCH /knowledge-tracing/concepts/:conceptId
+   */
+  @Patch('concepts/:conceptId')
+  async updateConcept(
+    @Param('conceptId') conceptId: string,
+    @Body() dto: UpdateConceptDto,
+  ) {
+    this.logger.log(`Update concept: ${conceptId}`);
+
+    const concept = await this.conceptModel.findOneAndUpdate(
+      { conceptId, isActive: true },
+      { $set: dto },
+      { new: true },
+    );
+
+    if (!concept) {
+      throw new NotFoundException(`Concept '${conceptId}' not found`);
+    }
+
+    return concept;
+  }
+
+  /**
+   * Soft-delete a concept (set isActive=false).
+   *
+   * DELETE /knowledge-tracing/concepts/:conceptId
+   */
+  @Delete('concepts/:conceptId')
+  async deleteConcept(@Param('conceptId') conceptId: string) {
+    this.logger.log(`Delete concept: ${conceptId}`);
+
+    const concept = await this.conceptModel.findOneAndUpdate(
+      { conceptId, isActive: true },
+      { $set: { isActive: false } },
+      { new: true },
+    );
+
+    if (!concept) {
+      throw new NotFoundException(`Concept '${conceptId}' not found`);
+    }
+
+    return { conceptId, message: 'Concept deactivated successfully' };
   }
 }

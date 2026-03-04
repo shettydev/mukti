@@ -10,6 +10,7 @@ import type { RecentMessage } from '../../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../../schemas/technique.schema';
 
 import { OpenRouterClientFactory } from '../../../ai/services/openrouter-client.factory';
+import { ScaffoldPromptAugmenter } from '../../../scaffolding/services/scaffold-prompt-augmenter.service';
 import { OpenRouterService } from '../openrouter.service';
 
 describe('OpenRouterService', () => {
@@ -27,6 +28,12 @@ describe('OpenRouterService', () => {
                 send: jest.fn(),
               },
             })),
+          },
+        },
+        {
+          provide: ScaffoldPromptAugmenter,
+          useValue: {
+            augment: jest.fn((basePrompt: string) => basePrompt),
           },
         },
         {

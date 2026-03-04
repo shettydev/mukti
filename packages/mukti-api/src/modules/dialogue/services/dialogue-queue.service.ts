@@ -308,6 +308,8 @@ export class DialogueQueueService extends WorkerHost {
       // RFC-0001: Detect knowledge gaps before AI generation
       const gapResult: GapDetectionResult =
         await this.knowledgeGapDetector.analyze({
+          aiApiKey: apiKey,
+          aiModel: effectiveModel,
           conceptContext: dialogue.detectedConcepts,
           conversationHistory,
           previousResponseLengths,

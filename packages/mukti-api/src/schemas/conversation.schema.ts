@@ -85,6 +85,18 @@ export class Conversation {
   title: string;
 
   @Prop({ default: 0, type: Number })
+  consecutiveFailures: number;
+
+  @Prop({ default: 0, type: Number })
+  consecutiveSuccesses: number;
+
+  @Prop({ default: 0, type: Number })
+  currentScaffoldLevel: number;
+
+  @Prop({ default: [], type: [String] })
+  detectedConcepts: string[];
+
+  @Prop({ default: 0, type: Number })
   totalMessageCount: number;
   updatedAt: Date;
   @Prop({ index: true, ref: 'User', required: true, type: Types.ObjectId })

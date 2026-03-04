@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -7,6 +8,7 @@ import {
   KnowledgeState,
   KnowledgeStateDocument,
 } from '../../../schemas/knowledge-state.schema';
+import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
 import { BKTAlgorithmService } from '../../knowledge-tracing/services/bkt-algorithm.service';
 import {
   BEHAVIORAL_THRESHOLDS,
@@ -20,6 +22,15 @@ import {
   ScaffoldLevel,
   TEMPORAL_THRESHOLDS,
 } from '../interfaces/scaffolding.interface';
+import {
+  buildConceptExtractionUserPrompt,
+  CONCEPT_CREATION_RATE_LIMIT,
+  CONCEPT_EXTRACTION_SYSTEM_PROMPT,
+  type ConceptExtractionResult,
+  type ExtractedConcept,
+  getDefaultBktParamsForDifficulty,
+  MIN_KEYWORD_CONCEPTS_THRESHOLD,
+} from '../utils/concept-extraction-prompt';
 import { PrerequisiteCheckerService } from './prerequisite-checker.service';
 
 /**
@@ -38,6 +49,9 @@ import { PrerequisiteCheckerService } from './prerequisite-checker.service';
 export class KnowledgeGapDetectorService {
   private readonly logger = new Logger(KnowledgeGapDetectorService.name);
 
+  /** In-memory rate limit tracking: userId -> timestamps of concept creations */
+  private readonly conceptCreationLog = new Map<string, number[]>();
+
   constructor(
     @InjectModel(KnowledgeState.name)
     private readonly knowledgeStateModel: Model<KnowledgeStateDocument>,
@@ -45,6 +59,8 @@ export class KnowledgeGapDetectorService {
     private readonly conceptModel: Model<ConceptDocument>,
     private readonly bktService: BKTAlgorithmService,
     private readonly prerequisiteChecker: PrerequisiteCheckerService,
+    private readonly openRouterClientFactory: OpenRouterClientFactory,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -55,6 +71,8 @@ export class KnowledgeGapDetectorService {
    */
   async analyze(input: GapDetectionInput): Promise<GapDetectionResult> {
     const {
+      aiApiKey,
+      aiModel,
       conceptContext,
       conversationHistory,
       previousResponseLengths,
@@ -78,10 +96,13 @@ export class KnowledgeGapDetectorService {
       conversationHistory,
     );
 
-    // Step 4: Detect concepts in the message
+    // Step 4: Detect concepts in the message (two-phase: keyword + LLM fallback)
     const detectedConcepts = await this.detectConcepts(
       userMessage,
       conceptContext,
+      userId,
+      aiApiKey,
+      aiModel,
     );
 
     // Step 5: Get knowledge probability from BKT
@@ -408,22 +429,92 @@ export class KnowledgeGapDetectorService {
   }
 
   /**
-   * Detect concepts mentioned in the user message.
+   * Two-phase concept detection:
+   * Phase A — Fast keyword match against known concepts (cache hit path, ~5ms)
+   * Phase B — LLM extraction fallback when keywords return < 2 concepts (~500-1000ms)
+   *
+   * Auto-creates Concept documents for novel concepts discovered by the LLM.
    */
   private async detectConcepts(
     message: string,
     contextConcepts?: string[],
+    userId?: string,
+    aiApiKey?: string,
+    aiModel?: string,
   ): Promise<string[]> {
+    // Phase A: Fast keyword matching
+    const keywordConcepts = await this.detectConceptsByKeyword(message);
+
+    // Include context concepts
+    if (contextConcepts) {
+      for (const conceptId of contextConcepts) {
+        if (!keywordConcepts.includes(conceptId)) {
+          keywordConcepts.push(conceptId);
+        }
+      }
+    }
+
+    // If keyword match found enough concepts, skip LLM call
+    if (keywordConcepts.length >= MIN_KEYWORD_CONCEPTS_THRESHOLD) {
+      return keywordConcepts;
+    }
+
+    // Phase B: LLM-based concept extraction
+    const apiKey =
+      aiApiKey || this.configService.get<string>('OPENROUTER_API_KEY');
+    if (!apiKey) {
+      this.logger.warn('No API key available for LLM concept extraction');
+      return keywordConcepts;
+    }
+
+    try {
+      const extractedConcepts = await this.extractConceptsViaLLM(
+        message,
+        apiKey,
+        aiModel,
+      );
+
+      if (!extractedConcepts.length) {
+        return keywordConcepts;
+      }
+
+      // Reconcile extracted concepts with existing DB concepts
+      const reconciledIds = await this.reconcileExtractedConcepts(
+        extractedConcepts,
+        userId,
+      );
+
+      // Merge with keyword results (dedup)
+      const allConcepts = [...keywordConcepts];
+      for (const id of reconciledIds) {
+        if (!allConcepts.includes(id)) {
+          allConcepts.push(id);
+        }
+      }
+
+      return allConcepts;
+    } catch (error) {
+      this.logger.warn(
+        `LLM concept extraction failed, using keyword results only: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return keywordConcepts;
+    }
+  }
+
+  /**
+   * Phase A: Keyword-based concept detection against known DB concepts.
+   */
+  private async detectConceptsByKeyword(message: string): Promise<string[]> {
     const detectedConcepts: string[] = [];
     const lowerMessage = message.toLowerCase();
 
-    // Get active concepts from database
     const concepts = await this.conceptModel
       .find({ isActive: true })
       .select('conceptId keywords name')
       .lean();
 
-    // Match keywords
     for (const concept of concepts) {
       const keywords = concept.keywords || [];
       const allKeywords = [
@@ -441,16 +532,263 @@ export class KnowledgeGapDetectorService {
       }
     }
 
-    // Include context concepts if provided
-    if (contextConcepts) {
-      for (const conceptId of contextConcepts) {
-        if (!detectedConcepts.includes(conceptId)) {
-          detectedConcepts.push(conceptId);
+    return detectedConcepts;
+  }
+
+  /**
+   * Phase B: Extract concepts from user message via LLM structured output.
+   */
+  private async extractConceptsViaLLM(
+    message: string,
+    apiKey: string,
+    model?: string,
+  ): Promise<ExtractedConcept[]> {
+    const effectiveModel = model || 'openai/gpt-4.1-mini';
+    const client = this.openRouterClientFactory.create(apiKey);
+
+    const response = await client.chat.send(
+      {
+        messages: [
+          { content: CONCEPT_EXTRACTION_SYSTEM_PROMPT, role: 'system' },
+          {
+            content: buildConceptExtractionUserPrompt(message),
+            role: 'user',
+          },
+        ],
+        model: effectiveModel,
+        stream: false,
+        temperature: 0.3,
+      },
+      {
+        headers: {
+          'HTTP-Referer':
+            this.configService.get<string>('APP_URL') ?? 'https://mukti.app',
+          'X-Title': 'Mukti - Concept Extraction',
+        },
+      },
+    );
+
+    const content = this.extractResponseContent(response);
+    if (!content) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(content) as ConceptExtractionResult;
+      if (!parsed.concepts || !Array.isArray(parsed.concepts)) {
+        return [];
+      }
+
+      // Validate and normalize extracted concepts
+      return parsed.concepts
+        .filter(
+          (c) =>
+            c.id &&
+            c.name &&
+            typeof c.id === 'string' &&
+            typeof c.name === 'string',
+        )
+        .slice(0, 5)
+        .map((c) => ({
+          ...c,
+          difficulty: c.difficulty || 'intermediate',
+          domain: c.domain || 'general',
+          id: c.id.toLowerCase().replace(/\s+/g, '_'),
+          keywords: c.keywords || [],
+          prerequisites: (c.prerequisites || []).map((p) =>
+            p.toLowerCase().replace(/\s+/g, '_'),
+          ),
+        }));
+    } catch {
+      this.logger.warn('Failed to parse LLM concept extraction response');
+      return [];
+    }
+  }
+
+  /**
+   * Reconcile LLM-extracted concepts with existing DB concepts.
+   * Creates new Concept documents for truly novel concepts.
+   */
+  private async reconcileExtractedConcepts(
+    extracted: ExtractedConcept[],
+    userId?: string,
+  ): Promise<string[]> {
+    const conceptIds: string[] = [];
+
+    for (const concept of extracted) {
+      // Check if concept already exists
+      const existing = await this.conceptModel
+        .findOne({ conceptId: concept.id, isActive: true })
+        .select('conceptId')
+        .lean();
+
+      if (existing) {
+        conceptIds.push(existing.conceptId);
+        continue;
+      }
+
+      // Rate-limit concept creation per user
+      if (userId && !this.checkConceptCreationRateLimit(userId)) {
+        this.logger.warn(
+          `Concept creation rate limit reached for user ${userId}`,
+        );
+        continue;
+      }
+
+      // Auto-create the concept
+      try {
+        await this.autoCreateConcept(concept);
+        conceptIds.push(concept.id);
+
+        if (userId) {
+          this.recordConceptCreation(userId);
+        }
+
+        this.logger.log(
+          `Auto-discovered concept: ${concept.id} (${concept.name})`,
+        );
+      } catch (error) {
+        // Likely a duplicate key race condition — just use the existing one
+        if (error instanceof Error && error.message.includes('duplicate key')) {
+          conceptIds.push(concept.id);
+        } else {
+          this.logger.warn(
+            `Failed to auto-create concept ${concept.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
         }
       }
     }
 
-    return detectedConcepts;
+    // Also auto-create prerequisite concepts that don't exist yet
+    await this.ensurePrerequisiteConceptsExist(extracted, userId);
+
+    return conceptIds;
+  }
+
+  /**
+   * Auto-create a Concept document from LLM extraction.
+   */
+  private async autoCreateConcept(concept: ExtractedConcept): Promise<void> {
+    const bktParams = getDefaultBktParamsForDifficulty(concept.difficulty);
+
+    await this.conceptModel.create({
+      autoDiscovered: true,
+      bktParameters: bktParams,
+      conceptId: concept.id,
+      depthLevel: concept.prerequisites.length > 0 ? 1 : 0,
+      difficulty: concept.difficulty,
+      domain: concept.domain,
+      interactionCount: 0,
+      isActive: true,
+      keywords: [
+        ...concept.keywords,
+        concept.name.toLowerCase(),
+        concept.id.replace(/_/g, ' '),
+      ],
+      name: concept.name,
+      prerequisites: concept.prerequisites,
+      verified: false,
+    });
+  }
+
+  /**
+   * Ensure prerequisite concepts exist as stub entries.
+   */
+  private async ensurePrerequisiteConceptsExist(
+    extracted: ExtractedConcept[],
+    userId?: string,
+  ): Promise<void> {
+    const allPrereqIds = new Set<string>();
+    const knownIds = new Set(extracted.map((c) => c.id));
+
+    for (const concept of extracted) {
+      for (const prereqId of concept.prerequisites) {
+        if (!knownIds.has(prereqId)) {
+          allPrereqIds.add(prereqId);
+        }
+      }
+    }
+
+    for (const prereqId of allPrereqIds) {
+      const exists = await this.conceptModel.exists({ conceptId: prereqId });
+      if (exists) {
+        continue;
+      }
+
+      if (userId && !this.checkConceptCreationRateLimit(userId)) {
+        break;
+      }
+
+      try {
+        await this.conceptModel.create({
+          autoDiscovered: true,
+          conceptId: prereqId,
+          depthLevel: 0,
+          difficulty: 'beginner',
+          domain: 'general',
+          interactionCount: 0,
+          isActive: true,
+          keywords: [prereqId.replace(/_/g, ' ')],
+          name: prereqId
+            .split('_')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' '),
+          prerequisites: [],
+          verified: false,
+        });
+
+        if (userId) {
+          this.recordConceptCreation(userId);
+        }
+      } catch {
+        // Ignore duplicate key errors from race conditions
+      }
+    }
+  }
+
+  /**
+   * Extract text content from OpenRouter response.
+   */
+  private extractResponseContent(response: unknown): string | null {
+    if (
+      typeof response === 'object' &&
+      response !== null &&
+      'choices' in response
+    ) {
+      const choices = (response as { choices?: unknown[] }).choices;
+      if (Array.isArray(choices) && choices.length > 0) {
+        const first = choices[0] as {
+          message?: { content?: string | null };
+        };
+        if (typeof first?.message?.content === 'string') {
+          return first.message.content;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Check if a user has exceeded the concept creation rate limit.
+   */
+  private checkConceptCreationRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const oneHourAgo = now - 3600000;
+    const timestamps = this.conceptCreationLog.get(userId) || [];
+    const recentTimestamps = timestamps.filter((t) => t > oneHourAgo);
+    this.conceptCreationLog.set(userId, recentTimestamps);
+    return recentTimestamps.length < CONCEPT_CREATION_RATE_LIMIT;
+  }
+
+  /**
+   * Record a concept creation event for rate limiting.
+   */
+  private recordConceptCreation(userId: string): void {
+    const timestamps = this.conceptCreationLog.get(userId) || [];
+    timestamps.push(Date.now());
+    this.conceptCreationLog.set(userId, timestamps);
   }
 
   /**

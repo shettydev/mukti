@@ -1,5 +1,6 @@
 export * from './archived-message.schema';
 export * from './canvas-session.schema';
+export * from './concept.schema';
 export * from './conversation.schema';
 export * from './daily-usage-aggregate.schema';
 export * from './dialogue-message.schema';
@@ -25,6 +26,7 @@ import {
   ArchivedMessageSchema,
 } from './archived-message.schema';
 import { CanvasSession, CanvasSessionSchema } from './canvas-session.schema';
+import { Concept, ConceptSchema } from './concept.schema';
 import { Conversation, ConversationSchema } from './conversation.schema';
 import {
   DailyUsageAggregate,
@@ -57,6 +59,7 @@ export const ALL_SCHEMAS = [
   { name: Subscription.name, schema: SubscriptionSchema },
   { name: Conversation.name, schema: ConversationSchema },
   { name: CanvasSession.name, schema: CanvasSessionSchema },
+  { name: Concept.name, schema: ConceptSchema },
   { name: ArchivedMessage.name, schema: ArchivedMessageSchema },
   { name: DialogueMessage.name, schema: DialogueMessageSchema },
   { name: InsightNode.name, schema: InsightNodeSchema },

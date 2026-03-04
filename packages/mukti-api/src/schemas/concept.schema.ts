@@ -131,6 +131,28 @@ export class Concept {
   isActive: boolean;
 
   /**
+   * Whether this concept was auto-discovered by LLM extraction.
+   * false = manually curated, true = created by LLM concept discovery pipeline.
+   */
+  @Prop({ default: false, index: true, type: Boolean })
+  autoDiscovered: boolean;
+
+  /**
+   * Whether this concept has been verified as accurate.
+   * Manually curated concepts start verified. Auto-discovered concepts
+   * get auto-verified after N users interact with them successfully.
+   */
+  @Prop({ default: false, type: Boolean })
+  verified: boolean;
+
+  /**
+   * Number of unique users who have interacted with this concept.
+   * Used for auto-verification threshold (e.g., 5 users with P(L) > 0.6).
+   */
+  @Prop({ default: 0, min: 0, type: Number })
+  interactionCount: number;
+
+  /**
    * Keywords/aliases that can trigger this concept detection.
    * Used by the KnowledgeGapDetector to identify relevant concepts
    * from user messages.
@@ -173,6 +195,9 @@ ConceptSchema.index({ keywords: 1 });
 
 // Index for domain + difficulty filtering
 ConceptSchema.index({ difficulty: 1, domain: 1 });
+
+// Index for auto-discovered concept queries
+ConceptSchema.index({ autoDiscovered: 1, verified: 1 });
 
 // Ensure virtuals are included in JSON
 ConceptSchema.set('toJSON', { virtuals: true });

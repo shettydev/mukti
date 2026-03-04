@@ -1,4 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { Concept, ConceptSchema } from '../../schemas/concept.schema';
@@ -6,6 +7,7 @@ import {
   KnowledgeState,
   KnowledgeStateSchema,
 } from '../../schemas/knowledge-state.schema';
+import { AiModule } from '../ai/ai.module';
 import { KnowledgeTracingModule } from '../knowledge-tracing/knowledge-tracing.module';
 import { KnowledgeGapDetectorService } from './services/knowledge-gap-detector.service';
 import { PrerequisiteCheckerService } from './services/prerequisite-checker.service';
@@ -53,6 +55,8 @@ import { ScaffoldPromptAugmenter } from './services/scaffold-prompt-augmenter.se
     ResponseEvaluatorService,
   ],
   imports: [
+    ConfigModule,
+    AiModule,
     MongooseModule.forFeature([
       { name: KnowledgeState.name, schema: KnowledgeStateSchema },
       { name: Concept.name, schema: ConceptSchema },

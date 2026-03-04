@@ -76,6 +76,10 @@ export const FRUSTRATION_MARKERS = [
  * Input for gap detection analysis.
  */
 export interface GapDetectionInput {
+  /** OpenRouter API key for LLM concept extraction fallback */
+  aiApiKey?: string;
+  /** AI model to use for concept extraction (defaults to dialogue model) */
+  aiModel?: string;
   /** Concepts detected in the current context */
   conceptContext?: string[];
   /** Recent conversation history */
