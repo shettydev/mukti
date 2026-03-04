@@ -170,8 +170,8 @@ const augmentedPrompt = this.scaffoldPromptAugmenter.augment(
 ## Next Steps for Reviewers
 
 1. **Read full RFCs**:
-   - [RFC-0001: Knowledge Gap Detection](./RFC-0001-knowledge-gap-detection.md)
-   - [RFC-0002: Adaptive Scaffolding Framework](./RFC-0002-adaptive-scaffolding-framework.md)
+   - [RFC-0001: Knowledge Gap Detection](../../active/rfc-0001-knowledge-gap-detection/index.md)
+   - [RFC-0002: Adaptive Scaffolding Framework](../../active/rfc-0002-adaptive-scaffolding-framework/index.md)
 2. **Answer open questions** (Section 13 of each RFC)
 3. **Validate API contracts** — Do these meet frontend needs?
 4. **Review performance targets** — Are thresholds realistic?

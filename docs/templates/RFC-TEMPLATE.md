@@ -2,15 +2,14 @@
 
 <!-- HEADER BLOCK: Identifies the RFC and its current lifecycle state at a glance. -->
 
-| Field                | Value                                                              |
-| -------------------- | ------------------------------------------------------------------ |
-| **RFC Number**       | NNNN                                                               |
-| **Title**            | [Descriptive title of the proposal]                                |
-| **Status**           | ![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow) |
-| **Author(s)**        | [Name](mailto:email@example.com)                                   |
-| **Created**          | YYYY-MM-DD                                                         |
-| **Last Updated**     | YYYY-MM-DD                                                         |
-| **Target Milestone** | [e.g., v2.4.0 / Q3 2026 / Sprint 14]                               |
+| Field            | Value                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| **RFC Number**   | NNNN                                                               |
+| **Title**        | [Descriptive title of the proposal]                                |
+| **Status**       | ![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow) |
+| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                     |
+| **Created**      | YYYY-MM-DD                                                         |
+| **Last Updated** | YYYY-MM-DD                                                         |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Rejected` | `Superseded`
 

@@ -9,24 +9,24 @@
  * Enum for different types of queries the user might have
  */
 export enum QueryType {
-  CODING = "coding",
-  CREATIVE = "creative",
-  DECISION_MAKING = "decision_making",
-  PERSONAL_GROWTH = "personal_growth",
-  LEARNING = "learning",
-  PROBLEM_SOLVING = "problem_solving",
+  CODING = 'coding',
+  CREATIVE = 'creative',
+  DECISION_MAKING = 'decision_making',
+  PERSONAL_GROWTH = 'personal_growth',
+  LEARNING = 'learning',
+  PROBLEM_SOLVING = 'problem_solving',
 }
 
 /**
  * Enum for different Socratic techniques
  */
 export enum SocraticTechnique {
-  ELENCHUS = "elenchus", // Cross-examination to reveal contradictions
-  DIALECTIC = "dialectic", // Dialogue to explore opposing viewpoints
-  MAIEUTICS = "maieutics", // Midwifery - helping birth ideas
-  DEFINITIONAL = "definitional", // Seeking precise definitions
-  ANALOGICAL = "analogical", // Using analogies and metaphors
-  COUNTERFACTUAL = "counterfactual", // Exploring "what if" scenarios
+  ELENCHUS = 'elenchus', // Cross-examination to reveal contradictions
+  DIALECTIC = 'dialectic', // Dialogue to explore opposing viewpoints
+  MAIEUTICS = 'maieutics', // Midwifery - helping birth ideas
+  DEFINITIONAL = 'definitional', // Seeking precise definitions
+  ANALOGICAL = 'analogical', // Using analogies and metaphors
+  COUNTERFACTUAL = 'counterfactual', // Exploring "what if" scenarios
 }
 
 /**
@@ -77,12 +77,12 @@ export type UserSession = {
     queryType: QueryType;
     technique: SocraticTechnique;
     timestamp: Date;
-    userFeedback?: "helpful" | "not_helpful" | "partially_helpful";
+    userFeedback?: 'helpful' | 'not_helpful' | 'partially_helpful';
   }[];
   preferences: {
     preferredTechniques: SocraticTechnique[];
     avoidedTopics: string[];
-    learningStyle: "visual" | "auditory" | "kinesthetic" | "reading" | "mixed";
+    learningStyle: 'visual' | 'auditory' | 'kinesthetic' | 'reading' | 'mixed';
   };
   progressTracking: {
     completedPaths: string[];
@@ -95,25 +95,21 @@ export type UserSession = {
  * Type for resource categorization
  */
 export type ResourceCategory =
-  | "debugging"
-  | "problem-solving"
-  | "creativity"
-  | "decision-making"
-  | "self-improvement"
-  | "learning"
-  | "philosophy"
-  | "methodology"
-  | "tools"
-  | "documentation";
+  | 'debugging'
+  | 'problem-solving'
+  | 'creativity'
+  | 'decision-making'
+  | 'self-improvement'
+  | 'learning'
+  | 'philosophy'
+  | 'methodology'
+  | 'tools'
+  | 'documentation';
 
 /**
  * Type for query difficulty levels
  */
-export type DifficultyLevel =
-  | "beginner"
-  | "intermediate"
-  | "advanced"
-  | "expert";
+export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 /**
  * Type for feedback on Socratic responses
@@ -135,7 +131,7 @@ export type ResponseFeedback = {
  * Type for Socratic conversation flow
  */
 export type ConversationFlow = {
-  stage: "initial" | "exploration" | "deepening" | "synthesis" | "reflection";
+  stage: 'initial' | 'exploration' | 'deepening' | 'synthesis' | 'reflection';
   questionsAsked: string[];
   userResponses: string[];
   insightsReached: string[];
@@ -201,9 +197,9 @@ export type ProgressMetrics = {
  * Type for adaptation parameters
  */
 export type AdaptationParameters = {
-  pacing: "slow" | "moderate" | "fast";
-  questionDepth: "surface" | "medium" | "deep";
-  encouragementLevel: "minimal" | "moderate" | "high";
-  resourceDetailLevel: "brief" | "detailed" | "comprehensive";
-  followUpFrequency: "rare" | "occasional" | "frequent";
+  pacing: 'slow' | 'moderate' | 'fast';
+  questionDepth: 'surface' | 'medium' | 'deep';
+  encouragementLevel: 'minimal' | 'moderate' | 'high';
+  resourceDetailLevel: 'brief' | 'detailed' | 'comprehensive';
+  followUpFrequency: 'rare' | 'occasional' | 'frequent';
 };
