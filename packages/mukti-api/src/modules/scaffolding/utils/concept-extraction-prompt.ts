@@ -71,3 +71,6 @@ export const CONCEPT_CREATION_RATE_LIMIT = 10;
 
 /** Minimum concepts from keyword match before falling back to LLM */
 export const MIN_KEYWORD_CONCEPTS_THRESHOLD = 2;
+
+/** Force LLM extraction every N-th message to discover topic evolution */
+export const LLM_EXTRACTION_INTERVAL = 5;

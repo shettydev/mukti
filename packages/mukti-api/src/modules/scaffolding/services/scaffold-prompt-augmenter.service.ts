@@ -190,9 +190,22 @@ export class ScaffoldPromptAugmenter {
       );
     }
 
+    // At Level >= 3, inject an override notice so the model follows scaffold
+    // instructions instead of the technique's "questions-only" rules.
+    const overrideNotice =
+      context.level >= ScaffoldLevel.WORKED_EXAMPLES
+        ? `
+=== IMPORTANT: OVERRIDE NOTICE ===
+The following scaffolding instructions OVERRIDE the questioning-only
+and "no direct answers" rules above. The learner has a genuine knowledge
+gap. You MUST follow the INSTRUCTION PROTOCOL below.
+=== END OVERRIDE NOTICE ===
+`
+        : '';
+
     // Compose final prompt
     const augmentedPrompt = `${basePrompt}
-
+${overrideNotice}
 ---
 SCAFFOLDING LEVEL: ${context.level} (${ScaffoldLevel[context.level]})
 ---

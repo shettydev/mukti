@@ -7,9 +7,10 @@ import { Model, Types } from 'mongoose';
 
 import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
-import type {
-  GapDetectionResult,
-  ScaffoldContext,
+import {
+  type GapDetectionResult,
+  type ScaffoldContext,
+  ScaffoldLevel,
 } from '../../scaffolding/interfaces/scaffolding.interface';
 
 import {
@@ -321,11 +322,20 @@ export class DialogueQueueService extends WorkerHost {
         });
 
       // Build scaffold context from gap detection
+      // Gap detection can only ESCALATE the level; the fade controller (2-success rule) is
+      // the only mechanism that REDUCES. This prevents jarring level drops mid-conversation.
+      const storedLevel =
+        dialogue.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
+      const effectiveLevel = Math.max(
+        gapResult.scaffoldLevel,
+        storedLevel,
+      ) as ScaffoldLevel;
+
       const scaffoldContext: ScaffoldContext = {
         conceptContext: gapResult.detectedConcepts,
         consecutiveFailures: dialogue.consecutiveFailures ?? 0,
         consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
-        level: gapResult.scaffoldLevel,
+        level: effectiveLevel,
         rootGap: gapResult.rootGap ?? undefined,
       };
 
@@ -358,8 +368,9 @@ export class DialogueQueueService extends WorkerHost {
       );
       if (hasPriorAssistantMessage) {
         // RFC-0002: Evaluate the current user response against the prior scaffolded context
-        const evaluationLevel =
-          dialogue.currentScaffoldLevel ?? (scaffoldContext.level as number);
+        // Use the same level that was used for prompt augmentation, not the stored level,
+        // so evaluation thresholds match the scaffolding the AI was instructed to provide.
+        const evaluationLevel = scaffoldContext.level as number;
         const responseQuality = this.responseEvaluator.evaluate({
           conceptKeywords:
             dialogue.detectedConcepts ?? gapResult.detectedConcepts,

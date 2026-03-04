@@ -29,6 +29,7 @@ import {
   type ConceptExtractionResult,
   type ExtractedConcept,
   getDefaultBktParamsForDifficulty,
+  LLM_EXTRACTION_INTERVAL,
   MIN_KEYWORD_CONCEPTS_THRESHOLD,
 } from '../utils/concept-extraction-prompt';
 import { PrerequisiteCheckerService } from './prerequisite-checker.service';
@@ -97,12 +98,15 @@ export class KnowledgeGapDetectorService {
     );
 
     // Step 4: Detect concepts in the message (two-phase: keyword + LLM fallback)
+    // Pass message index so LLM extraction runs periodically to discover topic evolution
+    const messageIndex = conversationHistory.length;
     const detectedConcepts = await this.detectConcepts(
       userMessage,
       conceptContext,
       userId,
       aiApiKey,
       aiModel,
+      messageIndex,
     );
 
     // Step 5: Get knowledge probability from BKT
@@ -479,6 +483,7 @@ export class KnowledgeGapDetectorService {
     userId?: string,
     aiApiKey?: string,
     aiModel?: string,
+    messageIndex?: number,
   ): Promise<string[]> {
     // Phase A: Fast keyword matching
     const keywordConcepts = await this.detectConceptsByKeyword(message);
@@ -492,8 +497,17 @@ export class KnowledgeGapDetectorService {
       }
     }
 
-    // If keyword match found enough concepts, skip LLM call
-    if (keywordConcepts.length >= MIN_KEYWORD_CONCEPTS_THRESHOLD) {
+    // If keyword match found enough concepts, skip LLM call — UNLESS it's an
+    // Nth-message checkpoint where we force LLM extraction to discover topic evolution.
+    const isPeriodicExtraction =
+      messageIndex !== undefined &&
+      messageIndex > 0 &&
+      messageIndex % LLM_EXTRACTION_INTERVAL === 0;
+
+    if (
+      keywordConcepts.length >= MIN_KEYWORD_CONCEPTS_THRESHOLD &&
+      !isPeriodicExtraction
+    ) {
       return keywordConcepts;
     }
 

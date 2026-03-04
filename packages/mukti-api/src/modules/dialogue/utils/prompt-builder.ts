@@ -260,9 +260,22 @@ PROGRESS OBSERVED: ${context.consecutiveSuccesses} consecutive successful demons
 - Prepare to return to pure Socratic inquiry`);
   }
 
+  // At Level >= 3 (WORKED_EXAMPLES, DIRECT_INSTRUCTION), inject an override notice
+  // so the model follows scaffold instructions instead of the technique's "questions-only" rules.
+  const overrideNotice =
+    context.level >= 3
+      ? `
+=== IMPORTANT: OVERRIDE NOTICE ===
+The following scaffolding instructions OVERRIDE the questioning-only
+and "no direct answers" rules above. The learner has a genuine knowledge
+gap. You MUST follow the INSTRUCTION PROTOCOL below.
+=== END OVERRIDE NOTICE ===
+`
+      : '';
+
   // Compose final prompt
   return `${basePrompt}
-
+${overrideNotice}
 ---
 SCAFFOLDING LEVEL: ${context.level} (${levelName})
 ---
