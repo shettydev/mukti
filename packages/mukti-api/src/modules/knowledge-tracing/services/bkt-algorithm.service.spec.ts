@@ -85,7 +85,7 @@ describe('BKTAlgorithmService', () => {
     it('should recommend review for moderate probability', () => {
       const moderateState: KnowledgeState = {
         ...baseState,
-        currentProbability: 0.55,
+        currentProbability: 0.8,
       };
 
       const result = service.updateKnowledgeState(moderateState, false);
@@ -138,8 +138,9 @@ describe('BKTAlgorithmService', () => {
 
       const result = service.updateKnowledgeState(perfectState, false);
 
-      // Even with perfect knowledge, slip can occur
-      expect(result.posteriorBeforeLearning).toBeLessThan(1);
+      // With a prior of 1, posterior remains 1 even on an incorrect response;
+      // the incorrect answer is fully explained by slip.
+      expect(result.posteriorBeforeLearning).toBe(1);
     });
 
     it('should apply slip probability correctly', () => {
