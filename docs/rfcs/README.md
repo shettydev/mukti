@@ -14,10 +14,10 @@ This directory contains major technical design proposals for Mukti.
 
 ### Active RFCs
 
-| RFC #                                                                 | Title                          | Status | Author     | Date       | Target           |
-| --------------------------------------------------------------------- | ------------------------------ | ------ | ---------- | ---------- | ---------------- |
-| [RFC-0001](./active/rfc-0001-knowledge-gap-detection/index.md)        | Knowledge Gap Detection System | Draft  | Mukti Team | 2026-02-28 | v1.0.0 / Q2 2026 |
-| [RFC-0002](./active/rfc-0002-adaptive-scaffolding-framework/index.md) | Adaptive Scaffolding Framework | Draft  | Mukti Team | 2026-02-28 | v1.0.0 / Q2 2026 |
+| RFC #                                                                 | Title                          | Status | Author                                         | Date       |
+| --------------------------------------------------------------------- | ------------------------------ | ------ | ---------------------------------------------- | ---------- |
+| [RFC-0001](./active/rfc-0001-knowledge-gap-detection/index.md)        | Knowledge Gap Detection System | Draft  | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
+| [RFC-0002](./active/rfc-0002-adaptive-scaffolding-framework/index.md) | Adaptive Scaffolding Framework | Draft  | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
 
 ### Initiative Documents
 

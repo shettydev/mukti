@@ -26,7 +26,6 @@ Each RFC `index.md` must keep the existing header table format and include:
 - `Author(s)`
 - `Created`
 - `Last Updated`
-- `Target Milestone`
 
 Allowed status values:
 
