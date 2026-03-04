@@ -5,7 +5,7 @@
 Mukti follows a modern cloud-native architecture built on NestJS, designed for scalability and performance.
 
 <p align="center">
-  <img src="../docs/reference/architecture/images/mukti-architecture.png" alt="Mukti Architecture" width="800" />
+  <img src="./images/mukti-architecture.png" alt="Mukti Architecture" width="800" />
 </p>
 
 ## Architecture Layers
