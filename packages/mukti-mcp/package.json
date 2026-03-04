@@ -1,5 +1,5 @@
 {
-  "name": "mukti-mcp-server",
+  "name": "@mukti/mcp",
   "version": "1.0.0",
   "description": "A Socratic AI assistant MCP server that guides users to think for themselves rather than providing direct answers",
   "keywords": [
