@@ -136,17 +136,17 @@ We follow strict TypeScript and code quality standards:
 
 ```typescript
 // Example unit test structure
-describe("SocraticEngine", () => {
-  describe("generateQuestions", () => {
-    it("should generate appropriate questions for coding queries", () => {
+describe('SocraticEngine', () => {
+  describe('generateQuestions', () => {
+    it('should generate appropriate questions for coding queries', () => {
       const questions = SocraticEngine.generateQuestions(
-        "How do I debug this function?",
+        'How do I debug this function?',
         QueryType.CODING,
-        SocraticTechnique.ELENCHUS,
+        SocraticTechnique.ELENCHUS
       );
 
       expect(questions).toHaveLength(greaterThan(0));
-      expect(questions[0]).toContain("assumption");
+      expect(questions[0]).toContain('assumption');
     });
   });
 });
