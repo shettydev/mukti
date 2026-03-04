@@ -2,14 +2,14 @@
 
 <!-- HEADER BLOCK: Identifies the RFC and its current lifecycle state at a glance. -->
 
-| Field            | Value                                                              |
-| ---------------- | ------------------------------------------------------------------ |
-| **RFC Number**   | 0001                                                               |
-| **Title**        | Knowledge Gap Detection System                                     |
-| **Status**       | ![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow) |
-| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                     |
-| **Created**      | 2026-02-28                                                         |
-| **Last Updated** | 2026-02-28                                                         |
+| Field            | Value                                                                      |
+| ---------------- | -------------------------------------------------------------------------- |
+| **RFC Number**   | 0001                                                                       |
+| **Title**        | Knowledge Gap Detection System                                             |
+| **Status**       | ![Status: In Review](https://img.shields.io/badge/Status-In%20Review-blue) |
+| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                             |
+| **Created**      | 2026-02-28                                                                 |
+| **Last Updated** | 2026-03-04                                                                 |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Rejected` | `Superseded`
 
@@ -52,12 +52,12 @@ Mukti's MCP server already has partial detection (`stuckIndicators` in `response
 
 ### Goals
 
-- [ ] Detect knowledge gaps through multi-signal analysis (behavioral, linguistic, temporal)
-- [ ] Implement lightweight Bayesian Knowledge Tracing for probabilistic knowledge state
-- [ ] Build recursive prerequisite checking to find root gaps (up to 3 levels deep)
-- [ ] Integrate detection into `DialogueQueueService` before AI prompt generation
-- [ ] Track knowledge state per-user, per-concept across sessions
-- [ ] Provide clear intervention triggers for scaffolding system (RFC-0002)
+- [x] Detect knowledge gaps through multi-signal analysis (behavioral, linguistic, temporal)
+- [x] Implement lightweight Bayesian Knowledge Tracing for probabilistic knowledge state
+- [x] Build recursive prerequisite checking to find root gaps (up to 3 levels deep)
+- [x] Integrate detection into queue processing before AI prompt generation
+- [x] Track knowledge state per-user, per-concept across sessions
+- [x] Provide clear intervention triggers for scaffolding system (RFC-0002)
 
 ### Non-Goals
 
@@ -112,7 +112,7 @@ graph TB
 
 The Knowledge Gap Detection System operates as a pre-processing layer before AI prompt generation. It analyzes multiple signals to determine if the user is "outside their ZPD" — unable to productively engage with pure Socratic questioning due to missing foundational knowledge.
 
-The system maintains a probabilistic knowledge state per-user, per-concept using simplified Bayesian Knowledge Tracing. When knowledge probability drops below threshold (P < 0.3) or behavioral signals indicate genuine ignorance, the system triggers scaffolding interventions rather than continuing pure questioning.
+The system maintains a probabilistic knowledge state per-user, per-concept using simplified Bayesian Knowledge Tracing. It computes a weighted gap score from linguistic, behavioral, temporal, and knowledge-state signals, then maps that score to scaffold levels via `GAP_SCORE_THRESHOLDS` (`0.3`, `0.5`, `0.7`, `0.85`).
 
 ### Architecture Diagram
 
@@ -132,10 +132,10 @@ graph LR
         F --> H
         G --> H
 
-        H --> I{Threshold Check}
-        I -->|P < 0.3| J[Trigger Scaffolding]
-        I -->|P 0.3-0.6| K[Hint Mode]
-        I -->|P > 0.6| L[Continue Socratic]
+        H --> I{Gap Score Thresholds}
+        I -->|score < 0.3| L[Continue Socratic]
+        I -->|0.3-0.85| K[Scaffolding Levels 1-3]
+        I -->|score >= 0.85| J[Direct Instruction]
 
         J --> M[Prerequisite Checker]
         M --> N[Root Gap Identification]
@@ -162,13 +162,13 @@ sequenceDiagram
     Detector->>BKT: Get current P(knowledge)
     BKT-->>Detector: P = 0.25
 
-    alt P < 0.3 (Knowledge Gap)
+    alt gapScore >= 0.3 (Knowledge Gap)
         Detector->>Prereq: Check prerequisites
         Prereq->>Prereq: Recursive check (depth=3)
         Prereq-->>Detector: Root gap: "loops fundamentals"
         Detector-->>Queue: GapDetectionResult(level=3, rootGap)
         Queue->>Prompt: Build scaffold prompt (level 3)
-    else P >= 0.3 (Productive Zone)
+    else gapScore < 0.3 (Productive Zone)
         Detector-->>Queue: GapDetectionResult(level=0)
         Queue->>Prompt: Build Socratic prompt
     end
@@ -240,14 +240,14 @@ const FRUSTRATION_MARKERS = [
 
 #### 5.2 Bayesian Knowledge Tracing (BKT)
 
-Simplified BKT with 3 parameters per concept:
+Simplified BKT with 4 parameters per concept:
 
 ```typescript
 interface BKTParameters {
   pInit: number; // P(L0) - Initial knowledge probability (default: 0.3)
-  pLearn: number; // P(T) - Learning rate per interaction (default: 0.1)
+  pLearn: number; // P(T) - Learning rate per interaction (default: 0.15)
   pSlip: number; // P(S) - Probability of error despite knowing (default: 0.1)
-  pGuess: number; // P(G) - Probability of correct despite not knowing (default: 0.2)
+  pGuess: number; // P(G) - Probability of correct despite not knowing (default: 0.25)
 }
 
 interface KnowledgeState {
@@ -256,6 +256,13 @@ interface KnowledgeState {
   lastUpdated: Date;
   interactionCount: number;
 }
+```
+
+Current constants in implementation:
+
+```typescript
+const MASTERY_THRESHOLD = 0.95;
+const STRUGGLING_THRESHOLD = 0.4;
 ```
 
 **Update Algorithm**:
@@ -447,35 +454,50 @@ function calculateGapScore(
 @Injectable()
 export class DialogueQueueService {
   constructor(
-    private readonly knowledgeGapDetector: KnowledgeGapDetector,
-    private readonly promptBuilder: PromptBuilder,
-    private readonly aiService: DialogueAIService
+    private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
+    private readonly scaffoldFadeService: ScaffoldFadeService,
+    private readonly responseEvaluator: ResponseEvaluatorService,
+    private readonly dialogueAIService: DialogueAIService
   ) {}
 
-  async process(dialogue: NodeDialogue): Promise<AIResponse> {
-    // NEW: Detect knowledge gaps before generating prompt
+  async process(dialogue: NodeDialogue, message: string): Promise<AIResponse> {
+    // 1) Detect knowledge gaps before generation
     const gapResult = await this.knowledgeGapDetector.analyze({
-      userMessage: dialogue.content,
-      conversationHistory: dialogue.history,
-      userId: dialogue.userId,
+      userMessage: message,
+      conversationHistory,
+      userId,
       conceptContext: dialogue.detectedConcepts,
+      previousResponseLengths,
+      timeOnProblem,
     });
 
-    // Store detection result on dialogue for tracking
-    dialogue.gapDetectionResult = gapResult;
+    // 2) Escalate immediately when needed, fade only through transition rules
+    const storedLevel = dialogue.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
+    const effectiveLevel = Math.max(gapResult.scaffoldLevel, storedLevel) as ScaffoldLevel;
 
-    // Build prompt with appropriate scaffold level
-    const prompt = this.promptBuilder.build({
-      dialogue,
-      scaffoldLevel: gapResult.scaffoldLevel,
-      rootGap: gapResult.rootGap,
-      technique: gapResult.recommendation === 'teach' ? 'foundational' : 'socratic',
-    });
+    // 3) Build scaffold context for prompt augmentation
+    const scaffoldContext: ScaffoldContext = {
+      level: effectiveLevel,
+      rootGap: gapResult.rootGap ?? undefined,
+      conceptContext: gapResult.detectedConcepts,
+      consecutiveFailures: dialogue.consecutiveFailures ?? 0,
+      consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
+    };
 
-    // Update knowledge state after response
-    // (done in response handler, not here)
+    // 4) Generate scaffold-aware response
+    const aiResponse = await this.dialogueAIService.generateScaffoldedResponse(
+      nodeContext,
+      problemStructure,
+      history,
+      message,
+      model,
+      apiKey,
+      scaffoldContext
+    );
 
-    return this.aiService.generateResponse(prompt);
+    // 5) Evaluate user response, transition levels, then update BKT state
+    // (performed after prior assistant context exists)
+    return aiResponse;
   }
 }
 ```
@@ -492,124 +514,40 @@ export class DialogueQueueService {
 interface KnowledgeGapDetector {
   analyze(input: GapDetectionInput): Promise<GapDetectionResult>;
   updateKnowledgeState(userId: string, conceptId: string, isCorrect: boolean): Promise<void>;
-  getKnowledgeState(userId: string, conceptId: string): Promise<KnowledgeState | null>;
 }
 
 interface GapDetectionInput {
+  aiApiKey?: string;
+  aiModel?: string;
+  conceptContext?: string[];
   userMessage: string;
   conversationHistory: ConversationTurn[];
+  previousResponseLengths?: number[];
+  timeOnProblem?: number;
   userId: string;
-  conceptContext?: string[];
 }
 ```
 
 ### REST Endpoints (Admin/Debug)
 
-#### `GET /api/v1/users/:userId/knowledge`
+Implemented base route: `knowledge-tracing`
 
-Returns knowledge state for a user across all tracked concepts.
-
-**Response (200 OK):**
-
-```json
-{
-  "userId": "uuid",
-  "concepts": [
-    {
-      "conceptId": "recursion",
-      "probability": 0.72,
-      "lastUpdated": "2026-02-28T10:30:00Z",
-      "interactionCount": 15
-    },
-    {
-      "conceptId": "loops",
-      "probability": 0.91,
-      "lastUpdated": "2026-02-27T14:20:00Z",
-      "interactionCount": 8
-    }
-  ]
-}
-```
-
-#### `GET /api/v1/concepts/:conceptId/prerequisites`
-
-Returns prerequisite graph for a concept.
-
-**Response (200 OK):**
-
-```json
-{
-  "conceptId": "recursion",
-  "prerequisites": [
-    { "conceptId": "functions", "depth": 1 },
-    { "conceptId": "loops", "depth": 1 },
-    { "conceptId": "variables", "depth": 2 }
-  ]
-}
-```
+- `POST /knowledge-tracing/update`
+- `GET /knowledge-tracing/state/:userId/:conceptId`
+- `GET /knowledge-tracing/user/:userId`
+- `DELETE /knowledge-tracing/state/:userId/:conceptId/reset`
+- `GET /knowledge-tracing/concept/:conceptId/struggling`
+- `GET /knowledge-tracing/concept/:conceptId/mastered`
+- `GET /knowledge-tracing/admin/cache-stats`
+- `POST /knowledge-tracing/concepts`
+- `GET /knowledge-tracing/concepts`
+- `GET /knowledge-tracing/concepts/:conceptId`
+- `PATCH /knowledge-tracing/concepts/:conceptId`
+- `DELETE /knowledge-tracing/concepts/:conceptId`
 
 ---
 
 ## 7. Data Model Changes
-
-### Entity-Relationship Diagram
-
-```mermaid
-erDiagram
-    USER ||--o{ KNOWLEDGE_STATE : "has"
-    KNOWLEDGE_STATE }o--|| CONCEPT : "tracks"
-    CONCEPT ||--o{ PREREQUISITE : "has"
-    PREREQUISITE }o--|| CONCEPT : "requires"
-    NODE_DIALOGUE ||--o| GAP_DETECTION : "has"
-
-    USER {
-        uuid id PK
-        string email
-        timestamp created_at
-    }
-
-    KNOWLEDGE_STATE {
-        uuid id PK
-        uuid user_id FK
-        string concept_id FK
-        float probability
-        int interaction_count
-        timestamp last_updated
-    }
-
-    CONCEPT {
-        string id PK
-        string name
-        string domain
-        jsonb bkt_params
-    }
-
-    PREREQUISITE {
-        string concept_id FK
-        string prerequisite_id FK
-        float weight
-    }
-
-    NODE_DIALOGUE {
-        uuid id PK
-        uuid user_id FK
-        string content
-        int scaffold_level
-        float gap_score
-        string root_gap
-    }
-
-    GAP_DETECTION {
-        uuid id PK
-        uuid dialogue_id FK
-        float gap_score
-        float knowledge_probability
-        int scaffold_level
-        string root_gap
-        jsonb signals
-        timestamp created_at
-    }
-```
 
 ### Schema Changes
 
@@ -620,14 +558,18 @@ interface KnowledgeStateDocument {
   _id: ObjectId;
   userId: ObjectId;
   conceptId: string;
-  probability: number;
-  interactionCount: number;
-  lastUpdated: Date;
-  history: Array<{
-    probability: number;
-    isCorrect: boolean;
-    timestamp: Date;
-  }>;
+  attempts: number;
+  correctAttempts: number;
+  currentProbability: number;
+  lastAssessed: Date;
+  parameters: {
+    pInit: number;
+    pLearn: number;
+    pSlip: number;
+    pGuess: number;
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
@@ -635,16 +577,22 @@ interface KnowledgeStateDocument {
 
 ```typescript
 interface ConceptDocument {
-  _id: string; // Use concept name as ID
+  _id: ObjectId;
+  conceptId: string;
   name: string;
   domain: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
   prerequisites: string[];
-  bktParams: {
+  keywords: string[];
+  bktParameters: {
     pInit: number;
     pLearn: number;
     pSlip: number;
     pGuess: number;
   };
+  autoDiscovered: boolean;
+  verified: boolean;
+  isActive: boolean;
 }
 ```
 
@@ -653,10 +601,29 @@ interface ConceptDocument {
 ```typescript
 // Add to existing NodeDialogue schema
 interface NodeDialogueAdditions {
-  scaffoldLevel?: 0 | 1 | 2 | 3 | 4;
-  gapScore?: number;
-  rootGap?: string;
-  detectedConcepts?: string[];
+  currentScaffoldLevel: 0 | 1 | 2 | 3 | 4;
+  consecutiveSuccesses: number;
+  consecutiveFailures: number;
+  detectedConcepts: string[];
+  lastGapDetection?: {
+    detectedAt: Date;
+    gapScore: number;
+    knowledgeProbability: number;
+    scaffoldLevel: 0 | 1 | 2 | 3 | 4;
+    recommendation: 'socratic' | 'scaffold' | 'teach';
+    rootGap: string | null;
+    signals: {
+      linguistic: number;
+      behavioral: number;
+      temporal: number;
+    };
+  };
+  scaffoldHistory: Array<{
+    fromLevel: 0 | 1 | 2 | 3 | 4;
+    toLevel: 0 | 1 | 2 | 3 | 4;
+    reason: string;
+    timestamp: Date;
+  }>;
 }
 ```
 
@@ -817,7 +784,7 @@ Ask users to rate their own knowledge before each topic.
 
 2. **BKT Parameter Tuning** — Should we use global defaults or attempt to personalize learning rates per user? Research suggests personalized is better but more complex.
 
-3. **Concept Detection** — How do we identify which concept a dialogue is about? Options: keyword extraction, LLM classification, explicit user tagging.
+3. **Concept Detection** — Resolved in implementation via keyword detection first, periodic LLM extraction fallback, and rate-limited concept auto-discovery.
 
 4. **Cross-Session State** — Should knowledge state persist indefinitely or decay over time (forgetting curve)?
 
@@ -832,6 +799,8 @@ Ask users to rate their own knowledge before each topic.
 | 2026-02-28 | Use BKT over simpler mastery tracking | Research shows probabilistic tracking catches learning transitions better | RFC Author |
 | 2026-02-28 | Cap prerequisite depth at 3           | Diminishing returns beyond 3 levels, performance concerns                 | RFC Author |
 | 2026-02-28 | Additive schema changes only          | Backwards compatibility required for rollback safety                      | RFC Author |
+| 2026-03-04 | Use gap-score thresholds for leveling | Deterministic scaffold mapping is easier to tune and test                 | RFC Author |
+| 2026-03-04 | Add periodic LLM concept extraction   | Captures topic evolution beyond keyword-only detection                    | RFC Author |
 
 ---
 

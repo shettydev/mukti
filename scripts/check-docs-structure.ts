@@ -81,8 +81,6 @@ const requiredFiles = [
   'docs/reference/planning/unified-thinking-model.md',
   'docs/rfcs/active/rfc-0001-knowledge-gap-detection/index.md',
   'docs/rfcs/active/rfc-0002-adaptive-scaffolding-framework/index.md',
-  'docs/rfcs/initiatives/knowledge-gap/summary.md',
-  'docs/rfcs/initiatives/knowledge-gap/implementation-checklist.md',
 ];
 
 for (const relPath of requiredFiles) {

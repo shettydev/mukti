@@ -7,7 +7,6 @@ const repoRoot = process.cwd();
 const rfcsRoot = path.join(repoRoot, 'docs', 'rfcs');
 const activeRoot = path.join(rfcsRoot, 'active');
 const archiveRoot = path.join(rfcsRoot, 'archive');
-const legacyRoot = path.join(archiveRoot, 'legacy');
 const readmePath = path.join(rfcsRoot, 'README.md');
 
 const errors: string[] = [];
@@ -187,12 +186,6 @@ if (!existsSync(rfcsRoot)) {
 if (!existsSync(activeRoot)) {
   fail('Missing docs/rfcs/active directory.');
 }
-if (!existsSync(archiveRoot)) {
-  fail('Missing docs/rfcs/archive directory.');
-}
-if (!existsSync(legacyRoot)) {
-  fail('Missing docs/rfcs/archive/legacy directory.');
-}
 if (!existsSync(readmePath)) {
   fail('Missing docs/rfcs/README.md.');
 }
@@ -200,7 +193,9 @@ if (!existsSync(readmePath)) {
 const readme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : '';
 
 const activeDirs = readRfcDirectories(activeRoot);
-const archiveDirs = readRfcDirectories(archiveRoot, new Set(['legacy']));
+const archiveDirs = existsSync(archiveRoot)
+  ? readRfcDirectories(archiveRoot, new Set(['legacy']))
+  : [];
 const seenNumbers = new Map<string, string>();
 
 for (const dirName of activeDirs) {
@@ -219,6 +214,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  `RFC standards check passed (${activeDirs.length} active, ${archiveDirs.length} archived RFC folders validated).`
-);
+console.log(`RFC standards check passed (${activeDirs.length} active RFC folders validated).`);

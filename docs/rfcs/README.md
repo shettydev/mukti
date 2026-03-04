@@ -5,37 +5,16 @@ This directory contains major technical design proposals for Mukti.
 ## Directory Layout
 
 - `active/`: RFCs that are `Draft`, `In Review`, or `Accepted`
-- `archive/`: RFCs that are `Implemented`, `Rejected`, or `Superseded`
-- `archive/legacy/`: historical files excluded from strict RFC numbering checks
-- `initiatives/`: companion docs shared across multiple RFCs
 - `STANDARDS.md`: canonical RFC structure and governance rules
 
 ## RFC Index
 
 ### Active RFCs
 
-| RFC #                                                                 | Title                          | Status | Author                                         | Date       |
-| --------------------------------------------------------------------- | ------------------------------ | ------ | ---------------------------------------------- | ---------- |
-| [RFC-0001](./active/rfc-0001-knowledge-gap-detection/index.md)        | Knowledge Gap Detection System | Draft  | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
-| [RFC-0002](./active/rfc-0002-adaptive-scaffolding-framework/index.md) | Adaptive Scaffolding Framework | Draft  | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
-
-### Initiative Documents
-
-- [Knowledge Gap Summary](./initiatives/knowledge-gap/summary.md)
-- [Knowledge Gap Implementation Checklist](./initiatives/knowledge-gap/implementation-checklist.md)
-
-### Archive
-
-- [Legacy RFC Files](./archive/legacy/)
-
-## Compatibility Notes
-
-Top-level compatibility stubs currently exist for old canonical RFC paths:
-
-- `./RFC-0001-knowledge-gap-detection.md`
-- `./RFC-0002-adaptive-scaffolding-framework.md`
-
-These are transitional and should be removed after the migration window.
+| RFC #                                                                 | Title                          | Status    | Author                                         | Date       |
+| --------------------------------------------------------------------- | ------------------------------ | --------- | ---------------------------------------------- | ---------- |
+| [RFC-0001](./active/rfc-0001-knowledge-gap-detection/index.md)        | Knowledge Gap Detection System | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
+| [RFC-0002](./active/rfc-0002-adaptive-scaffolding-framework/index.md) | Adaptive Scaffolding Framework | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
 
 ## RFC Process
 
@@ -43,7 +22,7 @@ These are transitional and should be removed after the migration window.
 2. Place it in `active/rfc-####-short-title/index.md`
 3. Add it to the Active RFCs table above
 4. Review and iterate
-5. Move folder to `archive/` when lifecycle state is no longer active
+5. Keep lifecycle status in sync with implementation progress
 
 ## Status Definitions
 
