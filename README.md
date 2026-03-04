@@ -20,7 +20,7 @@
 
   <p>
     <a href="DEVELOPMENT.md">Setup</a> |
-    <a href="packages/ARCHITECTURE.md">Architecture</a> |
+    <a href="docs/reference/architecture/overview.md">Architecture</a> |
     <a href="RELEASE.md">Release</a> |
     <a href="packages/mukti-api/README.md">API</a> |
     <a href="mukti-mcp-server/README.md">MCP server</a>
@@ -84,7 +84,7 @@ Mukti responds with a compact sequence:
 ├── packages/mukti-web        # Next.js app
 ├── packages/mukti-api        # NestJS API
 ├── mukti-mcp-server          # MCP prototype
-└── packages/mukti-docs       # docs assets
+└── docs/reference            # technical docs assets
 ```
 
 ## Quickstart (Local Dev)
