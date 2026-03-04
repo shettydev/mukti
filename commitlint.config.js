@@ -2,7 +2,7 @@ const scopes = [
   // Project scopes
   'api',
   'web',
-  'mcp-server',
+  'mcp',
 
   // Infrastructure & tooling
   'config',

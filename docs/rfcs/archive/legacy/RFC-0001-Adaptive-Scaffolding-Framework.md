@@ -2,15 +2,14 @@
 
 <!-- HEADER BLOCK: Identifies the RFC and its current lifecycle state at a glance. -->
 
-| Field                | Value                                                              |
-| -------------------- | ------------------------------------------------------------------ |
-| **RFC Number**       | 0001                                                               |
-| **Title**            | Adaptive Scaffolding Framework for Mukti AI Tutoring               |
-| **Status**           | ![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow) |
-| **Author(s)**        | Mukti Team                                                         |
-| **Created**          | 2026-02-28                                                         |
-| **Last Updated**     | 2026-02-28                                                         |
-| **Target Milestone** | v1.0.0 / Q2 2026                                                   |
+| Field            | Value                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| **RFC Number**   | 0001                                                               |
+| **Title**        | Adaptive Scaffolding Framework for Mukti AI Tutoring               |
+| **Status**       | ![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow) |
+| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                     |
+| **Created**      | 2026-02-28                                                         |
+| **Last Updated** | 2026-02-28                                                         |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Rejected` | `Superseded`
 

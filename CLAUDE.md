@@ -23,7 +23,7 @@ Key features:
 ```
 ├── packages/mukti-api/        # @mukti/api — NestJS 11 backend
 ├── packages/mukti-web/        # @mukti/web — Next.js 15 frontend
-├── packages/mukti-docs/       # Documentation assets
+├── docs/reference/            # Technical documentation assets
 ├── mukti-mcp-server/          # Standalone MCP server (not in Nx workspace)
 ├── docs/rfcs/                 # Design documents (RFC-0001, RFC-0002)
 └── scripts/                   # AI commit, deploy scripts
