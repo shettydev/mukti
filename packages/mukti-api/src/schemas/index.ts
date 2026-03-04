@@ -4,6 +4,7 @@ export * from './conversation.schema';
 export * from './daily-usage-aggregate.schema';
 export * from './dialogue-message.schema';
 export * from './insight-node.schema';
+export * from './knowledge-state.schema';
 export * from './node-dialogue.schema';
 export * from './rate-limit.schema';
 export * from './refresh-token.schema';
@@ -34,6 +35,7 @@ import {
   DialogueMessageSchema,
 } from './dialogue-message.schema';
 import { InsightNode, InsightNodeSchema } from './insight-node.schema';
+import { KnowledgeState, KnowledgeStateSchema } from './knowledge-state.schema';
 import { NodeDialogue, NodeDialogueSchema } from './node-dialogue.schema';
 import { RateLimit, RateLimitSchema } from './rate-limit.schema';
 import { RefreshToken, RefreshTokenSchema } from './refresh-token.schema';
@@ -58,6 +60,7 @@ export const ALL_SCHEMAS = [
   { name: ArchivedMessage.name, schema: ArchivedMessageSchema },
   { name: DialogueMessage.name, schema: DialogueMessageSchema },
   { name: InsightNode.name, schema: InsightNodeSchema },
+  { name: KnowledgeState.name, schema: KnowledgeStateSchema },
   { name: NodeDialogue.name, schema: NodeDialogueSchema },
   { name: Resource.name, schema: ResourceSchema },
   { name: Technique.name, schema: TechniqueSchema },
