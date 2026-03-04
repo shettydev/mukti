@@ -6,12 +6,6 @@ import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
 import {
-  type GapDetectionResult,
-  type ScaffoldContext,
-  ScaffoldLevel,
-} from '../../scaffolding/interfaces/scaffolding.interface';
-
-import {
   Conversation,
   ConversationDocument,
 } from '../../../schemas/conversation.schema';
@@ -26,6 +20,11 @@ import {
 import { User, UserDocument } from '../../../schemas/user.schema';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import {
+  type GapDetectionResult,
+  type ScaffoldContext,
+  ScaffoldLevel,
+} from '../../scaffolding/interfaces/scaffolding.interface';
 import { KnowledgeGapDetectorService } from '../../scaffolding/services/knowledge-gap-detector.service';
 import { ResponseEvaluatorService } from '../../scaffolding/services/response-evaluator.service';
 import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';

@@ -1,6 +1,10 @@
 import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
-import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
+
+import {
+  type ScaffoldContext,
+  ScaffoldLevel,
+} from '../../scaffolding/interfaces/scaffolding.interface';
 
 /**
  * Node context for prompt construction.
@@ -263,7 +267,7 @@ PROGRESS OBSERVED: ${context.consecutiveSuccesses} consecutive successful demons
   // At Level >= 3 (WORKED_EXAMPLES, DIRECT_INSTRUCTION), inject an override notice
   // so the model follows scaffold instructions instead of the technique's "questions-only" rules.
   const overrideNotice =
-    context.level >= 3
+    context.level >= ScaffoldLevel.WORKED_EXAMPLES
       ? `
 === IMPORTANT: OVERRIDE NOTICE ===
 The following scaffolding instructions OVERRIDE the questioning-only
