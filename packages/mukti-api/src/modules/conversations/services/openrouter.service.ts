@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import type { AiModelPricing } from '../../../schemas/ai-model-config.schema';
 import type { RecentMessage } from '../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../schemas/technique.schema';
 
+import { calculateAiCostUsd } from '../../ai/services/ai-cost.service';
 import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
 
 /**
@@ -23,6 +25,7 @@ export interface OpenRouterResponse {
   completionTokens: number;
   content: string;
   cost: number;
+  costUsd: number;
   model: string;
   promptTokens: number;
   totalTokens: number;
@@ -190,7 +193,11 @@ export class OpenRouterService {
    * Cost is calculated based on token usage and model-specific pricing.
    * Pricing is per 1M tokens and converted to actual cost.
    */
-  parseResponse(response: unknown, model: string): OpenRouterResponse {
+  parseResponse(
+    response: unknown,
+    model: string,
+    pricing?: AiModelPricing,
+  ): OpenRouterResponse {
     const safeResponse = this.isChatResponsePayload(response)
       ? response
       : { choices: [], usage: undefined };
@@ -201,16 +208,24 @@ export class OpenRouterService {
     const promptTokens = usage?.promptTokens ?? usage?.prompt_tokens ?? 0;
     const completionTokens =
       usage?.completionTokens ?? usage?.completion_tokens ?? 0;
-    const totalTokens = usage?.totalTokens ?? usage?.total_tokens ?? 0;
+    const totalTokens =
+      usage?.totalTokens ??
+      usage?.total_tokens ??
+      promptTokens + completionTokens;
 
-    const cost = 0;
+    const costUsd = calculateAiCostUsd({
+      completionTokens,
+      pricing: pricing ?? { completionUsdPer1M: 0, promptUsdPer1M: 0 },
+      promptTokens,
+    });
 
     this.logger.log(`Response parsed: ${totalTokens} tokens`);
 
     return {
       completionTokens,
       content,
-      cost,
+      cost: costUsd,
+      costUsd,
       model,
       promptTokens,
       totalTokens,
@@ -235,6 +250,7 @@ export class OpenRouterService {
     model: string,
     apiKey: string,
     _technique: TechniqueTemplate,
+    pricing?: AiModelPricing,
   ): Promise<OpenRouterResponse> {
     try {
       this.logger.log(
@@ -259,7 +275,7 @@ export class OpenRouterService {
         },
       );
 
-      return this.parseResponse(response, model);
+      return this.parseResponse(response, model, pricing);
     } catch (error) {
       const errorDetails = this.handleError(error);
       this.logger.error(

@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 import type { ProblemStructure } from '../../schemas/canvas-session.schema';
 import type { DialogueMessage } from '../../schemas/dialogue-message.schema';
 import type { NodeType } from '../../schemas/node-dialogue.schema';
+import type { AiProvider } from '../../schemas/ai-provider-config.schema';
 
-import { OpenRouterClientFactory } from '../ai/services/openrouter-client.factory';
+import { AiGatewayService } from '../ai/services/ai-gateway.service';
 import {
   buildSystemPrompt,
   getRecommendedTechnique,
@@ -22,62 +22,22 @@ export interface DialogueAIResponse {
   latencyMs: number;
   model: string;
   promptTokens: number;
+  provider: AiProvider | 'system';
   totalTokens: number;
-}
-
-interface ChatChoice {
-  message?: {
-    content?: ChatContentItem[] | null | string;
-  };
-}
-
-interface ChatContentItem {
-  text?: string;
-  type?: string;
-}
-
-interface ChatResponsePayload {
-  choices?: ChatChoice[];
-  usage?: {
-    completion_tokens?: number;
-    completionTokens?: number;
-    prompt_tokens?: number;
-    promptTokens?: number;
-    total_tokens?: number;
-    totalTokens?: number;
-  };
 }
 
 /**
  * Service responsible for AI-powered Socratic dialogue generation.
- * Uses OpenRouter API to generate context-aware responses for canvas node dialogues.
- *
- * @remarks
- * This service:
- * - Builds prompts using the prompt-builder utilities
- * - Integrates conversation history for context
- * - Selects appropriate models based on subscription tier
- * - Handles API communication and error handling
+ * Routes all requests through the backend AI gateway.
  */
 @Injectable()
 export class DialogueAIService {
   private readonly logger = new Logger(DialogueAIService.name);
 
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly openRouterClientFactory: OpenRouterClientFactory,
-  ) {}
+  constructor(private readonly aiGatewayService: AiGatewayService) {}
 
   /**
    * Generates a Socratic AI response for a node dialogue.
-   *
-   * @param nodeContext - The node being discussed (type, label, id)
-   * @param problemStructure - The full problem structure from the canvas session
-   * @param conversationHistory - Previous messages in this dialogue
-   * @param userMessage - The current user message to respond to
-   * @param model - OpenRouter model id
-   * @param apiKey - OpenRouter API key
-   * @returns AI response with content, tokens, and cost
    */
   async generateResponse(
     nodeContext: NodeContext,
@@ -85,72 +45,56 @@ export class DialogueAIService {
     conversationHistory: DialogueMessage[],
     userMessage: string,
     model: string,
-    apiKey: string,
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
-    if (!apiKey) {
-      return this.generateFallbackResponse(nodeContext.nodeType, startTime);
-    }
-
     try {
-      // Get recommended technique for this node type
       const technique = getRecommendedTechnique(nodeContext.nodeType);
-
-      // Build system prompt
       const systemPrompt = buildSystemPrompt(
         nodeContext,
         problemStructure,
         technique,
       );
 
-      // Build messages array
       const messages = this.buildMessages(
         systemPrompt,
         conversationHistory,
         userMessage,
       );
 
-      const effectiveModel = model.trim();
-
       this.logger.log(
-        `Generating AI response for node ${nodeContext.nodeId} with model ${effectiveModel}`,
+        `Generating AI response for node ${nodeContext.nodeId} with model ${model}`,
       );
 
-      const client = this.openRouterClientFactory.create(apiKey);
+      const response = await this.aiGatewayService.createChatCompletion({
+        messages,
+        modelId: model,
+      });
 
-      // Send request to OpenRouter
-      const response = await client.chat.send(
-        {
-          messages,
-          model: effectiveModel,
-          stream: false,
-          temperature: 0.7,
-        },
-        {
-          headers: {
-            'HTTP-Referer':
-              this.configService.get<string>('APP_URL') ?? 'https://mukti.app',
-            'X-Title': 'Mukti - Thinking Canvas',
-          },
-        },
-      );
-
-      const latencyMs = Date.now() - startTime;
-      return this.parseResponse(response, effectiveModel, latencyMs);
+      return {
+        completionTokens: response.completionTokens,
+        content:
+          response.content ||
+          this.generateFallbackResponse('seed', Date.now()).content,
+        cost: response.costUsd,
+        latencyMs: response.latencyMs,
+        model: response.model,
+        promptTokens: response.promptTokens,
+        provider: response.provider,
+        totalTokens: response.totalTokens,
+      };
     } catch (error) {
       this.logger.error(
         `Failed to generate AI response: ${this.getErrorMessage(error)}`,
         this.getErrorStack(error),
       );
 
-      // Return fallback response on error
       return this.generateFallbackResponse(nodeContext.nodeType, startTime);
     }
   }
 
   /**
-   * Builds the messages array for the OpenRouter API.
+   * Builds the messages array for the AI gateway.
    */
   private buildMessages(
     systemPrompt: string,
@@ -162,13 +106,11 @@ export class DialogueAIService {
       role: 'assistant' | 'system' | 'user';
     }[] = [];
 
-    // Add system prompt
     messages.push({
       content: systemPrompt,
       role: 'system',
     });
 
-    // Add conversation history
     for (const msg of conversationHistory) {
       messages.push({
         content: msg.content,
@@ -176,45 +118,12 @@ export class DialogueAIService {
       });
     }
 
-    // Add current user message
     messages.push({
       content: userMessage,
       role: 'user',
     });
 
     return messages;
-  }
-
-  /**
-   * Extracts content from the API response choice.
-   */
-  private extractContent(choice?: ChatChoice): string {
-    const content = choice?.message?.content;
-
-    if (typeof content === 'string') {
-      return content;
-    }
-
-    if (Array.isArray(content)) {
-      return content
-        .map((item) => this.extractTextFromContentItem(item))
-        .filter((item) => item.length > 0)
-        .join(' ');
-    }
-
-    return '';
-  }
-
-  private extractTextFromContentItem(item: ChatContentItem | string): string {
-    if (typeof item === 'string') {
-      return item;
-    }
-
-    if (item.type === 'text' && typeof item.text === 'string') {
-      return item.text;
-    }
-
-    return '';
   }
 
   /**
@@ -258,6 +167,7 @@ export class DialogueAIService {
       latencyMs: Date.now() - startTime,
       model: 'fallback',
       promptTokens: 0,
+      provider: 'system',
       totalTokens: 0,
     };
   }
@@ -271,75 +181,5 @@ export class DialogueAIService {
 
   private getErrorStack(error: unknown): string | undefined {
     return error instanceof Error ? error.stack : undefined;
-  }
-
-  private isChatResponsePayload(
-    response: unknown,
-  ): response is ChatResponsePayload {
-    if (!this.isRecord(response)) {
-      return false;
-    }
-
-    const { choices, usage } = response;
-
-    const usageValid = usage === undefined || this.isRecord(usage);
-    const choicesValid =
-      choices === undefined ||
-      (Array.isArray(choices) &&
-        choices.every((choice) => {
-          if (!this.isRecord(choice)) {
-            return false;
-          }
-
-          if (choice.message === undefined) {
-            return true;
-          }
-
-          return this.isRecord(choice.message);
-        }));
-
-    return choicesValid && usageValid;
-  }
-
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
-  }
-
-  /**
-   * Parses the API response to extract content and token counts.
-   */
-  private parseResponse(
-    response: unknown,
-    model: string,
-    latencyMs: number,
-  ): DialogueAIResponse {
-    const safeResponse = this.isChatResponsePayload(response)
-      ? response
-      : { choices: [], usage: undefined };
-
-    const content = this.extractContent(safeResponse.choices?.[0]);
-    const usage = safeResponse.usage;
-
-    const promptTokens = usage?.promptTokens ?? usage?.prompt_tokens ?? 0;
-    const completionTokens =
-      usage?.completionTokens ?? usage?.completion_tokens ?? 0;
-    const totalTokens = usage?.totalTokens ?? usage?.total_tokens ?? 0;
-
-    const cost = 0;
-
-    this.logger.log(
-      `AI response generated: ${totalTokens} tokens, ${latencyMs}ms`,
-    );
-
-    return {
-      completionTokens,
-      content:
-        content || this.generateFallbackResponse('seed', Date.now()).content,
-      cost,
-      latencyMs,
-      model,
-      promptTokens,
-      totalTokens,
-    };
   }
 }

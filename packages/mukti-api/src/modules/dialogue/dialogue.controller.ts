@@ -14,7 +14,6 @@ import {
   Sse,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
@@ -24,8 +23,7 @@ import type { NodeType } from '../../schemas/node-dialogue.schema';
 import type { Subscription } from '../../schemas/subscription.schema';
 
 import { User, type UserDocument } from '../../schemas/user.schema';
-import { AiPolicyService } from '../ai/services/ai-policy.service';
-import { AiSecretsService } from '../ai/services/ai-secrets.service';
+import { AiConfigService } from '../ai/services/ai-config.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DialogueService } from './dialogue.service';
@@ -60,9 +58,7 @@ export class DialogueController {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
-    private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
+    private readonly aiConfigService: AiConfigService,
     private readonly dialogueQueueService: DialogueQueueService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
@@ -173,41 +169,31 @@ export class DialogueController {
 
     const userRecord = await this.userModel
       .findById(user._id)
-      .select('+openRouterApiKeyEncrypted preferences')
+      .select('preferences')
       .lean();
 
     if (!userRecord) {
       throw new Error('User not found');
     }
 
-    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
-    const serverApiKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!usedByok && !serverApiKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-
-    const validationApiKey = usedByok
-      ? this.aiSecretsService.decryptString(
-          userRecord.openRouterApiKeyEncrypted!,
-        )
-      : serverApiKey;
-
-    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok: usedByok,
+    const resolved = await this.aiConfigService.resolveModelSelection({
       requestedModel: sendMessageDto.model,
       userActiveModel: userRecord.preferences?.activeModel,
-      validationApiKey,
     });
 
-    const shouldPersistModel =
-      !!sendMessageDto.model || !userRecord.preferences?.activeModel;
+    if (!resolved.activeModel) {
+      throw new BadRequestException({
+        error: {
+          code: 'AI_NOT_CONFIGURED',
+          message: 'AI is not configured for this account',
+        },
+      });
+    }
 
-    if (shouldPersistModel) {
+    if (resolved.shouldPersist) {
       await this.userModel.updateOne(
         { _id: user._id },
-        { $set: { 'preferences.activeModel': effectiveModel } },
+        { $set: { 'preferences.activeModel': resolved.activeModel } },
       );
     }
 
@@ -221,8 +207,7 @@ export class DialogueController {
       session.problemStructure,
       sendMessageDto.content,
       subscriptionTier,
-      effectiveModel,
-      usedByok,
+      resolved.activeModel,
     );
 
     return {

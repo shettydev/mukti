@@ -3,8 +3,8 @@ import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateAiSettingsDto {
   @ApiPropertyOptional({
-    description: 'Globally active OpenRouter model id',
-    example: 'openai/gpt-5-mini',
+    description: 'Globally active AI model id',
+    example: 'default-gpt-5-mini',
   })
   @IsOptional()
   @IsString()

@@ -2,8 +2,6 @@ import { create } from 'zustand';
 
 import { aiApi, type AiSettings } from '@/lib/api/ai';
 
-export type AiModelMode = 'curated' | 'openrouter';
-
 export type AiModelOption = {
   id: string;
   label: string;
@@ -11,47 +9,26 @@ export type AiModelOption = {
 
 interface AiStoreState {
   activeModel: null | string;
-  deleteGeminiKey: () => Promise<void>;
-  deleteOpenRouterKey: () => Promise<void>;
-  geminiKeyLast4: null | string;
-  hasGeminiKey: boolean;
-  hasOpenRouterKey: boolean;
+  aiConfigured: boolean;
   hydrate: () => Promise<void>;
   isHydrated: boolean;
-  mode: AiModelMode;
-
   models: AiModelOption[];
-  openRouterKeyLast4: null | string;
   refreshModels: () => Promise<void>;
   setActiveModel: (model: string) => Promise<void>;
-  setGeminiKey: (apiKey: string) => Promise<void>;
-  setOpenRouterKey: (apiKey: string) => Promise<void>;
 }
 
 export const useAiStore = create<AiStoreState>((set, get) => ({
-  activeModel: 'openai/gpt-5-mini',
-  deleteGeminiKey: async () => {
-    await aiApi.deleteGeminiKey();
-    await get().hydrate();
-  },
-  deleteOpenRouterKey: async () => {
-    await aiApi.deleteOpenRouterKey();
-    await get().hydrate();
-  },
-  geminiKeyLast4: null,
-  hasGeminiKey: false,
-  hasOpenRouterKey: false,
+  activeModel: null,
+  aiConfigured: false,
+
   hydrate: async () => {
     try {
       const settings = (await aiApi.getSettings()) as AiSettings;
 
       set({
-        activeModel: settings.activeModel ?? 'openai/gpt-5-mini',
-        geminiKeyLast4: settings.geminiKeyLast4,
-        hasGeminiKey: settings.hasGeminiKey,
-        hasOpenRouterKey: settings.hasOpenRouterKey,
+        activeModel: settings.activeModel ?? null,
+        aiConfigured: settings.aiConfigured,
         isHydrated: true,
-        openRouterKeyLast4: settings.openRouterKeyLast4,
       });
 
       await get().refreshModels();
@@ -60,28 +37,27 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
       console.warn('Failed to hydrate AI store:', error);
     }
   },
+
   isHydrated: false,
-  mode: 'curated',
-
   models: [],
-
-  openRouterKeyLast4: null,
 
   refreshModels: async () => {
     try {
       const modelsResponse = await aiApi.getModels();
+      const mappedModels = modelsResponse.models.map((model) => ({
+        id: model.id,
+        label: model.label,
+      }));
 
-      if (modelsResponse.mode === 'curated') {
-        set({
-          mode: 'curated',
-          models: modelsResponse.models.map((m) => ({ id: m.id, label: m.label })),
-        });
-        return;
-      }
+      set((state) => {
+        const hasExistingModel =
+          !!state.activeModel && mappedModels.some((model) => model.id === state.activeModel);
 
-      set({
-        mode: 'openrouter',
-        models: modelsResponse.models.map((m) => ({ id: m.id, label: m.name })),
+        return {
+          activeModel: hasExistingModel ? state.activeModel : (mappedModels[0]?.id ?? null),
+          aiConfigured: mappedModels.length > 0 || state.aiConfigured,
+          models: mappedModels,
+        };
       });
     } catch (error) {
       console.warn('Failed to refresh models:', error);
@@ -89,17 +65,19 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
   },
 
   setActiveModel: async (model: string) => {
+    const previousModel = get().activeModel;
+
     set({ activeModel: model });
-    await aiApi.updateSettings({ activeModel: model });
-  },
 
-  setGeminiKey: async (apiKey: string) => {
-    await aiApi.setGeminiKey({ apiKey });
-    await get().hydrate();
-  },
-
-  setOpenRouterKey: async (apiKey: string) => {
-    await aiApi.setOpenRouterKey({ apiKey });
-    await get().hydrate();
+    try {
+      const settings = await aiApi.updateSettings({ activeModel: model });
+      set({
+        activeModel: settings.activeModel ?? null,
+        aiConfigured: settings.aiConfigured,
+      });
+    } catch (error) {
+      set({ activeModel: previousModel });
+      throw error;
+    }
   },
 }));

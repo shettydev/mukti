@@ -1,11 +1,9 @@
-import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 import { User } from '../../../schemas/user.schema';
-import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import { AiConfigService } from '../../ai/services/ai-config.service';
 import { ConversationController } from '../conversation.controller';
 import { ConversationService } from '../services/conversation.service';
 import { MessageService } from '../services/message.service';
@@ -67,16 +65,12 @@ describe('ConversationController', () => {
     removeConnection: jest.fn(),
   };
 
-  const mockConfigService = {
-    get: jest.fn().mockReturnValue('mock-api-key'),
-  };
-
-  const mockAiPolicyService = {
-    resolveEffectiveModel: jest.fn().mockResolvedValue(undefined),
-  };
-
-  const mockAiSecretsService = {
-    decryptString: jest.fn(),
+  const mockAiConfigService = {
+    resolveModelSelection: jest.fn().mockResolvedValue({
+      activeModel: 'test-model',
+      aiConfigured: true,
+      shouldPersist: false,
+    }),
   };
 
   const mockUserModel = {
@@ -99,16 +93,8 @@ describe('ConversationController', () => {
           useValue: mockUserModel,
         },
         {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-        {
-          provide: AiPolicyService,
-          useValue: mockAiPolicyService,
-        },
-        {
-          provide: AiSecretsService,
-          useValue: mockAiSecretsService,
+          provide: AiConfigService,
+          useValue: mockAiConfigService,
         },
         {
           provide: ConversationService,
@@ -554,8 +540,7 @@ describe('ConversationController', () => {
         sendMessageDto.content,
         'free',
         'elenchus',
-        undefined,
-        false,
+        'test-model',
       );
     });
   });

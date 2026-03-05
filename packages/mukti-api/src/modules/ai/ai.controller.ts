@@ -1,27 +1,33 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Put,
+  UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 
 import { User, UserDocument } from '../../schemas/user.schema';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
-import { SetGeminiKeyDto } from './dto/gemini-key.dto';
-import { SetOpenRouterKeyDto } from './dto/openrouter-key.dto';
-import { AiPolicyService } from './services/ai-policy.service';
-import { AiSecretsService } from './services/ai-secrets.service';
-import { OpenRouterModelsService } from './services/openrouter-models.service';
+import { ToggleAiModelDto, UpsertAiModelDto } from './dto/admin-model.dto';
+import {
+  SetProviderApiKeyDto,
+  ToggleProviderDto,
+} from './dto/admin-provider.dto';
+import {
+  AiConfigService,
+  type AiModelSelectionResult,
+} from './services/ai-config.service';
 
 @ApiTags('AI')
 @Controller('ai')
@@ -29,33 +35,115 @@ export class AiController {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
-    private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
-    private readonly openRouterModelsService: OpenRouterModelsService,
-    private readonly configService: ConfigService,
+    private readonly aiConfigService: AiConfigService,
   ) {}
+
+  @Get('admin/models')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async getAdminModels() {
+    const models = await this.aiConfigService.getAdminModels();
+
+    return {
+      data: { models },
+      success: true,
+    };
+  }
+
+  @Get('admin/providers')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async getAdminProviders() {
+    const providers = await this.aiConfigService.getAdminProviders();
+
+    return {
+      data: { providers },
+      success: true,
+    };
+  }
+
+  @Get('models')
+  async getModels() {
+    const models = await this.aiConfigService.getClientModels();
+
+    return {
+      data: {
+        models,
+      },
+      success: true,
+    };
+  }
 
   @Get('settings')
   async getSettings(@CurrentUser('_id') userId: string) {
     const user = await this.userModel
       .findById(userId)
-      .select(
-        'preferences openRouterApiKeyLast4 openRouterApiKeyUpdatedAt geminiApiKeyLast4 geminiApiKeyUpdatedAt',
-      )
+      .select('preferences')
       .lean();
 
     if (!user) {
       throw new Error('User not found');
     }
 
+    const resolved = await this.aiConfigService.resolveModelSelection({
+      userActiveModel: user.preferences?.activeModel,
+    });
+
+    await this.persistResolvedModel(userId, resolved);
+
     return {
       data: {
-        activeModel: user.preferences?.activeModel,
-        geminiKeyLast4: user.geminiApiKeyLast4 ?? null,
-        hasGeminiKey: !!user.geminiApiKeyUpdatedAt,
-        hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,
-        openRouterKeyLast4: user.openRouterApiKeyLast4 ?? null,
+        activeModel: resolved.activeModel,
+        aiConfigured: resolved.aiConfigured,
       },
+      success: true,
+    };
+  }
+
+  @Delete('admin/models/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async deleteAdminModel(@Param('id') id: string) {
+    await this.aiConfigService.deleteModelConfig(id);
+
+    return {
+      data: { id },
+      success: true,
+    };
+  }
+
+  @Patch('admin/models/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async patchAdminModel(
+    @Param('id') id: string,
+    @Body() dto: ToggleAiModelDto,
+  ) {
+    const model = await this.aiConfigService.setModelActive(id, dto.isActive);
+
+    return {
+      data: model,
+      success: true,
+    };
+  }
+
+  @Patch('admin/providers/:provider')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async patchAdminProvider(
+    @Param('provider') provider: string,
+    @Body() dto: ToggleProviderDto,
+  ) {
+    const updatedProvider = await this.aiConfigService.setProviderActive(
+      provider,
+      dto.isActive,
+    );
+
+    return {
+      data: updatedProvider,
       success: true,
     };
   }
@@ -65,274 +153,82 @@ export class AiController {
     @CurrentUser('_id') userId: string,
     @Body() dto: UpdateAiSettingsDto,
   ) {
-    if (!dto.activeModel) {
-      return {
-        data: { activeModel: null },
-        success: true,
-      };
-    }
-
-    const user = await this.userModel
-      .findById(userId)
-      .select('+openRouterApiKeyEncrypted preferences')
-      .lean();
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
-
-    const validationApiKey = this.getValidationApiKey({ hasByok, user });
-
-    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok,
-      requestedModel: dto.activeModel,
-      userActiveModel: user.preferences?.activeModel,
-      validationApiKey,
-    });
-
-    await this.userModel.updateOne(
-      { _id: userId },
-      { $set: { 'preferences.activeModel': effectiveModel } },
-    );
-
-    return {
-      data: { activeModel: effectiveModel },
-      success: true,
-    };
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Put('openrouter-key')
-  async setOpenRouterKey(
-    @CurrentUser('_id') userId: string,
-    @Body() dto: SetOpenRouterKeyDto,
-  ) {
-    const apiKey = dto.apiKey.trim();
-
-    if (!apiKey) {
-      throw new BadRequestException({
-        error: {
-          code: 'INVALID_API_KEY',
-          message: 'API key is required',
-        },
-      });
-    }
-
-    // Validate key works by listing models.
-    try {
-      await this.openRouterModelsService.listModels(apiKey);
-    } catch {
-      throw new BadRequestException({
-        error: {
-          code: 'INVALID_OPENROUTER_API_KEY',
-          message: 'OpenRouter API key is invalid',
-        },
-      });
-    }
-
-    const encrypted = this.aiSecretsService.encryptString(apiKey);
-    const last4 = apiKey.slice(-4);
-
-    await this.userModel.updateOne(
-      { _id: userId },
-      {
-        $set: {
-          openRouterApiKeyEncrypted: encrypted,
-          openRouterApiKeyLast4: last4,
-          openRouterApiKeyUpdatedAt: new Date(),
-        },
-      },
-    );
-
-    return {
-      data: {
-        hasOpenRouterKey: true,
-        openRouterKeyLast4: last4,
-      },
-      success: true,
-    };
-  }
-
-  @Delete('openrouter-key')
-  @HttpCode(HttpStatus.OK)
-  async deleteOpenRouterKey(@CurrentUser('_id') userId: string) {
-    await this.userModel.updateOne(
-      { _id: userId },
-      {
-        $unset: {
-          openRouterApiKeyEncrypted: 1,
-          openRouterApiKeyLast4: 1,
-          openRouterApiKeyUpdatedAt: 1,
-        },
-      },
-    );
-
-    // If activeModel is not curated, reset to default.
     const user = await this.userModel
       .findById(userId)
       .select('preferences')
       .lean();
-    const activeModel = user?.preferences?.activeModel;
-    const isCurated = this.aiPolicyService
-      .getCuratedModels()
-      .some((m) => m.id === activeModel);
-
-    if (!isCurated) {
-      await this.userModel.updateOne(
-        { _id: userId },
-        {
-          $set: {
-            'preferences.activeModel': this.aiPolicyService.getDefaultModel(),
-          },
-        },
-      );
-    }
-
-    return {
-      data: {
-        hasOpenRouterKey: false,
-        openRouterKeyLast4: null,
-      },
-      success: true,
-    };
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Put('gemini-key')
-  async setGeminiKey(
-    @CurrentUser('_id') userId: string,
-    @Body() dto: SetGeminiKeyDto,
-  ) {
-    const apiKey = dto.apiKey.trim();
-
-    if (!apiKey) {
-      throw new BadRequestException({
-        error: {
-          code: 'INVALID_API_KEY',
-          message: 'API key is required',
-        },
-      });
-    }
-
-    // TODO: Validate key by listing models or making a dummy call.
-    // For now, we trust the format check.
-
-    const encrypted = this.aiSecretsService.encryptString(apiKey);
-    const last4 = apiKey.slice(-4);
-
-    await this.userModel.updateOne(
-      { _id: userId },
-      {
-        $set: {
-          geminiApiKeyEncrypted: encrypted,
-          geminiApiKeyLast4: last4,
-          geminiApiKeyUpdatedAt: new Date(),
-        },
-      },
-    );
-
-    return {
-      data: {
-        geminiKeyLast4: last4,
-        hasGeminiKey: true,
-      },
-      success: true,
-    };
-  }
-
-  @Delete('gemini-key')
-  @HttpCode(HttpStatus.OK)
-  async deleteGeminiKey(@CurrentUser('_id') userId: string) {
-    await this.userModel.updateOne(
-      { _id: userId },
-      {
-        $unset: {
-          geminiApiKeyEncrypted: 1,
-          geminiApiKeyLast4: 1,
-          geminiApiKeyUpdatedAt: 1,
-        },
-      },
-    );
-
-    return {
-      data: {
-        geminiKeyLast4: null,
-        hasGeminiKey: false,
-      },
-      success: true,
-    };
-  }
-
-  @Get('models')
-  async getModels(@CurrentUser('_id') userId: string) {
-    const user = await this.userModel
-      .findById(userId)
-      .select('+openRouterApiKeyEncrypted preferences')
-      .lean();
 
     if (!user) {
       throw new Error('User not found');
     }
 
-    const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
+    const resolved = await this.aiConfigService.resolveModelSelection({
+      requestedModel: dto.activeModel,
+      userActiveModel: user.preferences?.activeModel,
+    });
 
-    if (!hasByok) {
-      const validationApiKey =
-        this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-      if (validationApiKey) {
-        // Ensure curated defaults exist.
-        await Promise.all(
-          this.aiPolicyService.getCuratedModels().map((m) =>
-            this.aiPolicyService.validateModelOrThrow({
-              apiKey: validationApiKey,
-              model: m.id,
-            }),
-          ),
-        );
-      }
-
-      return {
-        data: {
-          mode: 'curated',
-          models: this.aiPolicyService.getCuratedModels(),
-        },
-        success: true,
-      };
-    }
-
-    const byokKey = this.aiSecretsService.decryptString(
-      user.openRouterApiKeyEncrypted!,
-    );
-    const models = await this.openRouterModelsService.listModels(byokKey);
+    await this.persistResolvedModel(userId, resolved);
 
     return {
       data: {
-        mode: 'openrouter',
-        models: models.map((m) => ({
-          id: m.id,
-          name: m.name,
-        })),
+        activeModel: resolved.activeModel,
+        aiConfigured: resolved.aiConfigured,
       },
       success: true,
     };
   }
 
-  private getValidationApiKey(params: { hasByok: boolean; user: any }): string {
-    if (params.hasByok) {
-      return this.aiSecretsService.decryptString(
-        params.user.openRouterApiKeyEncrypted,
+  @Put('admin/models/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async putAdminModel(@Param('id') id: string, @Body() dto: UpsertAiModelDto) {
+    const model = await this.aiConfigService.upsertModelConfig(id, dto);
+
+    return {
+      data: model,
+      success: true,
+    };
+  }
+
+  @Put('admin/providers/:provider')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async putAdminProvider(
+    @Param('provider') provider: string,
+    @Body() dto: SetProviderApiKeyDto,
+  ) {
+    const updatedProvider = await this.aiConfigService.setProviderApiKey(
+      provider,
+      dto.apiKey,
+    );
+
+    return {
+      data: updatedProvider,
+      success: true,
+    };
+  }
+
+  private async persistResolvedModel(
+    userId: string,
+    resolved: AiModelSelectionResult,
+  ): Promise<void> {
+    if (!resolved.shouldPersist) {
+      return;
+    }
+
+    if (!resolved.activeModel) {
+      await this.userModel.updateOne(
+        { _id: userId },
+        { $unset: { 'preferences.activeModel': 1 } },
       );
+      return;
     }
 
-    const serverKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-
-    return serverKey;
+    await this.userModel.updateOne(
+      { _id: userId },
+      { $set: { 'preferences.activeModel': resolved.activeModel } },
+    );
   }
 }

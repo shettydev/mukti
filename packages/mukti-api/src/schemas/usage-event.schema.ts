@@ -8,12 +8,15 @@ export interface UsageEventMetadata {
   completionTokens?: number;
   conversationId?: Types.ObjectId;
   cost?: number;
+  costUsd?: number;
   error?: string;
   latencyMs?: number;
   model?: string;
   promptTokens?: number;
+  provider?: string;
   statusCode?: number;
   technique?: string;
+  totalTokens?: number;
   tokens?: number;
 }
 

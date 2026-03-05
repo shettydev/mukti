@@ -22,7 +22,6 @@ import { AiModule } from '../ai/ai.module';
 import { ConversationController } from './conversation.controller';
 import { ConversationService } from './services/conversation.service';
 import { MessageService } from './services/message.service';
-import { OpenRouterService } from './services/openrouter.service';
 import { QueueService } from './services/queue.service';
 import { SeedService } from './services/seed.service';
 import { StreamService } from './services/stream.service';
@@ -46,7 +45,6 @@ import { StreamService } from './services/stream.service';
     SeedService,
     ConversationService,
     MessageService,
-    OpenRouterService,
     QueueService,
     StreamService,
   ],
@@ -98,7 +96,6 @@ import { StreamService } from './services/stream.service';
     SeedService,
     ConversationService,
     MessageService,
-    OpenRouterService,
     QueueService,
     StreamService,
   ],

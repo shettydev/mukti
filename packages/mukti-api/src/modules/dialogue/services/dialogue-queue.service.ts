@@ -1,6 +1,5 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
@@ -9,16 +8,9 @@ import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
 
 import {
-  CanvasSession,
-  CanvasSessionDocument,
-} from '../../../schemas/canvas-session.schema';
-import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { User, UserDocument } from '../../../schemas/user.schema';
-import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
 import { DialogueAIService } from '../dialogue-ai.service';
 import { DialogueService } from '../dialogue.service';
 import { DialogueStreamService } from './dialogue-stream.service';
@@ -35,7 +27,6 @@ export interface DialogueRequestJobData {
   problemStructure: ProblemStructure;
   sessionId: string;
   subscriptionTier: string;
-  usedByok: boolean;
   userId: string;
 }
 
@@ -66,15 +57,8 @@ export class DialogueQueueService extends WorkerHost {
       DialogueRequestJobData,
       DialogueRequestJobResult
     >,
-    @InjectModel(CanvasSession.name)
-    private canvasSessionModel: Model<CanvasSessionDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
-    @InjectModel(User.name)
-    private userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
-    private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
     private readonly dialogueAIService: DialogueAIService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
@@ -95,7 +79,6 @@ export class DialogueQueueService extends WorkerHost {
     message: string,
     subscriptionTier: string,
     model: string,
-    usedByok: boolean,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = this.formatId(userId);
 
@@ -115,7 +98,6 @@ export class DialogueQueueService extends WorkerHost {
         problemStructure,
         sessionId,
         subscriptionTier,
-        usedByok,
         userId: userIdString,
       };
 
@@ -213,7 +195,6 @@ export class DialogueQueueService extends WorkerHost {
       problemStructure,
       sessionId,
       subscriptionTier: _subscriptionTier,
-      usedByok,
       userId,
     } = job.data;
 
@@ -285,17 +266,13 @@ export class DialogueQueueService extends WorkerHost {
         },
       );
 
-      const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.resolveApiKey(userId, usedByok);
-
       // Generate AI response
       const aiResponse = await this.dialogueAIService.generateResponse(
         { nodeId, nodeLabel, nodeType },
         problemStructure,
         historyResult.messages,
         message,
-        effectiveModel,
-        apiKey,
+        model,
       );
 
       // Add AI response to dialogue
@@ -304,9 +281,14 @@ export class DialogueQueueService extends WorkerHost {
         'assistant',
         aiResponse.content,
         {
+          completionTokens: aiResponse.completionTokens,
+          costUsd: aiResponse.cost,
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
+          promptTokens: aiResponse.promptTokens,
+          provider: aiResponse.provider,
           tokens: aiResponse.totalTokens,
+          totalTokens: aiResponse.totalTokens,
         },
       );
 
@@ -333,14 +315,17 @@ export class DialogueQueueService extends WorkerHost {
         metadata: {
           completionTokens: aiResponse.completionTokens,
           cost: aiResponse.cost,
+          costUsd: aiResponse.cost,
           dialogueId: dialogue._id,
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
           nodeId,
           nodeType,
           promptTokens: aiResponse.promptTokens,
+          provider: aiResponse.provider,
           sessionId: new Types.ObjectId(sessionId),
           tokens: aiResponse.totalTokens,
+          totalTokens: aiResponse.totalTokens,
         },
         timestamp: new Date(),
         userId: new Types.ObjectId(userId),
@@ -411,54 +396,5 @@ export class DialogueQueueService extends WorkerHost {
 
   private getErrorStack(error: unknown): string | undefined {
     return error instanceof Error ? error.stack : undefined;
-  }
-
-  private async resolveApiKey(
-    userId: string,
-    usedByok: boolean,
-  ): Promise<string> {
-    if (usedByok) {
-      const user = await this.userModel
-        .findById(userId)
-        .select('+openRouterApiKeyEncrypted')
-        .lean();
-
-      if (!user?.openRouterApiKeyEncrypted) {
-        throw new Error('OPENROUTER_KEY_MISSING');
-      }
-
-      return this.aiSecretsService.decryptString(
-        user.openRouterApiKeyEncrypted,
-      );
-    }
-
-    const serverKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-
-    return serverKey;
-  }
-
-  private validateEffectiveModel(model: string, usedByok: boolean): string {
-    const trimmed = model.trim();
-
-    if (!trimmed) {
-      throw new Error('Model is required');
-    }
-
-    if (!usedByok) {
-      const isCurated = this.aiPolicyService
-        .getCuratedModels()
-        .some((allowed) => allowed.id === trimmed);
-
-      if (!isCurated) {
-        throw new Error('MODEL_NOT_ALLOWED');
-      }
-    }
-
-    return trimmed;
   }
 }

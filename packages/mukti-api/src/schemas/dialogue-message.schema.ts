@@ -7,12 +7,22 @@ export type DialogueMessageDocument = DialogueMessage & Document;
  * Metadata for AI-generated messages.
  */
 export interface DialogueMessageMetadata {
+  /** Completion token count for the model response */
+  completionTokens?: number;
+  /** Estimated cost in USD for the model response */
+  costUsd?: number;
   /** Time taken to generate the response in milliseconds */
   latencyMs?: number;
   /** AI model used for generation */
   model?: string;
+  /** Token count for the prompt */
+  promptTokens?: number;
+  /** Provider used to generate this response */
+  provider?: string;
   /** Token count for the message */
   tokens?: number;
+  /** Total token count for prompt + completion */
+  totalTokens?: number;
 }
 
 /**
