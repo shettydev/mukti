@@ -79,6 +79,8 @@ const requiredFiles = [
   'docs/reference/data/data-modelling.md',
   'docs/reference/data/images/mukti-data-modelling.png',
   'docs/reference/planning/unified-thinking-model.md',
+  'docs/rfcs/README.md',
+  'docs/rfcs/STANDARDS.md',
   'docs/rfcs/active/rfc-0001-knowledge-gap-detection/index.md',
   'docs/rfcs/active/rfc-0002-adaptive-scaffolding-framework/index.md',
 ];
