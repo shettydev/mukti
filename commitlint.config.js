@@ -32,8 +32,9 @@ const scopes = [
   // Release
   'release',
 
-  // kiro
+  // ai
   'kiro',
+  'opencode',
 ];
 
 module.exports = {
