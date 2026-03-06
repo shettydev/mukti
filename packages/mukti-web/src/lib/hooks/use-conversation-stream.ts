@@ -137,6 +137,7 @@ export type SSEErrorType =
   | 'authentication' // 401 - Invalid or missing token
   | 'authorization' // 403 - User doesn't own conversation
   | 'connection' // Network/connection errors
+  | 'insufficient_credits' // 402 - OpenRouter credits/token budget exceeded
   | 'not_found' // 404 - Conversation not found
   | 'rate_limit' // 429 - Rate limit exceeded
   | 'server'; // 500 - Server error
@@ -206,6 +207,27 @@ export class SSEError extends Error {
     super(message);
     this.name = 'SSEError';
   }
+}
+
+const OPENROUTER_CREDITS_ERROR_CODE = 'OPENROUTER_INSUFFICIENT_CREDITS';
+const OPENROUTER_SETTINGS_URL = 'https://openrouter.ai/settings/keys';
+
+export function normalizeStreamErrorEvent(event: ErrorEvent): ErrorEvent {
+  const rawMessage = event.data.message?.trim();
+
+  if (!rawMessage || !isOpenRouterCreditsError(rawMessage)) {
+    return event;
+  }
+
+  return {
+    ...event,
+    data: {
+      ...event.data,
+      code: OPENROUTER_CREDITS_ERROR_CODE,
+      message: buildOpenRouterCreditsErrorMessage(rawMessage),
+      retriable: false,
+    },
+  };
 }
 
 /**
@@ -351,9 +373,11 @@ export function useConversationStream(options: UseConversationStreamOptions) {
         }
 
         case 'error': {
+          const normalizedErrorEvent = normalizeStreamErrorEvent(event);
+
           // Call error event callback for component-specific logic
           // Components can use this to show error messages and handle retry
-          callbacksRef.current.onErrorEvent?.(event);
+          callbacksRef.current.onErrorEvent?.(normalizedErrorEvent);
           break;
         }
 
@@ -476,6 +500,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
         });
 
         const statusCode = response.status;
+        const responseText = statusCode === 402 ? await response.text().catch(() => '') : '';
 
         // Handle different error types based on status code
         switch (statusCode) {
@@ -486,6 +511,15 @@ export function useConversationStream(options: UseConversationStreamOptions) {
               'Authentication failed. Please log in again.',
               'authentication',
               401
+            );
+
+          case 402:
+            // OpenRouter credits / token budget issue - don't retry
+            reconnectionRef.current.shouldRetry = false;
+            return new SSEError(
+              buildOpenRouterCreditsErrorMessage(responseText),
+              'insufficient_credits',
+              402
             );
 
           case 403:
@@ -653,6 +687,23 @@ export function useConversationStream(options: UseConversationStreamOptions) {
   };
 }
 
+function buildOpenRouterCreditsErrorMessage(rawMessage: string): string {
+  const requestedVsAvailableMatch = rawMessage.match(
+    /requested up to\s+([\d,]+)\s+tokens,\s*but can only afford\s+([\d,]+)/i
+  );
+  const settingsUrlMatch = rawMessage.match(/https?:\/\/[^\s"'}]+/i);
+  const settingsUrl = settingsUrlMatch?.[0] ?? OPENROUTER_SETTINGS_URL;
+
+  if (requestedVsAvailableMatch) {
+    const requestedTokens = requestedVsAvailableMatch[1];
+    const availableTokens = requestedVsAvailableMatch[2];
+
+    return `Not enough OpenRouter credits for this request (${requestedTokens} requested, ${availableTokens} available). Reduce max tokens or create a key with a higher total limit: ${settingsUrl}`;
+  }
+
+  return `Not enough OpenRouter credits for this request. Reduce max tokens or create a key with a higher total limit: ${settingsUrl}`;
+}
+
 /**
  * Calculate exponential backoff delay
  *
@@ -667,4 +718,13 @@ function calculateBackoff(attempt: number): number {
   const delay = Math.min(BASE_DELAY * Math.pow(2, attempt), MAX_DELAY);
 
   return delay;
+}
+
+function isOpenRouterCreditsError(rawMessage: string): boolean {
+  const hasPaymentRequiredSignal =
+    /\bstatus\s*402\b/i.test(rawMessage) || /"code"\s*:\s*402/i.test(rawMessage);
+  const hasCreditOrTokenSignal =
+    /requires more credits|fewer max_tokens|can only afford|higher total limit/i.test(rawMessage);
+
+  return hasPaymentRequiredSignal && hasCreditOrTokenSignal;
 }

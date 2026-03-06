@@ -3,11 +3,19 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
+type RfcLocation = 'active' | 'archive';
+type ReadmeSectionName = 'Active RFCs' | 'Implemented RFCs' | 'Archive';
+type RfcStatus = 'Draft' | 'In Review' | 'Accepted' | 'Implemented' | 'Rejected' | 'Superseded';
+
+interface RfcDirectoryRecord {
+  readmeLink: string;
+  status: RfcStatus;
+}
+
 const repoRoot = process.cwd();
 const rfcsRoot = path.join(repoRoot, 'docs', 'rfcs');
 const activeRoot = path.join(rfcsRoot, 'active');
 const archiveRoot = path.join(rfcsRoot, 'archive');
-const legacyRoot = path.join(archiveRoot, 'legacy');
 const readmePath = path.join(rfcsRoot, 'README.md');
 
 const errors: string[] = [];
@@ -21,16 +29,37 @@ const requiredMetadataRows = [
   'Created',
   'Last Updated',
 ];
-const allowedStatuses = new Set([
+
+const allStatuses: RfcStatus[] = [
   'Draft',
   'In Review',
   'Accepted',
+  'Implemented',
   'Rejected',
   'Superseded',
-  'Implemented',
+];
+
+const activeAllowedStatuses: RfcStatus[] = ['Draft', 'In Review', 'Accepted', 'Implemented'];
+const archiveAllowedStatuses: RfcStatus[] = ['Rejected', 'Superseded'];
+
+const allowedStatuses = new Set<RfcStatus>(allStatuses);
+const allowedActiveStatuses = new Set<RfcStatus>(activeAllowedStatuses);
+const allowedArchiveStatuses = new Set<RfcStatus>(archiveAllowedStatuses);
+
+const allowedStatusList = allStatuses.join(', ');
+const activeStatusList = activeAllowedStatuses.join(', ');
+const archiveStatusList = archiveAllowedStatuses.join(', ');
+
+const statusToReadmeSection = new Map<RfcStatus, ReadmeSectionName>([
+  ['Draft', 'Active RFCs'],
+  ['In Review', 'Active RFCs'],
+  ['Accepted', 'Active RFCs'],
+  ['Implemented', 'Implemented RFCs'],
+  ['Rejected', 'Archive'],
+  ['Superseded', 'Archive'],
 ]);
-const activeStatuses = new Set(['Draft', 'In Review', 'Accepted']);
-const archivedStatuses = new Set(['Rejected', 'Superseded', 'Implemented']);
+
+const readmeSections: ReadmeSectionName[] = ['Active RFCs', 'Implemented RFCs', 'Archive'];
 
 function fail(message: string) {
   errors.push(message);
@@ -45,23 +74,32 @@ function countOccurrences(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
 }
 
-function inferStatus(rawStatusCell: string): string | null {
-  const ordered = ['In Review', 'Implemented', 'Superseded', 'Rejected', 'Accepted', 'Draft'];
+function inferStatus(rawStatusCell: string): RfcStatus | null {
+  const ordered: RfcStatus[] = [
+    'In Review',
+    'Implemented',
+    'Superseded',
+    'Rejected',
+    'Accepted',
+    'Draft',
+  ];
+
   for (const candidate of ordered) {
     const re = new RegExp(`\\b${candidate}\\b`, 'i');
     if (re.test(rawStatusCell)) return candidate;
   }
+
   return null;
 }
 
-function readRfcDirectories(dir: string, skip = new Set<string>()): string[] {
+function readRfcDirectories(dir: string): string[] {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir)
-    .filter((entry) => !skip.has(entry))
-    .filter((entry) => {
-      const fullPath = path.join(dir, entry);
-      return statSync(fullPath).isDirectory();
-    });
+  if (!statSync(dir).isDirectory()) return [];
+
+  return readdirSync(dir).filter((entry) => {
+    const fullPath = path.join(dir, entry);
+    return statSync(fullPath).isDirectory();
+  });
 }
 
 function extractMetadataValue(content: string, field: string): string | null {
@@ -106,19 +144,16 @@ function validateRequiredMetadata(content: string, indexPath: string): Map<strin
   return values;
 }
 
-type Lifecycle = 'active' | 'archive';
-
 function validateRfcDirectory(
   baseDir: string,
   dirName: string,
-  lifecycle: Lifecycle,
-  readme: string,
+  location: RfcLocation,
   seenNumbers: Map<string, string>
-): void {
+): RfcDirectoryRecord | null {
   const match = dirName.match(folderPattern);
   if (!match) {
-    fail(`${lifecycle} RFC folder name is invalid: ${dirName}`);
-    return;
+    fail(`RFC folder name is invalid under ${location}/: ${dirName}`);
+    return null;
   }
 
   const folderRfcNumber = match[1];
@@ -127,7 +162,7 @@ function validateRfcDirectory(
 
   if (!existsSync(indexPath)) {
     fail(`Missing canonical file: ${relIndexPath}`);
-    return;
+    return null;
   }
 
   const content = readFileSync(indexPath, 'utf8');
@@ -137,6 +172,7 @@ function validateRfcDirectory(
   if (rfcNumber && !/^\d{4}$/.test(rfcNumber)) {
     fail(`RFC Number must be 4 digits in ${relIndexPath} (found: ${rfcNumber})`);
   }
+
   if (rfcNumber && rfcNumber !== folderRfcNumber) {
     fail(
       `RFC number mismatch in ${relIndexPath}: folder=${folderRfcNumber}, document=${rfcNumber}`
@@ -145,38 +181,98 @@ function validateRfcDirectory(
 
   if (seenNumbers.has(folderRfcNumber)) {
     fail(
-      `Duplicate RFC number ${folderRfcNumber} in ${seenNumbers.get(folderRfcNumber)} and ${path.join(lifecycle, dirName)}`
+      `Duplicate RFC number ${folderRfcNumber} in ${seenNumbers.get(folderRfcNumber)} and ${path.join(location, dirName)}`
     );
   } else {
-    seenNumbers.set(folderRfcNumber, path.join(lifecycle, dirName));
+    seenNumbers.set(folderRfcNumber, path.join(location, dirName));
   }
 
   const statusCell = metadata.get('Status');
-  if (!statusCell) return;
+  if (!statusCell) return null;
 
   const normalizedStatus = inferStatus(statusCell);
   if (!normalizedStatus || !allowedStatuses.has(normalizedStatus)) {
-    fail(`Unsupported status in ${relIndexPath}: ${statusCell}`);
-    return;
+    fail(
+      `Unsupported status in ${relIndexPath}: ${statusCell}. Allowed values: ${allowedStatusList}.`
+    );
+    return null;
   }
 
-  if (lifecycle === 'active' && !activeStatuses.has(normalizedStatus)) {
+  if (location === 'active' && !allowedActiveStatuses.has(normalizedStatus)) {
     fail(
-      `Active RFC ${relIndexPath} has non-active status "${normalizedStatus}" and should be moved to archive/`
+      `Active RFC ${relIndexPath} has status "${normalizedStatus}". Allowed values in active/: ${activeStatusList}.`
     );
   }
 
-  if (lifecycle === 'archive' && !archivedStatuses.has(normalizedStatus)) {
+  if (location === 'archive' && !allowedArchiveStatuses.has(normalizedStatus)) {
     fail(
-      `Archived RFC ${relIndexPath} has status "${normalizedStatus}" and should live under active/`
+      `Archived RFC ${relIndexPath} has status "${normalizedStatus}". Allowed values in archive/: ${archiveStatusList}.`
     );
   }
 
-  if (lifecycle === 'active') {
-    const readmeLink = `./active/${dirName}/index.md`;
-    const occurrences = countOccurrences(readme, `(${readmeLink})`);
-    if (occurrences !== 1) {
-      fail(`README index must reference ${readmeLink} exactly once (found ${occurrences}).`);
+  return {
+    readmeLink: `./${location}/${dirName}/index.md`,
+    status: normalizedStatus,
+  };
+}
+
+function extractReadmeSection(readme: string, section: ReadmeSectionName): string | null {
+  const headingRegex = new RegExp(`^###\\s+${escapeRegExp(section)}\\s*$`, 'm');
+  const headingMatch = headingRegex.exec(readme);
+
+  if (!headingMatch) {
+    fail(`Missing README section heading: ${section}`);
+    return null;
+  }
+
+  const sectionStart = headingMatch.index + headingMatch[0].length;
+  const remainder = readme.slice(sectionStart);
+  const nextHeadingMatch = /^###\s+.+$/m.exec(remainder);
+  const sectionEnd = nextHeadingMatch ? sectionStart + nextHeadingMatch.index : readme.length;
+
+  return readme.slice(sectionStart, sectionEnd);
+}
+
+function validateReadmePlacement(readme: string, records: RfcDirectoryRecord[]) {
+  const sectionContent: Record<ReadmeSectionName, string> = {
+    'Active RFCs': '',
+    'Implemented RFCs': '',
+    Archive: '',
+  };
+
+  for (const section of readmeSections) {
+    const content = extractReadmeSection(readme, section);
+    if (content !== null) {
+      sectionContent[section] = content;
+    }
+  }
+
+  for (const record of records) {
+    const expectedSection = statusToReadmeSection.get(record.status);
+    if (!expectedSection) continue;
+
+    const needle = `(${record.readmeLink})`;
+    const globalOccurrences = countOccurrences(readme, needle);
+
+    if (globalOccurrences !== 1) {
+      fail(
+        `README index must reference ${record.readmeLink} exactly once (found ${globalOccurrences}).`
+      );
+    }
+
+    for (const section of readmeSections) {
+      const occurrences = countOccurrences(sectionContent[section], needle);
+      if (section === expectedSection && occurrences !== 1) {
+        fail(
+          `${record.readmeLink} (status: ${record.status}) must appear exactly once in README section "${expectedSection}" (found ${occurrences}).`
+        );
+      }
+
+      if (section !== expectedSection && occurrences !== 0) {
+        fail(
+          `${record.readmeLink} (status: ${record.status}) must not appear in README section "${section}" (found ${occurrences}).`
+        );
+      }
     }
   }
 }
@@ -184,15 +280,18 @@ function validateRfcDirectory(
 if (!existsSync(rfcsRoot)) {
   fail('Missing docs/rfcs directory.');
 }
+
 if (!existsSync(activeRoot)) {
   fail('Missing docs/rfcs/active directory.');
+} else if (!statSync(activeRoot).isDirectory()) {
+  fail('docs/rfcs/active must be a directory.');
 }
-if (!existsSync(archiveRoot)) {
-  fail('Missing docs/rfcs/archive directory.');
+
+const archiveExists = existsSync(archiveRoot);
+if (archiveExists && !statSync(archiveRoot).isDirectory()) {
+  fail('docs/rfcs/archive must be a directory when present.');
 }
-if (!existsSync(legacyRoot)) {
-  fail('Missing docs/rfcs/archive/legacy directory.');
-}
+
 if (!existsSync(readmePath)) {
   fail('Missing docs/rfcs/README.md.');
 }
@@ -200,15 +299,26 @@ if (!existsSync(readmePath)) {
 const readme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : '';
 
 const activeDirs = readRfcDirectories(activeRoot);
-const archiveDirs = readRfcDirectories(archiveRoot, new Set(['legacy']));
+const archiveDirs = archiveExists ? readRfcDirectories(archiveRoot) : [];
 const seenNumbers = new Map<string, string>();
+const records: RfcDirectoryRecord[] = [];
 
 for (const dirName of activeDirs) {
-  validateRfcDirectory(activeRoot, dirName, 'active', readme, seenNumbers);
+  const record = validateRfcDirectory(activeRoot, dirName, 'active', seenNumbers);
+  if (record) {
+    records.push(record);
+  }
 }
 
 for (const dirName of archiveDirs) {
-  validateRfcDirectory(archiveRoot, dirName, 'archive', readme, seenNumbers);
+  const record = validateRfcDirectory(archiveRoot, dirName, 'archive', seenNumbers);
+  if (record) {
+    records.push(record);
+  }
+}
+
+if (existsSync(readmePath)) {
+  validateReadmePlacement(readme, records);
 }
 
 if (errors.length > 0) {
@@ -220,5 +330,5 @@ if (errors.length > 0) {
 }
 
 console.log(
-  `RFC standards check passed (${activeDirs.length} active, ${archiveDirs.length} archived RFC folders validated).`
+  `RFC standards check passed (${activeDirs.length} active RFC folders validated, ${archiveDirs.length} archived RFC folders validated).`
 );

@@ -10,6 +10,7 @@ import { ConversationsModule } from './modules/conversations/conversations.modul
 import { DatabaseModule } from './modules/database/database.module';
 import { DialogueModule } from './modules/dialogue/dialogue.module';
 import { HealthModule } from './modules/health/health.module';
+import { KnowledgeTracingModule } from './modules/knowledge-tracing/knowledge-tracing.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ConversationsModule,
     DialogueModule,
     HealthModule,
+    KnowledgeTracingModule,
     WaitlistModule,
   ],
   providers: [

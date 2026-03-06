@@ -30,7 +30,19 @@ export class Conversation {
   // Virtual fields
   _id: Types.ObjectId;
 
+  @Prop({ default: 0, type: Number })
+  consecutiveFailures: number;
+
+  @Prop({ default: 0, type: Number })
+  consecutiveSuccesses: number;
+
   createdAt: Date;
+
+  @Prop({ default: 0, type: Number })
+  currentScaffoldLevel: number;
+
+  @Prop({ default: [], type: [String] })
+  detectedConcepts: string[];
 
   @Prop({ default: false, type: Boolean })
   hasArchivedMessages: boolean;

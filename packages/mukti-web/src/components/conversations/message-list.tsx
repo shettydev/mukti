@@ -92,7 +92,18 @@ export function MessageList({
    * Scroll to bottom with smooth animation
    */
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    const container = scrollContainerRef.current;
+    if (container) {
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({
+          behavior,
+          top: container.scrollHeight,
+        });
+      } else {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
     setHasNewMessages(false);
     setShowScrollButton(false);
   }, []);
@@ -153,8 +164,8 @@ export function MessageList({
    * Initial scroll to bottom when component mounts
    */
   useEffect(() => {
-    // Use instant scroll on mount
-    scrollToBottom('instant');
+    // Use non-animated initial scroll on mount
+    scrollToBottom('auto');
   }, [scrollToBottom]);
 
   /**
@@ -217,7 +228,7 @@ export function MessageList({
       <div
         aria-label="Conversation messages"
         aria-live="polite"
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
         onScroll={handleScroll}
         ref={scrollContainerRef}
         role="log"

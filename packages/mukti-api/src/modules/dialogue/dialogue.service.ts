@@ -7,6 +7,11 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import type {
+  GapDetectionResult,
+  TransitionResult,
+} from '../scaffolding/interfaces/scaffolding.interface';
+
 import {
   CanvasSession,
   CanvasSessionDocument,
@@ -291,6 +296,81 @@ export class DialogueService {
       `Created new dialogue ${dialogue._id.toString()} for node ${nodeId}`,
     );
     return dialogue;
+  }
+
+  /**
+   * Updates the scaffold state for a dialogue after response evaluation.
+   * RFC-0001 & RFC-0002 integration.
+   *
+   * @param dialogueId - The dialogue ID
+   * @param previousScaffoldLevel - Prior scaffold level before transition logic
+   * @param transition - Transition evaluation result from ScaffoldFadeService
+   * @param gapResult - Gap detection result
+   * @param isSuccess - Whether the user's response demonstrated understanding
+   */
+  async updateScaffoldState(
+    dialogueId: string | Types.ObjectId,
+    previousScaffoldLevel: number,
+    transition: TransitionResult,
+    gapResult: GapDetectionResult,
+    isSuccess: boolean,
+  ): Promise<void> {
+    const dialogueObjectId =
+      typeof dialogueId === 'string'
+        ? new Types.ObjectId(dialogueId)
+        : dialogueId;
+
+    this.logger.debug(
+      `Updating scaffold state for dialogue ${dialogueObjectId.toString()}: from=${previousScaffoldLevel}, to=${transition.newLevel}, success=${isSuccess}, changed=${transition.changed}`,
+    );
+
+    const updateDoc: Record<string, unknown> = {
+      $set: {
+        currentScaffoldLevel: transition.newLevel,
+        detectedConcepts: gapResult.detectedConcepts,
+        lastGapDetection: {
+          detectedAt: new Date(),
+          gapScore: gapResult.gapScore,
+          knowledgeProbability: gapResult.knowledgeProbability,
+          recommendation: gapResult.recommendation,
+          rootGap: gapResult.rootGap,
+          scaffoldLevel: gapResult.scaffoldLevel,
+          signals: gapResult.signals,
+        },
+      },
+    };
+
+    const shouldResetCounters = transition.resetCounters;
+
+    if (shouldResetCounters) {
+      (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;
+      (updateDoc.$set as Record<string, unknown>).consecutiveSuccesses = 0;
+    } else {
+      if (isSuccess) {
+        updateDoc.$inc = { consecutiveSuccesses: 1 };
+        (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;
+      } else {
+        updateDoc.$inc = { consecutiveFailures: 1 };
+        (updateDoc.$set as Record<string, unknown>).consecutiveSuccesses = 0;
+      }
+    }
+
+    if (transition.changed) {
+      updateDoc.$push = {
+        scaffoldHistory: {
+          fromLevel: previousScaffoldLevel,
+          reason: transition.reason,
+          timestamp: new Date(),
+          toLevel: transition.newLevel,
+        },
+      };
+    }
+
+    await this.nodeDialogueModel.findByIdAndUpdate(dialogueObjectId, updateDoc);
+
+    this.logger.debug(
+      `Scaffold state updated for dialogue ${dialogueObjectId.toString()}`,
+    );
   }
 
   /**

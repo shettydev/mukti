@@ -1,12 +1,42 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-export type NodeDialogueDocument = Document & NodeDialogue;
+/**
+ * Gap detection result stored on dialogue for tracking.
+ * From RFC-0001 Knowledge Gap Detection System.
+ */
+export interface GapDetectionSnapshot {
+  /** Timestamp of detection */
+  detectedAt: Date;
+  /** Overall gap score (0-1, higher = more certain gap exists) */
+  gapScore: number;
+  /** Current P(L) from BKT */
+  knowledgeProbability: number;
+  /** Recommended action */
+  recommendation: 'scaffold' | 'socratic' | 'teach';
+  /** Root knowledge gap concept ID if found */
+  rootGap: null | string;
+  /** Determined scaffold level */
+  scaffoldLevel: ScaffoldLevel;
+  /** Signal breakdown */
+  signals: {
+    behavioral: number;
+    linguistic: number;
+    temporal: number;
+  };
+}
 
+export type NodeDialogueDocument = Document & NodeDialogue;
 /**
  * Valid node types for dialogue context.
  */
 export type NodeType = 'insight' | 'root' | 'seed' | 'soil';
+
+/**
+ * Scaffold levels from RFC-0002 Adaptive Scaffolding Framework.
+ * Determines the level of support provided to the user.
+ */
+export type ScaffoldLevel = 0 | 1 | 2 | 3 | 4;
 
 /**
  * NodeDialogue schema for storing dialogue threads associated with canvas nodes.
@@ -20,13 +50,52 @@ export type NodeType = 'insight' | 'root' | 'seed' | 'soil';
 export class NodeDialogue {
   _id: Types.ObjectId;
 
+  /**
+   * Count of consecutive failed responses at current level.
+   * Used for scaffold escalation (2 failures = increase level).
+   */
+  @Prop({ default: 0, min: 0, type: Number })
+  consecutiveFailures: number;
+
+  /**
+   * Count of consecutive successful responses at current level.
+   * Used for scaffold fading (2 successes = decrease level).
+   */
+  @Prop({ default: 0, min: 0, type: Number })
+  consecutiveSuccesses: number;
+
   createdAt: Date;
+
+  /**
+   * Current scaffold level for this dialogue (RFC-0002).
+   * 0 = Pure Socratic, 4 = Direct Instruction
+   */
+  @Prop({ default: 0, max: 4, min: 0, type: Number })
+  currentScaffoldLevel: ScaffoldLevel;
+
+  /**
+   * Concepts detected in this dialogue thread.
+   * Populated by the KnowledgeGapDetector.
+   */
+  @Prop({ default: [], type: [String] })
+  detectedConcepts: string[];
+
+  /**
+   * Most recent gap detection result snapshot.
+   * Stored for analytics and debugging.
+   */
+  @Prop({ type: Object })
+  lastGapDetection?: GapDetectionSnapshot;
 
   /**
    * Timestamp of the most recent message in this dialogue.
    */
   @Prop({ type: Date })
   lastMessageAt?: Date;
+
+  // ============================================================
+  // RFC-0001 & RFC-0002: Knowledge Gap Detection & Scaffolding
+  // ============================================================
 
   /**
    * Count of messages in this dialogue thread.
@@ -57,6 +126,27 @@ export class NodeDialogue {
   nodeType: NodeType;
 
   /**
+   * History of scaffold level transitions for this dialogue.
+   */
+  @Prop({
+    default: [],
+    type: [
+      {
+        fromLevel: { type: Number },
+        reason: { type: String },
+        timestamp: { type: Date },
+        toLevel: { type: Number },
+      },
+    ],
+  })
+  scaffoldHistory: {
+    fromLevel: ScaffoldLevel;
+    reason: string;
+    timestamp: Date;
+    toLevel: ScaffoldLevel;
+  }[];
+
+  /**
    * Reference to the parent canvas session.
    */
   @Prop({
@@ -68,6 +158,12 @@ export class NodeDialogue {
   sessionId: Types.ObjectId;
 
   updatedAt: Date;
+
+  /**
+   * Reference to the user for knowledge state tracking.
+   */
+  @Prop({ index: true, ref: 'User', type: Types.ObjectId })
+  userId?: Types.ObjectId;
 }
 
 export const NodeDialogueSchema = SchemaFactory.createForClass(NodeDialogue);

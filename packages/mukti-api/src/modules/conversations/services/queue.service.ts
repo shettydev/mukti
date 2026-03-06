@@ -20,6 +20,15 @@ import {
 import { User, UserDocument } from '../../../schemas/user.schema';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import {
+  type GapDetectionResult,
+  type ScaffoldContext,
+  ScaffoldLevel,
+  type TransitionResult,
+} from '../../scaffolding/interfaces/scaffolding.interface';
+import { KnowledgeGapDetectorService } from '../../scaffolding/services/knowledge-gap-detector.service';
+import { ResponseEvaluatorService } from '../../scaffolding/services/response-evaluator.service';
+import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
 import { MessageService } from './message.service';
 import { OpenRouterService } from './openrouter.service';
 import { StreamService } from './stream.service';
@@ -81,6 +90,9 @@ export class QueueService extends WorkerHost {
     private readonly configService: ConfigService,
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiSecretsService: AiSecretsService,
+    private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
+    private readonly scaffoldFadeService: ScaffoldFadeService,
+    private readonly responseEvaluator: ResponseEvaluatorService,
     private readonly messageService: MessageService,
     private readonly openRouterService: OpenRouterService,
     private readonly streamService: StreamService,
@@ -444,9 +456,54 @@ export class QueueService extends WorkerHost {
         type: 'progress',
       });
 
-      // 3. Build prompt and call OpenRouter
+      // 3. Resolve model and API key
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
       const apiKey = await this.resolveApiKey(userId, usedByok);
+
+      // 4. RFC-0001: Detect knowledge gaps before AI generation
+      // Use recentMessages (which carry real timestamps) so temporal signals
+      // (abandonment, long pauses) are accurate. Fall back to new Date() only
+      // when a message has no stored timestamp.
+      const conversationHistory = conversation.recentMessages.map((m) => ({
+        content: m.content,
+        role: m.role as 'assistant' | 'user',
+        timestamp: (m as any).createdAt ?? (m as any).timestamp ?? new Date(),
+      }));
+
+      const previousResponseLengths = conversation.recentMessages
+        .filter((m) => m.role === 'user')
+        .map((m) => m.content.trim().length);
+
+      const gapResult: GapDetectionResult =
+        await this.knowledgeGapDetector.analyze({
+          aiApiKey: apiKey,
+          aiModel: effectiveModel,
+          conceptContext: conversation.detectedConcepts,
+          conversationHistory,
+          previousResponseLengths,
+          userId,
+          userMessage: message,
+        });
+
+      // Build scaffold context from gap result + stored state
+      // Gap detection can only ESCALATE the level; the fade controller (2-success rule) is
+      // the only mechanism that REDUCES. This prevents jarring level drops mid-conversation.
+      const storedLevel =
+        conversation.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
+      const effectiveLevel = Math.max(
+        gapResult.scaffoldLevel,
+        storedLevel,
+      ) as ScaffoldLevel;
+
+      const scaffoldContext: ScaffoldContext = {
+        conceptContext: gapResult.detectedConcepts,
+        consecutiveFailures: conversation.consecutiveFailures ?? 0,
+        consecutiveSuccesses: conversation.consecutiveSuccesses ?? 0,
+        level: effectiveLevel,
+        rootGap: gapResult.rootGap ?? undefined,
+      };
+
+      // 5. Build prompt with scaffold-augmented system prompt
       const messages = this.openRouterService.buildPrompt(
         techniqueDoc.template,
         context.messages.map((m) => ({
@@ -455,6 +512,7 @@ export class QueueService extends WorkerHost {
           timestamp: new Date(),
         })),
         message,
+        scaffoldContext,
       );
 
       // Emit progress event - calling AI
@@ -473,7 +531,7 @@ export class QueueService extends WorkerHost {
         techniqueDoc.template,
       );
 
-      // 4. Add messages to conversation
+      // 6. Add messages to conversation
       const updatedConversation =
         await this.messageService.addMessageToConversation(
           conversationId,
@@ -488,6 +546,80 @@ export class QueueService extends WorkerHost {
             totalTokens: response.totalTokens,
           },
         );
+
+      // 7. RFC-0002: Post-response evaluation and scaffold state update
+      const hasPriorAssistantMessage = conversation.recentMessages.some(
+        (m) => m.role === 'assistant',
+      );
+
+      if (hasPriorAssistantMessage) {
+        // Evaluate the user's response against the scaffold level that was active when the
+        // *previous* assistant message was generated (storedLevel), not the newly-escalated
+        // effectiveLevel. The user was responding to the prior assistant turn, so thresholds
+        // must match what the AI was instructed to provide at that time.
+        const evaluationLevel = storedLevel;
+        const responseQuality = this.responseEvaluator.evaluate({
+          conceptKeywords:
+            conversation.detectedConcepts ?? gapResult.detectedConcepts,
+          scaffoldLevel: evaluationLevel,
+          userResponse: message,
+        });
+
+        const fadeState = {
+          consecutiveFailures: conversation.consecutiveFailures ?? 0,
+          consecutiveSuccesses: conversation.consecutiveSuccesses ?? 0,
+          currentLevel: evaluationLevel,
+          transitionHistory: [] as {
+            from: number;
+            reason: string;
+            timestamp: Date;
+            to: number;
+          }[],
+        };
+        const transition = this.scaffoldFadeService.evaluateAndTransition(
+          fadeState,
+          responseQuality.quality,
+        );
+
+        const demonstratedUnderstanding =
+          responseQuality.quality.demonstratesUnderstanding;
+
+        // Update BKT knowledge state for detected concepts
+        const conceptsToUpdate = new Set(gapResult.detectedConcepts);
+        if (gapResult.rootGap) {
+          conceptsToUpdate.add(gapResult.rootGap);
+        }
+        if (conceptsToUpdate.size > 0) {
+          await Promise.all(
+            Array.from(conceptsToUpdate).map((conceptId) =>
+              this.knowledgeGapDetector.updateKnowledgeState(
+                userId,
+                conceptId,
+                demonstratedUnderstanding,
+              ),
+            ),
+          );
+        }
+
+        // Persist scaffold state to conversation
+        await this.updateConversationScaffoldState(
+          conversationId,
+          transition,
+          gapResult,
+          demonstratedUnderstanding,
+        );
+      } else {
+        // First exchange — just persist detected concepts and initial level
+        await this.conversationModel.updateOne(
+          { _id: conversationId },
+          {
+            $set: {
+              currentScaffoldLevel: gapResult.scaffoldLevel,
+              detectedConcepts: gapResult.detectedConcepts,
+            },
+          },
+        );
+      }
 
       // Use the conversation-wide total count so sequences remain monotonic even when
       // recentMessages is truncated/archived.
@@ -521,12 +653,12 @@ export class QueueService extends WorkerHost {
         type: 'message',
       });
 
-      // 5. Archive if needed
+      // 8. Archive if needed
       if (updatedConversation.recentMessages.length > 50) {
         await this.messageService.archiveOldMessages(conversationId);
       }
 
-      // 6. Log usage event
+      // 9. Log usage event
       await this.usageEventModel.create({
         eventType: 'QUESTION',
         metadata: {
@@ -560,7 +692,7 @@ export class QueueService extends WorkerHost {
         type: 'complete',
       });
 
-      // 7. Return job result
+      // 10. Return job result
       return {
         cost: response.cost,
         latency,
@@ -649,6 +781,41 @@ export class QueueService extends WorkerHost {
     this.logger.log(
       'Job event listeners configured via WorkerHost lifecycle hooks',
     );
+  }
+
+  /**
+   * Persist scaffold state updates to the conversation document.
+   * Mirrors the pattern from DialogueService.updateScaffoldState.
+   */
+  private async updateConversationScaffoldState(
+    conversationId: string,
+    transition: TransitionResult,
+    gapResult: GapDetectionResult,
+    isSuccess: boolean,
+  ): Promise<void> {
+    const updateDoc: Record<string, unknown> = {
+      $set: {
+        currentScaffoldLevel: transition.newLevel,
+        detectedConcepts: gapResult.detectedConcepts,
+      },
+    };
+
+    const shouldResetCounters = transition.resetCounters;
+
+    if (shouldResetCounters) {
+      (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;
+      (updateDoc.$set as Record<string, unknown>).consecutiveSuccesses = 0;
+    } else {
+      if (isSuccess) {
+        updateDoc.$inc = { consecutiveSuccesses: 1 };
+        (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;
+      } else {
+        updateDoc.$inc = { consecutiveFailures: 1 };
+        (updateDoc.$set as Record<string, unknown>).consecutiveSuccesses = 0;
+      }
+    }
+
+    await this.conversationModel.updateOne({ _id: conversationId }, updateDoc);
   }
 
   private validateEffectiveModel(model: string, usedByok: boolean): string {

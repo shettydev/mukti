@@ -2,14 +2,14 @@
 
 <!-- HEADER BLOCK: Identifies the RFC and its current lifecycle state at a glance. -->
 
-| Field            | Value                                                              |
-| ---------------- | ------------------------------------------------------------------ |
-| **RFC Number**   | 0002                                                               |
-| **Title**        | Adaptive Scaffolding Framework                                     |
-| **Status**       | ![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow) |
-| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                     |
-| **Created**      | 2026-02-28                                                         |
-| **Last Updated** | 2026-02-28                                                         |
+| Field            | Value                                                                      |
+| ---------------- | -------------------------------------------------------------------------- |
+| **RFC Number**   | 0002                                                                       |
+| **Title**        | Adaptive Scaffolding Framework                                             |
+| **Status**       | ![Status: In Review](https://img.shields.io/badge/Status-In%20Review-blue) |
+| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                             |
+| **Created**      | 2026-02-28                                                                 |
+| **Last Updated** | 2026-03-04                                                                 |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Rejected` | `Superseded`
 
@@ -52,12 +52,12 @@ The key insight: **scaffolding is not the opposite of Socratic method** — it's
 
 ### Goals
 
-- [ ] Define 5 scaffold levels with clear behavioral distinctions
-- [ ] Create prompt augmentation templates for each scaffold level
-- [ ] Implement automatic level transitions (up on failure, down on success)
-- [ ] Preserve Socratic principles at ALL levels — no direct answer provision
-- [ ] Add `foundational` technique to PromptBuilder for Level 4 scenarios
-- [ ] Track scaffold level per-dialogue and aggregate patterns per-user
+- [x] Define 5 scaffold levels with clear behavioral distinctions
+- [x] Create prompt augmentation templates for each scaffold level
+- [x] Implement automatic level transitions (up on failure, down on success)
+- [x] Preserve Socratic principles at all levels, with controlled override at high scaffold levels
+- [x] Implement Level 4 instruction behavior via scaffold override instructions (no new `foundational` technique enum)
+- [ ] Track scaffold usage in per-user aggregate pattern storage (not implemented yet)
 
 ### Non-Goals
 
@@ -141,15 +141,25 @@ The Adaptive Scaffolding Framework operates as a prompt augmentation layer that 
 
 The framework implements automatic level transitions: scaffold level increases after consecutive failures, decreases after consecutive successes. This creates a dynamic "breathing" scaffold that adapts to the user's evolving understanding.
 
+In queue processing, the effective scaffold level is computed as `max(detectedLevel, storedLevel)`, so detection can escalate immediately while de-escalation is controlled by fade rules only. This avoids abrupt level drops mid-conversation.
+
 ### The Five Scaffold Levels
 
-| Level | Name               | Trigger                                 | Prompt Strategy                                | Exit Condition          |
-| ----- | ------------------ | --------------------------------------- | ---------------------------------------------- | ----------------------- |
-| 0     | Pure Socratic      | P(knowledge) > 0.6, productive struggle | Open questions only, no hints                  | Default state           |
-| 1     | Meta-Cognitive     | P(knowledge) 0.4-0.6, some struggle     | "What strategy are you using?" prompts         | 2 consecutive successes |
-| 2     | Strategic Hints    | P(knowledge) 0.3-0.5, visible confusion | Problem decomposition, chunking                | 2 consecutive successes |
-| 3     | Worked Examples    | P(knowledge) 0.2-0.4, repeated failure  | Analogous examples, partial solutions          | 2 consecutive successes |
-| 4     | Direct Instruction | P(knowledge) < 0.2, complete block      | Explicit concept explanation + guided practice | 2 consecutive successes |
+| Level | Name               | Trigger (Gap Score) | Prompt Strategy                                | Exit Condition          |
+| ----- | ------------------ | ------------------- | ---------------------------------------------- | ----------------------- |
+| 0     | Pure Socratic      | `< 0.3`             | Open questions only, no hints                  | Default state           |
+| 1     | Meta-Cognitive     | `0.3 - <0.5`        | "What strategy are you using?" prompts         | 2 consecutive successes |
+| 2     | Strategic Hints    | `0.5 - <0.7`        | Problem decomposition, chunking                | 2 consecutive successes |
+| 3     | Worked Examples    | `0.7 - <0.85`       | Analogous examples, partial solutions          | 2 consecutive successes |
+| 4     | Direct Instruction | `>= 0.85`           | Explicit concept explanation + guided practice | 2 consecutive successes |
+
+Response evaluator thresholds used for transition decisions:
+
+- Level 0: `0.65`
+- Level 1: `0.55`
+- Level 2: `0.45`
+- Level 3: `0.4`
+- Level 4: `0.35`
 
 ### Architecture Diagram
 
@@ -476,32 +486,6 @@ export class ScaffoldFadeService {
       reason: 'No transition triggered',
     };
   }
-
-  /**
-   * Check if scaffold should override to higher level based on signals.
-   * Called before normal transition logic for emergency escalation.
-   */
-  checkEmergencyEscalation(
-    currentLevel: ScaffoldLevel,
-    signals: GapDetectionSignals
-  ): ScaffoldLevel {
-    // Frustration signals → immediate escalation
-    if (signals.frustration > 0.8 && currentLevel < ScaffoldLevel.STRATEGIC_HINTS) {
-      return ScaffoldLevel.STRATEGIC_HINTS;
-    }
-
-    // Abandonment pattern → maximum support
-    if (signals.abandonment && currentLevel < ScaffoldLevel.WORKED_EXAMPLES) {
-      return ScaffoldLevel.WORKED_EXAMPLES;
-    }
-
-    // "Just tell me" explicit request → Level 4
-    if (signals.explicitHelpRequest && currentLevel < ScaffoldLevel.DIRECT_INSTRUCTION) {
-      return ScaffoldLevel.DIRECT_INSTRUCTION;
-    }
-
-    return currentLevel;
-  }
 }
 
 interface ResponseQuality {
@@ -523,65 +507,16 @@ interface GapDetectionSignals {
 ```typescript
 // Modifications to packages/mukti-api/src/modules/dialogue/utils/prompt-builder.ts
 
-type DialogueTechnique = 'socratic' | 'foundational' | 'challenge' | 'synthesis';
+export function buildScaffoldAwarePrompt(
+  node: NodeContext,
+  problemStructure: ProblemStructure,
+  scaffoldContext?: ScaffoldContext,
+  technique: SocraticTechnique = 'elenchus'
+): string {
+  const basePrompt = buildSystemPrompt(node, problemStructure, technique);
+  if (!scaffoldContext) return basePrompt;
 
-interface PromptBuildOptions {
-  dialogue: NodeDialogue;
-  scaffoldLevel: ScaffoldLevel;
-  rootGap?: string;
-  technique?: DialogueTechnique;
-}
-
-export class PromptBuilder {
-  private readonly scaffoldAugmenter: ScaffoldPromptAugmenter;
-
-  constructor() {
-    this.scaffoldAugmenter = new ScaffoldPromptAugmenter();
-  }
-
-  build(options: PromptBuildOptions): string {
-    const { dialogue, scaffoldLevel, rootGap, technique = 'socratic' } = options;
-
-    // Build base prompt (existing logic)
-    let prompt = this.buildBasePrompt(dialogue, technique);
-
-    // Augment with scaffold level
-    prompt = this.scaffoldAugmenter.augment(prompt, {
-      level: scaffoldLevel,
-      rootGap,
-      consecutiveFailures: dialogue.consecutiveFailures || 0,
-      consecutiveSuccesses: dialogue.consecutiveSuccesses || 0,
-      conceptContext: dialogue.detectedConcepts,
-    });
-
-    // Add technique-specific instructions
-    if (technique === 'foundational' && scaffoldLevel === ScaffoldLevel.DIRECT_INSTRUCTION) {
-      prompt += this.getFoundationalInstructions(rootGap);
-    }
-
-    return prompt;
-  }
-
-  private getFoundationalInstructions(concept?: string): string {
-    if (!concept) return '';
-
-    return `
-    
-FOUNDATIONAL INSTRUCTION MODE:
-You are now providing brief foundational instruction for the concept: "${concept}"
-
-Structure your response:
-1. [1-2 sentences] Explain what ${concept} is and why it matters
-2. [1 example] Show a simple, concrete example
-3. [1 question] Immediately ask the user to apply this understanding
-
-Example format:
-"${concept} is [explanation]. For example, [simple case]. 
-Given this, how would you approach [user's original question]?"
-
-Keep instruction BRIEF. The goal is foundation-building, not comprehensive teaching.
-`;
-  }
+  return augmentWithScaffoldContext(basePrompt, scaffoldContext);
 }
 ```
 
@@ -729,10 +664,6 @@ interface ScaffoldPromptAugmenter {
 ```typescript
 interface ScaffoldFadeService {
   evaluateAndTransition(state: FadeState, quality: ResponseQuality): TransitionResult;
-  checkEmergencyEscalation(
-    currentLevel: ScaffoldLevel,
-    signals: GapDetectionSignals
-  ): ScaffoldLevel;
 }
 ```
 
@@ -740,92 +671,17 @@ interface ScaffoldFadeService {
 
 ```typescript
 interface ResponseEvaluatorService {
-  evaluate(response: string, level: ScaffoldLevel, concept?: string): EvaluationResult;
+  evaluate(input: EvaluationInput): EvaluationResult;
 }
 ```
 
 ### REST Endpoints (Admin/Debug)
 
-#### `GET /api/v1/dialogues/:dialogueId/scaffold-history`
-
-Returns scaffold level history for a dialogue session.
-
-**Response (200 OK):**
-
-```json
-{
-  "dialogueId": "uuid",
-  "currentLevel": 2,
-  "history": [
-    { "level": 0, "timestamp": "2026-02-28T10:00:00Z", "reason": "Initial state" },
-    { "level": 1, "timestamp": "2026-02-28T10:05:00Z", "reason": "2 consecutive failures" },
-    { "level": 2, "timestamp": "2026-02-28T10:12:00Z", "reason": "2 consecutive failures" }
-  ],
-  "stats": {
-    "totalTransitions": 2,
-    "timeAtLevel0": "5m",
-    "timeAtLevel1": "7m",
-    "timeAtLevel2": "ongoing"
-  }
-}
-```
-
-#### `GET /api/v1/users/:userId/scaffold-patterns`
-
-Returns aggregate scaffold usage patterns for a user.
-
-**Response (200 OK):**
-
-```json
-{
-  "userId": "uuid",
-  "patterns": {
-    "averageStartLevel": 0.8,
-    "averageEndLevel": 0.3,
-    "mostCommonMaxLevel": 2,
-    "averageTimeToFade": "8m",
-    "conceptsRequiringScaffold": ["recursion", "closures", "async"]
-  }
-}
-```
+No scaffolding-specific REST endpoints are currently exposed. Scaffolding behavior is applied internally in queue processing and persisted on dialogue/conversation documents.
 
 ---
 
 ## 7. Data Model Changes
-
-### Entity-Relationship Diagram
-
-```mermaid
-erDiagram
-    NODE_DIALOGUE ||--o{ SCAFFOLD_TRANSITION : "has"
-    USER ||--o{ SCAFFOLD_PATTERN : "has"
-
-    NODE_DIALOGUE {
-        uuid id PK
-        int scaffold_level
-        int consecutive_successes
-        int consecutive_failures
-        string root_gap
-    }
-
-    SCAFFOLD_TRANSITION {
-        uuid id PK
-        uuid dialogue_id FK
-        int from_level
-        int to_level
-        string reason
-        timestamp created_at
-    }
-
-    SCAFFOLD_PATTERN {
-        uuid id PK
-        uuid user_id FK
-        string concept_id
-        float avg_scaffold_level
-        int times_reached_level_4
-        timestamp last_updated
-    }
-```
 
 ### Schema Changes
 
@@ -834,11 +690,20 @@ erDiagram
 ```typescript
 // Add to existing NodeDialogue schema
 interface NodeDialogueScaffoldFields {
-  scaffoldLevel: 0 | 1 | 2 | 3 | 4;
+  currentScaffoldLevel: 0 | 1 | 2 | 3 | 4;
   consecutiveSuccesses: number;
   consecutiveFailures: number;
-  rootGap?: string;
-  scaffoldTransitions: Array<{
+  detectedConcepts: string[];
+  lastGapDetection?: {
+    detectedAt: Date;
+    gapScore: number;
+    knowledgeProbability: number;
+    recommendation: 'socratic' | 'scaffold' | 'teach';
+    rootGap: string | null;
+    scaffoldLevel: 0 | 1 | 2 | 3 | 4;
+    signals: { linguistic: number; behavioral: number; temporal: number };
+  };
+  scaffoldHistory: Array<{
     fromLevel: number;
     toLevel: number;
     reason: string;
@@ -847,20 +712,7 @@ interface NodeDialogueScaffoldFields {
 }
 ```
 
-**New Collection: `scaffold_patterns`**
-
-```typescript
-interface ScaffoldPatternDocument {
-  _id: ObjectId;
-  userId: ObjectId;
-  conceptId: string;
-  avgScaffoldLevel: number;
-  maxLevelReached: number;
-  timesReachedLevel4: number;
-  totalInteractions: number;
-  lastUpdated: Date;
-}
-```
+`conversations` also persists `currentScaffoldLevel`, `consecutiveSuccesses`, `consecutiveFailures`, and `detectedConcepts` for non-canvas chat flows.
 
 ### Migration Notes
 
@@ -952,7 +804,7 @@ No changes to existing auth. Scaffold data inherits dialogue permissions.
 ### Logging
 
 - `scaffold.level_transition` — Log all level changes with reason
-- `scaffold.emergency_escalation` — Log when emergency escalation triggers
+- `scaffold.prompt_augmented` — Log scaffold level used for prompt augmentation
 - `scaffold.fade_success` — Log successful fading (level decrease)
 
 ### Metrics
