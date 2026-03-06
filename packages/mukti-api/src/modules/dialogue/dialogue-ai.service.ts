@@ -4,14 +4,15 @@ import { ConfigService } from '@nestjs/config';
 import type { ProblemStructure } from '../../schemas/canvas-session.schema';
 import type { DialogueMessage } from '../../schemas/dialogue-message.schema';
 import type { NodeType } from '../../schemas/node-dialogue.schema';
+import type { ScaffoldContext } from '../scaffolding/interfaces/scaffolding.interface';
 
 import { OpenRouterClientFactory } from '../ai/services/openrouter-client.factory';
 import {
+  buildScaffoldAwarePrompt,
   buildSystemPrompt,
   getRecommendedTechnique,
   type NodeContext,
 } from './utils/prompt-builder';
-
 /**
  * Response from AI service after generating a Socratic response.
  */
@@ -141,6 +142,92 @@ export class DialogueAIService {
     } catch (error) {
       this.logger.error(
         `Failed to generate AI response: ${this.getErrorMessage(error)}`,
+        this.getErrorStack(error),
+      );
+
+      // Return fallback response on error
+      return this.generateFallbackResponse(nodeContext.nodeType, startTime);
+    }
+  }
+
+  /**
+   * Generates a scaffold-aware Socratic AI response for a node dialogue.
+   * This is the primary method when scaffolding is enabled.
+   *
+   * @param nodeContext - The node being discussed (type, label, id)
+   * @param problemStructure - The full problem structure from the canvas session
+   * @param conversationHistory - Previous messages in this dialogue
+   * @param userMessage - The current user message to respond to
+   * @param model - OpenRouter model id
+   * @param apiKey - OpenRouter API key
+   * @param scaffoldContext - Optional scaffold context from gap detection
+   * @returns AI response with content, tokens, and cost
+   */
+  async generateScaffoldedResponse(
+    nodeContext: NodeContext,
+    problemStructure: ProblemStructure,
+    conversationHistory: DialogueMessage[],
+    userMessage: string,
+    model: string,
+    apiKey: string,
+    scaffoldContext?: ScaffoldContext,
+  ): Promise<DialogueAIResponse> {
+    const startTime = Date.now();
+
+    if (!apiKey) {
+      return this.generateFallbackResponse(nodeContext.nodeType, startTime);
+    }
+
+    try {
+      // Get recommended technique for this node type
+      const technique = getRecommendedTechnique(nodeContext.nodeType);
+
+      // Build scaffold-aware system prompt
+      const systemPrompt = buildScaffoldAwarePrompt(
+        nodeContext,
+        problemStructure,
+        scaffoldContext,
+        technique,
+      );
+
+      // Build messages array
+      const messages = this.buildMessages(
+        systemPrompt,
+        conversationHistory,
+        userMessage,
+      );
+
+      const effectiveModel = model.trim();
+
+      const scaffoldLevel = scaffoldContext?.level ?? 'none';
+      this.logger.log(
+        `Generating scaffolded AI response for node ${nodeContext.nodeId} with model ${effectiveModel} (scaffold level: ${scaffoldLevel})`,
+      );
+
+      const client = this.openRouterClientFactory.create(apiKey);
+
+      // Send request to OpenRouter
+      const response = await client.chat.send(
+        {
+          messages,
+          model: effectiveModel,
+          stream: false,
+          temperature: 0.7,
+        },
+        {
+          headers: {
+            'HTTP-Referer':
+              this.configService.get<string>('APP_URL') ?? 'https://mukti.app',
+            'X-Title': 'Mukti - Thinking Canvas',
+          },
+        },
+      );
+
+      const latencyMs = Date.now() - startTime;
+      return this.parseResponse(response, effectiveModel, latencyMs);
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate scaffolded AI response: ${this.getErrorMessage(error)}`,
         this.getErrorStack(error),
       );
 

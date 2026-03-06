@@ -3,8 +3,10 @@ import { ConfigService } from '@nestjs/config';
 
 import type { RecentMessage } from '../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../schemas/technique.schema';
+import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
 
 import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
+import { ScaffoldPromptAugmenter } from '../../scaffolding/services/scaffold-prompt-augmenter.service';
 
 /**
  * Error details when OpenRouter API request fails
@@ -67,6 +69,7 @@ export class OpenRouterService {
   constructor(
     private readonly configService: ConfigService,
     private readonly openRouterClientFactory: OpenRouterClientFactory,
+    private readonly scaffoldPromptAugmenter: ScaffoldPromptAugmenter,
   ) {}
 
   /**
@@ -87,15 +90,23 @@ export class OpenRouterService {
     technique: TechniqueTemplate,
     conversationHistory: RecentMessage[],
     userMessage: string,
+    scaffoldContext?: ScaffoldContext,
   ): { content: string; role: 'assistant' | 'system' | 'user' }[] {
     const messages: {
       content: string;
       role: 'assistant' | 'system' | 'user';
     }[] = [];
 
-    // Add system prompt from technique
+    // Add system prompt from technique, augmented with scaffold context if present
+    const systemPrompt = scaffoldContext
+      ? this.scaffoldPromptAugmenter.augment(
+          technique.systemPrompt,
+          scaffoldContext,
+        )
+      : technique.systemPrompt;
+
     messages.push({
-      content: technique.systemPrompt,
+      content: systemPrompt,
       role: 'system',
     });
 

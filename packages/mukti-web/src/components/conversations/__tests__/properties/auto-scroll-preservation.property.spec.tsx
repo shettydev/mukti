@@ -38,12 +38,23 @@ global.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 
 describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
   let queryClient: QueryClient;
+  let scrollToMock: jest.Mock;
   let scrollIntoViewMock: jest.Mock;
 
   beforeAll(() => {
-    // Mock scrollIntoView
+    scrollToMock = jest.fn();
     scrollIntoViewMock = jest.fn();
-    Element.prototype.scrollIntoView = scrollIntoViewMock;
+
+    Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+      configurable: true,
+      value: scrollToMock,
+      writable: true,
+    });
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoViewMock,
+      writable: true,
+    });
   });
 
   beforeEach(() => {
@@ -56,6 +67,7 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
     });
 
     // Clear mock calls
+    scrollToMock.mockClear();
     scrollIntoViewMock.mockClear();
   });
 
@@ -148,7 +160,8 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
                 writable: true,
               });
 
-              // Clear previous scrollIntoView calls
+              // Clear previous scroll calls
+              scrollToMock.mockClear();
               scrollIntoViewMock.mockClear();
 
               // Add new messages (simulating SSE events)
@@ -183,15 +196,17 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
               // Wait for scroll to be triggered (batched with 100ms delay)
               await waitFor(
                 () => {
-                  expect(scrollIntoViewMock).toHaveBeenCalled();
+                  expect(scrollToMock).toHaveBeenCalled();
                 },
                 { timeout: 500 }
               );
 
-              // Verify scrollIntoView was called with smooth behavior
-              expect(scrollIntoViewMock).toHaveBeenCalledWith({
+              // Verify local container scroll was used with smooth behavior
+              expect(scrollToMock).toHaveBeenCalledWith({
                 behavior: 'smooth',
+                top: 1000,
               });
+              expect(scrollIntoViewMock).not.toHaveBeenCalled();
 
               // Verify scroll button is NOT shown (user is at bottom)
               expect(screen.queryByRole('button', { name: /scroll to bottom/i })).toBeNull();
@@ -204,6 +219,121 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
         { numRuns: 20 }
       );
     }, 30000);
+
+    it('should batch rapid updates into one container scroll call and never call scrollIntoView', () => {
+      jest.useFakeTimers();
+
+      try {
+        const conversationId = 'regression-conversation-id';
+        const initialMessages = [
+          {
+            content: 'Initial message',
+            role: 'assistant' as const,
+            sequence: 1,
+            timestamp: new Date().toISOString(),
+          },
+        ];
+
+        const wrapper = ({ children }: { children: ReactNode }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        );
+
+        const { rerender } = render(
+          <MessageList
+            conversationId={conversationId}
+            hasArchivedMessages={false}
+            recentMessages={initialMessages}
+          />,
+          { wrapper }
+        );
+
+        const scrollContainer = screen.getByRole('log');
+
+        Object.defineProperty(scrollContainer, 'scrollHeight', {
+          configurable: true,
+          value: 1000,
+        });
+        Object.defineProperty(scrollContainer, 'clientHeight', {
+          configurable: true,
+          value: 500,
+        });
+        Object.defineProperty(scrollContainer, 'scrollTop', {
+          configurable: true,
+          value: 500,
+          writable: true,
+        });
+
+        // Synchronize "at bottom" state before rapid updates.
+        act(() => {
+          scrollContainer.dispatchEvent(new Event('scroll'));
+        });
+
+        scrollToMock.mockClear();
+        scrollIntoViewMock.mockClear();
+
+        const message2 = {
+          content: 'Message 2',
+          role: 'assistant' as const,
+          sequence: 2,
+          timestamp: new Date(Date.now() + 1).toISOString(),
+        };
+        const message3 = {
+          content: 'Message 3',
+          role: 'assistant' as const,
+          sequence: 3,
+          timestamp: new Date(Date.now() + 2).toISOString(),
+        };
+        const message4 = {
+          content: 'Message 4',
+          role: 'assistant' as const,
+          sequence: 4,
+          timestamp: new Date(Date.now() + 3).toISOString(),
+        };
+
+        rerender(
+          <MessageList
+            conversationId={conversationId}
+            hasArchivedMessages={false}
+            recentMessages={[...initialMessages, message2]}
+          />
+        );
+        rerender(
+          <MessageList
+            conversationId={conversationId}
+            hasArchivedMessages={false}
+            recentMessages={[...initialMessages, message2, message3]}
+          />
+        );
+        rerender(
+          <MessageList
+            conversationId={conversationId}
+            hasArchivedMessages={false}
+            recentMessages={[...initialMessages, message2, message3, message4]}
+          />
+        );
+
+        // No call until the debounce window completes.
+        act(() => {
+          jest.advanceTimersByTime(99);
+        });
+        expect(scrollToMock).not.toHaveBeenCalled();
+
+        // One batched call after 100ms.
+        act(() => {
+          jest.advanceTimersByTime(1);
+        });
+
+        expect(scrollToMock).toHaveBeenCalledTimes(1);
+        expect(scrollToMock).toHaveBeenCalledWith({
+          behavior: 'smooth',
+          top: 1000,
+        });
+        expect(scrollIntoViewMock).not.toHaveBeenCalled();
+      } finally {
+        cleanup();
+        jest.useRealTimers();
+      }
+    });
 
     it('should preserve scroll position when user is scrolled up and new messages arrive', async () => {
       await fc.assert(
@@ -308,7 +438,8 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
                 expect(button).toBeNull();
               });
 
-              // Clear previous scrollIntoView calls
+              // Clear previous scroll calls
+              scrollToMock.mockClear();
               scrollIntoViewMock.mockClear();
 
               // Add new messages (simulating SSE events)
@@ -350,7 +481,8 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
                 { timeout: 500 }
               );
 
-              // Verify scrollIntoView was NOT called (scroll position preserved)
+              // Verify scroll position was preserved (no auto-scroll)
+              expect(scrollToMock).not.toHaveBeenCalled();
               expect(scrollIntoViewMock).not.toHaveBeenCalled();
 
               // Verify scroll button IS shown with "New messages" text
@@ -490,6 +622,7 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
                 { timeout: 500 }
               );
 
+              scrollToMock.mockClear();
               scrollIntoViewMock.mockClear();
 
               // Phase 2: User manually scrolls to bottom
@@ -543,15 +676,17 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
               // Wait for auto-scroll to be triggered
               await waitFor(
                 () => {
-                  expect(scrollIntoViewMock).toHaveBeenCalled();
+                  expect(scrollToMock).toHaveBeenCalled();
                 },
                 { timeout: 500 }
               );
 
-              // Verify auto-scroll resumed (scrollIntoView called)
-              expect(scrollIntoViewMock).toHaveBeenCalledWith({
+              // Verify auto-scroll resumed using local container scroll
+              expect(scrollToMock).toHaveBeenCalledWith({
                 behavior: 'smooth',
+                top: 2000,
               });
+              expect(scrollIntoViewMock).not.toHaveBeenCalled();
             } finally {
               // Cleanup DOM after each iteration
               cleanup();
@@ -640,6 +775,7 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
                 writable: true,
               });
 
+              scrollToMock.mockClear();
               scrollIntoViewMock.mockClear();
 
               // Add messages rapidly (one at a time to simulate SSE events)
@@ -676,14 +812,14 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
               // Wait for batched scroll to complete
               await waitFor(
                 () => {
-                  expect(scrollIntoViewMock).toHaveBeenCalled();
+                  expect(scrollToMock).toHaveBeenCalled();
                 },
                 { timeout: 500 }
               );
 
-              // Verify scrollIntoView was called, but not excessively
+              // Verify container scroll was called, but not excessively
               // With batching (100ms window), we should have fewer calls than messages
-              const scrollCallCount = (scrollIntoViewMock as jest.Mock).mock.calls.length;
+              const scrollCallCount = (scrollToMock as jest.Mock).mock.calls.length;
 
               // Should be called at least once
               expect(scrollCallCount).toBeGreaterThanOrEqual(1);
@@ -789,6 +925,7 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
 
               // Add messages in batches
               for (let batch = 0; batch < newMessageBatches; batch++) {
+                scrollToMock.mockClear();
                 scrollIntoViewMock.mockClear();
 
                 // Add a batch of messages
@@ -822,15 +959,17 @@ describe('MessageList - Auto-scroll Preservation (Property-Based)', () => {
                 // Wait for scroll to be triggered for this batch
                 await waitFor(
                   () => {
-                    expect(scrollIntoViewMock).toHaveBeenCalled();
+                    expect(scrollToMock).toHaveBeenCalled();
                   },
                   { timeout: 500 }
                 );
 
                 // Verify scroll was called with smooth behavior
-                expect(scrollIntoViewMock).toHaveBeenCalledWith({
+                expect(scrollToMock).toHaveBeenCalledWith({
                   behavior: 'smooth',
+                  top: 1000,
                 });
+                expect(scrollIntoViewMock).not.toHaveBeenCalled();
 
                 // Verify no scroll button appears (user stays at bottom)
                 expect(

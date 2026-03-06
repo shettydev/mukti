@@ -31,7 +31,7 @@ import { MessageList } from '@/components/conversations/message-list';
 import { RateLimitBanner } from '@/components/conversations/rate-limit-banner';
 import { Button } from '@/components/ui/button';
 import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
-import { type SSEError, useConversationStream } from '@/lib/hooks/use-conversation-stream';
+import { SSEError, useConversationStream } from '@/lib/hooks/use-conversation-stream';
 import { useConversation, useSendMessage } from '@/lib/hooks/use-conversations';
 import { conversationKeys } from '@/lib/query-keys';
 
@@ -178,6 +178,10 @@ export function ChatInterface({
         toast.error('Connection Error', {
           description: error.message,
         });
+      } else if (error.type === 'insufficient_credits') {
+        toast.error('OpenRouter Credits Needed', {
+          description: error.message,
+        });
       } else if (error.type === 'authentication') {
         toast.error('Authentication Required', {
           description: 'Please log in again to continue.',
@@ -194,6 +198,15 @@ export function ChatInterface({
         isProcessing: false,
         status: '',
       });
+
+      if (event.data.code === 'OPENROUTER_INSUFFICIENT_CREDITS') {
+        setStreamError(new SSEError(event.data.message, 'insufficient_credits', 402));
+
+        toast.error('OpenRouter Credits Needed', {
+          description: event.data.message,
+        });
+        return;
+      }
 
       toast.error('Processing Error', {
         description: event.data.message,
@@ -431,7 +444,11 @@ export function ChatInterface({
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-300" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-700 dark:text-red-200">Connection Error</p>
+              <p className="text-sm font-medium text-red-700 dark:text-red-200">
+                {streamError.type === 'insufficient_credits'
+                  ? 'OpenRouter Credits Needed'
+                  : 'Connection Error'}
+              </p>
               <p className="text-sm text-japandi-stone/75">{streamError.message}</p>
             </div>
             {streamError.type === 'connection' || streamError.type === 'server' ? (

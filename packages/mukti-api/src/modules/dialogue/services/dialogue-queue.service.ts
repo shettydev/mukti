@@ -19,10 +19,17 @@ import {
 import { User, UserDocument } from '../../../schemas/user.schema';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import {
+  type GapDetectionResult,
+  type ScaffoldContext,
+  ScaffoldLevel,
+} from '../../scaffolding/interfaces/scaffolding.interface';
+import { KnowledgeGapDetectorService } from '../../scaffolding/services/knowledge-gap-detector.service';
+import { ResponseEvaluatorService } from '../../scaffolding/services/response-evaluator.service';
+import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
 import { DialogueAIService } from '../dialogue-ai.service';
 import { DialogueService } from '../dialogue.service';
 import { DialogueStreamService } from './dialogue-stream.service';
-
 /**
  * Job data structure for dialogue request processing.
  */
@@ -78,6 +85,9 @@ export class DialogueQueueService extends WorkerHost {
     private readonly dialogueAIService: DialogueAIService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
+    private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
+    private readonly scaffoldFadeService: ScaffoldFadeService,
+    private readonly responseEvaluator: ResponseEvaluatorService,
   ) {
     super();
   }
@@ -284,19 +294,62 @@ export class DialogueQueueService extends WorkerHost {
           page: 1,
         },
       );
+      const conversationHistory = historyResult.messages.map((m) => ({
+        content: m.content,
+        role: m.role as 'assistant' | 'user',
+        timestamp: m.createdAt,
+      }));
+      const previousResponseLengths = historyResult.messages
+        .filter((m) => m.role === 'user' && m.sequence < userMessage.sequence)
+        .map((m) => m.content.trim().length);
 
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
       const apiKey = await this.resolveApiKey(userId, usedByok);
 
-      // Generate AI response
-      const aiResponse = await this.dialogueAIService.generateResponse(
-        { nodeId, nodeLabel, nodeType },
-        problemStructure,
-        historyResult.messages,
-        message,
-        effectiveModel,
-        apiKey,
-      );
+      // RFC-0001: Detect knowledge gaps before AI generation
+      const gapResult: GapDetectionResult =
+        await this.knowledgeGapDetector.analyze({
+          aiApiKey: apiKey,
+          aiModel: effectiveModel,
+          conceptContext: dialogue.detectedConcepts,
+          conversationHistory,
+          previousResponseLengths,
+          timeOnProblem: dialogue.lastMessageAt
+            ? Date.now() - dialogue.lastMessageAt.getTime()
+            : undefined,
+          userId,
+          userMessage: message,
+        });
+
+      // Build scaffold context from gap detection
+      // Gap detection can only ESCALATE the level; the fade controller (2-success rule) is
+      // the only mechanism that REDUCES. This prevents jarring level drops mid-conversation.
+      const storedLevel =
+        dialogue.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
+      const effectiveLevel = Math.max(
+        gapResult.scaffoldLevel,
+        storedLevel,
+      ) as ScaffoldLevel;
+
+      const scaffoldContext: ScaffoldContext = {
+        conceptContext: gapResult.detectedConcepts,
+        consecutiveFailures: dialogue.consecutiveFailures ?? 0,
+        consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
+        level: effectiveLevel,
+        rootGap: gapResult.rootGap ?? undefined,
+      };
+
+      // RFC-0002: Generate scaffolded AI response
+      const aiResponse =
+        await this.dialogueAIService.generateScaffoldedResponse(
+          { nodeId, nodeLabel, nodeType },
+          problemStructure,
+          historyResult.messages,
+          message,
+          effectiveModel,
+          apiKey,
+          scaffoldContext,
+        );
 
       // Add AI response to dialogue
       const aiMessage = await this.dialogueService.addMessage(
@@ -309,6 +362,68 @@ export class DialogueQueueService extends WorkerHost {
           tokens: aiResponse.totalTokens,
         },
       );
+
+      const hasPriorAssistantMessage = historyResult.messages.some(
+        (m) => m.role === 'assistant' && m.sequence < userMessage.sequence,
+      );
+      if (hasPriorAssistantMessage) {
+        // RFC-0002: Evaluate the current user response against the scaffold level that was
+        // active when the *previous* assistant message was generated (storedLevel), not the
+        // newly-escalated effectiveLevel. The user was responding to the prior assistant turn,
+        // so thresholds must match what the AI was instructed to provide at that time.
+        const evaluationLevel = storedLevel as number;
+        const responseQuality = this.responseEvaluator.evaluate({
+          conceptKeywords:
+            dialogue.detectedConcepts ?? gapResult.detectedConcepts,
+          scaffoldLevel: evaluationLevel,
+          userResponse: message,
+        });
+
+        // Determine scaffold transition based on response quality
+        const fadeState = {
+          consecutiveFailures: dialogue.consecutiveFailures ?? 0,
+          consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
+          currentLevel: evaluationLevel,
+          transitionHistory: [],
+        };
+        const transition = this.scaffoldFadeService.evaluateAndTransition(
+          fadeState,
+          responseQuality.quality,
+        );
+
+        const demonstratedUnderstanding =
+          responseQuality.quality.demonstratesUnderstanding;
+
+        // RFC-0001: Persist per-user knowledge updates for detected concepts
+        const conceptsToUpdate = new Set(gapResult.detectedConcepts);
+        if (gapResult.rootGap) {
+          conceptsToUpdate.add(gapResult.rootGap);
+        }
+        if (conceptsToUpdate.size > 0) {
+          await Promise.all(
+            Array.from(conceptsToUpdate).map((conceptId) =>
+              this.knowledgeGapDetector.updateKnowledgeState(
+                userId,
+                conceptId,
+                demonstratedUnderstanding,
+              ),
+            ),
+          );
+        }
+
+        // Update dialogue scaffold state
+        await this.dialogueService.updateScaffoldState(
+          dialogue._id,
+          fadeState.currentLevel,
+          transition,
+          gapResult,
+          demonstratedUnderstanding,
+        );
+      } else {
+        this.logger.debug(
+          `Skipping response evaluation for dialogue ${dialogueId} because no prior assistant scaffold exists`,
+        );
+      }
 
       // Emit AI message event
       this.dialogueStreamService.emitToNodeDialogue(

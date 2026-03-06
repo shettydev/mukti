@@ -112,7 +112,7 @@ All schemas registered via `ALL_SCHEMAS` array in `src/schemas/index.ts`.
 - `User` → `Subscription` (1:1), `Conversation` (1:many), `CanvasSession` (1:many)
 - `CanvasSession` → `NodeDialogue` (1:many, unique on `sessionId + nodeId`)
 - `Concept` → `Concept[]` (DAG via `prerequisites[]`)
-- `KnowledgeState` → `User` × `Concept` (unique on `studentId + conceptId`)
+- `KnowledgeState` → `User` × `Concept` (unique on `userId + conceptId`)
 
 ### Auth Flow
 
