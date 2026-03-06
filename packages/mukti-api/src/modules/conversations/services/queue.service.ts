@@ -549,9 +549,11 @@ export class QueueService extends WorkerHost {
       );
 
       if (hasPriorAssistantMessage) {
-        // Use the same level that was used for prompt augmentation, not the stored level,
-        // so evaluation thresholds match the scaffolding the AI was instructed to provide.
-        const evaluationLevel = scaffoldContext.level as number;
+        // Evaluate the user's response against the scaffold level that was active when the
+        // *previous* assistant message was generated (storedLevel), not the newly-escalated
+        // effectiveLevel. The user was responding to the prior assistant turn, so thresholds
+        // must match what the AI was instructed to provide at that time.
+        const evaluationLevel = storedLevel as number;
         const responseQuality = this.responseEvaluator.evaluate({
           conceptKeywords:
             conversation.detectedConcepts ?? gapResult.detectedConcepts,

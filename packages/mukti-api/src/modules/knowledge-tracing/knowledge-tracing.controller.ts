@@ -9,11 +9,16 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { Concept, ConceptDocument } from '../../schemas/concept.schema';
+import { User } from '../../schemas/user.schema';
 import {
   CreateConceptDto,
   ListConceptsQueryDto,
@@ -45,12 +50,13 @@ export class KnowledgeTracingController {
 
   /**
    * Update knowledge state based on a user's response.
+   * userId is derived from the authenticated JWT — not accepted from the request body —
+   * to prevent IDOR attacks where a caller could update another user's state.
    *
    * POST /knowledge-tracing/update
    *
    * Body:
    * {
-   *   "userId": "507f1f77bcf86cd799439011",
    *   "conceptId": "algebra_linear_equations",
    *   "correct": true,
    *   "pInit": 0.3,      // optional
@@ -69,9 +75,13 @@ export class KnowledgeTracingController {
    * }
    */
   @Post('update')
-  async updateKnowledgeState(@Body() dto: UpdateKnowledgeStateDto) {
+  async updateKnowledgeState(
+    @CurrentUser() user: User,
+    @Body() dto: UpdateKnowledgeStateDto,
+  ) {
+    const userId = user._id.toString();
     this.logger.log(
-      `Update request: user=${dto.userId}, concept=${dto.conceptId}, correct=${dto.correct}`,
+      `Update request: user=${userId}, concept=${dto.conceptId}, correct=${dto.correct}`,
     );
 
     const customParams = {
@@ -82,7 +92,7 @@ export class KnowledgeTracingController {
     };
 
     const result = await this.knowledgeStateTracker.updateKnowledgeState(
-      dto.userId,
+      userId,
       dto.conceptId,
       dto.correct,
       Object.keys(customParams).length > 0 ? customParams : undefined,
@@ -93,20 +103,26 @@ export class KnowledgeTracingController {
 
   /**
    * Get cache statistics (for debugging/monitoring).
+   * Restricted to admins — cache keys embed userId:conceptId pairs.
    *
    * GET /knowledge-tracing/admin/cache-stats
    */
   @Get('admin/cache-stats')
+  @Roles('admin')
+  @UseGuards(RolesGuard)
   getCacheStats() {
     return this.knowledgeStateTracker.getCacheStats();
   }
 
   /**
-   * Get users struggling with a specific concept.
+   * Get count of users struggling with a specific concept.
+   * Restricted to admins — aggregate only, no raw userIds exposed.
    *
    * GET /knowledge-tracing/concept/:conceptId/struggling
    */
   @Get('concept/:conceptId/struggling')
+  @Roles('admin')
+  @UseGuards(RolesGuard)
   async getStrugglingUsers(@Param('conceptId') conceptId: string) {
     this.logger.debug(`Get struggling users for concept=${conceptId}`);
 
@@ -116,16 +132,18 @@ export class KnowledgeTracingController {
     return {
       conceptId,
       strugglingCount: userIds.length,
-      userIds,
     };
   }
 
   /**
-   * Get users who have mastered a specific concept.
+   * Get count of users who have mastered a specific concept.
+   * Restricted to admins — aggregate only, no raw userIds exposed.
    *
    * GET /knowledge-tracing/concept/:conceptId/mastered
    */
   @Get('concept/:conceptId/mastered')
+  @Roles('admin')
+  @UseGuards(RolesGuard)
   async getMasteredUsers(@Param('conceptId') conceptId: string) {
     this.logger.debug(`Get mastered users for concept=${conceptId}`);
 
@@ -135,7 +153,6 @@ export class KnowledgeTracingController {
     return {
       conceptId,
       masteredCount: userIds.length,
-      userIds,
     };
   }
 

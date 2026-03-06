@@ -32,6 +32,8 @@ export class GetUserKnowledgeStatesDto {
 
 /**
  * DTO for updating knowledge state based on a user response.
+ * userId is intentionally omitted — it is derived from the authenticated JWT
+ * via @CurrentUser() to prevent IDOR attacks.
  */
 export class UpdateKnowledgeStateDto {
   /**
@@ -83,11 +85,4 @@ export class UpdateKnowledgeStateDto {
   @Max(1)
   @Min(0)
   pSlip?: number;
-
-  /**
-   * ID of the user who is answering.
-   */
-  @IsNotEmpty()
-  @IsString()
-  userId: string;
 }
