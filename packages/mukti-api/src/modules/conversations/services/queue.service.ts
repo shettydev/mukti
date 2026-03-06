@@ -24,6 +24,7 @@ import {
   type GapDetectionResult,
   type ScaffoldContext,
   ScaffoldLevel,
+  type TransitionResult,
 } from '../../scaffolding/interfaces/scaffolding.interface';
 import { KnowledgeGapDetectorService } from '../../scaffolding/services/knowledge-gap-detector.service';
 import { ResponseEvaluatorService } from '../../scaffolding/services/response-evaluator.service';
@@ -460,10 +461,13 @@ export class QueueService extends WorkerHost {
       const apiKey = await this.resolveApiKey(userId, usedByok);
 
       // 4. RFC-0001: Detect knowledge gaps before AI generation
-      const conversationHistory = context.messages.map((m) => ({
+      // Use recentMessages (which carry real timestamps) so temporal signals
+      // (abandonment, long pauses) are accurate. Fall back to new Date() only
+      // when a message has no stored timestamp.
+      const conversationHistory = conversation.recentMessages.map((m) => ({
         content: m.content,
         role: m.role as 'assistant' | 'user',
-        timestamp: new Date(),
+        timestamp: (m as any).createdAt ?? (m as any).timestamp ?? new Date(),
       }));
 
       const previousResponseLengths = conversation.recentMessages
@@ -553,7 +557,7 @@ export class QueueService extends WorkerHost {
         // *previous* assistant message was generated (storedLevel), not the newly-escalated
         // effectiveLevel. The user was responding to the prior assistant turn, so thresholds
         // must match what the AI was instructed to provide at that time.
-        const evaluationLevel = storedLevel as number;
+        const evaluationLevel = storedLevel;
         const responseQuality = this.responseEvaluator.evaluate({
           conceptKeywords:
             conversation.detectedConcepts ?? gapResult.detectedConcepts,
@@ -785,7 +789,7 @@ export class QueueService extends WorkerHost {
    */
   private async updateConversationScaffoldState(
     conversationId: string,
-    transition: { changed: boolean; newLevel: number; reason: string },
+    transition: TransitionResult,
     gapResult: GapDetectionResult,
     isSuccess: boolean,
   ): Promise<void> {
@@ -796,10 +800,7 @@ export class QueueService extends WorkerHost {
       },
     };
 
-    const shouldResetCounters =
-      transition.changed ||
-      transition.reason === 'At minimum level - cannot fade further' ||
-      transition.reason === 'At maximum level - cannot escalate further';
+    const shouldResetCounters = transition.resetCounters;
 
     if (shouldResetCounters) {
       (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;

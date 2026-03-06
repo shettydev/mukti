@@ -340,10 +340,7 @@ export class DialogueService {
       },
     };
 
-    const shouldResetCounters =
-      transition.changed ||
-      transition.reason === 'At minimum level - cannot fade further' ||
-      transition.reason === 'At maximum level - cannot escalate further';
+    const shouldResetCounters = transition.resetCounters;
 
     if (shouldResetCounters) {
       (updateDoc.$set as Record<string, unknown>).consecutiveFailures = 0;

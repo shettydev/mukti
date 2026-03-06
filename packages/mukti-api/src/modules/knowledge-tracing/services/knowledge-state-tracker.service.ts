@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
@@ -51,11 +52,18 @@ export interface KnowledgeStateUpdatedEvent {
  * - Cache TTL: 1 hour for inactive states
  * - Cache eviction: LRU when memory threshold reached
  */
+/** Wraps a cached value with its insertion timestamp for TTL checks. */
+interface CacheEntry {
+  cachedAt: number;
+  state: KnowledgeState;
+}
+
 @Injectable()
-export class KnowledgeStateTrackerService {
-  /**
-   * Cache TTL in milliseconds (1 hour)
-   */
+export class KnowledgeStateTrackerService implements OnModuleDestroy {
+  /** Sweep interval: prune expired entries every 15 minutes. */
+  private readonly CACHE_SWEEP_INTERVAL = 15 * 60 * 1000;
+
+  /** Cache TTL: evict entries not accessed within 1 hour. */
   private readonly CACHE_TTL = 60 * 60 * 1000;
 
   private readonly logger = new Logger(KnowledgeStateTrackerService.name);
@@ -63,8 +71,12 @@ export class KnowledgeStateTrackerService {
   /**
    * In-memory cache for active knowledge states.
    * Key format: `${userId}:${conceptId}`
+   * Each entry carries a `cachedAt` timestamp; entries older than CACHE_TTL
+   * are evicted on read and during periodic sweeps.
    */
-  private readonly stateCache = new Map<string, KnowledgeState>();
+  private readonly stateCache = new Map<string, CacheEntry>();
+
+  private readonly sweepTimer: ReturnType<typeof setInterval>;
 
   constructor(
     @InjectModel(KnowledgeStateDocument.name)
@@ -72,6 +84,10 @@ export class KnowledgeStateTrackerService {
     private readonly bktAlgorithm: BKTAlgorithmService,
     private readonly eventEmitter: EventEmitter2,
   ) {
+    this.sweepTimer = setInterval(
+      () => this.sweepExpiredEntries(),
+      this.CACHE_SWEEP_INTERVAL,
+    );
     this.logger.log('KnowledgeStateTrackerService initialized');
   }
 
@@ -86,11 +102,8 @@ export class KnowledgeStateTrackerService {
   /**
    * Get cache statistics.
    */
-  getCacheStats(): { keys: string[]; size: number } {
-    return {
-      keys: Array.from(this.stateCache.keys()),
-      size: this.stateCache.size,
-    };
+  getCacheStats(): { size: number } {
+    return { size: this.stateCache.size };
   }
 
   /**
@@ -107,11 +120,15 @@ export class KnowledgeStateTrackerService {
   ): Promise<KnowledgeState | null> {
     const cacheKey = this.getCacheKey(userId, conceptId);
 
-    // Check cache first
-    const cachedState = this.stateCache.get(cacheKey);
-    if (cachedState) {
-      this.logger.debug(`Cache hit: ${cacheKey}`);
-      return cachedState;
+    // Check cache first — evict on read if the entry has expired
+    const cachedEntry = this.stateCache.get(cacheKey);
+    if (cachedEntry) {
+      if (Date.now() - cachedEntry.cachedAt < this.CACHE_TTL) {
+        this.logger.debug(`Cache hit: ${cacheKey}`);
+        return cachedEntry.state;
+      }
+      this.stateCache.delete(cacheKey);
+      this.logger.debug(`Cache expired (evicted on read): ${cacheKey}`);
     }
 
     const userObjectId = this.toObjectId(userId);
@@ -127,7 +144,10 @@ export class KnowledgeStateTrackerService {
     if (state) {
       // Convert Mongoose document to BKT interface type
       const plainState = this.toInterfaceState(state);
-      this.stateCache.set(cacheKey, plainState);
+      this.stateCache.set(cacheKey, {
+        cachedAt: Date.now(),
+        state: plainState,
+      });
       return plainState;
     }
 
@@ -191,6 +211,11 @@ export class KnowledgeStateTrackerService {
       .exec();
 
     return states.map((state) => this.toInterfaceState(state));
+  }
+
+  /** Clean up the sweep timer when the module is torn down (e.g. in tests). */
+  onModuleDestroy(): void {
+    clearInterval(this.sweepTimer);
   }
 
   /**
@@ -385,6 +410,26 @@ export class KnowledgeStateTrackerService {
   }
 
   /**
+   * Evict all cache entries whose TTL has expired.
+   * Called periodically by the sweep timer.
+   *
+   * @private
+   */
+  private sweepExpiredEntries(): void {
+    const now = Date.now();
+    let evicted = 0;
+    for (const [key, entry] of this.stateCache) {
+      if (now - entry.cachedAt >= this.CACHE_TTL) {
+        this.stateCache.delete(key);
+        evicted++;
+      }
+    }
+    if (evicted > 0) {
+      this.logger.debug(`Cache sweep: evicted ${evicted} expired entries`);
+    }
+  }
+
+  /**
    * Map a Mongoose document to the BKT interface KnowledgeState type.
    * Converts ObjectId fields to strings for compatibility with the BKT algorithm.
    *
@@ -413,7 +458,7 @@ export class KnowledgeStateTrackerService {
   }
 
   /**
-   * Update in-memory cache.
+   * Update in-memory cache with a fresh TTL timestamp.
    *
    * @private
    */
@@ -423,6 +468,6 @@ export class KnowledgeStateTrackerService {
     state: KnowledgeState,
   ): void {
     const cacheKey = this.getCacheKey(userId, conceptId);
-    this.stateCache.set(cacheKey, state);
+    this.stateCache.set(cacheKey, { cachedAt: Date.now(), state });
   }
 }

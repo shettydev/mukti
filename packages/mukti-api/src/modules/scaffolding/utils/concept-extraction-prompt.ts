@@ -52,16 +52,19 @@ Response format:
 
 /**
  * Default BKT parameters based on concept difficulty.
+ * Falls back to intermediate parameters for any unrecognised difficulty value
+ * (e.g. unexpected LLM output) so callers always receive a valid object.
  */
 export function getDefaultBktParamsForDifficulty(
   difficulty: 'advanced' | 'beginner' | 'intermediate',
-) {
+): { pGuess: number; pInit: number; pLearn: number; pSlip: number } {
   switch (difficulty) {
     case 'advanced':
       return { pGuess: 0.2, pInit: 0.2, pLearn: 0.1, pSlip: 0.12 };
     case 'beginner':
       return { pGuess: 0.3, pInit: 0.4, pLearn: 0.2, pSlip: 0.08 };
     case 'intermediate':
+    default:
       return { pGuess: 0.25, pInit: 0.3, pLearn: 0.15, pSlip: 0.1 };
   }
 }

@@ -198,4 +198,11 @@ export interface TransitionResult {
   changed: boolean;
   newLevel: ScaffoldLevel;
   reason: string;
+  /**
+   * Whether the consecutive success/failure counters should be reset.
+   * True when the level changed OR when a boundary (min/max) was hit and
+   * the counters were cleared. Consumers should branch on this flag instead
+   * of string-matching `reason` to avoid brittle coupling.
+   */
+  resetCounters: boolean;
 }

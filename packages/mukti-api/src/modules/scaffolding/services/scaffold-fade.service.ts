@@ -156,12 +156,14 @@ export class ScaffoldFadeService {
     let newLevel = currentLevel;
     let changed = false;
     let reason = 'No change needed';
+    let resetCounters = false;
 
     // Check for fading (2 successes = decrease level)
     if (newSuccesses >= FADE_CONFIG.SUCCESSES_TO_FADE) {
       if (currentLevel > FADE_CONFIG.MIN_LEVEL) {
         newLevel = currentLevel - 1;
         changed = true;
+        resetCounters = true;
         reason = `${FADE_CONFIG.SUCCESSES_TO_FADE} consecutive successes - fading support`;
         newSuccesses = 0; // Reset after transition
         this.logger.log(
@@ -169,6 +171,7 @@ export class ScaffoldFadeService {
         );
       } else {
         reason = 'At minimum level - cannot fade further';
+        resetCounters = true; // Boundary hit — counters cleared
         newSuccesses = 0; // Reset counter even at min level
       }
     }
@@ -178,6 +181,7 @@ export class ScaffoldFadeService {
       if (currentLevel < FADE_CONFIG.MAX_LEVEL) {
         newLevel = currentLevel + 1;
         changed = true;
+        resetCounters = true;
         reason = `${FADE_CONFIG.FAILURES_TO_ESCALATE} consecutive failures - increasing support`;
         newFailures = 0; // Reset after transition
         this.logger.log(
@@ -185,6 +189,7 @@ export class ScaffoldFadeService {
         );
       } else {
         reason = 'At maximum level - cannot escalate further';
+        resetCounters = true; // Boundary hit — counters cleared
         newFailures = 0; // Reset counter even at max level
       }
     }
@@ -193,6 +198,7 @@ export class ScaffoldFadeService {
       changed,
       newLevel,
       reason,
+      resetCounters,
     };
   }
 
