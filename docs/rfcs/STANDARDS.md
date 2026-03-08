@@ -49,6 +49,39 @@ Allowed status values:
   - `Implemented RFCs`: `Implemented`
   - `Archive`: `Rejected`, `Superseded`
 
+## Diagram & Code Block Policy
+
+RFCs communicate **design intent**, not implementation code. Prefer visual diagrams over code blocks.
+
+### Use Mermaid Diagrams For
+
+- Architecture and component relationships (`graph`, `flowchart`)
+- Data flow and processing pipelines (`graph LR`)
+- Interaction sequences (`sequenceDiagram`)
+- Entity relationships and data models (`erDiagram`)
+- Class structures and service interfaces (`classDiagram`)
+- State machines and level transitions (`stateDiagram-v2`)
+- Algorithm logic and decision trees (`flowchart`)
+
+### Use Code Blocks Only When
+
+- **API contracts**: JSON request/response examples where exact shape matters
+- **Prompt templates**: AI prompt text where exact wording is the design decision
+- **Configuration snippets**: Feature flags, environment variables, threshold constants
+- **Mathematical formulas**: When prose or diagrams cannot express the formula clearly
+
+### Never Use Code Blocks For
+
+- Full class or service implementations (use class diagrams + prose)
+- Method bodies or function implementations (use flowcharts + prose)
+- Interface definitions (use class diagrams)
+- Regex patterns or marker arrays (use categorized tables)
+- Schema definitions (use ER diagrams + prose field descriptions)
+
+### Rationale
+
+Code blocks in RFCs create a false sense of finality — reviewers debate syntax instead of design. Mermaid diagrams keep the focus on architecture, data flow, and component relationships. Implementation details belong in the codebase, not the RFC.
+
 ## Enforcement
 
 CI enforces these standards via:

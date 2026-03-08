@@ -299,15 +299,21 @@ The Thought Map replaces this with a flexible taxonomy:
 
 Since `thought` nodes don't have a predetermined type, the Socratic technique is selected based on **node context** rather than node category:
 
-```
-function selectTechnique(node, parentChain, siblingCount):
-  if node.depth === 0:           return 'maieutics'     // Topic: draw out understanding
-  if node.fromSuggestion:        return 'elenchus'      // AI question: examine it
-  if node.type === 'insight':    return 'dialectic'     // Discovery: explore implications
-  if siblingCount >= 3:          return 'counterfactual' // Many siblings: challenge assumptions
-  if node.depth >= 3:            return 'analogical'    // Deep branch: find parallels
-  if parentIsQuestion(parent):   return 'definitional'  // Under a question: define terms
-  default:                       return 'maieutics'     // Default: draw out thinking
+```mermaid
+flowchart TD
+    A[Select Technique for Node] --> B{depth = 0?}
+    B -->|Yes| C["maieutics<br/>(draw out understanding)"]
+    B -->|No| D{fromSuggestion?}
+    D -->|Yes| E["elenchus<br/>(examine the question)"]
+    D -->|No| F{type = insight?}
+    F -->|Yes| G["dialectic<br/>(explore implications)"]
+    F -->|No| H{siblings ≥ 3?}
+    H -->|Yes| I["counterfactual<br/>(challenge assumptions)"]
+    H -->|No| J{depth ≥ 3?}
+    J -->|Yes| K["analogical<br/>(find parallels)"]
+    J -->|No| L{parent is question?}
+    L -->|Yes| M["definitional<br/>(define terms)"]
+    L -->|No| N["maieutics<br/>(default: draw out thinking)"]
 ```
 
 This replaces the rigid `seed→maieutics, root→elenchus, soil→counterfactual` mapping with a dynamic algorithm that considers the node's position in the graph, its origin (user-created vs. AI-suggested), and its siblings.
@@ -468,23 +474,27 @@ The Thought Map uses a **radial tree layout** with automatic positioning, simila
 
 The layout algorithm distributes nodes to minimize edge crossings and maintain readability:
 
-```
-function layoutThoughtMap(rootNode):
-  // Split first-level children into left and right hemispheres
-  leftChildren = children[0..floor(n/2)]
-  rightChildren = children[floor(n/2)+1..n]
+```mermaid
+graph LR
+    subgraph "Left Hemisphere"
+        L3["Sub-branch"] --- L2["Branch B"]
+        L4["Sub-branch"] --- L2
+        L2 --- L1["Branch A"]
+        L1 --- T
+    end
 
-  // Position left children with negative X, right with positive X
-  for each child in leftChildren:
-    child.x = -HORIZONTAL_SPACING * depth
-    child.y = calculateVerticalPosition(child, siblings)
-    layoutSubtree(child, direction='left')
+    T["🎯 Topic<br/>(center)"]
 
-  for each child in rightChildren:
-    child.x = HORIZONTAL_SPACING * depth
-    child.y = calculateVerticalPosition(child, siblings)
-    layoutSubtree(child, direction='right')
+    subgraph "Right Hemisphere"
+        T --- R1["Branch C"]
+        T --- R2["Branch D"]
+        R1 --- R3["Sub-branch"]
+        R1 --- R4["Sub-branch"]
+        R2 --- R5["Sub-branch"]
+    end
 ```
+
+**Algorithm:** First-level children are split into left and right hemispheres (first half left, second half right). Each child is positioned at `±HORIZONTAL_SPACING × depth` on the X axis, with vertical spacing calculated to avoid sibling overlap. Subtrees extend outward from their parent in the assigned direction. Positions are auto-calculated on creation but persist after manual drag overrides.
 
 ---
 
@@ -496,40 +506,11 @@ function layoutThoughtMap(rootNode):
 
 Create a new Thought Map with a single Topic node.
 
-**Request:**
+| Field   | Type   | Required | Description                     |
+| ------- | ------ | -------- | ------------------------------- |
+| `title` | string | Yes      | The central topic (5–500 chars) |
 
-```json
-{
-  "title": "string (required) -- The central topic (5-500 chars)"
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "ObjectId",
-    "title": "How should I design my database schema?",
-    "rootNodeId": "topic-0",
-    "nodes": [
-      {
-        "nodeId": "topic-0",
-        "label": "How should I design my database schema?",
-        "type": "topic",
-        "parentId": null,
-        "depth": 0,
-        "position": { "x": 0, "y": 0 }
-      }
-    ],
-    "edges": [],
-    "createdAt": "ISO-8601",
-    "updatedAt": "ISO-8601"
-  },
-  "meta": { "requestId": "uuid", "timestamp": "ISO-8601" }
-}
-```
+**Response (201 Created):** Returns the map with `id`, `title`, `rootNodeId`, a single Topic node at position `(0, 0)`, empty edges array, and timestamps. Wrapped in standard `{ success, data, meta }` envelope.
 
 ---
 
@@ -537,34 +518,14 @@ Create a new Thought Map with a single Topic node.
 
 Add a new node (branch) to the Thought Map.
 
-**Request:**
+| Field            | Type    | Required | Description                                         |
+| ---------------- | ------- | -------- | --------------------------------------------------- |
+| `parentId`       | string  | Yes      | Parent node ID                                      |
+| `label`          | string  | Yes      | Node label (3–300 chars)                            |
+| `type`           | string  | No       | `thought` (default), `question`, or `insight`       |
+| `fromSuggestion` | boolean | No       | Whether promoted from a ghost node (default: false) |
 
-```json
-{
-  "parentId": "string (required) -- Parent node ID",
-  "label": "string (required) -- Node label (3-300 chars)",
-  "type": "thought | question | insight (default: thought)",
-  "fromSuggestion": "boolean (default: false) -- Whether this was promoted from a ghost node"
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "nodeId": "thought-7",
-    "label": "What entities does the system need?",
-    "type": "thought",
-    "parentId": "topic-0",
-    "depth": 1,
-    "position": { "x": 350, "y": -120 },
-    "fromSuggestion": false
-  },
-  "meta": { "requestId": "uuid", "timestamp": "ISO-8601" }
-}
-```
+**Response (201 Created):** Returns the created node with `nodeId`, `label`, `type`, `parentId`, `depth`, `position`, and `fromSuggestion`.
 
 **Error Responses:**
 
@@ -579,143 +540,47 @@ Add a new node (branch) to the Thought Map.
 
 #### `PATCH /api/v1/thought-maps/:id/nodes/:nodeId`
 
-Update a node's label, position, or collapsed state.
+Update a node's label, position, or collapsed state. All fields optional.
 
-**Request:**
+| Field         | Type    | Description                |
+| ------------- | ------- | -------------------------- |
+| `label`       | string  | Updated label text         |
+| `position`    | object  | `{ x: number, y: number }` |
+| `isCollapsed` | boolean | Collapse/expand subtree    |
 
-```json
-{
-  "label": "string (optional) -- Updated label",
-  "position": { "x": 0, "y": 0 },
-  "isCollapsed": "boolean (optional) -- Collapse/expand subtree"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "nodeId": "thought-7",
-    "label": "Updated label",
-    "position": { "x": 100, "y": -50 },
-    "isCollapsed": false
-  }
-}
-```
+**Response (200 OK):** Returns the updated node fields.
 
 ---
 
 #### `DELETE /api/v1/thought-maps/:id/nodes/:nodeId`
 
-Delete a node and optionally cascade to children.
-
-**Request (query params):**
-
-```
-?cascade=true|false (default: false)
-```
-
-If `cascade=false` and the node has children, returns 409 Conflict.
-
-**Error Responses:**
-
-| Status Code | Description                         |
-| ----------- | ----------------------------------- |
-| 400         | Cannot delete the Topic (root) node |
-| 404         | Node not found                      |
-| 409         | Node has children and cascade=false |
+Delete a node. Query param `?cascade=true|false` (default: false). If `cascade=false` and the node has children, returns 409 Conflict. Cannot delete the Topic (root) node (400).
 
 ---
 
 #### `POST /api/v1/thought-maps/extract`
 
-Extract a Thought Map from a conversation.
+Extract a Thought Map from a conversation. Accepts `{ conversationId }`.
 
-**Request:**
+**Response (202 Accepted):** Returns `{ jobId, position }` for queue tracking.
 
-```json
-{
-  "conversationId": "ObjectId (required) -- Source conversation to extract from"
-}
-```
-
-**Response (202 Accepted):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "jobId": "uuid",
-    "position": 1
-  },
-  "meta": { "requestId": "uuid", "timestamp": "ISO-8601" }
-}
-```
-
-**SSE Stream:** `GET /api/v1/thought-maps/extract/:jobId/stream`
-
-Events: `processing` → `preview` (with draft map JSON) → `complete` | `error`
+**SSE Stream:** `GET /api/v1/thought-maps/extract/:jobId/stream` — Events: `processing` → `preview` (with draft map JSON) → `complete` | `error`
 
 ---
 
 #### `POST /api/v1/thought-maps/:id/suggest`
 
-Request Socratic branch suggestions for a node.
+Request Socratic branch suggestions for a node. Accepts `{ nodeId }`.
 
-**Request:**
+**Response (202 Accepted):** Returns `{ jobId, position }` for queue tracking.
 
-```json
-{
-  "nodeId": "string (required) -- Node to generate suggestions for"
-}
-```
-
-**Response (202 Accepted):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "jobId": "uuid",
-    "position": 1
-  }
-}
-```
-
-**SSE Stream:** `GET /api/v1/thought-maps/:id/suggest/:jobId/stream`
-
-Events: `processing` → `suggestion` (repeated, one per ghost node) → `complete` | `error`
-
-Each `suggestion` event payload:
-
-```json
-{
-  "label": "What assumptions are you making about scalability?",
-  "parentId": "thought-3",
-  "suggestedType": "question"
-}
-```
+**SSE Stream:** `GET /api/v1/thought-maps/:id/suggest/:jobId/stream` — Events: `processing` → `suggestion` (repeated, one per ghost node) → `complete` | `error`. Each `suggestion` event contains `{ label, parentId, suggestedType }`.
 
 ---
 
 #### `PATCH /api/v1/thought-maps/:id/confirm`
 
-Confirm a draft Thought Map (from extraction) as finalized.
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "ObjectId",
-    "status": "active",
-    "confirmedAt": "ISO-8601"
-  }
-}
-```
+Confirm a draft Thought Map (from extraction) as finalized. Returns the map with `status: "active"` and `confirmedAt` timestamp.
 
 ---
 
@@ -789,149 +654,47 @@ erDiagram
     CANVAS_SESSION ||--o| NODE_DIALOGUE : "has dialogue (guided)"
 ```
 
-### New Schema: `ThoughtMap`
+### New Collection: `thought_maps`
 
-```typescript
-@Schema({ collection: 'thought_maps', timestamps: true })
-export class ThoughtMap {
-  _id: Types.ObjectId;
+Stores the top-level map metadata. Indexed on `userId` for dashboard queries.
 
-  @Prop({ index: true, ref: 'User', required: true, type: Types.ObjectId })
-  userId: Types.ObjectId;
+| Field                 | Type     | Required | Description                                                                          |
+| --------------------- | -------- | -------- | ------------------------------------------------------------------------------------ |
+| userId                | ObjectId | Yes      | Owner (FK → User)                                                                    |
+| title                 | string   | Yes      | Central topic text (trimmed)                                                         |
+| rootNodeId            | string   | Yes      | ID of the root topic node                                                            |
+| status                | string   | Yes      | Enum: `draft`, `active`, `archived` (default: `active`)                              |
+| sourceConversationId  | ObjectId | No       | FK → Conversation (if created via extraction)                                        |
+| sourceCanvasSessionId | ObjectId | No       | FK → CanvasSession (if converted from guided mode)                                   |
+| settings              | object   | Yes      | `{ autoSuggestEnabled: true, autoSuggestIdleSeconds: 10, maxSuggestionsPerNode: 4 }` |
 
-  @Prop({ required: true, trim: true })
-  title: string;
+### New Collection: `thought_nodes`
 
-  /** ID of the root (topic) node */
-  @Prop({ required: true, type: String })
-  rootNodeId: string;
+Stores individual nodes within a map. Indexed on `mapId` for efficient per-map queries. Compound index on `(mapId, nodeId)` for uniqueness.
 
-  /** Map lifecycle status */
-  @Prop({
-    default: 'active',
-    enum: ['draft', 'active', 'archived'],
-    type: String,
-  })
-  status: 'active' | 'archived' | 'draft';
-
-  /** If created from a conversation, reference to source */
-  @Prop({ ref: 'Conversation', type: Types.ObjectId })
-  sourceConversationId?: Types.ObjectId;
-
-  /** If converted from a guided canvas, reference to source */
-  @Prop({ ref: 'CanvasSession', type: Types.ObjectId })
-  sourceCanvasSessionId?: Types.ObjectId;
-
-  /** User-configurable settings */
-  @Prop({
-    default: {
-      autoSuggestEnabled: true,
-      autoSuggestIdleSeconds: 10,
-      maxSuggestionsPerNode: 4,
-    },
-    type: Object,
-  })
-  settings: {
-    autoSuggestEnabled: boolean;
-    autoSuggestIdleSeconds: number;
-    maxSuggestionsPerNode: number;
-  };
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-### New Schema: `ThoughtNode`
-
-```typescript
-@Schema({ collection: 'thought_nodes', timestamps: true })
-export class ThoughtNode {
-  _id: Types.ObjectId;
-
-  @Prop({ index: true, ref: 'ThoughtMap', required: true, type: Types.ObjectId })
-  mapId: Types.ObjectId;
-
-  /** Unique node identifier within the map (e.g., 'topic-0', 'thought-7') */
-  @Prop({ required: true, type: String })
-  nodeId: string;
-
-  @Prop({ required: true, trim: true })
-  label: string;
-
-  @Prop({
-    enum: ['topic', 'thought', 'question', 'insight'],
-    required: true,
-    type: String,
-  })
-  type: 'insight' | 'question' | 'thought' | 'topic';
-
-  /** Parent node ID (null for root/topic node) */
-  @Prop({ default: null, type: String })
-  parentId: string | null;
-
-  /** Depth in the tree (0 = topic, 1 = first-level branch, etc.) */
-  @Prop({ default: 0, min: 0, type: Number })
-  depth: number;
-
-  @Prop({
-    required: true,
-    type: { x: { required: true, type: Number }, y: { required: true, type: Number } },
-  })
-  position: { x: number; y: number };
-
-  /** Whether this subtree is collapsed in the UI */
-  @Prop({ default: false, type: Boolean })
-  isCollapsed: boolean;
-
-  /** Whether this node was promoted from an AI suggestion */
-  @Prop({ default: false, type: Boolean })
-  fromSuggestion: boolean;
-
-  /** Whether this node has been explored through Socratic dialogue */
-  @Prop({ default: false, type: Boolean })
-  isExplored: boolean;
-
-  /** Count of dialogue messages on this node */
-  @Prop({ default: 0, type: Number })
-  messageCount: number;
-
-  /** For nodes extracted from conversation: source message indices */
-  @Prop({ default: [], type: [Number] })
-  sourceMessageIndices: number[];
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
+| Field                | Type     | Required | Description                                                |
+| -------------------- | -------- | -------- | ---------------------------------------------------------- |
+| mapId                | ObjectId | Yes      | FK → ThoughtMap                                            |
+| nodeId               | string   | Yes      | Unique within map (e.g., `topic-0`, `thought-7`)           |
+| label                | string   | Yes      | User-visible node text (trimmed)                           |
+| type                 | string   | Yes      | Enum: `topic`, `thought`, `question`, `insight`            |
+| parentId             | string   | No       | Parent node ID (null for root/topic node)                  |
+| depth                | number   | Yes      | Tree depth (0 = topic, 1 = first-level branch, etc.)       |
+| position             | object   | Yes      | `{ x: number, y: number }` — canvas coordinates            |
+| isCollapsed          | boolean  | No       | Whether subtree is collapsed in UI (default: false)        |
+| fromSuggestion       | boolean  | No       | Whether promoted from AI ghost node (default: false)       |
+| isExplored           | boolean  | No       | Whether Socratic dialogue has been opened (default: false) |
+| messageCount         | number   | No       | Count of dialogue messages on this node (default: 0)       |
+| sourceMessageIndices | number[] | No       | For extraction: indices of source conversation messages    |
 
 ### Changes to Existing Schema: `NodeDialogue`
 
-The `NodeDialogue` schema needs a minor extension to support Thought Map nodes:
+Two additive changes to support Thought Map nodes:
 
-```typescript
-// Existing nodeType enum extended:
-@Prop({
-  enum: ['seed', 'soil', 'root', 'insight', 'topic', 'thought', 'question'],
-  required: true,
-  type: String,
-})
-nodeType: NodeType;
+1. **Extended `nodeType` enum**: Add `topic`, `thought`, `question` to the existing `seed`, `soil`, `root`, `insight` values
+2. **New optional `mapId` field**: Reference to ThoughtMap (alternative to `sessionId` for guided canvas)
 
-// New optional field: reference to ThoughtMap (alternative to sessionId for guided canvas)
-@Prop({ ref: 'ThoughtMap', type: Types.ObjectId })
-mapId?: Types.ObjectId;
-```
-
-The compound unique index changes from `{ sessionId, nodeId }` to a conditional index that supports both guided canvas sessions and Thought Maps:
-
-```typescript
-// Existing index (preserved for backward compatibility):
-NodeDialogueSchema.index({ nodeId: 1, sessionId: 1 }, { unique: true, sparse: true });
-
-// New index for Thought Map dialogues:
-NodeDialogueSchema.index({ mapId: 1, nodeId: 1 }, { unique: true, sparse: true });
-```
+**New index** for Thought Map dialogues: `(mapId, nodeId)` with unique + sparse constraint. The existing `(sessionId, nodeId)` index is preserved for backward compatibility.
 
 ### Migration Notes
 

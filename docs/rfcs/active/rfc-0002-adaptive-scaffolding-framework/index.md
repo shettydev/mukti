@@ -233,416 +233,174 @@ sequenceDiagram
 
 #### 5.1 Scaffold Level Definitions
 
-**Level 0: Pure Socratic (Default)**
+Each level builds on the previous, adding progressively more structure to the AI's prompting strategy. The prompt augmentation is cumulative — higher levels include relevant strategies from lower levels.
 
-No modifications to current behavior. Open-ended questions that assume user has latent knowledge.
+```mermaid
+graph TB
+    subgraph "Scaffold Level Hierarchy"
+        L0["Level 0: Pure Socratic<br/>Open questions only, no hints"]
+        L1["Level 1: Meta-Cognitive<br/>+ Process reflection prompts"]
+        L2["Level 2: Strategic Hints<br/>+ Problem decomposition"]
+        L3["Level 3: Worked Examples<br/>+ Analogous examples"]
+        L4["Level 4: Direct Instruction<br/>+ Brief concept explanation"]
+    end
 
-```typescript
-const LEVEL_0_PROMPT = `
-You are a Socratic mentor. Ask probing questions that help the user discover the answer themselves.
-Never provide direct answers or solutions.
-Trust that the user has the knowledge to reach the answer through reflection.
-`;
+    L0 -->|"2 failures"| L1
+    L1 -->|"2 failures"| L2
+    L2 -->|"2 failures"| L3
+    L3 -->|"2 failures"| L4
+
+    L4 -->|"2 successes"| L3
+    L3 -->|"2 successes"| L2
+    L2 -->|"2 successes"| L1
+    L1 -->|"2 successes"| L0
 ```
 
-**Characteristics:**
+**Level 0: Pure Socratic (Default)** — No modifications to current behavior. The AI asks open-ended, probing questions that assume the user has latent knowledge. No hints, no structure. The user drives the direction. This is Mukti's default mode.
 
-- Open-ended questions only
-- No hints or structure
-- Assumes productive struggle
-- User drives the direction
+**Level 1: Meta-Cognitive Prompts** — The AI shifts from content questions to _process_ questions: "What strategy are you using?", "What do you already know about this?", "Walk me through your thinking step by step." The goal is to make the user's implicit reasoning explicit and activate prior knowledge. Focus is on thinking _about_ thinking, not on the content itself.
 
----
+**Level 2: Strategic Hints (Chunking/Decomposition)** — The AI provides structural guidance that breaks the problem into manageable pieces: "Let's tackle this piece by piece — what's the first thing we need to figure out?", "This type of problem usually involves X, Y, and Z — which is clearest to you?" The AI does **not** solve any sub-problem — it only helps the user see the structure.
 
-**Level 1: Meta-Cognitive Prompts**
+**Level 3: Worked Examples (Analogies)** — The AI provides analogous examples that illuminate the concept without directly solving the user's problem: "Here's a similar situation: [analogy]. How does this apply to your problem?", "In problems like this, we often see [pattern]. Can you identify it in your case?" The example must be **analogous, not identical** — the user must still transfer the insight.
 
-Add prompts that encourage the user to reflect on their thinking process.
-
-```typescript
-const LEVEL_1_ADDITIONS = `
-Additionally, guide the user's meta-cognition:
-- Ask "What strategy are you currently using?"
-- Prompt "What do you already know about this?"
-- Inquire "What's similar to problems you've solved before?"
-- Encourage "Walk me through your current thinking step by step."
-
-Focus on making their thinking visible, not on the content itself.
-`;
-```
-
-**Characteristics:**
-
-- Questions about process, not content
-- Activates prior knowledge
-- Makes implicit reasoning explicit
-- Builds self-monitoring skills
-
----
-
-**Level 2: Strategic Hints (Chunking/Decomposition)**
-
-Add structural guidance that breaks the problem into manageable pieces.
-
-```typescript
-const LEVEL_2_ADDITIONS = `
-The user needs structural support. Guide them to decompose the problem:
-- Suggest breaking into sub-problems: "Let's tackle this piece by piece. What's the first thing we need to figure out?"
-- Offer chunking: "There are several parts to this. Which part should we focus on first?"
-- Provide framing: "This type of problem usually involves [X], [Y], and [Z]. Which of these is clearest to you?"
-
-Do NOT solve any sub-problem for them. Only help them see the structure.
-`;
-```
-
-**Characteristics:**
-
-- Problem decomposition questions
-- Reduces cognitive load through chunking
-- Provides structural scaffolding
-- Still no content hints
-
----
-
-**Level 3: Worked Examples (Analogies)**
-
-Provide analogous examples that illuminate the concept without directly solving the user's problem.
-
-```typescript
-const LEVEL_3_ADDITIONS = `
-The user needs concrete examples to understand the pattern. Provide ANALOGOUS examples:
-- Use a parallel example: "Here's a similar situation: [analogy]. How does this apply to your problem?"
-- Show partial structure: "In problems like this, we often see [pattern]. Can you identify this pattern in your case?"
-- Reference familiar concepts: "Remember how [known concept] works? This follows a similar logic."
-
-CRITICAL: The example must be ANALOGOUS, not the same problem. The user must still transfer the insight.
-`;
-```
-
-**Characteristics:**
-
-- Analogous examples, not solutions
-- Pattern illumination
-- Requires transfer from example to problem
-- User completes the final connection
-
----
-
-**Level 4: Direct Instruction (Foundational)**
-
-Explicit concept explanation followed by guided practice. This is the only level where the AI explains concepts directly.
-
-```typescript
-const LEVEL_4_ADDITIONS = `
-The user lacks foundational knowledge for this concept. Provide direct instruction:
-1. EXPLAIN the concept clearly and concisely (2-3 sentences max)
-2. Give ONE concrete example of the concept in action
-3. Immediately return to Socratic mode: ask the user to apply this concept to their problem
-
-Format:
-"Let me explain [concept]: [brief explanation]. For example, [simple example].
-Now, given this understanding, how does this apply to your situation?"
-
-You ARE providing information, but you're NOT solving their problem. The explanation is foundational setup for productive questioning.
-`;
-```
-
-**Characteristics:**
-
-- Brief, focused concept explanation
-- One illustrative example
-- Immediate return to Socratic questioning
-- Minimal direct instruction, maximum guided application
+**Level 4: Direct Instruction (Foundational)** — The only level where the AI explains concepts directly. The format is strictly constrained: (1) explain the concept in 2–3 sentences, (2) give one concrete example, (3) immediately return to Socratic mode by asking the user to apply the concept. The AI provides information but does **not** solve the user's problem — the explanation is foundational setup for productive questioning.
 
 #### 5.2 Prompt Augmentation System
 
-```typescript
-// packages/mukti-api/src/modules/dialogue/utils/scaffold-prompts.ts
+The `ScaffoldPromptAugmenter` takes a base prompt and a `ScaffoldContext`, then appends level-appropriate instructions. Prompt composition is cumulative — each level includes relevant strategies from lower levels.
 
-export enum ScaffoldLevel {
-  PURE_SOCRATIC = 0,
-  META_COGNITIVE = 1,
-  STRATEGIC_HINTS = 2,
-  WORKED_EXAMPLES = 3,
-  DIRECT_INSTRUCTION = 4,
-}
-
-interface ScaffoldContext {
-  level: ScaffoldLevel;
-  rootGap?: string;
-  consecutiveFailures: number;
-  consecutiveSuccesses: number;
-  conceptContext?: string[];
-}
-
-export class ScaffoldPromptAugmenter {
-  private readonly levelPrompts: Map<ScaffoldLevel, string>;
-
-  constructor() {
-    this.levelPrompts = new Map([
-      [ScaffoldLevel.PURE_SOCRATIC, LEVEL_0_PROMPT],
-      [ScaffoldLevel.META_COGNITIVE, LEVEL_0_PROMPT + LEVEL_1_ADDITIONS],
-      [ScaffoldLevel.STRATEGIC_HINTS, LEVEL_0_PROMPT + LEVEL_1_ADDITIONS + LEVEL_2_ADDITIONS],
-      [ScaffoldLevel.WORKED_EXAMPLES, LEVEL_0_PROMPT + LEVEL_2_ADDITIONS + LEVEL_3_ADDITIONS],
-      [ScaffoldLevel.DIRECT_INSTRUCTION, LEVEL_0_PROMPT + LEVEL_4_ADDITIONS],
-    ]);
-  }
-
-  augment(basePrompt: string, context: ScaffoldContext): string {
-    const scaffoldAdditions = this.levelPrompts.get(context.level) || '';
-
-    let augmentedPrompt = basePrompt + '\n\n' + scaffoldAdditions;
-
-    // Add root gap context if available
-    if (context.rootGap && context.level >= ScaffoldLevel.STRATEGIC_HINTS) {
-      augmentedPrompt += `\n\nNote: The user appears to be struggling with the foundational concept of "${context.rootGap}". `;
-      augmentedPrompt += `Address this gap before expecting progress on the current question.`;
+```mermaid
+classDiagram
+    class ScaffoldPromptAugmenter {
+        +augment(basePrompt, context) string
+        +getLevelDescription(level) string
     }
 
-    // Add fading reminder at higher levels
-    if (context.level >= ScaffoldLevel.WORKED_EXAMPLES) {
-      augmentedPrompt += `\n\nRemember: Scaffold support should be TEMPORARY. `;
-      augmentedPrompt += `After each response, look for opportunities to reduce support.`;
+    class ScaffoldContext {
+        +ScaffoldLevel level
+        +string rootGap?
+        +number consecutiveFailures
+        +number consecutiveSuccesses
+        +string[] conceptContext?
     }
 
-    return augmentedPrompt;
-  }
+    class ScaffoldLevel {
+        <<enumeration>>
+        PURE_SOCRATIC = 0
+        META_COGNITIVE = 1
+        STRATEGIC_HINTS = 2
+        WORKED_EXAMPLES = 3
+        DIRECT_INSTRUCTION = 4
+    }
 
-  getLevelDescription(level: ScaffoldLevel): string {
-    const descriptions: Record<ScaffoldLevel, string> = {
-      [ScaffoldLevel.PURE_SOCRATIC]: 'Pure questioning, no hints',
-      [ScaffoldLevel.META_COGNITIVE]: 'Process-focused reflection prompts',
-      [ScaffoldLevel.STRATEGIC_HINTS]: 'Problem decomposition and chunking',
-      [ScaffoldLevel.WORKED_EXAMPLES]: 'Analogous examples for pattern recognition',
-      [ScaffoldLevel.DIRECT_INSTRUCTION]: 'Brief concept explanation with guided practice',
-    };
-    return descriptions[level];
-  }
-}
+    ScaffoldPromptAugmenter ..> ScaffoldContext : accepts
+    ScaffoldContext --> ScaffoldLevel : uses
 ```
+
+**Prompt composition rules:**
+
+| Level | Includes prompts from    | Additional context injected        |
+| ----- | ------------------------ | ---------------------------------- |
+| 0     | Base Socratic only       | None                               |
+| 1     | Base + Level 1 additions | None                               |
+| 2     | Base + Level 1 + Level 2 | Root gap context (if available)    |
+| 3     | Base + Level 2 + Level 3 | Root gap context + fading reminder |
+| 4     | Base + Level 4 additions | Root gap context + fading reminder |
+
+**Additional behaviors:**
+
+- At Level 2+, if a `rootGap` is identified (from RFC-0001 prerequisite checker), the augmenter injects: _"The user appears to be struggling with the foundational concept of [rootGap]. Address this gap before expecting progress."_
+- At Level 3+, a fading reminder is appended: _"Scaffold support should be TEMPORARY. After each response, look for opportunities to reduce support."_
 
 #### 5.3 Level Transition Controller (Fading)
 
-```typescript
-// packages/mukti-api/src/modules/dialogue/services/scaffold-fade.service.ts
+The `ScaffoldFadeService` manages level transitions based on consecutive success/failure counts. The transition rules are symmetric: 2 consecutive successes to fade down, 2 consecutive failures to escalate up.
 
-interface FadeState {
-  currentLevel: ScaffoldLevel;
-  consecutiveSuccesses: number;
-  consecutiveFailures: number;
-  levelHistory: Array<{ level: ScaffoldLevel; timestamp: Date; reason: string }>;
-}
+```mermaid
+stateDiagram-v2
+    [*] --> Level0 : Default state
 
-interface TransitionResult {
-  newLevel: ScaffoldLevel;
-  changed: boolean;
-  reason: string;
-}
+    Level0 --> Level1 : 2 consecutive failures
+    Level1 --> Level0 : 2 consecutive successes
+    Level1 --> Level2 : 2 consecutive failures
+    Level2 --> Level1 : 2 consecutive successes
+    Level2 --> Level3 : 2 consecutive failures
+    Level3 --> Level2 : 2 consecutive successes
+    Level3 --> Level4 : 2 consecutive failures
+    Level4 --> Level3 : 2 consecutive successes
 
-export class ScaffoldFadeService {
-  private readonly SUCCESSES_TO_FADE = 2; // Consecutive successes needed to decrease level
-  private readonly FAILURES_TO_ESCALATE = 2; // Consecutive failures needed to increase level
-
-  /**
-   * Evaluate user response and determine if scaffold level should change.
-   *
-   * Success criteria (varies by level):
-   * - L0-L1: User demonstrates understanding in explanation
-   * - L2: User successfully decomposes the problem
-   * - L3: User correctly applies pattern from example
-   * - L4: User correctly applies taught concept
-   */
-  evaluateAndTransition(state: FadeState, responseQuality: ResponseQuality): TransitionResult {
-    const isSuccess = responseQuality.demonstratesUnderstanding;
-
-    if (isSuccess) {
-      state.consecutiveSuccesses++;
-      state.consecutiveFailures = 0;
-
-      if (state.consecutiveSuccesses >= this.SUCCESSES_TO_FADE && state.currentLevel > 0) {
-        const newLevel = (state.currentLevel - 1) as ScaffoldLevel;
-        return {
-          newLevel,
-          changed: true,
-          reason: `${this.SUCCESSES_TO_FADE} consecutive successes → fading scaffold`,
-        };
-      }
-    } else {
-      state.consecutiveFailures++;
-      state.consecutiveSuccesses = 0;
-
-      if (state.consecutiveFailures >= this.FAILURES_TO_ESCALATE && state.currentLevel < 4) {
-        const newLevel = (state.currentLevel + 1) as ScaffoldLevel;
-        return {
-          newLevel,
-          changed: true,
-          reason: `${this.FAILURES_TO_ESCALATE} consecutive failures → increasing scaffold`,
-        };
-      }
+    state Level0 {
+        [*] : Pure Socratic
     }
-
-    return {
-      newLevel: state.currentLevel,
-      changed: false,
-      reason: 'No transition triggered',
-    };
-  }
-}
-
-interface ResponseQuality {
-  demonstratesUnderstanding: boolean;
-  appliedConcept: boolean;
-  selfExplanationPresent: boolean;
-  progressMade: boolean;
-}
-
-interface GapDetectionSignals {
-  frustration: number;
-  abandonment: boolean;
-  explicitHelpRequest: boolean;
-}
+    state Level1 {
+        [*] : Meta-Cognitive
+    }
+    state Level2 {
+        [*] : Strategic Hints
+    }
+    state Level3 {
+        [*] : Worked Examples
+    }
+    state Level4 {
+        [*] : Direct Instruction
+    }
 ```
+
+**Transition rules:**
+
+- **Escalation**: On failure, increment `consecutiveFailures` and reset `consecutiveSuccesses` to 0. If `consecutiveFailures ≥ 2` and current level < 4, increase level by 1.
+- **Fading**: On success, increment `consecutiveSuccesses` and reset `consecutiveFailures` to 0. If `consecutiveSuccesses ≥ 2` and current level > 0, decrease level by 1.
+- **No change**: If neither threshold is met, the level remains unchanged.
+
+**Success criteria vary by level:**
+
+| Level | "Success" means the user...                        |
+| ----- | -------------------------------------------------- |
+| 0–1   | Demonstrates understanding in their explanation    |
+| 2     | Successfully decomposes the problem into sub-parts |
+| 3     | Correctly applies the pattern from the analogy     |
+| 4     | Correctly applies the directly taught concept      |
+
+**Key constraint:** Detection (RFC-0001) can escalate immediately via `max(detected, stored)`, but de-escalation only happens through these fade rules. This prevents abrupt level drops mid-conversation.
 
 #### 5.4 Integration with PromptBuilder
 
-```typescript
-// Modifications to packages/mukti-api/src/modules/dialogue/utils/prompt-builder.ts
-
-export function buildScaffoldAwarePrompt(
-  node: NodeContext,
-  problemStructure: ProblemStructure,
-  scaffoldContext?: ScaffoldContext,
-  technique: SocraticTechnique = 'elenchus'
-): string {
-  const basePrompt = buildSystemPrompt(node, problemStructure, technique);
-  if (!scaffoldContext) return basePrompt;
-
-  return augmentWithScaffoldContext(basePrompt, scaffoldContext);
-}
-```
+The existing `prompt-builder.ts` gains a new entry point: `buildScaffoldAwarePrompt`. This function takes the standard node context, problem structure, and Socratic technique, builds the base system prompt as before, then conditionally augments it with scaffold context if provided. When no scaffold context is present (e.g., feature flag disabled), the function returns the unmodified base prompt — ensuring full backward compatibility.
 
 #### 5.5 Response Quality Evaluator
 
-```typescript
-// packages/mukti-api/src/modules/dialogue/services/response-evaluator.service.ts
+The `ResponseEvaluatorService` determines whether a user response demonstrates understanding — the key input for the fade controller's transition decisions. It evaluates four signals and computes a weighted score that varies by scaffold level.
 
-interface EvaluationResult {
-  demonstratesUnderstanding: boolean;
-  confidence: number;
-  signals: {
-    hasExplanation: boolean;
-    mentionsConcept: boolean;
-    appliesPattern: boolean;
-    asksRelevantQuestion: boolean;
-  };
-}
+```mermaid
+flowchart TD
+    A[User Response] --> B[Signal Detection]
 
-export class ResponseEvaluatorService {
-  /**
-   * Evaluate whether user response demonstrates understanding.
-   * Used by FadeController to determine scaffold transitions.
-   */
-  evaluate(
-    userResponse: string,
-    scaffoldLevel: ScaffoldLevel,
-    expectedConcept?: string
-  ): EvaluationResult {
-    const signals = {
-      hasExplanation: this.hasExplanation(userResponse),
-      mentionsConcept: expectedConcept ? this.mentionsConcept(userResponse, expectedConcept) : true,
-      appliesPattern: this.appliesPattern(userResponse, scaffoldLevel),
-      asksRelevantQuestion: this.asksRelevantQuestion(userResponse),
-    };
+    B --> C{Has Explanation?<br/>because, therefore, since...}
+    B --> D{Mentions Concept?<br/>expected concept keyword}
+    B --> E{Applies Pattern?<br/>like example, similar to...}
+    B --> F{Asks Relevant Question?<br/>contains ? and length > 20}
 
-    // Calculate understanding score based on scaffold level expectations
-    const weights = this.getWeightsForLevel(scaffoldLevel);
-    const score =
-      (signals.hasExplanation ? weights.explanation : 0) +
-      (signals.mentionsConcept ? weights.concept : 0) +
-      (signals.appliesPattern ? weights.pattern : 0) +
-      (signals.asksRelevantQuestion ? weights.question : 0);
+    C --> G[Weighted Score Calculation]
+    D --> G
+    E --> G
+    F --> G
 
-    return {
-      demonstratesUnderstanding: score >= 0.5,
-      confidence: score,
-      signals,
-    };
-  }
-
-  private getWeightsForLevel(level: ScaffoldLevel): Record<string, number> {
-    // Higher scaffold levels have lower thresholds for "success"
-    const levelWeights: Record<ScaffoldLevel, Record<string, number>> = {
-      [ScaffoldLevel.PURE_SOCRATIC]: {
-        explanation: 0.4,
-        concept: 0.3,
-        pattern: 0.2,
-        question: 0.1,
-      },
-      [ScaffoldLevel.META_COGNITIVE]: {
-        explanation: 0.35,
-        concept: 0.3,
-        pattern: 0.2,
-        question: 0.15,
-      },
-      [ScaffoldLevel.STRATEGIC_HINTS]: {
-        explanation: 0.3,
-        concept: 0.3,
-        pattern: 0.25,
-        question: 0.15,
-      },
-      [ScaffoldLevel.WORKED_EXAMPLES]: {
-        explanation: 0.25,
-        concept: 0.35,
-        pattern: 0.3,
-        question: 0.1,
-      },
-      [ScaffoldLevel.DIRECT_INSTRUCTION]: {
-        explanation: 0.2,
-        concept: 0.4,
-        pattern: 0.3,
-        question: 0.1,
-      },
-    };
-    return levelWeights[level];
-  }
-
-  private hasExplanation(response: string): boolean {
-    // Check for explanation indicators
-    const explanationMarkers = [
-      /because/i,
-      /since/i,
-      /therefore/i,
-      /this means/i,
-      /I think .* because/i,
-      /the reason/i,
-      /this works by/i,
-    ];
-    return explanationMarkers.some((marker) => marker.test(response));
-  }
-
-  private mentionsConcept(response: string, concept: string): boolean {
-    return response.toLowerCase().includes(concept.toLowerCase());
-  }
-
-  private appliesPattern(response: string, level: ScaffoldLevel): boolean {
-    if (level < ScaffoldLevel.WORKED_EXAMPLES) return true;
-
-    // Check for pattern application language
-    const patternMarkers = [
-      /like .* example/i,
-      /similar to/i,
-      /same as/i,
-      /following .* pattern/i,
-      /applying/i,
-      /using .* approach/i,
-    ];
-    return patternMarkers.some((marker) => marker.test(response));
-  }
-
-  private asksRelevantQuestion(response: string): boolean {
-    return /\?/.test(response) && response.length > 20;
-  }
-}
+    G --> H{Score ≥ 0.5?}
+    H -->|Yes| I[demonstratesUnderstanding = true]
+    H -->|No| J[demonstratesUnderstanding = false]
 ```
+
+**Signal weights by scaffold level** (higher levels shift weight toward concept mention and pattern application):
+
+| Signal      | L0   | L1   | L2   | L3   | L4   |
+| ----------- | ---- | ---- | ---- | ---- | ---- |
+| Explanation | 0.40 | 0.35 | 0.30 | 0.25 | 0.20 |
+| Concept     | 0.30 | 0.30 | 0.30 | 0.35 | 0.40 |
+| Pattern     | 0.20 | 0.20 | 0.25 | 0.30 | 0.30 |
+| Question    | 0.10 | 0.15 | 0.15 | 0.10 | 0.10 |
+
+**Design rationale:** At lower levels, explanation ability is weighted highest (the user should be reasoning independently). At higher levels, concept mention and pattern application are weighted more heavily (the user should be demonstrating they absorbed the scaffolded content). The threshold for "success" is always `score ≥ 0.5`, but the weights make success progressively easier to achieve at higher scaffold levels — reflecting that scaffolded users need less independent reasoning to demonstrate progress.
 
 ---
 
@@ -650,29 +408,37 @@ export class ResponseEvaluatorService {
 
 ### Internal Service Interfaces
 
-#### `ScaffoldPromptAugmenter`
+```mermaid
+classDiagram
+    class ScaffoldPromptAugmenter {
+        +augment(basePrompt, context) string
+        +getLevelDescription(level) string
+    }
 
-```typescript
-interface ScaffoldPromptAugmenter {
-  augment(basePrompt: string, context: ScaffoldContext): string;
-  getLevelDescription(level: ScaffoldLevel): string;
-}
-```
+    class ScaffoldFadeService {
+        +evaluateAndTransition(state, quality) TransitionResult
+    }
 
-#### `ScaffoldFadeService`
+    class ResponseEvaluatorService {
+        +evaluate(response, level, concept?) EvaluationResult
+    }
 
-```typescript
-interface ScaffoldFadeService {
-  evaluateAndTransition(state: FadeState, quality: ResponseQuality): TransitionResult;
-}
-```
+    class TransitionResult {
+        +ScaffoldLevel newLevel
+        +boolean changed
+        +string reason
+    }
 
-#### `ResponseEvaluatorService`
+    class EvaluationResult {
+        +boolean demonstratesUnderstanding
+        +number confidence
+        +SignalScores signals
+    }
 
-```typescript
-interface ResponseEvaluatorService {
-  evaluate(input: EvaluationInput): EvaluationResult;
-}
+    ScaffoldFadeService ..> TransitionResult : returns
+    ScaffoldFadeService ..> ResponseEvaluatorService : uses
+    ResponseEvaluatorService ..> EvaluationResult : returns
+    ScaffoldPromptAugmenter ..> ScaffoldContext : accepts
 ```
 
 ### REST Endpoints (Admin/Debug)
@@ -683,36 +449,41 @@ No scaffolding-specific REST endpoints are currently exposed. Scaffolding behavi
 
 ## 7. Data Model Changes
 
-### Schema Changes
+### Modified Schemas
 
-**Modified: `node_dialogues`**
+Scaffolding state is persisted on both `node_dialogues` (canvas flows) and `conversations` (text chat flows). All fields are additive — no existing fields are modified or removed.
 
-```typescript
-// Add to existing NodeDialogue schema
-interface NodeDialogueScaffoldFields {
-  currentScaffoldLevel: 0 | 1 | 2 | 3 | 4;
-  consecutiveSuccesses: number;
-  consecutiveFailures: number;
-  detectedConcepts: string[];
-  lastGapDetection?: {
-    detectedAt: Date;
-    gapScore: number;
-    knowledgeProbability: number;
-    recommendation: 'socratic' | 'scaffold' | 'teach';
-    rootGap: string | null;
-    scaffoldLevel: 0 | 1 | 2 | 3 | 4;
-    signals: { linguistic: number; behavioral: number; temporal: number };
-  };
-  scaffoldHistory: Array<{
-    fromLevel: number;
-    toLevel: number;
-    reason: string;
-    timestamp: Date;
-  }>;
-}
+```mermaid
+erDiagram
+    NODE_DIALOGUE {
+        number currentScaffoldLevel "0-4, default 0"
+        number consecutiveSuccesses "counter for fade-down"
+        number consecutiveFailures "counter for escalation"
+        string[] detectedConcepts "concepts in context"
+        object lastGapDetection "most recent detection result"
+        array scaffoldHistory "audit trail of transitions"
+    }
+
+    CONVERSATION {
+        number currentScaffoldLevel "0-4, default 0"
+        number consecutiveSuccesses "counter for fade-down"
+        number consecutiveFailures "counter for escalation"
+        string[] detectedConcepts "concepts in context"
+    }
 ```
 
-`conversations` also persists `currentScaffoldLevel`, `consecutiveSuccesses`, `consecutiveFailures`, and `detectedConcepts` for non-canvas chat flows.
+**Additive fields on `node_dialogues`:**
+
+| Field                | Type     | Description                                                                       |
+| -------------------- | -------- | --------------------------------------------------------------------------------- |
+| currentScaffoldLevel | 0–4      | Current scaffold level for this dialogue (default: 0)                             |
+| consecutiveSuccesses | number   | Counter for fade-down transitions (reset on failure)                              |
+| consecutiveFailures  | number   | Counter for escalation transitions (reset on success)                             |
+| detectedConcepts     | string[] | Concepts detected in this dialogue's context                                      |
+| lastGapDetection     | object   | Most recent gap detection result (score, level, signals, rootGap, recommendation) |
+| scaffoldHistory      | array    | Audit trail: `{ fromLevel, toLevel, reason, timestamp }`                          |
+
+**Additive fields on `conversations`:** Same as above except `lastGapDetection` and `scaffoldHistory` (text chat flows use a simpler tracking model).
 
 ### Migration Notes
 

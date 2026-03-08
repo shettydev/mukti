@@ -110,6 +110,9 @@ graph TB
 ## 5. Proposed Solution
 
 <!-- PURPOSE: Present the detailed technical design that addresses the motivation. -->
+<!-- DIAGRAM POLICY: Use mermaid diagrams for architecture, data flow, state machines, class
+     structures, and algorithms. Use code blocks ONLY for API contracts (JSON), prompt templates
+     (exact wording), or configuration snippets. See STANDARDS.md § Diagram & Code Block Policy. -->
 
 _Describe the proposed solution in sufficient detail for an engineer to implement it. Include
 architectural decisions, data flow, component interactions, and any new abstractions introduced.
@@ -154,11 +157,18 @@ sequenceDiagram
 ### Detailed Design
 
 _Break down the implementation into discrete, reviewable sections. Use sub-headings for each
-significant component or behavior change._
+significant component or behavior change. Prefer mermaid diagrams to express component relationships,
+decision logic, and state transitions. Reserve code blocks for prompt templates or configuration
+where exact text matters._
 
 #### 5.1 [Component / Subsystem Name]
 
-_Description of changes to this component._
+_Description of changes to this component. Use diagrams to show:_
+
+- _Component interactions → `graph` or `flowchart`_
+- _Service interfaces → `classDiagram`_
+- _Decision logic or algorithms → `flowchart` with decision nodes_
+- _State transitions → `stateDiagram-v2`_
 
 #### 5.2 [Component / Subsystem Name]
 
@@ -169,9 +179,37 @@ _Description of changes to this component._
 ## 6. API / Interface Design
 
 <!-- PURPOSE: Define the contracts other systems or developers will depend on. -->
+<!-- DIAGRAM POLICY: Use class diagrams for service interfaces. Use JSON code blocks only for
+     REST endpoint request/response shapes where the exact contract matters. -->
 
 _Document any new or modified APIs, schemas, endpoints, CLI commands, or component interfaces.
 If this RFC does not introduce public interfaces, state "Not applicable" and explain why._
+
+### Service Interfaces
+
+_Use a class diagram to show the public interfaces that other services or modules depend on._
+
+```mermaid
+classDiagram
+    class ServiceName {
+        +methodA(input: InputType) OutputType
+        +methodB(id: string) ResultType
+    }
+
+    class InputType {
+        +string fieldA
+        +number fieldB
+    }
+
+    class OutputType {
+        +string id
+        +string fieldA
+        +DateTime createdAt
+    }
+
+    ServiceName ..> InputType : accepts
+    ServiceName ..> OutputType : returns
+```
 
 ### Endpoints
 
@@ -179,27 +217,12 @@ If this RFC does not introduce public interfaces, state "Not applicable" and exp
 
 _Brief description of what this endpoint does._
 
-**Request:**
+| Field     | Type   | Required | Description          |
+| --------- | ------ | -------- | -------------------- |
+| `field_a` | string | Yes      | Description of field |
+| `field_b` | number | No       | Description of field |
 
-```json
-{
-  "field_a": "string (required) -- Description of field_a.",
-  "field_b": 0,
-  "field_c": {
-    "nested": "value"
-  }
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "id": "uuid",
-  "field_a": "string",
-  "created_at": "ISO-8601 timestamp"
-}
-```
+**Response (201 Created):** Returns the created resource with `id` and `created_at` timestamp.
 
 **Error Responses:**
 
@@ -215,6 +238,8 @@ _Brief description of what this endpoint does._
 ## 7. Data Model Changes
 
 <!-- PURPOSE: Document schema changes so reviewers can assess data migration risk and storage impact. -->
+<!-- DIAGRAM POLICY: Use ER diagrams as the PRIMARY format for data models. Describe fields,
+     indexes, and constraints in prose or tables — not TypeScript interface code blocks. -->
 
 _Describe any new tables, columns, indexes, or modifications to existing data models. If no data
 model changes are required, state "Not applicable" and explain why._
@@ -239,6 +264,22 @@ erDiagram
 
     ENTITY_A ||--o{ ENTITY_B : "has many"
 ```
+
+### Field Descriptions
+
+_For each new or modified entity, describe fields that need clarification beyond the ER diagram.
+Use a table for complex fields (enums, nested objects, computed values)._
+
+| Entity   | Field    | Details                                              |
+| -------- | -------- | ---------------------------------------------------- |
+| ENTITY_B | status   | Enum: `active`, `inactive`, `archived`               |
+| ENTITY_B | metadata | JSON object containing [describe structure in prose] |
+
+### Indexes
+
+_List new indexes with their purpose._
+
+- `ENTITY_B(entity_a_id, status)` — Supports filtered lookups by parent and status
 
 ### Migration Notes
 

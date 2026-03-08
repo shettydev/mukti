@@ -184,53 +184,49 @@ sequenceDiagram
 
 #### 5.1 Signal Analyzer
 
-The Signal Analyzer extracts four categories of signals from user responses:
+The Signal Analyzer extracts four categories of signals from user responses and feeds them into the Gap Score Calculator:
 
-**Linguistic Signals** (from MCP server patterns):
+```mermaid
+graph TB
+    A[User Response] --> B[Signal Analyzer]
 
-```typescript
-const KNOWLEDGE_GAP_MARKERS = [
-  "don't know",
-  'no idea',
-  'never heard of',
-  'what is',
-  'clueless',
-  'no clue',
-  'unfamiliar',
-  'not sure what',
-];
+    B --> C[Linguistic Signals]
+    B --> D[Behavioral Signals]
+    B --> E[Temporal Signals]
+    B --> F[Knowledge State]
 
-const CONFUSION_MARKERS = [
-  "don't understand",
-  'unclear',
-  'confusing',
-  'lost',
-  'makes no sense',
-  'over my head',
-];
+    C --> G[Gap Score Calculator]
+    D --> G
+    E --> G
+    F --> G
 
-const FRUSTRATION_MARKERS = [
-  'frustrated',
-  'stuck',
-  'giving up',
-  'already told you',
-  'just tell me',
-  'stop asking',
-];
+    G --> H[GapDetectionResult]
 ```
+
+**Linguistic Signals** — Pattern-matched phrases from user text (derived from MCP server `stuckIndicators`):
+
+| Category      | Example Markers                                                                       | Indicates                       |
+| ------------- | ------------------------------------------------------------------------------------- | ------------------------------- |
+| Knowledge Gap | "don't know", "no idea", "never heard of", "what is", "no clue", "unfamiliar"         | Missing foundational concept    |
+| Confusion     | "don't understand", "unclear", "confusing", "lost", "makes no sense", "over my head"  | Concept present but unclear     |
+| Frustration   | "frustrated", "stuck", "giving up", "already told you", "just tell me", "stop asking" | Outside ZPD, needs intervention |
 
 **Behavioral Signals**:
 
-- `consecutiveFailures`: Same concept, wrong attempts > 3
-- `helpSeekingLoop`: Same question asked > 2 times
-- `responseDegrade`: Response length shrinking (engagement drop)
-- `randomGuessing`: Non-systematic approach changes
+| Signal              | Threshold                       | Indicates                               |
+| ------------------- | ------------------------------- | --------------------------------------- |
+| consecutiveFailures | > 3 attempts on same concept    | Persistent gap, not temporary confusion |
+| helpSeekingLoop     | Same question asked > 2 times   | User cannot progress independently      |
+| responseDegrade     | Response length shrinking       | Engagement drop, disengagement risk     |
+| randomGuessing      | Non-systematic approach changes | No mental model to guide reasoning      |
 
 **Temporal Signals**:
 
-- `timeOnProblem`: > 15 minutes without progress
-- `responseLag`: Long pause followed by short/incorrect response
-- `abandonmentPattern`: Started response, deleted, gave up
+| Signal             | Threshold                             | Indicates                      |
+| ------------------ | ------------------------------------- | ------------------------------ |
+| timeOnProblem      | > 15 minutes without progress         | Extended unproductive struggle |
+| responseLag        | Long pause → short/incorrect response | Cognitive overload             |
+| abandonmentPattern | Started response, deleted, gave up    | Silent disengagement           |
 
 **Knowledge State** (from BKT):
 
@@ -240,292 +236,178 @@ const FRUSTRATION_MARKERS = [
 
 #### 5.2 Bayesian Knowledge Tracing (BKT)
 
-Simplified BKT with 4 parameters per concept:
+Simplified BKT with 4 parameters per concept. Each concept tracks a probability P(L) that the user has learned it, updated after every interaction using Bayes' theorem.
 
-```typescript
-interface BKTParameters {
-  pInit: number; // P(L0) - Initial knowledge probability (default: 0.3)
-  pLearn: number; // P(T) - Learning rate per interaction (default: 0.15)
-  pSlip: number; // P(S) - Probability of error despite knowing (default: 0.1)
-  pGuess: number; // P(G) - Probability of correct despite not knowing (default: 0.25)
-}
+**BKT Parameters** (per concept, with defaults):
 
-interface KnowledgeState {
-  conceptId: string;
-  probability: number; // Current P(L)
-  lastUpdated: Date;
-  interactionCount: number;
-}
-```
+| Parameter | Symbol | Default | Meaning                                    |
+| --------- | ------ | ------- | ------------------------------------------ |
+| pInit     | P(L₀)  | 0.3     | Initial knowledge probability              |
+| pLearn    | P(T)   | 0.15    | Learning rate per interaction              |
+| pSlip     | P(S)   | 0.1     | Probability of error despite knowing       |
+| pGuess    | P(G)   | 0.25    | Probability of correct despite not knowing |
 
-Current constants in implementation:
-
-```typescript
-const MASTERY_THRESHOLD = 0.95;
-const STRUGGLING_THRESHOLD = 0.4;
-```
+**Key Thresholds**: Mastery = `0.95`, Struggling = `0.4`
 
 **Update Algorithm**:
 
-```typescript
-function updateKnowledgeState(
-  state: KnowledgeState,
-  isCorrect: boolean,
-  params: BKTParameters
-): KnowledgeState {
-  const { pSlip, pGuess, pLearn } = params;
-  const pL = state.probability;
+```mermaid
+flowchart TD
+    A[User Interaction] --> B{Response Correct?}
 
-  let pLGivenEvidence: number;
+    B -->|Yes| C["P(L|correct) = P(L)·(1-pSlip) / [P(L)·(1-pSlip) + (1-P(L))·pGuess]"]
+    B -->|No| D["P(L|incorrect) = P(L)·pSlip / [P(L)·pSlip + (1-P(L))·(1-pGuess)]"]
 
-  if (isCorrect) {
-    // P(L | correct) using Bayes' theorem
-    const pCorrect = pL * (1 - pSlip) + (1 - pL) * pGuess;
-    pLGivenEvidence = (pL * (1 - pSlip)) / pCorrect;
-  } else {
-    // P(L | incorrect)
-    const pIncorrect = pL * pSlip + (1 - pL) * (1 - pGuess);
-    pLGivenEvidence = (pL * pSlip) / pIncorrect;
-  }
+    C --> E["Apply learning transition:<br/>P(L') = P(L|evidence) + (1 - P(L|evidence)) · pLearn"]
+    D --> E
 
-  // Apply learning transition
-  const newProbability = pLGivenEvidence + (1 - pLGivenEvidence) * pLearn;
-
-  return {
-    ...state,
-    probability: newProbability,
-    lastUpdated: new Date(),
-    interactionCount: state.interactionCount + 1,
-  };
-}
+    E --> F{P(L') ≥ 0.95?}
+    F -->|Yes| G[Mastered — reduce scaffold]
+    F -->|No| H{P(L') ≤ 0.4?}
+    H -->|Yes| I[Struggling — increase scaffold]
+    H -->|No| J[In progress — maintain level]
 ```
+
+The update uses standard Bayesian posterior calculation: given the observed evidence (correct/incorrect), compute the posterior probability of knowledge, then apply a learning transition that accounts for the possibility of learning during the interaction itself.
 
 #### 5.3 Prerequisite Checker
 
-Recursive prerequisite checking to find root knowledge gaps:
+Recursive prerequisite checking to find root knowledge gaps. The checker traverses the concept prerequisite graph (a DAG) up to 3 levels deep, looking for the deepest unmastered prerequisite — the "root gap."
 
-```typescript
-interface PrerequisiteGraph {
-  concepts: Map<string, ConceptNode>;
-  edges: Map<string, string[]>; // concept -> prerequisites
-}
+```mermaid
+flowchart TD
+    A["Start: Check concept C<br/>(depth=0, maxDepth=3)"] --> B{depth ≥ maxDepth?}
 
-interface GapCheckResult {
-  rootGap: string | null;
-  missingPrerequisites: string[];
-  depth: number;
-}
+    B -->|Yes| C["Return C as root gap<br/>(max depth reached)"]
+    B -->|No| D["Get prerequisites of C<br/>from concept graph"]
 
-function recursivePrerequisiteCheck(
-  graph: PrerequisiteGraph,
-  conceptId: string,
-  userKnowledge: Map<string, KnowledgeState>,
-  depth: number = 0,
-  maxDepth: number = 3
-): GapCheckResult {
-  if (depth >= maxDepth) {
-    return { rootGap: conceptId, missingPrerequisites: [], depth };
-  }
+    D --> E{Any prerequisites?}
+    E -->|No| F["Return: no gap found"]
+    E -->|Yes| G["For each prerequisite P"]
 
-  const prerequisites = graph.edges.get(conceptId) || [];
-  const missingPrereqs: string[] = [];
-  let deepestGap: GapCheckResult | null = null;
+    G --> H{"P(L) for P < 0.5?<br/>(not mastered)"}
+    H -->|No| I["P is mastered — skip"]
+    H -->|Yes| J["Add P to missing list"]
 
-  for (const prereq of prerequisites) {
-    const state = userKnowledge.get(prereq);
-    const probability = state?.probability ?? 0.3; // Assume low if unknown
+    J --> K["Recurse: check P's prerequisites<br/>(depth + 1)"]
+    K --> L["Track deepest gap found"]
 
-    if (probability < 0.5) {
-      // Prerequisite not mastered
-      missingPrereqs.push(prereq);
+    I --> M{More prerequisites?}
+    L --> M
+    M -->|Yes| G
+    M -->|No| N{Deeper gap found?}
 
-      // Recursively check this prerequisite's prerequisites
-      const deeperCheck = recursivePrerequisiteCheck(
-        graph,
-        prereq,
-        userKnowledge,
-        depth + 1,
-        maxDepth
-      );
-
-      if (!deepestGap || deeperCheck.depth > deepestGap.depth) {
-        deepestGap = deeperCheck;
-      }
-    }
-  }
-
-  if (deepestGap) {
-    return {
-      rootGap: deepestGap.rootGap,
-      missingPrerequisites: [...missingPrereqs, ...deepestGap.missingPrerequisites],
-      depth: deepestGap.depth,
-    };
-  }
-
-  return {
-    rootGap: missingPrereqs.length > 0 ? missingPrereqs[0] : null,
-    missingPrerequisites: missingPrereqs,
-    depth,
-  };
-}
+    N -->|Yes| O["Return deepest gap as root gap<br/>+ all missing prerequisites"]
+    N -->|No| P["Return first missing prereq as root gap"]
 ```
+
+**Key behaviors:**
+
+- **Depth cap at 3**: Diminishing returns beyond 3 levels; prevents performance degradation on deep graphs
+- **Unknown concepts default to P(L) = 0.3**: If a concept has never been assessed, assume low probability (conservative)
+- **Deepest-first**: The algorithm returns the deepest unmastered prerequisite as the root gap, ensuring scaffolding addresses the most foundational missing knowledge
+- **Caching**: Frequently-accessed concept subgraphs are cached to keep recursive checks under 20ms
 
 #### 5.4 Gap Score Calculator
 
-Multi-signal fusion to produce final gap score:
+Multi-signal fusion produces a final gap score (0–1) using a weighted combination:
 
-```typescript
-interface GapDetectionResult {
-  gapScore: number; // 0-1, higher = more certain gap exists
-  knowledgeProbability: number; // Current P(L) from BKT
-  scaffoldLevel: ScaffoldLevel; // 0-4 (see RFC-0002)
-  rootGap: string | null;
-  signals: {
-    linguistic: number;
-    behavioral: number;
-    temporal: number;
-  };
-  recommendation: 'socratic' | 'scaffold' | 'teach';
-}
+**Signal Weights:**
 
-type ScaffoldLevel = 0 | 1 | 2 | 3 | 4;
+| Signal               | Weight | Rationale                                           |
+| -------------------- | ------ | --------------------------------------------------- |
+| Linguistic           | 0.30   | Direct user expression of confusion/ignorance       |
+| Behavioral           | 0.25   | Objective patterns (failures, loops, degradation)   |
+| Temporal             | 0.15   | Time-based signals (less reliable, supplementary)   |
+| Knowledge (1 - P(L)) | 0.30   | BKT probability inverted (low knowledge = high gap) |
 
-function calculateGapScore(
-  linguisticScore: number,
-  behavioralScore: number,
-  temporalScore: number,
-  knowledgeProbability: number
-): GapDetectionResult {
-  // Weighted combination
-  const weights = {
-    linguistic: 0.3,
-    behavioral: 0.25,
-    temporal: 0.15,
-    knowledge: 0.3,
-  };
+**Formula:** `gapScore = 0.3·linguistic + 0.25·behavioral + 0.15·temporal + 0.3·(1 - P(L))`
 
-  const gapScore =
-    weights.linguistic * linguisticScore +
-    weights.behavioral * behavioralScore +
-    weights.temporal * temporalScore +
-    weights.knowledge * (1 - knowledgeProbability);
+**Gap Score → Scaffold Level Mapping:**
 
-  // Determine scaffold level based on gap score
-  let scaffoldLevel: ScaffoldLevel;
-  let recommendation: 'socratic' | 'scaffold' | 'teach';
-
-  if (gapScore < 0.3) {
-    scaffoldLevel = 0;
-    recommendation = 'socratic';
-  } else if (gapScore < 0.5) {
-    scaffoldLevel = 1;
-    recommendation = 'scaffold';
-  } else if (gapScore < 0.7) {
-    scaffoldLevel = 2;
-    recommendation = 'scaffold';
-  } else if (gapScore < 0.85) {
-    scaffoldLevel = 3;
-    recommendation = 'scaffold';
-  } else {
-    scaffoldLevel = 4;
-    recommendation = 'teach';
-  }
-
-  return {
-    gapScore,
-    knowledgeProbability,
-    scaffoldLevel,
-    rootGap: null, // Set by prerequisite checker
-    signals: {
-      linguistic: linguisticScore,
-      behavioral: behavioralScore,
-      temporal: temporalScore,
-    },
-    recommendation,
-  };
-}
+```mermaid
+flowchart LR
+    A["Gap Score<br/>0.0 — 1.0"] --> B{"< 0.3"}
+    B -->|Yes| C["Level 0<br/>Pure Socratic"]
+    B -->|No| D{"< 0.5"}
+    D -->|Yes| E["Level 1<br/>Meta-Cognitive"]
+    D -->|No| F{"< 0.7"}
+    F -->|Yes| G["Level 2<br/>Strategic Hints"]
+    F -->|No| H{"< 0.85"}
+    H -->|Yes| I["Level 3<br/>Worked Examples"]
+    H -->|No| J["Level 4<br/>Direct Instruction"]
 ```
+
+**GapDetectionResult** contains: gap score, current P(L), scaffold level (0–4), root gap (from prerequisite checker), per-signal scores, and a recommendation (`socratic` | `scaffold` | `teach`).
 
 #### 5.5 Integration with DialogueQueueService
 
-```typescript
-// packages/mukti-api/src/modules/dialogue/services/dialogue-queue.service.ts
+The `DialogueQueueService` orchestrates gap detection as a pre-processing step before AI prompt generation. The integration follows a 5-step pipeline:
 
-@Injectable()
-export class DialogueQueueService {
-  constructor(
-    private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
-    private readonly scaffoldFadeService: ScaffoldFadeService,
-    private readonly responseEvaluator: ResponseEvaluatorService,
-    private readonly dialogueAIService: DialogueAIService
-  ) {}
+```mermaid
+sequenceDiagram
+    participant DQS as DialogueQueueService
+    participant GD as KnowledgeGapDetector
+    participant SF as ScaffoldFadeService
+    participant AI as DialogueAIService
+    participant BKT as KnowledgeStateTracker
 
-  async process(dialogue: NodeDialogue, message: string): Promise<AIResponse> {
-    // 1) Detect knowledge gaps before generation
-    const gapResult = await this.knowledgeGapDetector.analyze({
-      userMessage: message,
-      conversationHistory,
-      userId,
-      conceptContext: dialogue.detectedConcepts,
-      previousResponseLengths,
-      timeOnProblem,
-    });
+    Note over DQS: Step 1: Detect gaps before generation
+    DQS->>GD: analyze(message, history, concepts, timing)
+    GD-->>DQS: GapDetectionResult(scaffoldLevel, rootGap)
 
-    // 2) Escalate immediately when needed, fade only through transition rules
-    const storedLevel = dialogue.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
-    const effectiveLevel = Math.max(gapResult.scaffoldLevel, storedLevel) as ScaffoldLevel;
+    Note over DQS: Step 2: Resolve effective level
+    DQS->>DQS: effectiveLevel = max(detected, stored)
 
-    // 3) Build scaffold context for prompt augmentation
-    const scaffoldContext: ScaffoldContext = {
-      level: effectiveLevel,
-      rootGap: gapResult.rootGap ?? undefined,
-      conceptContext: gapResult.detectedConcepts,
-      consecutiveFailures: dialogue.consecutiveFailures ?? 0,
-      consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
-    };
+    Note over DQS: Step 3: Build scaffold context
+    DQS->>DQS: ScaffoldContext(level, rootGap, concepts, counters)
 
-    // 4) Generate scaffold-aware response
-    const aiResponse = await this.dialogueAIService.generateScaffoldedResponse(
-      nodeContext,
-      problemStructure,
-      history,
-      message,
-      model,
-      apiKey,
-      scaffoldContext
-    );
+    Note over DQS: Step 4: Generate scaffold-aware response
+    DQS->>AI: generateScaffoldedResponse(context, scaffoldContext)
+    AI-->>DQS: AI response
 
-    // 5) Evaluate user response, transition levels, then update BKT state
-    // (performed after prior assistant context exists)
-    return aiResponse;
-  }
-}
+    Note over DQS: Step 5: Post-response evaluation
+    DQS->>SF: evaluateAndTransition(response quality)
+    DQS->>BKT: updateKnowledgeState(userId, conceptId, isCorrect)
 ```
+
+**Key design decision:** The effective scaffold level is computed as `max(detectedLevel, storedLevel)`. This means detection can **escalate immediately** but de-escalation is controlled only by the fade rules in RFC-0002. This prevents abrupt level drops mid-conversation.
 
 ---
 
 ## 6. API / Interface Design
 
-### Internal Service Interface
+### Internal Service Interfaces
 
-#### `KnowledgeGapDetector`
+```mermaid
+classDiagram
+    class KnowledgeGapDetector {
+        +analyze(input: GapDetectionInput) GapDetectionResult
+        +updateKnowledgeState(userId, conceptId, isCorrect) void
+    }
 
-```typescript
-interface KnowledgeGapDetector {
-  analyze(input: GapDetectionInput): Promise<GapDetectionResult>;
-  updateKnowledgeState(userId: string, conceptId: string, isCorrect: boolean): Promise<void>;
-}
+    class GapDetectionInput {
+        +string userMessage
+        +ConversationTurn[] conversationHistory
+        +string userId
+        +string[] conceptContext?
+        +number[] previousResponseLengths?
+        +number timeOnProblem?
+        +string aiApiKey?
+        +string aiModel?
+    }
 
-interface GapDetectionInput {
-  aiApiKey?: string;
-  aiModel?: string;
-  conceptContext?: string[];
-  userMessage: string;
-  conversationHistory: ConversationTurn[];
-  previousResponseLengths?: number[];
-  timeOnProblem?: number;
-  userId: string;
-}
+    class GapDetectionResult {
+        +number gapScore
+        +number knowledgeProbability
+        +ScaffoldLevel scaffoldLevel
+        +string rootGap?
+        +SignalScores signals
+        +string recommendation
+    }
+
+    KnowledgeGapDetector ..> GapDetectionInput : accepts
+    KnowledgeGapDetector ..> GapDetectionResult : returns
 ```
 
 ### REST Endpoints (Admin/Debug)
@@ -549,83 +431,83 @@ Implemented base route: `knowledge-tracing`
 
 ## 7. Data Model Changes
 
-### Schema Changes
+### Entity-Relationship Diagram
 
-**New Collection: `knowledge_states`**
+```mermaid
+erDiagram
+    USER ||--o{ KNOWLEDGE_STATE : "has knowledge of"
+    CONCEPT ||--o{ KNOWLEDGE_STATE : "tracked by"
+    CONCEPT ||--o{ CONCEPT : "has prerequisites"
+    NODE_DIALOGUE ||--o| KNOWLEDGE_STATE : "updates"
 
-```typescript
-interface KnowledgeStateDocument {
-  _id: ObjectId;
-  userId: ObjectId;
-  conceptId: string;
-  attempts: number;
-  correctAttempts: number;
-  currentProbability: number;
-  lastAssessed: Date;
-  parameters: {
-    pInit: number;
-    pLearn: number;
-    pSlip: number;
-    pGuess: number;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-}
+    KNOWLEDGE_STATE {
+        ObjectId _id PK
+        ObjectId userId FK
+        string conceptId FK
+        number attempts
+        number correctAttempts
+        number currentProbability
+        Date lastAssessed
+        object bktParameters
+    }
+
+    CONCEPT {
+        ObjectId _id PK
+        string conceptId UK
+        string name
+        string domain
+        string difficulty
+        string[] prerequisites
+        string[] keywords
+        object bktParameters
+        boolean autoDiscovered
+        boolean verified
+        boolean isActive
+    }
+
+    NODE_DIALOGUE {
+        number currentScaffoldLevel
+        number consecutiveSuccesses
+        number consecutiveFailures
+        string[] detectedConcepts
+        object lastGapDetection
+        array scaffoldHistory
+    }
 ```
 
-**New Collection: `concepts`**
+### New Collection: `knowledge_states`
 
-```typescript
-interface ConceptDocument {
-  _id: ObjectId;
-  conceptId: string;
-  name: string;
-  domain: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  prerequisites: string[];
-  keywords: string[];
-  bktParameters: {
-    pInit: number;
-    pLearn: number;
-    pSlip: number;
-    pGuess: number;
-  };
-  autoDiscovered: boolean;
-  verified: boolean;
-  isActive: boolean;
-}
-```
+Tracks per-user, per-concept BKT probability. Indexed on `(userId, conceptId)` with a unique compound index.
 
-**Modified: `node_dialogues`**
+| Field              | Type   | Description                                                   |
+| ------------------ | ------ | ------------------------------------------------------------- |
+| bktParameters      | object | Embedded `{ pInit, pLearn, pSlip, pGuess }` — per-concept BKT |
+| currentProbability | number | Current P(L) from BKT updates                                 |
+| attempts           | number | Total interaction count                                       |
+| correctAttempts    | number | Successful interaction count                                  |
 
-```typescript
-// Add to existing NodeDialogue schema
-interface NodeDialogueAdditions {
-  currentScaffoldLevel: 0 | 1 | 2 | 3 | 4;
-  consecutiveSuccesses: number;
-  consecutiveFailures: number;
-  detectedConcepts: string[];
-  lastGapDetection?: {
-    detectedAt: Date;
-    gapScore: number;
-    knowledgeProbability: number;
-    scaffoldLevel: 0 | 1 | 2 | 3 | 4;
-    recommendation: 'socratic' | 'scaffold' | 'teach';
-    rootGap: string | null;
-    signals: {
-      linguistic: number;
-      behavioral: number;
-      temporal: number;
-    };
-  };
-  scaffoldHistory: Array<{
-    fromLevel: 0 | 1 | 2 | 3 | 4;
-    toLevel: 0 | 1 | 2 | 3 | 4;
-    reason: string;
-    timestamp: Date;
-  }>;
-}
-```
+### New Collection: `concepts`
+
+Stores the prerequisite graph. Each concept has a `prerequisites[]` array forming a DAG.
+
+| Field          | Type     | Description                                                    |
+| -------------- | -------- | -------------------------------------------------------------- |
+| difficulty     | string   | Enum: `beginner`, `intermediate`, `advanced`                   |
+| prerequisites  | string[] | Array of conceptIds forming the prerequisite DAG               |
+| bktParameters  | object   | Default BKT parameters for this concept (overridable)          |
+| autoDiscovered | boolean  | Whether this concept was auto-discovered by LLM extraction     |
+| verified       | boolean  | Whether a human has verified this concept's prerequisite links |
+
+### Modified: `node_dialogues` (additive fields)
+
+| Field                | Type     | Description                                                        |
+| -------------------- | -------- | ------------------------------------------------------------------ |
+| currentScaffoldLevel | 0–4      | Current scaffold level for this dialogue                           |
+| consecutiveSuccesses | number   | Counter for fade-down transitions                                  |
+| consecutiveFailures  | number   | Counter for escalation transitions                                 |
+| detectedConcepts     | string[] | Concepts detected in this dialogue's context                       |
+| lastGapDetection     | object   | Most recent gap detection result (score, level, signals, rootGap)  |
+| scaffoldHistory      | array    | Audit trail of level transitions `{ from, to, reason, timestamp }` |
 
 ### Migration Notes
 
