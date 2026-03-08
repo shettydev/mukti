@@ -45,7 +45,7 @@ Required JSON format:
 
 Rules:
 - Type must be: feat, fix, docs, style, refactor, perf, test, build, ci, chore, or revert
-- Scope from: api, web, mcp, config, workflows, deps, docker, deployment, monorepo, scripts, architecture, readme, db, redis, ui, components, unit, e2e, release, kiro, or a combination of two or more scopes separated by ',' (e.g., api,web)
+- Scope from: api, web, mcp, config, workflows, deps, docker, deployment, monorepo, scripts, architecture, readme, rfc, db, redis, ui, components, unit, e2e, release, kiro, opencode or a combination of two or more scopes separated by ',' (e.g., api,web)
 - Subject must be imperative mood (e.g., "add" not "added")
 - Subject must be sentence-case (Start with a capital letter)
 - CRITICAL: Each line in body must be 100 characters or less. Use \\n for line breaks.

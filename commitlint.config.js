@@ -16,6 +16,7 @@ const scopes = [
   // Documentation
   'architecture',
   'readme',
+  'rfc',
 
   // Database & cache
   'db',
