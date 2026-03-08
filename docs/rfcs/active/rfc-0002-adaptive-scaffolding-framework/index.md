@@ -2,16 +2,16 @@
 
 <!-- HEADER BLOCK: Identifies the RFC and its current lifecycle state at a glance. -->
 
-| Field            | Value                                                                      |
-| ---------------- | -------------------------------------------------------------------------- |
-| **RFC Number**   | 0002                                                                       |
-| **Title**        | Adaptive Scaffolding Framework                                             |
-| **Status**       | ![Status: In Review](https://img.shields.io/badge/Status-In%20Review-blue) |
-| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                             |
-| **Created**      | 2026-02-28                                                                 |
-| **Last Updated** | 2026-03-04                                                                 |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **RFC Number**   | 0002                                                                          |
+| **Title**        | Adaptive Scaffolding Framework                                                |
+| **Status**       | ![Status: Accepted](https://img.shields.io/badge/Status-Accepted-brightgreen) |
+| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                                |
+| **Created**      | 2026-02-28                                                                    |
+| **Last Updated** | 2026-03-04                                                                    |
 
-> **Status options:** `Draft` | `In Review` | `Accepted` | `Rejected` | `Superseded`
+> **Status options:** `Draft` | `In Review` | `Accepted` | `Implemented` | `Rejected` | `Superseded`
 
 ---
 
