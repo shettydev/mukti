@@ -16,7 +16,7 @@ export default {
 Rules:
 1. Format: <type>(<scope>): <subject>
 2. Type must be one of: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
-3. Scope should be from: api, web, mcp, config, workflows, deps, docker, deployment, monorepo, scripts, architecture, readme, db, redis, ui, components, unit, e2e, release, kiro, or a combination of two or more scopes separated by ',' (e.g., api,web)
+3. Scope should be from: api, web, mcp, config, workflows, deps, docker, deployment, monorepo, scripts, architecture, readme, rfc, db, redis, ui, components, unit, e2e, release, kiro, opencode, or a combination of two or more scopes separated by ',' (e.g., api,web)
 4. Subject must be imperative mood (e.g., "add" not "added")
 5. Subject must be sentence-case (Start with a capital letter)
 6. No period at the end
