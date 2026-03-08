@@ -12,10 +12,11 @@ This directory contains major technical design proposals for Mukti.
 
 ### Active RFCs
 
-| RFC #                                                                 | Title                          | Status    | Author                                         | Date       |
-| --------------------------------------------------------------------- | ------------------------------ | --------- | ---------------------------------------------- | ---------- |
-| [RFC-0001](./active/rfc-0001-knowledge-gap-detection/index.md)        | Knowledge Gap Detection System | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
-| [RFC-0002](./active/rfc-0002-adaptive-scaffolding-framework/index.md) | Adaptive Scaffolding Framework | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
+| RFC #                                                                 | Title                                        | Status    | Author                                         | Date       |
+| --------------------------------------------------------------------- | -------------------------------------------- | --------- | ---------------------------------------------- | ---------- |
+| [RFC-0001](./active/rfc-0001-knowledge-gap-detection/index.md)        | Knowledge Gap Detection System               | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
+| [RFC-0002](./active/rfc-0002-adaptive-scaffolding-framework/index.md) | Adaptive Scaffolding Framework               | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
+| [RFC-0003](./active/rfc-0003-thought-map/index.md)                    | Thought Map — Unified Visual Thinking Canvas | Draft     | [Prathik Shetty](https://github.com/shettydev) | 2026-03-08 |
 
 ### Implemented RFCs
 
