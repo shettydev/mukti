@@ -24,6 +24,11 @@ import { apiClient } from './client';
 // Backend response types
 // ============================================================================
 
+interface BackendCreateThoughtMapResponse {
+  map: BackendThoughtMap;
+  rootNode: BackendThoughtMapNode;
+}
+
 /**
  * Backend Thought Map response format (with _id instead of id)
  */
@@ -60,11 +65,6 @@ interface BackendThoughtMapNode {
   updatedAt: string;
 }
 
-interface BackendCreateThoughtMapResponse {
-  map: BackendThoughtMap;
-  rootNode: BackendThoughtMapNode;
-}
-
 /**
  * Backend response for a Thought Map with nodes
  */
@@ -76,6 +76,14 @@ interface BackendThoughtMapWithNodes {
 // ============================================================================
 // Transform helpers
 // ============================================================================
+
+function normalizeThoughtMapNodeType(backend: BackendThoughtMapNode): ThoughtMapNode['type'] {
+  if (backend.type === 'topic' || backend.depth === 0) {
+    return 'topic';
+  }
+
+  return backend.depth === 1 ? 'branch' : 'leaf';
+}
 
 /**
  * Transform backend thought map to frontend format
@@ -117,14 +125,6 @@ function transformThoughtMapNode(backend: BackendThoughtMapNode): ThoughtMapNode
     type: normalizeThoughtMapNodeType(backend),
     updatedAt: backend.updatedAt,
   };
-}
-
-function normalizeThoughtMapNodeType(backend: BackendThoughtMapNode): ThoughtMapNode['type'] {
-  if (backend.type === 'topic' || backend.depth === 0) {
-    return 'topic';
-  }
-
-  return backend.depth === 1 ? 'branch' : 'leaf';
 }
 
 // ============================================================================
