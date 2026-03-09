@@ -317,6 +317,11 @@ export class DialogueAIService {
         'What new questions does this discovery raise?',
         'How might you apply this insight going forward?',
       ],
+      question: [
+        'What draws you to explore this question?',
+        'What would answering this question unlock for you?',
+        'What do you already know that might shed light on this?',
+      ],
       root: [
         "That's an interesting perspective. What evidence supports this assumption?",
         'Have you considered what might happen if this assumption were incorrect?',
@@ -331,6 +336,16 @@ export class DialogueAIService {
         'Is this constraint truly fixed, or might there be flexibility?',
         'What would change if this constraint were removed?',
         'Have you explored ways to work within or around this limitation?',
+      ],
+      thought: [
+        'What assumptions are embedded in this thought?',
+        'How does this connect to what you already know?',
+        'What would change your view on this?',
+      ],
+      topic: [
+        'What aspect of this topic feels most unresolved?',
+        'Why does this topic matter to you right now?',
+        'What do you hope to discover by exploring this?',
       ],
     };
 
