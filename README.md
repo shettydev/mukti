@@ -98,8 +98,16 @@ bun run dev
 Optional dependencies:
 
 ```bash
-docker compose up -d mongodb redis
+docker compose up -d
 ```
+
+This now starts MongoDB, Redis, a one-shot API seed job, the API, and the web app.
+The seed step is idempotent and runs before the API starts.
+
+Seeded local users:
+
+- `test@mukti.app` / `testpassword123`
+- `admin@mukti.live` / `muktifrombrainrot`
 
 Default local ports from `docker-compose.yml`:
 
