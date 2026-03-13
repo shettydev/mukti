@@ -74,6 +74,17 @@ describe('SeedService', () => {
         mockSubscriptions.push(subscription);
         return Promise.resolve(subscription);
       }),
+      findOne: jest.fn((query: any) =>
+        Promise.resolve(
+          mockSubscriptions.find((subscription) => {
+            if (query.userId !== undefined) {
+              return subscription.userId === query.userId;
+            }
+
+            return false;
+          }) ?? null,
+        ),
+      ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -203,17 +214,18 @@ describe('SeedService', () => {
       const user = mockUsers[0];
 
       expect(user.email).toBe('test@mukti.app');
-      expect(user.name).toBe('Test User');
+      expect(user.firstName).toBe('Test');
+      expect(user.lastName).toBe('User');
       expect(user.role).toBe('user');
       expect(user.isActive).toBe(true);
-      expect(user.emailVerifiedAt).toBeDefined();
+      expect(user.emailVerified).toBe(true);
 
       // Verify password was hashed
-      expect(user.passwordHash).toBeDefined();
-      expect(user.passwordHash).not.toBe('testpassword123');
+      expect(user.password).toBeDefined();
+      expect(user.password).not.toBe('testpassword123');
       const isValidPassword = await bcrypt.compare(
         'testpassword123',
-        user.passwordHash,
+        user.password,
       );
       expect(isValidPassword).toBe(true);
 
@@ -227,6 +239,36 @@ describe('SeedService', () => {
       expect(subscription.limits.questionsPerHour).toBe(10);
       expect(subscription.limits.questionsPerDay).toBe(50);
       expect(subscription.limits.canUseAdvancedModels).toBe(false);
+    });
+
+    it('should create admin user with hashed password and paid tier subscription', async () => {
+      await service.seedAdminUser();
+
+      expect(mockUsers.length).toBe(1);
+      const user = mockUsers[0];
+
+      expect(user.email).toBe('admin@mukti.live');
+      expect(user.firstName).toBe('Mukti');
+      expect(user.lastName).toBe('Admin');
+      expect(user.role).toBe('admin');
+      expect(user.emailVerified).toBe(true);
+
+      expect(user.password).toBeDefined();
+      expect(user.password).not.toBe('muktifrombrainrot');
+      const isValidPassword = await bcrypt.compare(
+        'muktifrombrainrot',
+        user.password,
+      );
+      expect(isValidPassword).toBe(true);
+
+      expect(mockSubscriptions.length).toBe(1);
+      const subscription = mockSubscriptions[0];
+
+      expect(subscription.userId).toBe(user._id);
+      expect(subscription.tier).toBe('paid');
+      expect(subscription.limits.canUseAdvancedModels).toBe(true);
+      expect(subscription.limits.questionsPerHour).toBe(100);
+      expect(subscription.limits.questionsPerDay).toBe(500);
     });
   });
 
@@ -283,6 +325,24 @@ describe('SeedService', () => {
         { numRuns: 20 },
       );
     }, 10000);
+
+    it('should not create duplicate admin user when seeding multiple times', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ max: 3, min: 2 }), async (runCount) => {
+          mockUsers.length = 0;
+          mockSubscriptions.length = 0;
+
+          for (let i = 0; i < runCount; i++) {
+            await service.seedAdminUser();
+          }
+
+          expect(mockUsers.length).toBe(1);
+          expect(mockSubscriptions.length).toBe(1);
+          expect(mockUsers[0].email).toBe('admin@mukti.live');
+        }),
+        { numRuns: 20 },
+      );
+    }, 10000);
   });
 
   describe('seedAll', () => {
@@ -292,16 +352,24 @@ describe('SeedService', () => {
       // Verify techniques were seeded
       expect(mockTechniques.length).toBe(6);
 
-      // Verify system and test users were seeded
-      expect(mockUsers.length).toBe(2);
+      // Verify system, test, and admin users were seeded
+      expect(mockUsers.length).toBe(3);
       expect(mockUsers.map((u) => u.email)).toEqual(
-        expect.arrayContaining(['system@mukti.app', 'test@mukti.app']),
+        expect.arrayContaining([
+          'system@mukti.app',
+          'test@mukti.app',
+          'admin@mukti.live',
+        ]),
       );
 
       const testUser = mockUsers.find((u) => u.email === 'test@mukti.app');
+      const adminUser = mockUsers.find((u) => u.email === 'admin@mukti.live');
       expect(testUser).toBeDefined();
-      expect(mockSubscriptions[0].userId).toBe(testUser?._id);
-      expect(mockSubscriptions.length).toBe(1);
+      expect(adminUser).toBeDefined();
+      expect(mockSubscriptions.length).toBe(2);
+      expect(
+        mockSubscriptions.map((subscription) => subscription.userId),
+      ).toEqual(expect.arrayContaining([testUser?._id, adminUser?._id]));
     });
   });
 });
