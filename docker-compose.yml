@@ -47,7 +47,6 @@ services:
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-secret}
       - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-30d}
       - FRONTEND_URL=http://localhost:3001
-      - API_URL=http://localhost:3000
     depends_on:
       mongodb:
         condition: service_healthy
