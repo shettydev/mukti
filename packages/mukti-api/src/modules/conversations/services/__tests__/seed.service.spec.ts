@@ -241,6 +241,38 @@ describe('SeedService', () => {
       expect(subscription.limits.canUseAdvancedModels).toBe(false);
     });
 
+    it('should backfill legacy seeded users missing required profile fields before saving', async () => {
+      const legacyUser: any = {
+        _id: 'legacy_test_user',
+        email: 'test@mukti.app',
+        emailVerified: true,
+        isActive: true,
+        preferences: {
+          emailNotifications: true,
+          language: 'en',
+        },
+        role: 'user',
+      };
+      legacyUser.save = jest.fn().mockImplementation(() => legacyUser);
+      mockUsers.push(legacyUser);
+
+      await service.seedTestUser();
+
+      expect(mockUsers).toHaveLength(1);
+      expect(legacyUser.firstName).toBe('Test');
+      expect(legacyUser.lastName).toBe('User');
+      expect(legacyUser.password).toBe('hashed-testpassword123');
+      expect(legacyUser.preferences).toEqual({
+        emailNotifications: true,
+        language: 'en',
+        theme: 'light',
+      });
+      expect(legacyUser.save).toHaveBeenCalledTimes(2);
+
+      expect(mockSubscriptions).toHaveLength(1);
+      expect(mockSubscriptions[0].userId).toBe(legacyUser._id);
+    });
+
     it('should create admin user with hashed password and paid tier subscription', async () => {
       await service.seedAdminUser();
 
