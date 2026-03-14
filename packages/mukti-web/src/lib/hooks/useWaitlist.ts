@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 
+import { apiClient, ApiClientError } from '@/lib/api/client';
+
 interface UseWaitlistReturn {
   checkEmail: (email: string) => Promise<boolean>;
   error: null | string;
@@ -8,6 +10,12 @@ interface UseWaitlistReturn {
   isSubmitted: boolean;
   joinWaitlist: (email: string) => Promise<boolean>;
   reset: () => void;
+}
+
+interface WaitlistCheckResponse {
+  email: string;
+  exists: boolean;
+  joinedAt: string;
 }
 
 export function useWaitlist(): UseWaitlistReturn {
@@ -19,16 +27,18 @@ export function useWaitlist(): UseWaitlistReturn {
   const checkEmail = useCallback(async (email: string): Promise<boolean> => {
     try {
       setError(null);
-      const response = await fetch(`/api/waitlist?email=${encodeURIComponent(email)}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to check email');
-      }
+      const data = await apiClient.get<WaitlistCheckResponse>(
+        `/waitlist/check?email=${encodeURIComponent(email)}`
+      );
 
       setIsExisting(data.exists);
       return data.exists;
     } catch (err) {
+      if (err instanceof ApiClientError && err.status === 404) {
+        setIsExisting(false);
+        return false;
+      }
+
       const errorMessage = err instanceof Error ? err.message : 'Failed to check email';
       setError(errorMessage);
       return false;
@@ -39,31 +49,18 @@ export function useWaitlist(): UseWaitlistReturn {
     try {
       setIsLoading(true);
       setError(null);
+      setIsExisting(false);
 
-      const response = await fetch('/api/waitlist', {
-        body: JSON.stringify({ email }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 409 && data.isExisting) {
-          setIsExisting(true);
-          setError('You are already on the waitlist!');
-        } else {
-          throw new Error(data.error || 'Failed to join waitlist');
-        }
+      await apiClient.post('/waitlist/join', { email });
+      setIsSubmitted(true);
+      return true;
+    } catch (err) {
+      if (err instanceof ApiClientError && err.status === 409) {
+        setIsExisting(true);
+        setError('You are already on the waitlist!');
         return false;
       }
 
-      setIsSubmitted(true);
-      setIsExisting(false);
-      return true;
-    } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to join waitlist';
       setError(errorMessage);
       return false;
