@@ -41,6 +41,7 @@ services:
       - PORT=3000
       - MONGODB_URI=mongodb://mongodb:27017/mukti
       - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_PORT=6379
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
