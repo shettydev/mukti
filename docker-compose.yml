@@ -47,7 +47,8 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-secret}
       - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-30d}
-      - FRONTEND_URL=http://localhost:3001
+      # Public browser-facing frontend URL for email links and callbacks.
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -73,8 +74,14 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-secret}
       - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-30d}
-      - FRONTEND_URL=http://localhost:3001
-      - API_URL=http://localhost:3000
+      # Use public DNS names here, not Docker service/container names.
+      # CORS validates the browser origin, so this should be your real frontend URL.
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-localhost}
+      # This is the browser-facing API base URL. If you reverse proxy API under the
+      # same domain, set this to that public URL instead of the internal Docker name.
+      - API_URL=${API_URL:-http://localhost:3000}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -88,7 +95,9 @@ services:
       context: .
       dockerfile: packages/mukti-web/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+        # Browser code must call the public API URL (or same-origin reverse proxy URL),
+        # not an internal Docker hostname such as http://api:3000.
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api/v1}
     container_name: mukti-web
     restart: unless-stopped
     ports:
@@ -96,7 +105,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api/v1}
     depends_on:
       - api
 
