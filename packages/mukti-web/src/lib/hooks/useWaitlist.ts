@@ -18,6 +18,13 @@ interface WaitlistCheckResponse {
   joinedAt: string;
 }
 
+/**
+ * Legacy waitlist hook kept only for the old landing page flow.
+ *
+ * @deprecated Used exclusively by [`Waitlist`](/Volumes/dark-matter/byteme/mukti-worktree/packages/mukti-web/src/components/old-landing/waitlist.tsx).
+ * Prefer the current landing flow in [`landing-cta.tsx`](/Volumes/dark-matter/byteme/mukti-worktree/packages/mukti-web/src/components/landing/landing-cta.tsx),
+ * or call the backend waitlist endpoints through `apiClient` directly for new work.
+ */
 export function useWaitlist(): UseWaitlistReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
