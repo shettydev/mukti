@@ -19,6 +19,42 @@ bun nx run @mukti/api:serve     # API dev server
 bun nx run @mukti/web:dev        # Web dev server
 ```
 
+### Docker Compose (Local Stack)
+
+```bash
+# Start the full local stack
+docker compose up -d
+```
+
+This starts:
+
+- MongoDB
+- Redis
+- a one-shot API seed container
+- API
+- Web
+
+Compose now waits for MongoDB and Redis healthchecks, runs the API seed job,
+and only then starts the API container.
+
+Seeded local users:
+
+- `test@mukti.app` / `testpassword123`
+- `admin@mukti.live` / `muktifrombrainrot`
+
+Useful commands:
+
+```bash
+# Re-run the seed job explicitly
+docker compose up seed
+
+# Rebuild and restart the full stack
+docker compose up -d --build
+
+# Stop everything
+docker compose down
+```
+
 ### Building
 
 ```bash
@@ -83,6 +119,7 @@ bun run commit
 ```
 
 This launches a guided prompt that helps you:
+
 1. Select commit type (feat, fix, docs, etc.)
 2. Choose scope (api, web, auth, etc.)
 3. Write proper subject and body
@@ -100,6 +137,7 @@ This launches a guided prompt that helps you:
 ```
 
 **Example:**
+
 ```
 feat(auth): Add JWT token refresh mechanism
 
@@ -152,6 +190,7 @@ Closes #123
 **Cache location:** `.nx/cache`
 
 **Visualize dependencies:**
+
 ```bash
 bun run graph
 ```
@@ -173,6 +212,7 @@ bun run graph
 ### ✅ Nx Affected (Pre-Commit Quality)
 
 Automatically runs on `git commit`:
+
 - ESLint with auto-fix on affected projects
 - Prettier on affected projects
 - Only runs on changed projects (fast!)
@@ -180,12 +220,14 @@ Automatically runs on `git commit`:
 ### ✅ Git Hooks
 
 **Pre-commit:** Runs Nx affected lint and format
+
 ```bash
 bun nx affected --target=lint --fix --parallel=3
 bun nx affected --target=format --parallel=3
 ```
 
 **Commit-msg:** Validates commit message
+
 ```bash
 bunx --bun commitlint --edit $1
 ```
@@ -193,6 +235,7 @@ bunx --bun commitlint --edit $1
 ### ✅ Prettier (Code Formatting)
 
 **Config highlights:**
+
 - Single quotes
 - 100 character line width
 - 2 space indentation
@@ -204,6 +247,7 @@ bunx --bun commitlint --edit $1
 Both packages have `project.json` with defined targets:
 
 **@mukti/api (NestJS):**
+
 - build, serve, start, start:prod
 - lint, lint:fix
 - format, format:check
@@ -211,6 +255,7 @@ Both packages have `project.json` with defined targets:
 - Uses Jest for testing
 
 **@mukti/web (Next.js):**
+
 - build, dev, start
 - lint, lint:fix
 - format, format:check
@@ -250,6 +295,7 @@ mukti/
 ### 1. Shared Types Package
 
 Create `packages/shared` for:
+
 - Shared TypeScript types
 - Utility functions
 - Constants
@@ -300,11 +346,7 @@ Create `mukti.code-workspace`:
 
 ```json
 {
-  "folders": [
-    { "path": "." },
-    { "path": "packages/mukti-api" },
-    { "path": "packages/mukti-web" }
-  ],
+  "folders": [{ "path": "." }, { "path": "packages/mukti-api" }, { "path": "packages/mukti-web" }],
   "settings": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -332,6 +374,7 @@ For faster type-checking and IDE performance:
 ### 6. Bundle Analysis
 
 **Next.js:**
+
 ```bash
 bun add -D @next/bundle-analyzer
 ANALYZE=true bun nx run @mukti/web:build
@@ -399,6 +442,7 @@ bun run affected:test
 ### 2. Parallel Execution
 
 Already configured:
+
 ```bash
 bun run dev  # Runs with --parallel=2
 ```
@@ -406,11 +450,13 @@ bun run dev  # Runs with --parallel=2
 ### 3. Cache Management
 
 Nx caches everything automatically. View cache:
+
 ```bash
 ls -la .nx/cache
 ```
 
 Clear if needed:
+
 ```bash
 bun nx reset
 ```
@@ -429,6 +475,7 @@ NODE_ENV=production bun run build
 ### 1. Always Use `bun run commit`
 
 Instead of `git commit`, use:
+
 ```bash
 bun run commit
 ```
@@ -462,11 +509,13 @@ See which projects are affected by your changes.
 ### 5. Use Proper Scopes
 
 Always include a scope in commits:
+
 ```
 feat(auth): Add login
 ```
 
 Not:
+
 ```
 feat: Add login
 ```
@@ -500,11 +549,13 @@ Your monorepo now has:
 **Everything runs through Nx for optimal performance and caching.**
 
 Start developing:
+
 ```bash
 bun run dev
 ```
 
 Make a commit:
+
 ```bash
 git add .
 bun run commit

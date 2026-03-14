@@ -13,9 +13,21 @@ import {
 } from '../../../schemas/technique.schema';
 import { User, UserDocument } from '../../../schemas/user.schema';
 
+type SeedTier = 'free' | 'paid';
+
+interface SeedUserConfig {
+  email: string;
+  emailNotifications: boolean;
+  firstName: string;
+  lastName: string;
+  password: string;
+  role: 'admin' | 'user';
+  tier: SeedTier;
+}
+
 /**
  * Service responsible for seeding the database with initial data.
- * Handles seeding of built-in Socratic techniques and test users.
+ * Handles seeding of built-in Socratic techniques and local development users.
  *
  * @remarks
  * All seeding operations are idempotent - running them multiple times
@@ -34,10 +46,31 @@ export class SeedService {
   ) {}
 
   /**
-   * Seeds all initial data (techniques and test user).
-   * This is the main entry point for database seeding.
-   *
-   * @returns Promise that resolves when all seeding is complete
+   * Seeds a local admin user for development and local Docker flows.
+   */
+  async seedAdminUser(): Promise<void> {
+    this.logger.log('Starting admin user seeding...');
+
+    try {
+      await this.ensureSeedUser({
+        email: 'admin@mukti.live',
+        emailNotifications: true,
+        firstName: 'Mukti',
+        lastName: 'Admin',
+        password: 'muktifrombrainrot',
+        role: 'admin',
+        tier: 'paid',
+      });
+      this.logger.log('Admin user seeding complete');
+    } catch (error) {
+      const { message, stack } = this.getErrorDetails(error);
+      this.logger.error(`Failed to seed admin user: ${message}`, stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Seeds all initial data (techniques, test user, and admin user).
    */
   async seedAll(): Promise<void> {
     this.logger.log('Starting database seeding...');
@@ -45,6 +78,7 @@ export class SeedService {
     try {
       await this.seedTechniques();
       await this.seedTestUser();
+      await this.seedAdminUser();
       this.logger.log('Database seeding completed successfully');
     } catch (error) {
       const { message, stack } = this.getErrorDetails(error);
@@ -256,77 +290,86 @@ export class SeedService {
   async seedTestUser(): Promise<void> {
     this.logger.log('Starting test user seeding...');
 
-    const testEmail = 'test@mukti.app';
-    const testPassword = 'testpassword123';
-
     try {
-      // Check if test user already exists (idempotency)
-      const existingUser = await this.userModel.findOne({ email: testEmail });
-
-      if (existingUser) {
-        this.logger.debug('Test user already exists, skipping');
-        return;
-      }
-
-      // Hash password
-      const saltRounds = 10;
-      const passwordHash = await bcrypt.hash(testPassword, saltRounds);
-
-      // Create user
-      const user = await this.userModel.create({
-        email: testEmail,
-        emailVerifiedAt: new Date(),
-        isActive: true,
-        name: 'Test User',
-        passwordHash,
-        preferences: {
-          emailNotifications: true,
-          language: 'en',
-          theme: 'light',
-        },
+      await this.ensureSeedUser({
+        email: 'test@mukti.app',
+        emailNotifications: true,
+        firstName: 'Test',
+        lastName: 'User',
+        password: 'testpassword123',
         role: 'user',
-      });
-
-      this.logger.log(`Created test user: ${testEmail}`);
-
-      // Create associated subscription with free tier limits
-      const subscription = await this.subscriptionModel.create({
-        isActive: true,
-        limits: {
-          canUseAdvancedModels: false,
-          conversationsPerDay: 10,
-          maxConversationLength: 50,
-          maxSharedLinks: 5,
-          maxStorageGB: 1,
-          questionsPerDay: 50,
-          questionsPerHour: 10,
-        },
-        startDate: new Date(),
         tier: 'free',
-        usage: {
-          conversationsToday: 0,
-          lastHourResetAt: new Date(),
-          lastResetAt: new Date(),
-          questionsThisHour: 0,
-          questionsToday: 0,
-          storageUsedGB: 0,
-        },
-        userId: user._id,
       });
-
-      // Link subscription to user
-      user.subscriptionId = subscription._id;
-      await user.save();
-
-      this.logger.log(
-        `Created subscription for test user with tier: ${subscription.tier}`,
-      );
       this.logger.log('Test user seeding complete');
     } catch (error) {
       const { message, stack } = this.getErrorDetails(error);
       this.logger.error(`Failed to seed test user: ${message}`, stack);
       throw error;
     }
+  }
+
+  private createDefaultUsage() {
+    return {
+      conversationsToday: 0,
+      lastHourResetAt: new Date(),
+      lastResetAt: new Date(),
+      questionsThisHour: 0,
+      questionsToday: 0,
+      storageUsedGB: 0,
+    };
+  }
+
+  private async ensureSeedUser(config: SeedUserConfig): Promise<void> {
+    let user = await this.userModel.findOne({ email: config.email });
+
+    if (!user) {
+      user = await this.userModel.create({
+        email: config.email,
+        emailVerified: true,
+        firstName: config.firstName,
+        isActive: true,
+        lastName: config.lastName,
+        password: await bcrypt.hash(config.password, 10),
+        preferences: {
+          emailNotifications: config.emailNotifications,
+          language: 'en',
+          theme: 'light',
+        },
+        role: config.role,
+      });
+
+      this.logger.log(`Created seeded user: ${config.email}`);
+    } else {
+      this.logger.debug(`Seeded user ${config.email} already exists, skipping`);
+    }
+
+    const existingSubscription = await this.subscriptionModel.findOne({
+      userId: user._id,
+    });
+
+    if (existingSubscription) {
+      if (!user.subscriptionId) {
+        user.subscriptionId = existingSubscription._id;
+        await user.save();
+      }
+      return;
+    }
+
+    const subscription = await this.subscriptionModel.create({
+      isActive: true,
+      limits: this.getSubscriptionLimits(config.tier),
+      startDate: new Date(),
+      tier: config.tier,
+      usage: this.createDefaultUsage(),
+      userId: user._id,
+    });
+
+    user.subscriptionId = subscription._id;
+    await user.save();
+
+    this.logger.log(
+      `Created subscription for ${config.email} with tier: ${subscription.tier}`,
+    );
   }
 
   private async ensureSystemUser(): Promise<UserDocument> {
@@ -340,14 +383,13 @@ export class SeedService {
       return existingSystemUser;
     }
 
-    const passwordHash = await bcrypt.hash('system-user-internal-password', 10);
-
     const systemUser = await this.userModel.create({
       email: systemEmail,
-      emailVerifiedAt: new Date(),
+      emailVerified: true,
+      firstName: 'Mukti',
       isActive: true,
-      name: 'Mukti System',
-      passwordHash,
+      lastName: 'System',
+      password: await bcrypt.hash('system-user-internal-password', 10),
       preferences: {
         emailNotifications: false,
         language: 'en',
@@ -366,5 +408,29 @@ export class SeedService {
     }
 
     return { message: String(error) };
+  }
+
+  private getSubscriptionLimits(tier: SeedTier) {
+    if (tier === 'paid') {
+      return {
+        canUseAdvancedModels: true,
+        conversationsPerDay: 100,
+        maxConversationLength: 200,
+        maxSharedLinks: 50,
+        maxStorageGB: 10,
+        questionsPerDay: 500,
+        questionsPerHour: 100,
+      };
+    }
+
+    return {
+      canUseAdvancedModels: false,
+      conversationsPerDay: 10,
+      maxConversationLength: 50,
+      maxSharedLinks: 5,
+      maxStorageGB: 1,
+      questionsPerDay: 50,
+      questionsPerHour: 10,
+    };
   }
 }
