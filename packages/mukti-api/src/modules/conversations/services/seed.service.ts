@@ -13,6 +13,17 @@ import {
 } from '../../../schemas/technique.schema';
 import { User, UserDocument } from '../../../schemas/user.schema';
 
+type ManagedUserDefaults = Pick<
+  User,
+  | 'emailVerified'
+  | 'firstName'
+  | 'isActive'
+  | 'lastName'
+  | 'password'
+  | 'preferences'
+  | 'role'
+>;
+
 type SeedTier = 'free' | 'paid';
 
 interface SeedUserConfig {
@@ -308,6 +319,28 @@ export class SeedService {
     }
   }
 
+  private async buildManagedUserDefaults({
+    emailNotifications,
+    firstName,
+    lastName,
+    password,
+    role,
+  }: Omit<SeedUserConfig, 'email' | 'tier'>): Promise<ManagedUserDefaults> {
+    return {
+      emailVerified: true,
+      firstName,
+      isActive: true,
+      lastName,
+      password: await bcrypt.hash(password, 10),
+      preferences: {
+        emailNotifications,
+        language: 'en',
+        theme: 'light',
+      },
+      role,
+    };
+  }
+
   private createDefaultUsage() {
     return {
       conversationsToday: 0,
@@ -319,29 +352,92 @@ export class SeedService {
     };
   }
 
-  private async ensureSeedUser(config: SeedUserConfig): Promise<void> {
-    let user = await this.userModel.findOne({ email: config.email });
+  private async ensureManagedUser(
+    email: string,
+    defaults: ManagedUserDefaults,
+  ): Promise<UserDocument> {
+    const existingUser = await this.userModel.findOne({ email });
 
-    if (!user) {
-      user = await this.userModel.create({
-        email: config.email,
-        emailVerified: true,
-        firstName: config.firstName,
-        isActive: true,
-        lastName: config.lastName,
-        password: await bcrypt.hash(config.password, 10),
-        preferences: {
-          emailNotifications: config.emailNotifications,
-          language: 'en',
-          theme: 'light',
-        },
-        role: config.role,
+    if (!existingUser) {
+      const user = await this.userModel.create({
+        email,
+        ...defaults,
       });
 
-      this.logger.log(`Created seeded user: ${config.email}`);
-    } else {
-      this.logger.debug(`Seeded user ${config.email} already exists, skipping`);
+      this.logger.log(`Created managed seeded user: ${email}`);
+      return user;
     }
+
+    let hasChanges = false;
+
+    if (!existingUser.firstName) {
+      existingUser.firstName = defaults.firstName;
+      hasChanges = true;
+    }
+
+    if (!existingUser.lastName) {
+      existingUser.lastName = defaults.lastName;
+      hasChanges = true;
+    }
+
+    if (!existingUser.password) {
+      existingUser.password = defaults.password;
+      hasChanges = true;
+    }
+
+    if (!existingUser.isActive) {
+      existingUser.isActive = defaults.isActive;
+      hasChanges = true;
+    }
+
+    if (!existingUser.emailVerified) {
+      existingUser.emailVerified = defaults.emailVerified;
+      hasChanges = true;
+    }
+
+    if (!existingUser.role) {
+      existingUser.role = defaults.role;
+      hasChanges = true;
+    }
+
+    const existingPreferences = existingUser.preferences;
+    const mergedPreferences = {
+      ...defaults.preferences,
+      ...(existingPreferences ?? {}),
+    };
+
+    if (
+      !existingPreferences ||
+      existingPreferences.emailNotifications === undefined ||
+      existingPreferences.language === undefined ||
+      existingPreferences.theme === undefined
+    ) {
+      existingUser.preferences = mergedPreferences;
+      hasChanges = true;
+    }
+
+    if (hasChanges) {
+      await existingUser.save();
+      this.logger.log(`Updated managed seeded user: ${email}`);
+    } else {
+      this.logger.debug(
+        `Managed seeded user ${email} already exists, skipping`,
+      );
+    }
+
+    return existingUser;
+  }
+
+  private async ensureSeedUser(config: SeedUserConfig): Promise<void> {
+    const userDefaults = await this.buildManagedUserDefaults({
+      emailNotifications: config.emailNotifications,
+      firstName: config.firstName,
+      lastName: config.lastName,
+      password: config.password,
+      role: config.role,
+    });
+
+    const user = await this.ensureManagedUser(config.email, userDefaults);
 
     const existingSubscription = await this.subscriptionModel.findOne({
       userId: user._id,
@@ -374,32 +470,15 @@ export class SeedService {
 
   private async ensureSystemUser(): Promise<UserDocument> {
     const systemEmail = 'system@mukti.app';
-
-    const existingSystemUser = await this.userModel.findOne({
-      email: systemEmail,
-    });
-
-    if (existingSystemUser) {
-      return existingSystemUser;
-    }
-
-    const systemUser = await this.userModel.create({
-      email: systemEmail,
-      emailVerified: true,
+    const systemUserDefaults = await this.buildManagedUserDefaults({
+      emailNotifications: false,
       firstName: 'Mukti',
-      isActive: true,
       lastName: 'System',
-      password: await bcrypt.hash('system-user-internal-password', 10),
-      preferences: {
-        emailNotifications: false,
-        language: 'en',
-        theme: 'light',
-      },
+      password: 'system-user-internal-password',
       role: 'admin',
     });
 
-    this.logger.log('Created system user for built-in techniques');
-    return systemUser;
+    return this.ensureManagedUser(systemEmail, systemUserDefaults);
   }
 
   private getErrorDetails(error: unknown): { message: string; stack?: string } {
