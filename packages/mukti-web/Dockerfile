@@ -6,7 +6,7 @@ FROM base AS deps
 COPY package.json bun.lock ./
 COPY packages/mukti-api/package.json packages/mukti-api/
 COPY packages/mukti-web/package.json packages/mukti-web/
-RUN bun install 
+RUN bun install
 
 # Stage 2: Build
 FROM base AS builder
@@ -40,8 +40,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/mukti-web/public ./packa
 
 USER nextjs
 
-EXPOSE 3000
-ENV PORT=3000
+ARG PORT=3001
+ENV PORT=${PORT}
+EXPOSE ${PORT}
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["bun", "packages/mukti-web/server.js"]
