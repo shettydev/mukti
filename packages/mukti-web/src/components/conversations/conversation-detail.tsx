@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ModelSelector } from '@/components/ai/model-selector';
+import { ExtractionReviewPanel } from '@/components/thought-map/ExtractionReviewPanel';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -37,11 +38,13 @@ import {
 } from '@/lib/hooks/use-conversations';
 import { conversationKeys } from '@/lib/query-keys';
 import { useAiStore } from '@/lib/stores/ai-store';
+import { useExtractionState } from '@/lib/stores/thought-map-store';
 import { getRetryAfter, isRateLimitError } from '@/lib/utils/error-types';
 
 import { MessageInput } from './message-input';
 import { MessageList } from './message-list';
 import { RateLimitBanner } from './rate-limit-banner';
+import { VisualizeAsMapButton } from './visualize-as-map-button';
 
 interface ConversationDetailProps {
   conversationId: string;
@@ -61,6 +64,8 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     models,
     setActiveModel,
   } = useAiStore();
+
+  const { extractionState } = useExtractionState();
 
   useEffect(() => {
     if (!aiHydrated) {
@@ -155,7 +160,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         throw err; // Re-throw to let MessageInput handle the error state
       }
     },
-    [sendMessage]
+    [activeModel, sendMessage]
   );
 
   // Handle rate limit banner dismiss
@@ -210,7 +215,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
               : 'Failed to load conversation. Please try again.'}
           </p>
           <Button asChild>
-            <Link href="/dashboard/conversations">
+            <Link href="/chat">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Conversations
             </Link>
@@ -227,7 +232,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">Conversation Not Found</h2>
           <Button asChild>
-            <Link href="/dashboard/conversations">
+            <Link href="/chat">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Conversations
             </Link>
@@ -265,7 +270,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
             size="icon"
             variant="ghost"
           >
-            <Link href="/dashboard/conversations">
+            <Link href="/chat">
               <ArrowLeft aria-hidden="true" className="h-5 w-5" />
               <span className="sr-only">Back to conversations</span>
             </Link>
@@ -318,6 +323,12 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
           {/* Action buttons with touch-friendly sizes */}
           <div className="flex items-center gap-1 md:gap-2 shrink-0">
+            <VisualizeAsMapButton
+              className="hidden sm:flex"
+              conversationId={conversationId}
+              model={activeModel ?? undefined}
+            />
+
             <Button
               aria-label={conversation.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
               aria-pressed={conversation.isFavorite}
@@ -370,6 +381,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         processingState={processingState}
         recentMessages={conversation.recentMessages}
       />
+
+      {/* Extraction Review Panel — shown when AI preview is ready */}
+      {extractionState === 'preview' && <ExtractionReviewPanel />}
 
       {/* SSE Error Banner */}
       {sseError && (

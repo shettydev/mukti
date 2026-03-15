@@ -1,6 +1,6 @@
 'use client';
 
-import { Brain, Menu, PanelLeft, Plus, X } from 'lucide-react';
+import { Brain, Menu, Network, PanelLeft, Plus, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -195,19 +195,24 @@ export function Sidebar({
             label="Thinking Canvas"
           />
 
+          <NavItem
+            active={pathname?.startsWith('/maps')}
+            collapsed={collapsed}
+            href="/maps"
+            icon={<Network aria-hidden="true" className="w-4 h-4" />}
+            label="Thought Maps"
+          />
+
           {!collapsed && (
             <>
-              {/* Separator */}
-              <div className="pt-4 pb-2">
+              <div className="pb-2 pt-4">
                 <div className="mb-2 border-t border-japandi-sand/70" />
                 <p className="text-japandi-label px-3 text-japandi-stone/60">Conversations</p>
               </div>
 
-              {/* Conversation list */}
               <ConversationList
                 collapsed={collapsed}
                 onConversationClick={() => {
-                  // Close mobile sidebar if open, navigation happens in ConversationList
                   onMobileClose?.();
                 }}
               />

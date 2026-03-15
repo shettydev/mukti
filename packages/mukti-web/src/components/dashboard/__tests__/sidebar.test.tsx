@@ -27,13 +27,17 @@ describe('Sidebar', () => {
 
     expect(screen.getByRole('link', { name: 'New Chat' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Thinking Canvas' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Thought Maps' })).toBeInTheDocument();
     expect(screen.queryByTestId('conversation-list')).not.toBeInTheDocument();
     expect(screen.getByTestId('user-profile')).toBeInTheDocument();
   });
 
-  it('renders conversation list and profile when expanded', () => {
+  it('renders the thought maps nav button, conversation list, and profile when expanded', () => {
     render(<Sidebar collapsed={false} mobileOpen={false} />);
 
+    expect(screen.getByRole('link', { name: 'Thought Maps' })).toBeInTheDocument();
+    expect(screen.queryByText('Thought Map List')).not.toBeInTheDocument();
+    expect(screen.getByText('Conversations')).toBeInTheDocument();
     expect(screen.getByTestId('conversation-list')).toBeInTheDocument();
     expect(screen.getByTestId('user-profile')).toBeInTheDocument();
   });

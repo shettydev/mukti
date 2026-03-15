@@ -1,0 +1,407 @@
+import { getModelToken } from '@nestjs/mongoose';
+import { Test, type TestingModule } from '@nestjs/testing';
+import * as bcrypt from 'bcrypt';
+import * as fc from 'fast-check';
+
+import { Subscription } from '../../../schemas/subscription.schema';
+import { Technique } from '../../../schemas/technique.schema';
+import { User } from '../../../schemas/user.schema';
+import { SeedService } from '../seed.service';
+
+describe('SeedService', () => {
+  let service: SeedService;
+
+  // Mock data storage
+  let mockTechniques: any[] = [];
+  let mockUsers: any[] = [];
+  let mockSubscriptions: any[] = [];
+
+  beforeEach(async () => {
+    // Reset mock data
+    mockTechniques = [];
+    mockUsers = [];
+    mockSubscriptions = [];
+
+    // Create mock models
+    const mockTechniqueModel = {
+      create: jest.fn((data: any) => {
+        const technique = {
+          _id: `technique_${mockTechniques.length}`,
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        mockTechniques.push(technique);
+        return Promise.resolve(technique);
+      }),
+      find: jest.fn(() => ({
+        exec: jest.fn(() => Promise.resolve(mockTechniques)),
+      })),
+      findOne: jest.fn((query: any) => ({
+        exec: jest.fn(() =>
+          Promise.resolve(
+            mockTechniques.find((t) => t.name === query.name) ?? null,
+          ),
+        ),
+      })),
+    };
+
+    const mockUserModel = {
+      create: jest.fn((data: any) => {
+        const user: any = {
+          _id: `user_${mockUsers.length}`,
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        user.save = jest.fn().mockResolvedValue(user);
+        mockUsers.push(user);
+        return Promise.resolve(user);
+      }),
+      findOne: jest.fn((query: any) =>
+        Promise.resolve(mockUsers.find((u) => u.email === query.email) ?? null),
+      ),
+    };
+
+    const mockSubscriptionModel = {
+      create: jest.fn((data: any) => {
+        const subscription = {
+          _id: `subscription_${mockSubscriptions.length}`,
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        mockSubscriptions.push(subscription);
+        return Promise.resolve(subscription);
+      }),
+      findOne: jest.fn((query: any) =>
+        Promise.resolve(
+          mockSubscriptions.find((subscription) => {
+            if (query.userId !== undefined) {
+              return subscription.userId === query.userId;
+            }
+
+            return false;
+          }) ?? null,
+        ),
+      ),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        SeedService,
+        {
+          provide: getModelToken(Technique.name),
+          useValue: mockTechniqueModel,
+        },
+        {
+          provide: getModelToken(User.name),
+          useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Subscription.name),
+          useValue: mockSubscriptionModel,
+        },
+      ],
+    }).compile();
+
+    service = module.get<SeedService>(SeedService);
+
+    // Speed up hashing operations during tests
+    jest
+      .spyOn(bcrypt, 'hash')
+      .mockImplementation(
+        (value: Buffer | string) => `hashed-${String(value)}`,
+      );
+    jest
+      .spyOn(bcrypt, 'compare')
+      .mockImplementation(
+        (value: Buffer | string, hash: string) =>
+          hash === `hashed-${String(value)}`,
+      );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('seedTechniques', () => {
+    /**
+     * Feature: conversation-backend, Property 23: Seeded techniques have correct properties
+     * Validates: Requirements 7.2, 7.3, 7.4
+     */
+    it('should seed all techniques with correct properties (isBuiltIn: true, status: approved, complete template)', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          // Reset mock data for each iteration
+          mockTechniques = [];
+
+          // Seed techniques
+          await service.seedTechniques();
+
+          expect(mockUsers.length).toBe(1);
+          const systemUserId = mockUsers[0]._id;
+
+          // Verify all 6 techniques were created
+          expect(mockTechniques.length).toBe(6);
+
+          // Verify each technique has correct properties
+          const expectedTechniqueNames = [
+            'elenchus',
+            'dialectic',
+            'maieutics',
+            'definitional',
+            'analogical',
+            'counterfactual',
+          ];
+
+          for (const technique of mockTechniques) {
+            expect(technique.isBuiltIn).toBe(true);
+
+            expect(technique.status).toBe('approved');
+
+            expect(technique.template).toBeDefined();
+            expect(technique.template.systemPrompt).toBeDefined();
+            expect(typeof technique.template.systemPrompt).toBe('string');
+            expect(technique.template.systemPrompt.length).toBeGreaterThan(0);
+
+            expect(technique.template.questioningStyle).toBeDefined();
+            expect(typeof technique.template.questioningStyle).toBe('string');
+            expect(technique.template.questioningStyle.length).toBeGreaterThan(
+              0,
+            );
+
+            expect(technique.template.followUpStrategy).toBeDefined();
+            expect(typeof technique.template.followUpStrategy).toBe('string');
+            expect(technique.template.followUpStrategy.length).toBeGreaterThan(
+              0,
+            );
+
+            expect(technique.template.exampleQuestions).toBeDefined();
+            expect(Array.isArray(technique.template.exampleQuestions)).toBe(
+              true,
+            );
+            expect(technique.template.exampleQuestions.length).toBeGreaterThan(
+              0,
+            );
+
+            // Verify technique name is one of the expected ones
+            expect(expectedTechniqueNames).toContain(technique.name);
+            expect(technique.userId).toBe(systemUserId);
+          }
+
+          // Verify all expected techniques are present
+          const seededNames = mockTechniques.map((t) => t.name);
+          for (const expectedName of expectedTechniqueNames) {
+            expect(seededNames).toContain(expectedName);
+          }
+        }),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('seedTestUser', () => {
+    it('should create test user with hashed password and free tier subscription', async () => {
+      await service.seedTestUser();
+
+      // Verify user was created
+      expect(mockUsers.length).toBe(1);
+      const user = mockUsers[0];
+
+      expect(user.email).toBe('test@mukti.app');
+      expect(user.firstName).toBe('Test');
+      expect(user.lastName).toBe('User');
+      expect(user.role).toBe('user');
+      expect(user.isActive).toBe(true);
+      expect(user.emailVerified).toBe(true);
+
+      // Verify password was hashed
+      expect(user.password).toBeDefined();
+      expect(user.password).not.toBe('testpassword123');
+      const isValidPassword = await bcrypt.compare(
+        'testpassword123',
+        user.password,
+      );
+      expect(isValidPassword).toBe(true);
+
+      // Verify subscription was created
+      expect(mockSubscriptions.length).toBe(1);
+      const subscription = mockSubscriptions[0];
+
+      expect(subscription.userId).toBe(user._id);
+      expect(subscription.tier).toBe('free');
+      expect(subscription.isActive).toBe(true);
+      expect(subscription.limits.questionsPerHour).toBe(10);
+      expect(subscription.limits.questionsPerDay).toBe(50);
+      expect(subscription.limits.canUseAdvancedModels).toBe(false);
+    });
+
+    it('should backfill legacy seeded users missing required profile fields before saving', async () => {
+      const legacyUser: any = {
+        _id: 'legacy_test_user',
+        email: 'test@mukti.app',
+        emailVerified: true,
+        isActive: true,
+        preferences: {
+          emailNotifications: true,
+          language: 'en',
+        },
+        role: 'user',
+      };
+      legacyUser.save = jest.fn().mockImplementation(() => legacyUser);
+      mockUsers.push(legacyUser);
+
+      await service.seedTestUser();
+
+      expect(mockUsers).toHaveLength(1);
+      expect(legacyUser.firstName).toBe('Test');
+      expect(legacyUser.lastName).toBe('User');
+      expect(legacyUser.password).toBe('hashed-testpassword123');
+      expect(legacyUser.preferences).toEqual({
+        emailNotifications: true,
+        language: 'en',
+        theme: 'light',
+      });
+      expect(legacyUser.save).toHaveBeenCalledTimes(2);
+
+      expect(mockSubscriptions).toHaveLength(1);
+      expect(mockSubscriptions[0].userId).toBe(legacyUser._id);
+    });
+
+    it('should create admin user with hashed password and paid tier subscription', async () => {
+      await service.seedAdminUser();
+
+      expect(mockUsers.length).toBe(1);
+      const user = mockUsers[0];
+
+      expect(user.email).toBe('admin@mukti.live');
+      expect(user.firstName).toBe('Mukti');
+      expect(user.lastName).toBe('Admin');
+      expect(user.role).toBe('admin');
+      expect(user.emailVerified).toBe(true);
+
+      expect(user.password).toBeDefined();
+      expect(user.password).not.toBe('muktifrombrainrot');
+      const isValidPassword = await bcrypt.compare(
+        'muktifrombrainrot',
+        user.password,
+      );
+      expect(isValidPassword).toBe(true);
+
+      expect(mockSubscriptions.length).toBe(1);
+      const subscription = mockSubscriptions[0];
+
+      expect(subscription.userId).toBe(user._id);
+      expect(subscription.tier).toBe('paid');
+      expect(subscription.limits.canUseAdvancedModels).toBe(true);
+      expect(subscription.limits.questionsPerHour).toBe(100);
+      expect(subscription.limits.questionsPerDay).toBe(500);
+    });
+  });
+
+  describe('idempotency', () => {
+    /**
+     * Feature: conversation-backend, Property 24: Seeding is idempotent
+     * Validates: Requirements 7.5, 8.3
+     */
+    it('should not create duplicate techniques when seeding multiple times', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ max: 5, min: 2 }), async (runCount) => {
+          // Reset mock data
+          mockTechniques = [];
+
+          // Run seeding multiple times
+          for (let i = 0; i < runCount; i++) {
+            await service.seedTechniques();
+          }
+
+          // Property 24: Verify only 6 techniques exist (no duplicates)
+          expect(mockTechniques.length).toBe(6);
+
+          // Verify each technique name is unique
+          const techniqueNames = mockTechniques.map((t) => t.name);
+          const uniqueNames = new Set(techniqueNames);
+          expect(uniqueNames.size).toBe(6);
+          expect(mockUsers.length).toBe(1);
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    it('should not create duplicate test user when seeding multiple times', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ max: 3, min: 2 }), async (runCount) => {
+          // Reset mock data
+          mockUsers.length = 0;
+          mockSubscriptions.length = 0;
+
+          // Run seeding multiple times
+          for (let i = 0; i < runCount; i++) {
+            await service.seedTestUser();
+          }
+
+          // Property 24: Verify only 1 user exists (no duplicates)
+          expect(mockUsers.length).toBe(1);
+
+          // Verify only 1 subscription exists
+          expect(mockSubscriptions.length).toBe(1);
+
+          // Verify user email is correct
+          expect(mockUsers[0].email).toBe('test@mukti.app');
+        }),
+        { numRuns: 20 },
+      );
+    }, 10000);
+
+    it('should not create duplicate admin user when seeding multiple times', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ max: 3, min: 2 }), async (runCount) => {
+          mockUsers.length = 0;
+          mockSubscriptions.length = 0;
+
+          for (let i = 0; i < runCount; i++) {
+            await service.seedAdminUser();
+          }
+
+          expect(mockUsers.length).toBe(1);
+          expect(mockSubscriptions.length).toBe(1);
+          expect(mockUsers[0].email).toBe('admin@mukti.live');
+        }),
+        { numRuns: 20 },
+      );
+    }, 10000);
+  });
+
+  describe('seedAll', () => {
+    it('should seed both techniques and test user', async () => {
+      await service.seedAll();
+
+      // Verify techniques were seeded
+      expect(mockTechniques.length).toBe(6);
+
+      // Verify system, test, and admin users were seeded
+      expect(mockUsers.length).toBe(3);
+      expect(mockUsers.map((u) => u.email)).toEqual(
+        expect.arrayContaining([
+          'system@mukti.app',
+          'test@mukti.app',
+          'admin@mukti.live',
+        ]),
+      );
+
+      const testUser = mockUsers.find((u) => u.email === 'test@mukti.app');
+      const adminUser = mockUsers.find((u) => u.email === 'admin@mukti.live');
+      expect(testUser).toBeDefined();
+      expect(adminUser).toBeDefined();
+      expect(mockSubscriptions.length).toBe(2);
+      expect(
+        mockSubscriptions.map((subscription) => subscription.userId),
+      ).toEqual(expect.arrayContaining([testUser?._id, adminUser?._id]));
+    });
+  });
+});

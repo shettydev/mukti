@@ -205,12 +205,6 @@ Add a login endpoint
 - ✅ Add context from GitHub, worktrees, local files, or URLs
 - ✅ Easy feature planning with `/oac:plan`
 
-**Documentation:**
-
-- [Plugin README](./plugins/claude-code/README.md) - Complete plugin documentation
-- [First-Time Setup](./plugins/claude-code/FIRST-TIME-SETUP.md) - Step-by-step guide
-- [Quick Start](./plugins/claude-code/QUICK-START.md) - Quick reference
-
 **Status:** BETA - Actively tested and ready for early adopters
 
 ---
@@ -837,7 +831,7 @@ We welcome contributions!
 3. Update documentation for any changes
 4. Ensure security best practices are followed
 
-See: [Contributing Guide](docs/contributing/CONTRIBUTING.md) • [Code of Conduct](docs/contributing/CODE_OF_CONDUCT.md)
+See: [Contributing Guide](../CONTRIBUTING.md) • [Code of Conduct](../CODE_OF_CONDUCT.md)
 
 ---
 

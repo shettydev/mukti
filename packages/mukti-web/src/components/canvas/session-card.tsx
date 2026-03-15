@@ -60,7 +60,7 @@ export function SessionCard({ session }: SessionCardProps) {
 
   const handleClick = () => {
     // Navigate to canvas detail page
-    router.push(`/dashboard/canvas/${session.id}`);
+    router.push(`/canvas/${session.id}`);
   };
 
   const handleDeleteConfirm = () => {
