@@ -11,6 +11,7 @@ import { DatabaseModule } from './modules/database/database.module';
 import { DialogueModule } from './modules/dialogue/dialogue.module';
 import { HealthModule } from './modules/health/health.module';
 import { KnowledgeTracingModule } from './modules/knowledge-tracing/knowledge-tracing.module';
+import { ThoughtMapModule } from './modules/thought-map/thought-map.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
 @Module({
@@ -27,6 +28,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     DialogueModule,
     HealthModule,
     KnowledgeTracingModule,
+    ThoughtMapModule,
     WaitlistModule,
   ],
   providers: [

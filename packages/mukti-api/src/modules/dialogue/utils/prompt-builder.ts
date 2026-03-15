@@ -19,10 +19,29 @@ export interface NodeContext {
  * Socratic technique types for dialogue.
  */
 export type SocraticTechnique =
+  | 'analogical'
   | 'counterfactual'
+  | 'definitional'
   | 'dialectic'
   | 'elenchus'
   | 'maieutics';
+
+/**
+ * Context used to select the appropriate Socratic technique for a ThoughtMap node.
+ * RFC §5.1.1
+ */
+export interface ThoughtMapNodeTechniqueContext {
+  /** Node depth in the tree (0 = root topic) */
+  depth: number;
+  /** Whether this node was created from a suggestion */
+  fromSuggestion: boolean;
+  /** Type of the parent node, if any */
+  parentType?: NodeType;
+  /** Number of sibling nodes (same parent) */
+  siblings: number;
+  /** Type of this node */
+  type: NodeType;
+}
 
 /**
  * Builds a scaffold-aware system prompt that integrates gap detection results.
@@ -119,6 +138,48 @@ Guidelines:
 }
 
 /**
+ * Builds the system prompt for Thought Map node dialogue.
+ * Substitutes map context (title + node summary) instead of canvas problem structure.
+ *
+ * @param node - The node context being discussed
+ * @param mapTitle - The Thought Map's root topic/title
+ * @param technique - The Socratic technique to apply
+ * @returns The constructed system prompt
+ */
+export function buildThoughtMapSystemPrompt(
+  node: NodeContext,
+  mapTitle: string,
+  technique: SocraticTechnique,
+): string {
+  const techniqueDescription = getTechniqueDescription(technique);
+  const nodeSpecificPrompt = getThoughtMapNodePrompt(
+    node.nodeType,
+    node.nodeLabel,
+  );
+
+  return `You are a Socratic mentor helping the user explore their thinking map.
+Your role is to ask thought-provoking questions, not provide answers.
+Use the ${technique} technique to guide the dialogue.
+
+${techniqueDescription}
+
+The user is exploring the topic: "${mapTitle}"
+
+The current node they are examining: "${node.nodeLabel}" (type: ${node.nodeType})
+
+${nodeSpecificPrompt}
+
+Guidelines:
+- Ask one focused question at a time
+- Build on the user's previous responses
+- Highlight contradictions or gaps in reasoning through questions
+- Never provide direct answers or solutions
+- Guide the user toward their own insights
+- Be supportive but challenging
+- Keep responses concise (2-4 sentences typically)`;
+}
+
+/**
  * Generates an initial Socratic question for a node.
  *
  * @param nodeType - The type of node
@@ -151,6 +212,35 @@ export function generateInitialQuestion(
 
     default:
       return `Tell me more about "${nodeLabel}". What aspects would you like to explore?`;
+  }
+}
+
+/**
+ * Generates an initial Socratic question for a ThoughtMap node.
+ *
+ * @param nodeType - The ThoughtMap node type
+ * @param nodeLabel - The node's content/label
+ * @returns An initial question tailored to the node type
+ */
+export function generateThoughtMapInitialQuestion(
+  nodeType: NodeType,
+  nodeLabel: string,
+): string {
+  switch (nodeType) {
+    case 'insight':
+      return `You've reached an insight: "${nodeLabel}". How does this connect back to the original topic? What new paths does this open up?`;
+
+    case 'question':
+      return `You're asking: "${nodeLabel}". What assumptions are embedded in this question itself? What would it mean if the answer were different from what you expect?`;
+
+    case 'thought':
+      return `You've noted: "${nodeLabel}". What led you to this thought? Is this an observation, an assumption, or a conclusion?`;
+
+    case 'topic':
+      return `Let's begin exploring: "${nodeLabel}". What do you already believe about this topic, and what feels most uncertain to you?`;
+
+    default:
+      return `Tell me more about "${nodeLabel}". What aspects would you like to explore first?`;
   }
 }
 
@@ -218,6 +308,37 @@ export function getRecommendedTechnique(nodeType: NodeType): SocraticTechnique {
     default:
       return 'elenchus';
   }
+}
+
+/**
+ * Selects the appropriate Socratic technique for a ThoughtMap node.
+ * Priority order mirrors RFC §5.1.1.
+ *
+ * @param ctx - Context about the node's position and type in the map
+ * @returns The most appropriate SocraticTechnique
+ */
+export function selectTechniqueForNode(
+  ctx: ThoughtMapNodeTechniqueContext,
+): SocraticTechnique {
+  if (ctx.depth === 0) {
+    return 'maieutics';
+  }
+  if (ctx.fromSuggestion) {
+    return 'elenchus';
+  }
+  if (ctx.type === 'insight') {
+    return 'dialectic';
+  }
+  if (ctx.siblings >= 3) {
+    return 'counterfactual';
+  }
+  if (ctx.depth >= 3) {
+    return 'analogical';
+  }
+  if (ctx.parentType === 'question') {
+    return 'definitional';
+  }
+  return 'maieutics';
 }
 
 /**
@@ -385,9 +506,17 @@ function getScaffoldLevelName(level: number): string {
  */
 function getTechniqueDescription(technique: SocraticTechnique): string {
   switch (technique) {
+    case 'analogical':
+      return `Technique: Analogical Reasoning
+Draw comparisons between the user's situation and familiar analogies to illuminate patterns and principles they may not yet see.`;
+
     case 'counterfactual':
       return `Technique: Counterfactual Reasoning
 Ask "what if" questions that explore alternative scenarios and help the user understand the implications of their assumptions.`;
+
+    case 'definitional':
+      return `Technique: Definitional Inquiry
+Press the user to precisely define their key terms and concepts. Explore whether their definitions hold up under scrutiny and edge cases.`;
 
     case 'dialectic':
       return `Technique: Dialectic (Thesis-Antithesis-Synthesis)
@@ -404,5 +533,43 @@ Help the user "give birth" to their own ideas by asking questions that draw out 
     default:
       return `Technique: Socratic Questioning
 Use open-ended questions to help the user examine their beliefs and reasoning.`;
+  }
+}
+
+/**
+ * Gets node-specific prompt instructions for ThoughtMap node types.
+ */
+function getThoughtMapNodePrompt(
+  nodeType: NodeType,
+  nodeLabel: string,
+): string {
+  switch (nodeType) {
+    case 'insight':
+      return `The user has arrived at an insight: "${nodeLabel}"
+Help them explore its implications and how it illuminates the broader topic.
+Ask how this insight might change their approach or understanding.
+Probe whether this insight raises further questions.`;
+
+    case 'question':
+      return `The user is examining a question: "${nodeLabel}"
+Explore what assumptions are embedded in the question.
+Ask what answering this question would unlock.
+Challenge whether this is the right question to be asking.`;
+
+    case 'thought':
+      return `The user is developing a thought: "${nodeLabel}"
+Explore whether this is a fact, belief, or inference.
+Ask for evidence and alternative interpretations.
+Probe how this thought connects to other nodes in their map.`;
+
+    case 'topic':
+      return `The user is exploring the root topic: "${nodeLabel}"
+Help them unpack their core beliefs and assumptions about this topic.
+Ask what they already know versus what they are uncertain about.
+Guide them toward identifying the key questions worth exploring.`;
+
+    default:
+      return `The user is exploring: "${nodeLabel}"
+Ask questions that deepen their understanding of this aspect of their thinking.`;
   }
 }

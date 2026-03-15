@@ -175,8 +175,7 @@ export class NodeDialogueResponseDto {
   static fromDocument(dialogue: NodeDialogue): NodeDialogueResponseDto {
     const dto = new NodeDialogueResponseDto();
     dto.id = dialogue._id?.toString() ?? String(dialogue._id);
-    dto.sessionId =
-      dialogue.sessionId?.toString() ?? String(dialogue.sessionId);
+    dto.sessionId = dialogue.sessionId?.toString() ?? '';
     dto.nodeId = dialogue.nodeId;
     dto.nodeType = dialogue.nodeType;
     dto.nodeLabel = dialogue.nodeLabel;

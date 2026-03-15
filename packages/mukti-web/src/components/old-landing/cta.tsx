@@ -50,7 +50,7 @@ export function Cta() {
               className="rounded-full px-8 py-6 text-base font-medium bg-white text-black hover:bg-slate-200 transition-all hover:scale-105 group"
               size="lg"
             >
-              <Link href="/dashboard">
+              <Link href="/chat">
                 Get Started Free
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>

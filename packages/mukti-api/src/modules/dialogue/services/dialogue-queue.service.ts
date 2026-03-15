@@ -27,9 +27,9 @@ import {
 import { KnowledgeGapDetectorService } from '../../scaffolding/services/knowledge-gap-detector.service';
 import { ResponseEvaluatorService } from '../../scaffolding/services/response-evaluator.service';
 import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
-import { DialogueAIService } from '../dialogue-ai.service';
-import { DialogueService } from '../dialogue.service';
+import { DialogueAIService } from './dialogue-ai.service';
 import { DialogueStreamService } from './dialogue-stream.service';
+import { DialogueService } from './dialogue.service';
 /**
  * Job data structure for dialogue request processing.
  */

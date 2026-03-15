@@ -74,7 +74,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div className={cn('flex max-w-[85%] flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
         {/* Role label */}
         <span className="text-xs font-medium text-muted-foreground">
-          {isUser ? 'You' : 'Socratic Mentor'}
+          {isUser ? 'You' : 'Mukti'}
         </span>
 
         {/* Message bubble */}

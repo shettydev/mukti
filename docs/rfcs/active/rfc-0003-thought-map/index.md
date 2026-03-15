@@ -885,13 +885,13 @@ No changes to auth flows. All new endpoints are JWT-protected (global `APP_GUARD
 
 ## 14. Decision Log
 
-| Date       | Decision                                          | Rationale                                                        | Decided By     |
-| ---------- | ------------------------------------------------- | ---------------------------------------------------------------- | -------------- |
-| 2026-03-08 | Separate collections over extending CanvasSession | Clean separation of concerns; no migration risk to existing data | Prathik Shetty |
-| 2026-03-08 | Preserve Guided Mode as alternative               | Some users prefer structured decomposition; no forced migration  | Prathik Shetty |
-| 2026-03-08 | Suggestions as questions only                     | Preserves Mukti's "more questions than answers" core philosophy  | Prathik Shetty |
-| 2026-03-08 | 3-level max extraction depth                      | Deeper structure should emerge from user exploration, not AI     | Prathik Shetty |
-| 2026-03-08 | Context-aware technique selection                 | Replaces rigid type→technique mapping with dynamic algorithm     | Prathik Shetty |
+| Date       | Decision                                          | Rationale                                                        | Decided By                                     |
+| ---------- | ------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| 2026-03-08 | Separate collections over extending CanvasSession | Clean separation of concerns; no migration risk to existing data | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-08 | Preserve Guided Mode as alternative               | Some users prefer structured decomposition; no forced migration  | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-08 | Suggestions as questions only                     | Preserves Mukti's "more questions than answers" core philosophy  | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-08 | 3-level max extraction depth                      | Deeper structure should emerge from user exploration, not AI     | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-08 | Context-aware technique selection                 | Replaces rigid type→technique mapping with dynamic algorithm     | [Prathik Shetty](https://github.com/shettydev) |
 
 ---
 
@@ -912,8 +912,6 @@ No changes to auth flows. All new endpoints are JWT-protected (global `APP_GUARD
 > The phased rollout (5 phases) and independent feature flags allow incremental validation.
 >
 > WARNING: The Conversation → Map extraction feature sends full conversation history to the AI provider.
-> This follows existing data flow patterns but reviewers should verify BYOK key handling in the new
-> `MapExtractionService`.
+> This follows existing data flow patterns but reviewers should verify BYOK key handling in the new `MapExtractionService`.
 >
-> WARNING: Auto-suggestion triggers (idle timers) may feel intrusive to some users. Phase 5 tuning
-> based on user feedback is critical before enabling auto-suggestions by default.
+> WARNING: Auto-suggestion triggers (idle timers) may feel intrusive to some users. Phase 5 tuning based on user feedback is critical before enabling auto-suggestions by default.

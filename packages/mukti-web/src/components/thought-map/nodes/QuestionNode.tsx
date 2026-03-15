@@ -1,0 +1,164 @@
+'use client';
+
+/**
+ * QuestionNode component for Thought Map canvas
+ *
+ * Represents an AI-suggested question node — a prompt that hasn't been
+ * accepted into the map yet. Visually distinct: dashed border, muted/ghost
+ * styling, Sparkles icon. Non-functional Accept/Dismiss buttons appear on hover.
+ *
+ * Features:
+ * - Dashed border + reduced opacity (ghost state)
+ * - Sparkles icon indicating AI origin
+ * - Hoverable Accept / Dismiss action buttons (visual only — wired in canvas)
+ * - Target handle on left, source handle on right
+ * - Japandi aesthetic: very muted lavender-tinged stone tones
+ */
+
+import { Handle, Position } from '@xyflow/react';
+import { Check, Sparkles, X } from 'lucide-react';
+import { useCallback, useState } from 'react';
+
+import type { ThoughtMapNode } from '@/types/thought-map';
+
+import { cn } from '@/lib/utils';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * Data passed to QuestionNode via React Flow's custom node API
+ */
+export interface QuestionNodeData {
+  node: ThoughtMapNode;
+  onAccept?: (nodeId: string) => void;
+  onDismiss?: (nodeId: string) => void;
+}
+
+/**
+ * Props for the QuestionNode component (React Flow custom node props shape)
+ */
+export interface QuestionNodeProps {
+  data: QuestionNodeData;
+  selected?: boolean;
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+/**
+ * QuestionNode - AI-suggested question node in the Thought Map
+ *
+ * Renders as a ghost card with dashed border to signal provisional / pending state.
+ * Accept and Dismiss actions are shown on hover and wired via callbacks.
+ *
+ * @param data - Node data including the ThoughtMapNode and optional action callbacks
+ * @param selected - Whether the node is currently selected in React Flow
+ */
+export function QuestionNode({ data, selected }: QuestionNodeProps) {
+  const { node, onAccept, onDismiss } = data;
+  const [hovered, setHovered] = useState(false);
+
+  const handleAccept = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onAccept?.(node.nodeId);
+    },
+    [node.nodeId, onAccept]
+  );
+
+  const handleDismiss = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onDismiss?.(node.nodeId);
+    },
+    [node.nodeId, onDismiss]
+  );
+
+  return (
+    <div
+      className={cn(
+        // Base — ghost / provisional visual
+        'relative min-w-[160px] max-w-[240px] cursor-default rounded-xl border border-dashed p-4',
+        // Muted lavender-stone ghost background
+        'bg-stone-50/60 dark:bg-stone-800/50',
+        'opacity-70 transition-all duration-200',
+        // Border colour — muted slate suggestion
+        'border-slate-300 dark:border-slate-600',
+        'shadow-sm shadow-slate-200/40 dark:shadow-slate-900/20',
+        // Selected / hover raises opacity
+        (selected || hovered) && 'opacity-100',
+        selected && [
+          'border-slate-400 dark:border-slate-500',
+          'ring-2 ring-slate-300/30 ring-offset-2 ring-offset-background',
+        ]
+      )}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Header: AI badge */}
+      <div className="mb-2 flex items-center gap-1.5">
+        <Sparkles className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+          Suggestion
+        </span>
+      </div>
+
+      {/* Question label */}
+      <p className="text-sm font-medium leading-snug text-stone-600 dark:text-stone-300">
+        {node.label}
+      </p>
+
+      {/* Accept / Dismiss — visible on hover */}
+      <div
+        className={cn(
+          'mt-3 flex items-center gap-2 transition-opacity duration-150',
+          hovered || selected ? 'opacity-100' : 'opacity-0'
+        )}
+      >
+        <button
+          aria-label="Accept suggestion"
+          className={cn(
+            'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium',
+            'border-emerald-200 bg-emerald-50 text-emerald-600',
+            'hover:bg-emerald-100',
+            'dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-400',
+            'transition-colors duration-150'
+          )}
+          onClick={handleAccept}
+        >
+          <Check className="h-3 w-3" />
+          Accept
+        </button>
+        <button
+          aria-label="Dismiss suggestion"
+          className={cn(
+            'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium',
+            'border-stone-200 bg-stone-50 text-stone-500',
+            'hover:bg-stone-100',
+            'dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400',
+            'transition-colors duration-150'
+          )}
+          onClick={handleDismiss}
+        >
+          <X className="h-3 w-3" />
+          Dismiss
+        </button>
+      </div>
+
+      {/* React Flow handles */}
+      <Handle
+        className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+        position={Position.Left}
+        type="target"
+      />
+      <Handle
+        className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+        position={Position.Right}
+        type="source"
+      />
+    </div>
+  );
+}

@@ -29,8 +29,17 @@ export interface GapDetectionSnapshot {
 export type NodeDialogueDocument = Document & NodeDialogue;
 /**
  * Valid node types for dialogue context.
+ * Canvas node types: 'seed', 'soil', 'root', 'insight'
+ * ThoughtMap node types (RFC-0003): 'topic', 'thought', 'question'
  */
-export type NodeType = 'insight' | 'root' | 'seed' | 'soil';
+export type NodeType =
+  | 'insight'
+  | 'question'
+  | 'root'
+  | 'seed'
+  | 'soil'
+  | 'thought'
+  | 'topic';
 
 /**
  * Scaffold levels from RFC-0002 Adaptive Scaffolding Framework.
@@ -93,6 +102,14 @@ export class NodeDialogue {
   @Prop({ type: Date })
   lastMessageAt?: Date;
 
+  /**
+   * Optional reference to the parent ThoughtMap (RFC-0003).
+   * Set only when this dialogue belongs to a Thought Map node.
+   * Null / undefined for legacy Canvas node dialogues.
+   */
+  @Prop({ ref: 'ThoughtMap', required: false, type: Types.ObjectId })
+  mapId?: Types.ObjectId;
+
   // ============================================================
   // RFC-0001 & RFC-0002: Knowledge Gap Detection & Scaffolding
   // ============================================================
@@ -119,7 +136,7 @@ export class NodeDialogue {
    * Type of node being discussed.
    */
   @Prop({
-    enum: ['seed', 'soil', 'root', 'insight'],
+    enum: ['seed', 'soil', 'root', 'insight', 'topic', 'thought', 'question'],
     required: true,
     type: String,
   })
@@ -148,14 +165,15 @@ export class NodeDialogue {
 
   /**
    * Reference to the parent canvas session.
+   * Optional for Thought Map node dialogues (RFC-0003) which have no canvas session.
    */
   @Prop({
     index: true,
     ref: 'CanvasSession',
-    required: true,
+    required: false,
     type: Types.ObjectId,
   })
-  sessionId: Types.ObjectId;
+  sessionId?: Types.ObjectId;
 
   updatedAt: Date;
 
@@ -168,11 +186,22 @@ export class NodeDialogue {
 
 export const NodeDialogueSchema = SchemaFactory.createForClass(NodeDialogue);
 
-// Compound index for efficient queries by session and node (unique constraint)
-NodeDialogueSchema.index({ nodeId: 1, sessionId: 1 }, { unique: true });
+// Compound index for efficient queries by session and node (unique when both present)
+// sparse: true so the constraint is only enforced when sessionId is provided
+NodeDialogueSchema.index(
+  { nodeId: 1, sessionId: 1 },
+  { sparse: true, unique: true },
+);
 
 // Index for listing dialogues by session with recent first
 NodeDialogueSchema.index({ lastMessageAt: -1, sessionId: 1 });
+
+// Sparse compound index for Thought Map node dialogues (RFC-0003)
+// sparse: true because mapId is absent on legacy Canvas node dialogues
+NodeDialogueSchema.index(
+  { mapId: 1, nodeId: 1 },
+  { sparse: true, unique: true },
+);
 
 // Virtual for session population
 NodeDialogueSchema.virtual('session', {

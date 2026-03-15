@@ -80,7 +80,7 @@ export function Hero() {
             asChild
             className="rounded-full px-8 py-6 text-base font-medium bg-white text-black hover:bg-slate-200 transition-colors"
           >
-            <Link href="/dashboard">Try Now</Link>
+            <Link href="/chat">Try Now</Link>
           </Button>
           <Button
             asChild

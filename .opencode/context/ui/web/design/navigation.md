@@ -1,4 +1,4 @@
-<!-- Context: ui/navigation | Priority: critical | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: ui/navigation | Priority: critical | Version: 1.0 | Updated: 2026-03-15 -->
 
 ---
 
@@ -8,7 +8,7 @@
 
 **Purpose**: Advanced web UI patterns - scroll animations, visual effects, and interactive design
 
-**Last Updated**: 2026-01-31
+**Last Updated**: 2026-03-15
 
 ---
 
@@ -18,21 +18,18 @@
 
 | File                                                                | Description                                    | Priority |
 | ------------------------------------------------------------------- | ---------------------------------------------- | -------- |
-| [navigation.md](concepts/navigation.md)                             | Concepts navigation                            | high     |
 | [scroll-linked-animations.md](concepts/scroll-linked-animations.md) | Scroll-synced image sequences (scrollytelling) | high     |
 
 ### Examples
 
 | File                                                                | Description                           | Priority |
 | ------------------------------------------------------------------- | ------------------------------------- | -------- |
-| [navigation.md](examples/navigation.md)                             | Examples navigation                   | high     |
 | [scrollytelling-headphone.md](examples/scrollytelling-headphone.md) | Full Next.js scroll animation example | high     |
 
 ### Guides
 
 | File                                                                              | Description                          | Priority |
 | --------------------------------------------------------------------------------- | ------------------------------------ | -------- |
-| [navigation.md](guides/navigation.md)                                             | Guides navigation                    | high     |
 | [building-scrollytelling-pages.md](guides/building-scrollytelling-pages.md)       | Complete implementation guide        | high     |
 | [premium-dark-ui-visual-reference.md](guides/premium-dark-ui-visual-reference.md) | Visual reference for premium dark UI | medium   |
 
@@ -40,7 +37,6 @@
 
 | File                                                              | Description                                   | Priority |
 | ----------------------------------------------------------------- | --------------------------------------------- | -------- |
-| [navigation.md](lookup/navigation.md)                             | Lookup navigation                             | high     |
 | [scroll-animation-prompts.md](lookup/scroll-animation-prompts.md) | AI prompts for generating animation sequences | medium   |
 
 ### Errors
@@ -82,6 +78,30 @@ This subcategory covers:
 
 ---
 
+## File Summaries
+
+### concepts/scroll-linked-animations.md
+
+Conceptual overview of scroll-synced image sequence experiences and when to use scrollytelling patterns.
+
+### examples/scrollytelling-headphone.md
+
+Concrete Next.js example showing how to build a premium product page with scroll-driven visuals.
+
+### guides/building-scrollytelling-pages.md
+
+Step-by-step implementation guide for image-sequence scrollytelling pages.
+
+### guides/premium-dark-ui-visual-reference.md
+
+Visual direction and implementation patterns for premium dark dashboards, shells, overlays, and product surfaces.
+
+### lookup/scroll-animation-prompts.md
+
+Prompt library for generating image sequences and visual assets used in scroll-linked animation work.
+
+---
+
 ## Related Categories
 
 - `ui/web/` - Core web UI patterns (parent directory)
@@ -96,9 +116,9 @@ This subcategory covers:
 
 ## Statistics
 
-- Concepts: 1 + navigation
-- Examples: 1 + navigation
-- Guides: 6 + navigation
-- Lookup: 1 + navigation
+- Concepts: 1
+- Examples: 1
+- Guides: 2
+- Lookup: 1
 - Errors: 0
-- **Total**: 13 files
+- **Total**: 6 files

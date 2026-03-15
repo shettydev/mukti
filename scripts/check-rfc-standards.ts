@@ -109,7 +109,10 @@ function extractMetadataValue(content: string, field: string): string | null {
   );
   const match = content.match(fieldRegex);
   if (!match) return null;
-  return match[1].trim();
+  const [, value] = match;
+  if (value === undefined) return null;
+
+  return value.trim();
 }
 
 function validateRequiredMetadata(content: string, indexPath: string): Map<string, string> {
@@ -156,7 +159,12 @@ function validateRfcDirectory(
     return null;
   }
 
-  const folderRfcNumber = match[1];
+  const [, folderRfcNumber] = match;
+  if (folderRfcNumber === undefined) {
+    fail(`Unable to determine RFC number from folder name under ${location}/: ${dirName}`);
+    return null;
+  }
+
   const indexPath = path.join(baseDir, dirName, 'index.md');
   const relIndexPath = path.relative(repoRoot, indexPath);
 

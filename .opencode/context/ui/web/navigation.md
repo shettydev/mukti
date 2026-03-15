@@ -1,10 +1,10 @@
-<!-- Context: ui/navigation | Priority: critical | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: ui/navigation | Priority: critical | Version: 1.0 | Updated: 2026-03-15 -->
 
 # Web UI Context
 
 **Purpose**: Web-based UI patterns, animations, styling standards, and React component design
 
-**Last Updated**: 2026-01-07
+**Last Updated**: 2026-03-15
 
 ---
 
@@ -12,21 +12,21 @@
 
 ### Core Files
 
-| File                                               | Description                                               | Priority |
-| -------------------------------------------------- | --------------------------------------------------------- | -------- |
-| [animation-basics.md](animation-basics.md)         | Animation fundamentals, timing, easing                    | high     |
-| [animation-components.md](animation-components.md) | Button, card, modal, dropdown animations                  | high     |
-| [animation-chat.md](animation-chat.md)             | Chat UI and message animations                            | medium   |
-| [animation-loading.md](animation-loading.md)       | Skeleton, spinner, progress animations                    | medium   |
-| [animation-forms.md](animation-forms.md)           | Form input and validation animations                      | medium   |
-| [animation-advanced.md](animation-advanced.md)     | Recipes, best practices, accessibility                    | medium   |
-| [ui-styling-standards.md](ui-styling-standards.md) | CSS frameworks, Tailwind patterns, styling best practices | high     |
-| [react-patterns.md](react-patterns.md)             | Modern React patterns, hooks, component design            | high     |
-| [design-systems.md](design-systems.md)             | Design system principles and component libraries          | medium   |
-| [images-guide.md](images-guide.md)                 | Placeholder and responsive images                         | medium   |
-| [icons-guide.md](icons-guide.md)                   | Icon systems (Lucide, Heroicons, FA)                      | medium   |
-| [fonts-guide.md](fonts-guide.md)                   | Font loading and optimization                             | medium   |
-| [cdn-resources.md](cdn-resources.md)               | CDN libraries and resources                               | medium   |
+| File                                                                                                        | Description                                                                                                                 | Priority |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------- |
+| [animation-basics.md](animation-basics.md)                                                                  | Animation fundamentals, timing, easing                                                                                      | high     |
+| [animation-components.md](animation-components.md)                                                          | Button, card, modal, dropdown animations                                                                                    | high     |
+| [animation-chat.md](animation-chat.md)                                                                      | Chat UI and message animations                                                                                              | medium   |
+| [animation-loading.md](animation-loading.md)                                                                | Skeleton, spinner, progress animations                                                                                      | medium   |
+| [animation-forms.md](animation-forms.md)                                                                    | Form input and validation animations                                                                                        | medium   |
+| [animation-advanced.md](animation-advanced.md)                                                              | Recipes, best practices, accessibility                                                                                      | medium   |
+| [ui-styling-standards.md](ui-styling-standards.md)                                                          | CSS frameworks, Tailwind patterns, styling best practices                                                                   | high     |
+| [react-patterns.md](react-patterns.md)                                                                      | Modern React patterns, hooks, component design                                                                              | high     |
+| [design-systems.md](design-systems.md)                                                                      | Design system principles and component libraries                                                                            | medium   |
+| [MDN Responsive Images](https://developer.mozilla.org/en-US/docs/Web/HTML/Guides/Responsive_images)         | Placeholder and responsive images                                                                                           | medium   |
+| [Lucide React](https://lucide.dev/guide/packages/lucide-react)                                              | Icon systems ([Heroicons](https://heroicons.com/), [Font Awesome](https://docs.fontawesome.com/web/))                       | medium   |
+| [MDN Web Fonts](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Text_styling/Web_fonts) | Font loading and optimization ([Google Fonts](https://fonts.google.com/))                                                   | medium   |
+| [MDN CDN Glossary](https://developer.mozilla.org/en-US/docs/Glossary/CDN)                                   | CDN libraries and resources ([jsDelivr](https://www.jsdelivr.com/), [UNPKG](https://unpkg.com/), [esm.sh](https://esm.sh/)) | medium   |
 
 ### Subcategories
 
@@ -99,7 +99,7 @@ Design system principles, component libraries, and maintaining consistency acros
 
 **Key topics**: Design tokens, component APIs, documentation, versioning
 
-### images-guide.md, icons-guide.md, fonts-guide.md, cdn-resources.md
+### Responsive images, icon systems, web fonts, and CDN resources
 
 Managing design assets in web applications - split into focused guides.
 

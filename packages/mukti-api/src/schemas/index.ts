@@ -15,6 +15,9 @@ export * from './session.schema';
 export * from './shared-link.schema';
 export * from './subscription.schema';
 export * from './technique.schema';
+export * from './thought-map-share-link.schema';
+export * from './thought-map.schema';
+export * from './thought-node.schema';
 export * from './usage-event.schema';
 // Export all schemas and their types for easy importing
 export * from './user.schema';
@@ -47,6 +50,12 @@ import { Session, SessionSchema } from './session.schema';
 import { SharedLink, SharedLinkSchema } from './shared-link.schema';
 import { Subscription, SubscriptionSchema } from './subscription.schema';
 import { Technique, TechniqueSchema } from './technique.schema';
+import {
+  ThoughtMapShareLink,
+  ThoughtMapShareLinkSchema,
+} from './thought-map-share-link.schema';
+import { ThoughtMap, ThoughtMapSchema } from './thought-map.schema';
+import { ThoughtNode, ThoughtNodeSchema } from './thought-node.schema';
 import { UsageEvent, UsageEventSchema } from './usage-event.schema';
 // Re-export commonly used types
 import { User, UserSchema } from './user.schema';
@@ -67,8 +76,11 @@ export const ALL_SCHEMAS = [
   { name: NodeDialogue.name, schema: NodeDialogueSchema },
   { name: Resource.name, schema: ResourceSchema },
   { name: Technique.name, schema: TechniqueSchema },
+  { name: ThoughtMap.name, schema: ThoughtMapSchema },
+  { name: ThoughtNode.name, schema: ThoughtNodeSchema },
   { name: Vote.name, schema: VoteSchema },
   { name: SharedLink.name, schema: SharedLinkSchema },
+  { name: ThoughtMapShareLink.name, schema: ThoughtMapShareLinkSchema },
   { name: UsageEvent.name, schema: UsageEventSchema },
   { name: DailyUsageAggregate.name, schema: DailyUsageAggregateSchema },
   { name: RequestQueue.name, schema: RequestQueueSchema },

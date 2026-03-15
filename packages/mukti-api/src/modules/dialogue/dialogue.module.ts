@@ -19,11 +19,11 @@ import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { AiModule } from '../ai/ai.module';
 import { ScaffoldingModule } from '../scaffolding/scaffolding.module';
-import { DialogueAIService } from './dialogue-ai.service';
 import { DialogueController } from './dialogue.controller';
-import { DialogueService } from './dialogue.service';
+import { DialogueAIService } from './services/dialogue-ai.service';
 import { DialogueQueueService } from './services/dialogue-queue.service';
 import { DialogueStreamService } from './services/dialogue-stream.service';
+import { DialogueService } from './services/dialogue.service';
 /**
  * Dialogue module for managing context-aware chat on canvas nodes.
  *
