@@ -235,6 +235,45 @@ export const thoughtMapKeys = {
 };
 
 /**
+ * Thought Map Dialogue query keys factory
+ *
+ * Query Key Hierarchy:
+ * - thoughtMapDialogueKeys.all: ['thoughtMapDialogue']
+ * - thoughtMapDialogueKeys.map(mapId): ['thoughtMapDialogue', 'maps', mapId]
+ * - thoughtMapDialogueKeys.node(mapId, nodeId): ['thoughtMapDialogue', 'maps', mapId, 'nodes', nodeId]
+ * - thoughtMapDialogueKeys.messages(mapId, nodeId): ['thoughtMapDialogue', 'maps', mapId, 'nodes', nodeId, 'messages']
+ */
+export const thoughtMapDialogueKeys = {
+  /** Base key for all thought map dialogue queries */
+  all: ['thoughtMapDialogue'] as const,
+
+  /**
+   * Key for all dialogues within a specific map
+   *
+   * @param mapId - Thought Map ID
+   */
+  map: (mapId: string) => [...thoughtMapDialogueKeys.all, 'maps', mapId] as const,
+
+  /**
+   * Key for messages of a specific node dialogue
+   *
+   * @param mapId - Thought Map ID
+   * @param nodeId - Node identifier
+   */
+  messages: (mapId: string, nodeId: string) =>
+    [...thoughtMapDialogueKeys.node(mapId, nodeId), 'messages'] as const,
+
+  /**
+   * Key for a specific node dialogue
+   *
+   * @param mapId - Thought Map ID
+   * @param nodeId - Node identifier
+   */
+  node: (mapId: string, nodeId: string) =>
+    [...thoughtMapDialogueKeys.map(mapId), 'nodes', nodeId] as const,
+};
+
+/**
  * Conversation query keys factory
  */
 export const conversationKeys = {
