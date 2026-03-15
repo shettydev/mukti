@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { ModelSelector } from '@/components/ai/model-selector';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,14 @@ import { Input } from '@/components/ui/input';
 import { useAiStore } from '@/lib/stores/ai-store';
 
 export default function SettingsPage() {
+  return (
+    <ProtectedRoute redirectTo="/auth">
+      <SettingsContent />
+    </ProtectedRoute>
+  );
+}
+
+function SettingsContent() {
   const {
     activeModel,
     deleteGeminiKey,
@@ -55,7 +64,7 @@ export default function SettingsPage() {
             <label className="text-sm font-medium">Active model</label>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <ModelSelector
-                className="flex-1 h-11"
+                className="h-11 flex-1"
                 models={models}
                 onChange={async (modelId) => {
                   setSavingModel(true);
@@ -69,7 +78,7 @@ export default function SettingsPage() {
                 value={activeModel}
               />
               <Button
-                className="h-11 px-4 shrink-0"
+                className="h-11 shrink-0 px-4"
                 onClick={() => refreshModels()}
                 type="button"
                 variant="outline"
@@ -101,7 +110,7 @@ export default function SettingsPage() {
                 value={apiKey}
               />
               <Button
-                className="h-11 px-4 shrink-0"
+                className="h-11 shrink-0 px-4"
                 disabled={savingKey || apiKey.trim().length === 0 || hasOpenRouterKey}
                 onClick={async () => {
                   setSavingKey(true);
@@ -118,11 +127,11 @@ export default function SettingsPage() {
               </Button>
             </div>
 
-            <div className="flex items-center justify-between gap-3 min-h-[44px]">
+            <div className="flex min-h-[44px] items-center justify-between gap-3">
               <div>
                 {hasOpenRouterKey ? (
                   <Badge
-                    className="gap-1.5 border-green-500/50 bg-green-500/10 py-1.5 px-3 text-sm text-green-500 h-9"
+                    className="h-9 gap-1.5 border-green-500/50 bg-green-500/10 px-3 py-1.5 text-sm text-green-500"
                     variant="outline"
                   >
                     <CheckCircle2 className="h-4 w-4" />
@@ -130,7 +139,7 @@ export default function SettingsPage() {
                   </Badge>
                 ) : (
                   <Badge
-                    className="gap-1.5 py-1.5 px-3 text-sm text-muted-foreground h-9"
+                    className="h-9 gap-1.5 px-3 py-1.5 text-sm text-muted-foreground"
                     variant="secondary"
                   >
                     <AlertCircle className="h-4 w-4" />
@@ -179,7 +188,7 @@ export default function SettingsPage() {
                 value={geminiKey}
               />
               <Button
-                className="h-11 px-4 shrink-0"
+                className="h-11 shrink-0 px-4"
                 disabled={savingGeminiKey || geminiKey.trim().length === 0 || hasGeminiKey}
                 onClick={async () => {
                   setSavingGeminiKey(true);
@@ -196,11 +205,11 @@ export default function SettingsPage() {
               </Button>
             </div>
 
-            <div className="flex items-center justify-between gap-3 min-h-[44px]">
+            <div className="flex min-h-[44px] items-center justify-between gap-3">
               <div>
                 {hasGeminiKey ? (
                   <Badge
-                    className="gap-1.5 border-green-500/50 bg-green-500/10 py-1.5 px-3 text-sm text-green-500 h-9"
+                    className="h-9 gap-1.5 border-green-500/50 bg-green-500/10 px-3 py-1.5 text-sm text-green-500"
                     variant="outline"
                   >
                     <CheckCircle2 className="h-4 w-4" />
@@ -208,7 +217,7 @@ export default function SettingsPage() {
                   </Badge>
                 ) : (
                   <Badge
-                    className="gap-1.5 py-1.5 px-3 text-sm text-muted-foreground h-9"
+                    className="h-9 gap-1.5 px-3 py-1.5 text-sm text-muted-foreground"
                     variant="secondary"
                   >
                     <AlertCircle className="h-4 w-4" />

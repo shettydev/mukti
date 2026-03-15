@@ -101,7 +101,7 @@ describe('ExtractionReviewPanel', () => {
     await user.click(screen.getByRole('button', { name: /open map/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/dashboard/map/map-123');
+      expect(mockPush).toHaveBeenCalledWith('/maps/map-123');
     });
   });
 });

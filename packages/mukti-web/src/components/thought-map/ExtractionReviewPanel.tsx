@@ -39,7 +39,7 @@ export function ExtractionReviewPanel() {
     setIsConfirming(false);
 
     if (confirmed) {
-      router.push(`/dashboard/map/${confirmed.id}`);
+      router.push(`/maps/${confirmed.id}`);
     } else {
       setConfirmError('Could not confirm the map. Please try again.');
     }

@@ -1,16 +1,5 @@
 'use client';
 
-/**
- * Thought Map detail page
- *
- * Renders the full React Flow canvas for a specific Thought Map session.
- * Delegates all loading/error handling to `ThoughtMapCanvas` (which handles
- * both states internally via `useThoughtMap` query), and mirrors the pattern
- * used by /dashboard/canvas/[id]/page.tsx.
- *
- * @requirements RFC-0003 Phase 1 — routing integration
- */
-
 import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { use, useEffect } from 'react';
@@ -23,10 +12,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useThoughtMap } from '@/lib/hooks/use-thought-map';
 import { useThoughtMapActions } from '@/lib/stores/thought-map-store';
 
-// ============================================================================
-// Types
-// ============================================================================
-
 interface ThoughtMapDetailContentProps {
   mapId: string;
 }
@@ -35,14 +20,6 @@ interface ThoughtMapDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-// ============================================================================
-// Page Component (Export)
-// ============================================================================
-
-/**
- * Thought Map detail page component
- * Extracts the `id` from async Next.js 15 params and renders the canvas
- */
 export default function ThoughtMapDetailPage({ params }: ThoughtMapDetailPageProps) {
   const { id } = use(params);
 
@@ -53,22 +30,16 @@ export default function ThoughtMapDetailPage({ params }: ThoughtMapDetailPagePro
   );
 }
 
-// ============================================================================
-// Internal Components (Alphabetical)
-// ============================================================================
-
 function ThoughtMapDetailContent({ mapId }: ThoughtMapDetailContentProps) {
   const { data, error, isLoading } = useThoughtMap(mapId);
   const { reset } = useThoughtMapActions();
 
-  // Reset store on unmount to avoid stale state when navigating between maps
   useEffect(() => {
     return () => {
       reset();
     };
   }, [reset]);
 
-  // Loading state
   if (isLoading) {
     return (
       <DashboardLayout showNavbar showSidebar>
@@ -77,7 +48,6 @@ function ThoughtMapDetailContent({ mapId }: ThoughtMapDetailContentProps) {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <DashboardLayout showNavbar showSidebar>
@@ -86,7 +56,6 @@ function ThoughtMapDetailContent({ mapId }: ThoughtMapDetailContentProps) {
     );
   }
 
-  // Map loaded — render the full-screen canvas (no sidebar/nav obstruction)
   if (data) {
     return (
       <DashboardLayout
@@ -99,44 +68,35 @@ function ThoughtMapDetailContent({ mapId }: ThoughtMapDetailContentProps) {
     );
   }
 
-  // Fallback — should not reach here normally
   return null;
 }
 
-/**
- * Error state component for thought map load failures
- */
 function ThoughtMapErrorState({ error }: { error: Error }) {
   return (
     <div className="flex h-full w-full items-center justify-center bg-stone-50 dark:bg-stone-950">
-      <div className="flex flex-col items-center gap-4 text-center max-w-md px-4">
+      <div className="flex max-w-md flex-col items-center gap-4 px-4 text-center">
         <div className="rounded-full bg-destructive/10 p-4">
           <AlertCircle className="h-12 w-12 text-destructive" />
         </div>
         <h2 className="text-xl font-semibold">Failed to load thought map</h2>
         <p className="text-muted-foreground">{error.message}</p>
         <Button asChild variant="outline">
-          <Link href="/dashboard/map">Back to Thought Maps</Link>
+          <Link href="/maps">Back to Thought Maps</Link>
         </Button>
       </div>
     </div>
   );
 }
 
-/**
- * Loading skeleton that mirrors the radial thought map structure
- */
 function ThoughtMapLoadingSkeleton() {
   return (
     <div className="flex h-full w-full items-center justify-center bg-stone-50 dark:bg-stone-950">
       <div className="relative flex flex-col items-center gap-6">
-        {/* Central topic node skeleton */}
         <div className="relative">
           <Skeleton className="h-20 w-48 rounded-xl" />
           <div className="absolute inset-0 animate-pulse rounded-xl bg-primary/5" />
         </div>
 
-        {/* Branch nodes skeleton — left / right */}
         <div className="flex items-center gap-16">
           <div className="flex flex-col gap-4">
             <Skeleton className="h-14 w-32 rounded-lg" />
@@ -151,7 +111,6 @@ function ThoughtMapLoadingSkeleton() {
           </div>
         </div>
 
-        {/* Loading indicator */}
         <div className="flex items-center gap-2 text-muted-foreground">
           <div className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]" />
           <div className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]" />

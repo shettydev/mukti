@@ -13,7 +13,9 @@ export function middleware(request: NextRequest) {
   const isProtectedPath =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/chat') ||
-    pathname.startsWith('/canvas');
+    pathname.startsWith('/canvas') ||
+    pathname.startsWith('/maps') ||
+    pathname.startsWith('/settings');
   const isAuthPage = pathname === '/auth';
 
   // Scenario 1: Unauthenticated user trying to access protected routes
@@ -31,11 +33,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/chat', request.url));
   }
 
-  // Scenario 3: Redirect /dashboard/conversations/new to /dashboard/conversations with dialog auto-open
+  // Scenario 3: Redirect the legacy create conversation route to the chat entry point
   if (pathname === '/dashboard/conversations/new') {
-    const url = new URL('/dashboard/conversations', request.url);
-    url.searchParams.set('openDialog', 'true');
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL('/chat', request.url));
   }
 
   // Allow the request to proceed

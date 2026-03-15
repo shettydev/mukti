@@ -252,7 +252,7 @@ export function ThoughtMapToolbar({
                   'hover:bg-stone-100 hover:text-stone-800',
                   'dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-stone-100'
                 )}
-                href={`/dashboard/conversations/${sourceConversationId}`}
+                href={`/chat/${sourceConversationId}`}
                 title="View the conversation this map was extracted from"
               >
                 <MessageSquare className="h-3.5 w-3.5" />
