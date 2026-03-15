@@ -513,7 +513,22 @@ export class ThoughtMapController {
    */
   @ApiStreamExtraction()
   @Sse('extract/:jobId/stream')
-  streamExtraction(@Param('jobId') jobId: string): Observable<MessageEvent> {
+  async streamExtraction(
+    @Param('jobId') jobId: string,
+    @CurrentUser() user: User,
+  ): Promise<Observable<MessageEvent>> {
+    const job = await this.mapExtractionService.getExtractionJob(jobId);
+
+    if (!job) {
+      throw new NotFoundException('Extraction job not found');
+    }
+
+    if (job.data.userId !== user._id.toString()) {
+      throw new ForbiddenException(
+        'Extraction job does not belong to this user',
+      );
+    }
+
     return new Observable<MessageEvent>((observer) => {
       const connectionId = `conn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 

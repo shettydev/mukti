@@ -272,6 +272,13 @@ export class MapExtractionService extends WorkerHost {
     return { jobId: job.id!, position };
   }
 
+  async getExtractionJob(
+    jobId: string,
+  ): Promise<Job<MapExtractionJobData, MapExtractionJobResult> | null> {
+    const job = await this.extractionQueue.getJob(jobId);
+    return job ?? null;
+  }
+
   // ============================================================================
   // Queue processor
   // ============================================================================
