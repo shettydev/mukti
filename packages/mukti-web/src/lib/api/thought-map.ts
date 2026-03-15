@@ -208,7 +208,7 @@ function transformThoughtMapNode(backend: BackendThoughtMapNode): ThoughtMapNode
     parentNodeId: backend.parentId ?? null,
     position: backend.position,
     sourceMessageIndices: backend.sourceMessageIndices,
-    type: getThoughtMapNodeType(backend.depth),
+    type: backend.type ?? getThoughtMapNodeType(backend.depth),
     updatedAt: backend.updatedAt,
   };
 }

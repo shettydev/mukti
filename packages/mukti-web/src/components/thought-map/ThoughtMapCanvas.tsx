@@ -166,7 +166,8 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   useGhostNodeAutoDismiss();
 
   const rootNodeId = activeMap?.rootNodeId ?? '';
-  useColdStartSuggestions(mapId, rootNodeId, !selectedNodeId);
+  const autoSuggestEnabled = activeMap?.settings.autoSuggestEnabled ?? true;
+  useColdStartSuggestions(mapId, rootNodeId, autoSuggestEnabled && !selectedNodeId);
 
   // ---- Ghost node callbacks ---------------------------------------------------
   const handleAcceptGhost = useCallback(

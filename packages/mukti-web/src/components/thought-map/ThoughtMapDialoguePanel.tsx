@@ -114,7 +114,7 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
 
   // Flatten pages
   const messages = messagesData?.pages.flatMap((page) => page.messages) ?? [];
-  const messageCount = messagesData?.pages[0]?.dialogue.messageCount ?? 0;
+  const messageCount = messagesData?.pages[0]?.dialogue?.messageCount ?? 0;
 
   // Scroll to bottom on new messages
   useEffect(() => {

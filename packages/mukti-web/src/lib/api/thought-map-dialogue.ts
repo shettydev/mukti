@@ -69,7 +69,7 @@ export interface ThoughtMapSendMessageResponse {
 }
 
 interface BackendPaginatedMessagesResponse {
-  dialogue: BackendThoughtMapDialogue;
+  dialogue: BackendThoughtMapDialogue | null;
   messages: BackendThoughtMapDialogueMessage[];
   pagination: {
     hasMore: boolean;
@@ -180,7 +180,7 @@ export const thoughtMapDialogueApi = {
     );
 
     return {
-      dialogue: transformDialogue(response.dialogue),
+      dialogue: response.dialogue ? transformDialogue(response.dialogue) : null,
       messages: response.messages.map(transformMessage),
       pagination: response.pagination,
     };

@@ -91,12 +91,17 @@ export function useSendThoughtMapMessage(mapId: string, nodeId: string) {
       const optimisticMessageId = `temp-${Date.now()}`;
 
       if (previousData) {
+        const existingDialogue = previousData.pages[0]?.dialogue;
+        if (!existingDialogue) {
+          return { optimisticMessageId, previousData };
+        }
+
         const optimisticMessage: ThoughtMapDialogueMessage = {
           content: dto.content,
-          dialogueId: previousData.pages[0]?.dialogue.id ?? '',
+          dialogueId: existingDialogue.id,
           id: optimisticMessageId,
           role: 'user',
-          sequence: (previousData.pages[0]?.dialogue.messageCount ?? 0) + 1,
+          sequence: existingDialogue.messageCount + 1,
           timestamp: new Date().toISOString(),
         };
 
@@ -106,11 +111,13 @@ export function useSendThoughtMapMessage(mapId: string, nodeId: string) {
             index === 0
               ? {
                   ...page,
-                  dialogue: {
-                    ...page.dialogue,
-                    lastMessageAt: optimisticMessage.timestamp,
-                    messageCount: page.dialogue.messageCount + 1,
-                  },
+                  dialogue: page.dialogue
+                    ? {
+                        ...page.dialogue,
+                        lastMessageAt: optimisticMessage.timestamp,
+                        messageCount: page.dialogue.messageCount + 1,
+                      }
+                    : null,
                   messages: [...page.messages, optimisticMessage],
                 }
               : page
@@ -152,24 +159,46 @@ export function useStartThoughtMapDialogue(mapId: string, nodeId: string) {
       const existing =
         queryClient.getQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(queryKey);
 
+      const seedPage: ThoughtMapPaginatedMessagesResponse = {
+        dialogue: response.dialogue,
+        messages: [response.initialQuestion],
+        pagination: {
+          hasMore: false,
+          limit: config.pagination.defaultPageSize,
+          page: 1,
+          total: 1,
+          totalPages: 1,
+        },
+      };
+
       if (!existing) {
-        // No cache yet — seed it
-        const seedPage: ThoughtMapPaginatedMessagesResponse = {
-          dialogue: response.dialogue,
-          messages: [response.initialQuestion],
-          pagination: {
-            hasMore: false,
-            limit: config.pagination.defaultPageSize,
-            page: 1,
-            total: 1,
-            totalPages: 1,
-          },
-        };
         queryClient.setQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(queryKey, {
           pageParams: [1],
           pages: [seedPage],
         });
+        return;
       }
+
+      queryClient.setQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(queryKey, {
+        ...existing,
+        pages: existing.pages.map((page, index) =>
+          index === 0
+            ? {
+                ...page,
+                dialogue: response.dialogue,
+                messages: page.messages.length === 0 ? [response.initialQuestion] : page.messages,
+                pagination:
+                  page.messages.length === 0
+                    ? {
+                        ...page.pagination,
+                        total: 1,
+                        totalPages: 1,
+                      }
+                    : page.pagination,
+              }
+            : page
+        ),
+      });
     },
   });
 }
@@ -311,11 +340,16 @@ export function useThoughtMapDialogueStream(
 
                   return {
                     ...page,
-                    dialogue: {
-                      ...page.dialogue,
-                      lastMessageAt: newMessage.timestamp,
-                      messageCount: Math.max(page.dialogue.messageCount, newMessage.sequence + 1),
-                    },
+                    dialogue: page.dialogue
+                      ? {
+                          ...page.dialogue,
+                          lastMessageAt: newMessage.timestamp,
+                          messageCount: Math.max(
+                            page.dialogue.messageCount,
+                            newMessage.sequence + 1
+                          ),
+                        }
+                      : null,
                     messages: [...existingMessages, newMessage],
                   };
                 }),

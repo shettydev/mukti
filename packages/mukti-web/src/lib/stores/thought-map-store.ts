@@ -257,7 +257,7 @@ function buildOptimisticThoughtMapNode(
   return {
     createdAt: now,
     depth,
-    fromSuggestion: false,
+    fromSuggestion: dto.fromSuggestion ?? false,
     id: `temp-${Date.now()}`,
     isCollapsed: false,
     isExplored: false,
@@ -267,7 +267,7 @@ function buildOptimisticThoughtMapNode(
     nodeId: `node-temp-${Date.now()}`,
     parentNodeId: dto.parentNodeId,
     position: { x: dto.x ?? 0, y: dto.y ?? 0 },
-    type: getThoughtMapNodeType(depth),
+    type: dto.type ?? getThoughtMapNodeType(depth),
     updatedAt: now,
   };
 }
@@ -319,9 +319,11 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
     }
 
     const nodeId = await get().addNode({
+      fromSuggestion: true,
       label: ghost.label,
       mapId: map.id,
       parentNodeId: ghost.parentId,
+      type: ghost.suggestedType,
     });
 
     // Remove the ghost regardless of success

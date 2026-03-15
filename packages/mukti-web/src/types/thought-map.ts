@@ -30,12 +30,16 @@ export interface CreateThoughtMapRequest {
  * DTO for creating a new node in a Thought Map
  */
 export interface CreateThoughtNodeRequest {
+  /** Whether this node is promoted from an AI suggestion */
+  fromSuggestion?: boolean;
   /** Display text for the new node */
   label: string;
   /** The thought map to add the node to */
   mapId: string;
   /** nodeId of the parent node */
   parentNodeId: string;
+  /** Optional explicit node type; defaults to "thought" when omitted */
+  type?: Extract<ThoughtMapNodeType, 'insight' | 'question' | 'thought' | 'topic'>;
   /** Initial x position (will be recalculated by layout if 0) */
   x?: number;
   /** Initial y position (will be recalculated by layout if 0) */
@@ -206,7 +210,7 @@ export type ThoughtMapNodeType = 'branch' | 'insight' | 'leaf' | 'question' | 't
  * Paginated response for Thought Map dialogue messages.
  */
 export interface ThoughtMapPaginatedMessagesResponse {
-  dialogue: ThoughtMapDialogue;
+  dialogue: null | ThoughtMapDialogue;
   messages: ThoughtMapDialogueMessage[];
   pagination: {
     hasMore: boolean;
