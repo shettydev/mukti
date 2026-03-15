@@ -9,9 +9,9 @@
  * @requirements 10.1, 10.2, 10.3
  */
 
-import { AlertCircle } from 'lucide-react';
-import { notFound } from 'next/navigation';
-import { use, useCallback, useEffect } from 'react';
+import { AlertCircle, Loader2, Network } from 'lucide-react';
+import { notFound, useRouter } from 'next/navigation';
+import { use, useCallback, useEffect, useState } from 'react';
 
 import type { Position } from '@/types/canvas-visualization.types';
 import type { NodePosition } from '@/types/canvas.types';
@@ -27,6 +27,7 @@ import {
   useUpdateCanvasSession,
   useUpdateInsight,
 } from '@/lib/hooks/use-canvas';
+import { useThoughtMapActions } from '@/lib/stores/thought-map-store';
 
 // ============================================================================
 // Types
@@ -63,10 +64,14 @@ export default function CanvasDetailPage({ params }: CanvasDetailPageProps) {
 // ============================================================================
 
 function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
+  const router = useRouter();
   const { data: session, error, isLoading, refetch } = useCanvasSession(canvasId);
   const { data: insights, isLoading: isLoadingInsights } = useCanvasInsights(canvasId);
   const { mutate: updateSession } = useUpdateCanvasSession();
   const { mutate: updateInsight } = useUpdateInsight();
+  const { convertFromCanvas } = useThoughtMapActions();
+
+  const [isConverting, setIsConverting] = useState(false);
 
   // Handle not found - redirect to not-found page
   useEffect(() => {
@@ -108,6 +113,19 @@ function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
     [session, canvasId, updateSession, updateInsight]
   );
 
+  /**
+   * Convert this canvas session to a new Thought Map and navigate to it.
+   */
+  const handleConvertToMap = useCallback(async () => {
+    setIsConverting(true);
+    const result = await convertFromCanvas(canvasId);
+    setIsConverting(false);
+
+    if (result) {
+      router.push(`/dashboard/map/${result.map.id}`);
+    }
+  }, [canvasId, convertFromCanvas, router]);
+
   // Loading state (Requirement 1.3 - load insights alongside session)
   if (isLoading || isLoadingInsights) {
     return (
@@ -130,6 +148,23 @@ function CanvasDetailContent({ canvasId }: CanvasDetailContentProps) {
   if (session) {
     return (
       <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" showNavbar showSidebar>
+        {/* Convert to Thought Map — Phase 5 */}
+        <div className="absolute right-4 top-16 z-10">
+          <Button
+            className="gap-1.5 shadow-md"
+            disabled={isConverting}
+            onClick={handleConvertToMap}
+            size="sm"
+            variant="outline"
+          >
+            {isConverting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Network className="h-3.5 w-3.5" />
+            )}
+            {isConverting ? 'Converting…' : 'Convert to Map'}
+          </Button>
+        </div>
         <ThinkingCanvas
           className="h-full w-full"
           insights={insights}

@@ -21,13 +21,12 @@
 
 import { Brain, MessageSquare, Network, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect } from 'react';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useState } from 'react';
 
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { CreateThoughtMapDialog } from '@/components/thought-map/CreateThoughtMapDialog';
 import { Button } from '@/components/ui/button';
-import { useCreateThoughtMap } from '@/lib/hooks/use-thought-map';
 
 // ============================================================================
 // Types
@@ -41,7 +40,6 @@ interface QuickActionCardProps {
 }
 
 interface ThoughtMapActionCardProps {
-  isLoading: boolean;
   onClick: () => void;
 }
 
@@ -125,25 +123,15 @@ export default function DashboardCatchAllPage() {
 // ============================================================================
 
 function DashboardContent() {
+  const [isCreateThoughtMapDialogOpen, setIsCreateThoughtMapDialogOpen] = useState(false);
   const router = useRouter();
-  const { isPending: isCreatingMap, mutate: createMap } = useCreateThoughtMap();
 
   /**
-   * Create a new Thought Map and navigate to its canvas page on success
+   * Open the topic-first Thought Map creation flow.
    */
   const handleNewThoughtMap = useCallback(() => {
-    createMap(
-      { topic: 'Untitled Map' },
-      {
-        onError: (error: Error) => {
-          toast.error(error.message ?? 'Failed to create Thought Map. Please try again.');
-        },
-        onSuccess: (map) => {
-          router.push(`/dashboard/map/${map.id}`);
-        },
-      }
-    );
-  }, [createMap, router]);
+    setIsCreateThoughtMapDialogOpen(true);
+  }, []);
 
   return (
     <DashboardLayout title="Dashboard">
@@ -166,8 +154,16 @@ function DashboardContent() {
           />
 
           {/* New Thought Map */}
-          <ThoughtMapActionCard isLoading={isCreatingMap} onClick={handleNewThoughtMap} />
+          <ThoughtMapActionCard onClick={handleNewThoughtMap} />
         </div>
+
+        <CreateThoughtMapDialog
+          onOpenChange={setIsCreateThoughtMapDialogOpen}
+          onSuccess={(map) => {
+            router.push(`/dashboard/map/${map.id}`);
+          }}
+          open={isCreateThoughtMapDialogOpen}
+        />
       </div>
     </DashboardLayout>
   );
@@ -210,18 +206,15 @@ function QuickActionCard({ description, href, icon, label }: QuickActionCardProp
 /**
  * Thought Map quick-action card — triggers async map creation on click
  */
-function ThoughtMapActionCard({ isLoading, onClick }: ThoughtMapActionCardProps) {
+function ThoughtMapActionCard({ onClick }: ThoughtMapActionCardProps) {
   return (
     <button
-      aria-busy={isLoading}
       className={[
         'flex flex-col gap-4 rounded-xl border border-japandi-sand/70',
         'bg-japandi-cream/60 p-6 text-left transition-all',
         'hover:border-japandi-sage/60 hover:bg-japandi-cream/80 hover:shadow-sm',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-        isLoading ? 'cursor-wait opacity-80' : '',
       ].join(' ')}
-      disabled={isLoading}
       onClick={onClick}
       type="button"
     >
@@ -235,18 +228,9 @@ function ThoughtMapActionCard({ isLoading, onClick }: ThoughtMapActionCardProps)
           thoughts.
         </p>
       </div>
-      <Button className="mt-auto gap-2 w-fit" disabled={isLoading} size="sm" tabIndex={-1}>
-        {isLoading ? (
-          <>
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            <span>Creating…</span>
-          </>
-        ) : (
-          <>
-            <Plus className="h-4 w-4" />
-            <span>New Thought Map</span>
-          </>
-        )}
+      <Button className="mt-auto gap-2 w-fit" size="sm" tabIndex={-1}>
+        <Plus className="h-4 w-4" />
+        <span>New Thought Map</span>
       </Button>
     </button>
   );
