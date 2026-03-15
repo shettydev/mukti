@@ -608,6 +608,7 @@ describe('ThoughtMapController', () => {
     let emitFn!: (event: unknown) => void;
     mockMapExtractionService.getExtractionJob.mockResolvedValue({
       data: { userId: mockUser._id.toString() },
+      getState: jest.fn().mockResolvedValue('active'),
     });
     mockMapExtractionService.addConnection.mockImplementation(
       (_jobId: string, _connectionId: string, cb: (event: unknown) => void) => {
@@ -630,6 +631,94 @@ describe('ThoughtMapController', () => {
       },
     ]);
     expect(cleanup).toHaveBeenCalled();
+  });
+
+  it('replays completed extraction jobs for late subscribers', async () => {
+    mockMapExtractionService.getExtractionJob.mockResolvedValue({
+      data: { userId: mockUser._id.toString() },
+      getState: jest.fn().mockResolvedValue('completed'),
+      returnvalue: {
+        conversationId: 'conversation-1',
+        mapId: 'map-1',
+        nodeCount: 2,
+      },
+    });
+    mockThoughtMapService.getMap.mockResolvedValue({
+      map: { _id: 'map-1', status: 'draft' },
+      nodes: [{ nodeId: 'topic-0' }, { nodeId: 'thought-0' }],
+    });
+
+    const stream = await controller.streamExtraction('job-1', mockUser as any);
+    const events: any[] = [];
+
+    await new Promise<void>((resolve) => {
+      stream.subscribe({
+        complete: () => resolve(),
+        next: (event) => events.push(event),
+      });
+    });
+
+    expect(mockMapExtractionService.addConnection).not.toHaveBeenCalled();
+    expect(mockThoughtMapService.getMap).toHaveBeenCalledWith(
+      'map-1',
+      mockUser._id,
+    );
+    expect(events).toEqual([
+      {
+        data: {
+          data: {
+            map: { _id: 'map-1', status: 'draft' },
+            nodes: [{ nodeId: 'topic-0' }, { nodeId: 'thought-0' }],
+          },
+          type: 'preview',
+        },
+        type: 'message',
+      },
+      {
+        data: {
+          data: {
+            jobId: 'job-1',
+            mapId: 'map-1',
+            nodeCount: 2,
+          },
+          type: 'complete',
+        },
+        type: 'message',
+      },
+    ]);
+  });
+
+  it('replays failed extraction jobs as a single error event', async () => {
+    mockMapExtractionService.getExtractionJob.mockResolvedValue({
+      data: { userId: mockUser._id.toString() },
+      failedReason: 'worker failed',
+      getState: jest.fn().mockResolvedValue('failed'),
+    });
+
+    const stream = await controller.streamExtraction('job-1', mockUser as any);
+    const events: any[] = [];
+
+    await new Promise<void>((resolve) => {
+      stream.subscribe({
+        complete: () => resolve(),
+        next: (event) => events.push(event),
+      });
+    });
+
+    expect(mockMapExtractionService.addConnection).not.toHaveBeenCalled();
+    expect(events).toEqual([
+      {
+        data: {
+          data: {
+            code: 'EXTRACTION_ERROR',
+            message: 'worker failed',
+            retriable: false,
+          },
+          type: 'error',
+        },
+        type: 'message',
+      },
+    ]);
   });
 
   it('confirms a draft map with the standard response envelope', async () => {

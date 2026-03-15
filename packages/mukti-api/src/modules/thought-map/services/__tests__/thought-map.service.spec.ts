@@ -154,9 +154,10 @@ describe('ThoughtMapService', () => {
       };
 
       mockThoughtMapModel.findById.mockResolvedValue(map);
-      mockThoughtNodeModel.countDocuments
-        .mockResolvedValueOnce(4)
-        .mockResolvedValueOnce(4);
+      mockThoughtNodeModel.countDocuments.mockResolvedValueOnce(4);
+      mockThoughtNodeModel.find.mockReturnValueOnce(
+        createLeanQuery([{ nodeId: 'thought-0' }, { nodeId: 'thought-3' }]),
+      );
       mockThoughtNodeModel.findOne.mockResolvedValue(parentNode);
       mockThoughtNodeModel.create.mockResolvedValue(createdNode);
 
@@ -183,16 +184,15 @@ describe('ThoughtMapService', () => {
       const map = createOwnedMap(userId);
 
       mockThoughtMapModel.findById.mockResolvedValue(map);
-      mockThoughtNodeModel.countDocuments
-        .mockResolvedValueOnce(2)
-        .mockResolvedValueOnce(1);
+      mockThoughtNodeModel.countDocuments.mockResolvedValueOnce(2);
+      mockThoughtNodeModel.find.mockReturnValueOnce(
+        createLeanQuery([{ nodeId: 'question-1' }]),
+      );
       mockThoughtNodeModel.findOne.mockResolvedValue({
         depth: 0,
         nodeId: 'topic-0',
       });
-      mockThoughtNodeModel.create.mockResolvedValue({
-        nodeId: 'question-1',
-      });
+      mockThoughtNodeModel.create.mockResolvedValue({ nodeId: 'question-2' });
 
       await service.addNode(map._id.toString(), userId, {
         fromSuggestion: true,
@@ -204,8 +204,39 @@ describe('ThoughtMapService', () => {
       expect(mockThoughtNodeModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           fromSuggestion: true,
-          nodeId: 'question-1',
+          nodeId: 'question-2',
           type: 'question',
+        }),
+      );
+    });
+
+    it('allocates the next node id from the maximum suffix when ids have gaps', async () => {
+      const userId = new Types.ObjectId();
+      const map = createOwnedMap(userId);
+
+      mockThoughtMapModel.findById.mockResolvedValue(map);
+      mockThoughtNodeModel.countDocuments.mockResolvedValueOnce(3);
+      mockThoughtNodeModel.find.mockReturnValueOnce(
+        createLeanQuery([
+          { nodeId: 'thought-0' },
+          { nodeId: 'thought-2' },
+          { nodeId: 'thought-bad' },
+        ]),
+      );
+      mockThoughtNodeModel.findOne.mockResolvedValue({
+        depth: 1,
+        nodeId: 'thought-0',
+      });
+      mockThoughtNodeModel.create.mockResolvedValue({ nodeId: 'thought-3' });
+
+      await service.addNode(map._id.toString(), userId, {
+        label: 'Gap-safe node',
+        parentId: 'thought-0',
+      });
+
+      expect(mockThoughtNodeModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nodeId: 'thought-3',
         }),
       );
     });

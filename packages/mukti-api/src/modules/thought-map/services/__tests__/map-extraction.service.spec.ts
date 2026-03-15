@@ -347,7 +347,7 @@ describe('MapExtractionService', () => {
         'topic-0',
         'thought-0',
         'thought-1',
-        'question-1',
+        'question-0',
       ]);
       expect(mockThoughtNodeModel.create).toHaveBeenNthCalledWith(
         1,
@@ -359,6 +359,47 @@ describe('MapExtractionService', () => {
           type: 'topic',
         }),
       );
+    });
+
+    it('allocates unique sequential thought ids across branches and sub-points', async () => {
+      const userId = new Types.ObjectId().toString();
+      const conversationId = new Types.ObjectId().toString();
+      const map = { _id: new Types.ObjectId() };
+      mockThoughtMapModel.create.mockResolvedValue(map);
+      mockThoughtNodeModel.create.mockImplementation((doc: any) => ({
+        ...doc,
+        _id: new Types.ObjectId(),
+      }));
+
+      const result = await (service as any).persistDraftMap(
+        userId,
+        conversationId,
+        {
+          branches: [
+            {
+              label: 'Branch one',
+              sourceMessageIndices: [0],
+              subPoints: [{ label: 'Child one', sourceMessageIndices: [1] }],
+            },
+            {
+              label: 'Branch two',
+              sourceMessageIndices: [2],
+              subPoints: [{ label: 'Child two', sourceMessageIndices: [3] }],
+            },
+          ],
+          centralTopic: 'Main topic',
+          unresolvedQuestions: ['Question one'],
+        },
+      );
+
+      expect(result.nodes.map((node: any) => node.nodeId)).toEqual([
+        'topic-0',
+        'thought-0',
+        'thought-1',
+        'thought-2',
+        'thought-3',
+        'question-0',
+      ]);
     });
   });
 });
