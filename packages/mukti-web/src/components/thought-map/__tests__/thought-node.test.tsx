@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { ThoughtNode } from '../nodes/ThoughtNode';
 
@@ -11,8 +12,9 @@ jest.mock('@xyflow/react', () => ({
 }));
 
 describe('ThoughtNode', () => {
-  it('allows deeper nodes to add a branch', () => {
+  it('allows deeper nodes to add a branch', async () => {
     const onAddBranch = jest.fn();
+    const user = userEvent.setup();
 
     render(
       <ThoughtNode
@@ -38,8 +40,11 @@ describe('ThoughtNode', () => {
       />
     );
 
-    fireEvent.contextMenu(screen.getByText('Deep thought'));
-    fireEvent.click(screen.getByRole('button', { name: /add branch/i }));
+    await user.pointer({
+      keys: '[MouseRight]',
+      target: screen.getByText('Deep thought'),
+    });
+    await user.click(screen.getByRole('menuitem', { name: /add branch/i }));
 
     expect(onAddBranch).toHaveBeenCalledWith('thought-3');
   });
