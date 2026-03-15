@@ -11,13 +11,19 @@
 // ============================================================================
 
 /**
+ * Request body for POST /thought-maps/convert-from-canvas/:sessionId
+ */
+export interface ConvertCanvasRequest {
+  /** Optional title override — defaults to the canvas seed text */
+  title?: string;
+}
+
+/**
  * DTO for creating a new Thought Map
  */
 export interface CreateThoughtMapRequest {
-  /** Optional initial settings override */
-  settings?: Partial<ThoughtMapSettings>;
-  /** The central topic / question for the map */
-  topic: string;
+  /** The central topic / title for the map */
+  title: string;
 }
 
 /**
@@ -36,8 +42,54 @@ export interface CreateThoughtNodeRequest {
   y?: number;
 }
 
+/**
+ * Request body for POST /thought-maps/extract
+ */
+export interface ExtractConversationRequest {
+  /** ID of the conversation to extract a map from */
+  conversationId: string;
+  /** Optional model override */
+  model?: string;
+}
+
+/**
+ * Response from POST /thought-maps/extract (202 Accepted)
+ */
+export interface ExtractionJobResponse {
+  jobId: string;
+  position: number;
+}
+
+/**
+ * Union of all extraction SSE event payloads.
+ *
+ * SSE sequence: processing → preview → complete | error
+ */
+export type ExtractionStreamEvent =
+  | {
+      /** Full draft ThoughtMap + nodes ready for client review */
+      data: ThoughtMapWithNodes;
+      type: 'preview';
+    }
+  | {
+      data: { code: string; message: string; retriable: boolean };
+      type: 'error';
+    }
+  | {
+      data: { jobId: string; mapId: string; nodeCount: number };
+      type: 'complete';
+    }
+  | {
+      data: { jobId: string; status: 'started' };
+      type: 'processing';
+    };
+
 // ============================================================================
 // Core Domain Types
+// ============================================================================
+
+// ============================================================================
+// Enums
 // ============================================================================
 
 /**
@@ -56,11 +108,50 @@ export interface ThoughtMap {
   createdAt: string;
   id: string;
   nodeCount: number;
+  rootNodeId: string;
   settings: ThoughtMapSettings;
+  sourceCanvasSessionId?: string;
+  sourceConversationId?: string;
   status: ThoughtMapStatus;
   title: string;
   updatedAt: string;
   userId: string;
+}
+
+// ============================================================================
+// Settings
+// ============================================================================
+
+/**
+ * A Thought Map node dialogue record — created when the user first opens
+ * the dialogue panel for a node.
+ */
+export interface ThoughtMapDialogue {
+  createdAt: string;
+  id: string;
+  lastMessageAt?: string;
+  mapId: string;
+  messageCount: number;
+  nodeId: string;
+  nodeLabel: string;
+  nodeType: string;
+}
+
+/**
+ * A single message in a Thought Map node dialogue.
+ */
+export interface ThoughtMapDialogueMessage {
+  content: string;
+  dialogueId: string;
+  id: string;
+  metadata?: {
+    latencyMs?: number;
+    model?: string;
+    tokens?: number;
+  };
+  role: 'assistant' | 'user';
+  sequence: number;
+  timestamp: string;
 }
 
 /**
@@ -81,49 +172,90 @@ export interface ThoughtMap {
 export interface ThoughtMapNode {
   createdAt: string;
   depth: number;
+  fromSuggestion: boolean;
   id: string;
+  isCollapsed: boolean;
   isExplored: boolean;
   label: string;
   mapId: string;
+  messageCount: number;
   nodeId: string;
   parentNodeId: null | string;
   position: { x: number; y: number };
+  sourceMessageIndices?: number[];
   type: ThoughtMapNodeType;
   updatedAt: string;
 }
 
+/**
+ * Node types in a Thought Map
+ * - topic:    The central root node (depth 0), always at (0,0)
+ * - branch:   First-level child nodes (depth 1), split left/right hemispheres
+ * - leaf:     Deeper-level nodes (depth 2+), extending from their branch ancestor
+ * - thought:  Generic thought node (backend alias, maps to thought-node renderer)
+ * - question: AI-suggested question node (ghost state before acceptance)
+ * - insight:  Insight node derived from conversation
+ */
+export type ThoughtMapNodeType = 'branch' | 'insight' | 'leaf' | 'question' | 'thought' | 'topic';
+
 // ============================================================================
-// Enums
+// Request DTOs (continued)
 // ============================================================================
 
 /**
- * Node types in a Thought Map
- * - topic: The central root node (depth 0), always at (0,0)
- * - branch: First-level child nodes (depth 1), split left/right hemispheres
- * - leaf: Deeper-level nodes (depth 2+), extending from their branch ancestor
+ * Paginated response for Thought Map dialogue messages.
  */
-export type ThoughtMapNodeType = 'branch' | 'leaf' | 'topic';
+export interface ThoughtMapPaginatedMessagesResponse {
+  dialogue: ThoughtMapDialogue;
+  messages: ThoughtMapDialogueMessage[];
+  pagination: {
+    hasMore: boolean;
+    limit: number;
+    page: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 // ============================================================================
-// Settings
+// Thought Map Dialogue types
 // ============================================================================
 
 /**
  * User-configurable settings for a Thought Map
  */
 export interface ThoughtMapSettings {
-  /** Whether to show the Socratic dialogue panel by default */
-  autoOpenDialogue: boolean;
-  /** Layout direction preference */
-  layoutDirection: 'horizontal' | 'vertical';
-  /** Whether node labels wrap at a max width */
-  wrapLabels: boolean;
+  autoSuggestEnabled: boolean;
+  autoSuggestIdleSeconds: number;
+  maxSuggestionsPerNode: number;
+}
+
+/**
+ * A public share link for a Thought Map.
+ */
+export interface ThoughtMapShareLink {
+  createdAt: string;
+  createdBy: string;
+  expiresAt?: string;
+  id: string;
+  isActive: boolean;
+  thoughtMapId: string;
+  token: string;
+  viewCount: number;
+}
+
+/**
+ * Response from starting a Thought Map node dialogue.
+ */
+export interface ThoughtMapStartDialogueResponse {
+  dialogue: ThoughtMapDialogue;
+  initialQuestion: ThoughtMapDialogueMessage;
 }
 
 /**
  * Status lifecycle of a Thought Map
  */
-export type ThoughtMapStatus = 'active' | 'archived' | 'shared';
+export type ThoughtMapStatus = 'active' | 'archived' | 'draft';
 
 /**
  * A Thought Map with its nodes eagerly loaded
@@ -134,9 +266,14 @@ export interface ThoughtMapWithNodes {
   nodes: ThoughtMapNode[];
 }
 
-// ============================================================================
-// Request DTOs (continued)
-// ============================================================================
+/**
+ * Request body for PATCH /thought-maps/:id/settings
+ */
+export interface UpdateThoughtMapSettingsRequest {
+  autoSuggestEnabled?: boolean;
+  autoSuggestIdleSeconds?: number;
+  maxSuggestionsPerNode?: number;
+}
 
 /**
  * DTO for updating an existing Thought Map node
@@ -150,4 +287,21 @@ export interface UpdateThoughtNodeRequest {
   x?: number;
   /** Updated y position */
   y?: number;
+}
+
+/**
+ * Phase 1 canvas presentation type for a node.
+ *
+ * The backend stores semantic types (`thought`, `question`, `insight`, `topic`),
+ * but the tightened Phase 1 UI only needs to distinguish:
+ * - the root topic node
+ * - first-level branch nodes
+ * - deeper leaf nodes
+ */
+export function getThoughtMapNodeType(depth: number): ThoughtMapNodeType {
+  if (depth <= 0) {
+    return 'topic';
+  }
+
+  return depth === 1 ? 'branch' : 'leaf';
 }
