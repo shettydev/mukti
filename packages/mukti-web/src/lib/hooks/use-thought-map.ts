@@ -14,17 +14,17 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type {
-  CreateThoughtMapRequest,
-  CreateThoughtNodeRequest,
-  ThoughtMap,
-  ThoughtMapNode,
-  ThoughtMapWithNodes,
-  UpdateThoughtNodeRequest,
-} from '@/types/thought-map';
-
 import { thoughtMapApi } from '@/lib/api/thought-map';
 import { thoughtMapKeys } from '@/lib/query-keys';
+import {
+  type CreateThoughtMapRequest,
+  type CreateThoughtNodeRequest,
+  getThoughtMapNodeType,
+  type ThoughtMap,
+  type ThoughtMapNode,
+  type ThoughtMapWithNodes,
+  type UpdateThoughtNodeRequest,
+} from '@/types/thought-map';
 
 // ============================================================================
 // Interfaces
@@ -75,10 +75,6 @@ interface UpdateThoughtNodeVariables {
   nodeId: string;
 }
 
-// ============================================================================
-// Mutation Hooks
-// ============================================================================
-
 /**
  * Create a new Thought Map
  *
@@ -90,7 +86,7 @@ interface UpdateThoughtNodeVariables {
  * ```typescript
  * const { mutate: createMap, isPending } = useCreateThoughtMap();
  *
- * createMap({ topic: 'How can I improve focus?' }, {
+ * createMap({ title: 'How can I improve focus?' }, {
  *   onSuccess: (map) => router.push(`/dashboard/thought-maps/${map.id}`)
  * });
  * ```
@@ -107,6 +103,10 @@ export function useCreateThoughtMap() {
     },
   });
 }
+
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
 
 /**
  * Create a new node in a Thought Map with optimistic update
@@ -147,19 +147,7 @@ export function useCreateThoughtNode(mapId: string) {
 
       // Optimistically add a temporary node
       if (previousData) {
-        const tempNode: ThoughtMapNode = {
-          createdAt: new Date().toISOString(),
-          depth: 2, // will be corrected by server response
-          id: `temp-${Date.now()}`,
-          isExplored: false,
-          label: variables.dto.label,
-          mapId,
-          nodeId: `leaf-temp-${Date.now()}`,
-          parentNodeId: variables.dto.parentNodeId,
-          position: { x: variables.dto.x ?? 0, y: variables.dto.y ?? 0 },
-          type: 'leaf',
-          updatedAt: new Date().toISOString(),
-        };
+        const tempNode = buildOptimisticThoughtMapNode(mapId, previousData.nodes, variables.dto);
 
         queryClient.setQueryData<ThoughtMapWithNodes>(thoughtMapKeys.detail(mapId), {
           ...previousData,
@@ -236,10 +224,6 @@ export function useDeleteThoughtNode(mapId: string) {
   });
 }
 
-// ============================================================================
-// Query Hooks
-// ============================================================================
-
 /**
  * Fetch a specific Thought Map by ID, including all its nodes
  *
@@ -261,6 +245,10 @@ export function useThoughtMap(id: string) {
     queryKey: thoughtMapKeys.detail(id),
   });
 }
+
+// ============================================================================
+// Query Hooks
+// ============================================================================
 
 /**
  * Fetch all Thought Maps for the authenticated user
@@ -359,4 +347,31 @@ export function useUpdateThoughtNode(mapId: string) {
       }
     },
   });
+}
+
+function buildOptimisticThoughtMapNode(
+  mapId: string,
+  nodes: ThoughtMapNode[],
+  dto: CreateThoughtNodeRequest
+): ThoughtMapNode {
+  const now = new Date().toISOString();
+  const parentNode = nodes.find((node) => node.nodeId === dto.parentNodeId);
+  const depth = parentNode ? parentNode.depth + 1 : 1;
+
+  return {
+    createdAt: now,
+    depth,
+    fromSuggestion: false,
+    id: `temp-${Date.now()}`,
+    isCollapsed: false,
+    isExplored: false,
+    label: dto.label,
+    mapId,
+    messageCount: 0,
+    nodeId: `node-temp-${Date.now()}`,
+    parentNodeId: dto.parentNodeId,
+    position: { x: dto.x ?? 0, y: dto.y ?? 0 },
+    type: getThoughtMapNodeType(depth),
+    updatedAt: now,
+  };
 }
