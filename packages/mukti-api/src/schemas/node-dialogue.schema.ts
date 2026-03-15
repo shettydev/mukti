@@ -165,14 +165,15 @@ export class NodeDialogue {
 
   /**
    * Reference to the parent canvas session.
+   * Optional for Thought Map node dialogues (RFC-0003) which have no canvas session.
    */
   @Prop({
     index: true,
     ref: 'CanvasSession',
-    required: true,
+    required: false,
     type: Types.ObjectId,
   })
-  sessionId: Types.ObjectId;
+  sessionId?: Types.ObjectId;
 
   updatedAt: Date;
 
@@ -185,8 +186,12 @@ export class NodeDialogue {
 
 export const NodeDialogueSchema = SchemaFactory.createForClass(NodeDialogue);
 
-// Compound index for efficient queries by session and node (unique constraint)
-NodeDialogueSchema.index({ nodeId: 1, sessionId: 1 }, { unique: true });
+// Compound index for efficient queries by session and node (unique when both present)
+// sparse: true so the constraint is only enforced when sessionId is provided
+NodeDialogueSchema.index(
+  { nodeId: 1, sessionId: 1 },
+  { sparse: true, unique: true },
+);
 
 // Index for listing dialogues by session with recent first
 NodeDialogueSchema.index({ lastMessageAt: -1, sessionId: 1 });
