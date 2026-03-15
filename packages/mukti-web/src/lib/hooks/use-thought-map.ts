@@ -87,7 +87,7 @@ interface UpdateThoughtNodeVariables {
  * const { mutate: createMap, isPending } = useCreateThoughtMap();
  *
  * createMap({ title: 'How can I improve focus?' }, {
- *   onSuccess: (map) => router.push(`/dashboard/thought-maps/${map.id}`)
+ *   onSuccess: (map) => router.push(`/dashboard/map/${map.id}`)
  * });
  * ```
  */
