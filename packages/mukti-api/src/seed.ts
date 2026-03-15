@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
-import { SeedService } from './modules/conversations/services/seed.service';
+import { SeedService } from './common/seeds/seed.service';
 
 /**
  * Database seeding script.

@@ -6,12 +6,9 @@ import { Model } from 'mongoose';
 import {
   Subscription,
   SubscriptionDocument,
-} from '../../../schemas/subscription.schema';
-import {
-  Technique,
-  TechniqueDocument,
-} from '../../../schemas/technique.schema';
-import { User, UserDocument } from '../../../schemas/user.schema';
+} from '../../schemas/subscription.schema';
+import { Technique, TechniqueDocument } from '../../schemas/technique.schema';
+import { User, UserDocument } from '../../schemas/user.schema';
 
 type ManagedUserDefaults = Pick<
   User,
@@ -407,8 +404,7 @@ export class SeedService {
     };
 
     if (
-      !existingPreferences ||
-      existingPreferences.emailNotifications === undefined ||
+      existingPreferences?.emailNotifications === undefined ||
       existingPreferences.language === undefined ||
       existingPreferences.theme === undefined
     ) {
