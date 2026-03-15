@@ -1,18 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { ProblemStructure } from '../../schemas/canvas-session.schema';
-import type { DialogueMessage } from '../../schemas/dialogue-message.schema';
-import type { NodeType } from '../../schemas/node-dialogue.schema';
-import type { ScaffoldContext } from '../scaffolding/interfaces/scaffolding.interface';
+import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
+import type { DialogueMessage } from '../../../schemas/dialogue-message.schema';
+import type { NodeType } from '../../../schemas/node-dialogue.schema';
+import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
 
-import { OpenRouterClientFactory } from '../ai/services/openrouter-client.factory';
+import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
 import {
   buildScaffoldAwarePrompt,
   buildSystemPrompt,
   getRecommendedTechnique,
   type NodeContext,
-} from './utils/prompt-builder';
+} from '../utils/prompt-builder';
 /**
  * Response from AI service after generating a Socratic response.
  */
@@ -234,6 +234,104 @@ export class DialogueAIService {
       // Return fallback response on error
       return this.generateFallbackResponse(nodeContext.nodeType, startTime);
     }
+  }
+
+  /**
+   * Generates a Socratic AI response using a pre-built system prompt.
+   * Used by ThoughtMap dialogues where the system prompt is constructed externally
+   * (e.g., using `buildThoughtMapSystemPrompt`) rather than from a ProblemStructure.
+   *
+   * @param systemPrompt - The fully-constructed system prompt
+   * @param conversationHistory - Previous messages in this dialogue
+   * @param userMessage - The current user message to respond to
+   * @param model - OpenRouter model id
+   * @param apiKey - OpenRouter API key
+   * @param scaffoldContext - Optional scaffold context from gap detection
+   * @returns AI response with content, tokens, and cost
+   */
+  async generateScaffoldedResponseWithPrompt(
+    systemPrompt: string,
+    conversationHistory: DialogueMessage[],
+    userMessage: string,
+    model: string,
+    apiKey: string,
+    scaffoldContext?: ScaffoldContext,
+  ): Promise<DialogueAIResponse> {
+    const startTime = Date.now();
+
+    if (!apiKey) {
+      return this.generateFallbackResponse('seed', startTime);
+    }
+
+    try {
+      // Optionally augment with scaffold instructions
+      const finalPrompt = scaffoldContext
+        ? this.augmentPromptWithScaffoldInstructions(
+            systemPrompt,
+            scaffoldContext,
+          )
+        : systemPrompt;
+
+      const messages = this.buildMessages(
+        finalPrompt,
+        conversationHistory,
+        userMessage,
+      );
+      const effectiveModel = model.trim();
+
+      this.logger.log(
+        `Generating ThoughtMap AI response with model ${effectiveModel} (scaffold level: ${scaffoldContext?.level ?? 'none'})`,
+      );
+
+      const client = this.openRouterClientFactory.create(apiKey);
+
+      const response = await client.chat.send(
+        { messages, model: effectiveModel, stream: false, temperature: 0.7 },
+        {
+          headers: {
+            'HTTP-Referer':
+              this.configService.get<string>('APP_URL') ?? 'https://mukti.app',
+            'X-Title': 'Mukti - Thought Map',
+          },
+        },
+      );
+
+      const latencyMs = Date.now() - startTime;
+      return this.parseResponse(response, effectiveModel, latencyMs);
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate ThoughtMap AI response: ${this.getErrorMessage(error)}`,
+        this.getErrorStack(error),
+      );
+      return this.generateFallbackResponse('thought', startTime);
+    }
+  }
+
+  /**
+   * Inline scaffold augmentation for pre-built prompts.
+   * Extracts only the scaffold addendum from `buildScaffoldAwarePrompt` and appends
+   * it to the provided base prompt, avoiding any dependency on ProblemStructure.
+   */
+  private augmentPromptWithScaffoldInstructions(
+    basePrompt: string,
+    context: ScaffoldContext,
+  ): string {
+    // Generate augmentation using a stub node + problem to extract just the scaffold addendum
+    const stubNode = {
+      nodeId: '_stub',
+      nodeLabel: '',
+      nodeType: 'thought' as const,
+    };
+    const stubProblem = { roots: [], seed: '', soil: [] };
+    const augmented = buildScaffoldAwarePrompt(stubNode, stubProblem, context);
+
+    const separator = '\n---\nSCAFFOLDING LEVEL:';
+    const scaffoldIdx = augmented.indexOf(separator);
+    if (scaffoldIdx === -1) {
+      return basePrompt;
+    }
+
+    return `${basePrompt}${augmented.slice(scaffoldIdx)}`;
   }
 
   /**

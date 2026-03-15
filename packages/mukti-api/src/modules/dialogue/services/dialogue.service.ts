@@ -10,22 +10,22 @@ import { Model, Types } from 'mongoose';
 import type {
   GapDetectionResult,
   TransitionResult,
-} from '../scaffolding/interfaces/scaffolding.interface';
+} from '../../scaffolding/interfaces/scaffolding.interface';
 
 import {
   CanvasSession,
   CanvasSessionDocument,
-} from '../../schemas/canvas-session.schema';
+} from '../../../schemas/canvas-session.schema';
 import {
   DialogueMessage,
   DialogueMessageDocument,
   MessageRole,
-} from '../../schemas/dialogue-message.schema';
+} from '../../../schemas/dialogue-message.schema';
 import {
   NodeDialogue,
   NodeDialogueDocument,
   NodeType,
-} from '../../schemas/node-dialogue.schema';
+} from '../../../schemas/node-dialogue.schema';
 
 /**
  * Paginated result for messages.

@@ -28,7 +28,6 @@ import { AiPolicyService } from '../ai/services/ai-policy.service';
 import { AiSecretsService } from '../ai/services/ai-secrets.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { DialogueService } from './dialogue.service';
 import {
   DialogueMessageResponseDto,
   NodeDialogueResponseDto,
@@ -42,6 +41,7 @@ import {
 import { DialogueSendMessageDto } from './dto/send-message.dto';
 import { DialogueQueueService } from './services/dialogue-queue.service';
 import { DialogueStreamService } from './services/dialogue-stream.service';
+import { DialogueService } from './services/dialogue.service';
 import { generateInitialQuestion } from './utils/prompt-builder';
 
 /**
