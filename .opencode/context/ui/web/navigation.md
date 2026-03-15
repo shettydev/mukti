@@ -12,21 +12,21 @@
 
 ### Core Files
 
-| File                                               | Description                                               | Priority |
-| -------------------------------------------------- | --------------------------------------------------------- | -------- |
-| [animation-basics.md](animation-basics.md)         | Animation fundamentals, timing, easing                    | high     |
-| [animation-components.md](animation-components.md) | Button, card, modal, dropdown animations                  | high     |
-| [animation-chat.md](animation-chat.md)             | Chat UI and message animations                            | medium   |
-| [animation-loading.md](animation-loading.md)       | Skeleton, spinner, progress animations                    | medium   |
-| [animation-forms.md](animation-forms.md)           | Form input and validation animations                      | medium   |
-| [animation-advanced.md](animation-advanced.md)     | Recipes, best practices, accessibility                    | medium   |
-| [ui-styling-standards.md](ui-styling-standards.md) | CSS frameworks, Tailwind patterns, styling best practices | high     |
-| [react-patterns.md](react-patterns.md)             | Modern React patterns, hooks, component design            | high     |
-| [design-systems.md](design-systems.md)             | Design system principles and component libraries          | medium   |
-| [images-guide.md](images-guide.md)                 | Placeholder and responsive images                         | medium   |
-| [icons-guide.md](icons-guide.md)                   | Icon systems (Lucide, Heroicons, FA)                      | medium   |
-| [fonts-guide.md](fonts-guide.md)                   | Font loading and optimization                             | medium   |
-| [cdn-resources.md](cdn-resources.md)               | CDN libraries and resources                               | medium   |
+| File                                                                                                         | Description                                                                                                                 | Priority |
+| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | -------- |
+| [animation-basics.md](animation-basics.md)                                                                   | Animation fundamentals, timing, easing                                                                                      | high     |
+| [animation-components.md](animation-components.md)                                                           | Button, card, modal, dropdown animations                                                                                    | high     |
+| [animation-chat.md](animation-chat.md)                                                                       | Chat UI and message animations                                                                                              | medium   |
+| [animation-loading.md](animation-loading.md)                                                                 | Skeleton, spinner, progress animations                                                                                      | medium   |
+| [animation-forms.md](animation-forms.md)                                                                     | Form input and validation animations                                                                                        | medium   |
+| [animation-advanced.md](animation-advanced.md)                                                               | Recipes, best practices, accessibility                                                                                      | medium   |
+| [ui-styling-standards.md](ui-styling-standards.md)                                                           | CSS frameworks, Tailwind patterns, styling best practices                                                                   | high     |
+| [react-patterns.md](react-patterns.md)                                                                       | Modern React patterns, hooks, component design                                                                              | high     |
+| [design-systems.md](design-systems.md)                                                                       | Design system principles and component libraries                                                                            | medium   |
+| [images-guide.md](https://developer.mozilla.org/en-US/docs/Web/HTML/Guides/Responsive_images)                | Placeholder and responsive images                                                                                           | medium   |
+| [icons-guide.md](https://lucide.dev/guide/packages/lucide-react)                                             | Icon systems ([Heroicons](https://heroicons.com/), [Font Awesome](https://docs.fontawesome.com/web))                        | medium   |
+| [fonts-guide.md](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Text_styling/Web_fonts) | Font loading and optimization ([Google Fonts](https://fonts.google.com/))                                                   | medium   |
+| [cdn-resources.md](https://developer.mozilla.org/en-US/docs/Glossary/CDN)                                    | CDN libraries and resources ([jsDelivr](https://www.jsdelivr.com/), [UNPKG](https://unpkg.com/), [esm.sh](https://esm.sh/)) | medium   |
 
 ### Subcategories
 
