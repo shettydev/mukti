@@ -10,14 +10,17 @@
  * - Convert domain `ThoughtMapNode[]` into React Flow node/edge arrays
  * - Register custom node and edge types
  * - Handle drag, selection, and "Add Branch" interactions
+ * - Render AI ghost nodes and wire Accept/Dismiss callbacks
+ * - Mount cold-start suggestion trigger and auto-dismiss logic
  * - Mount the CreateNodeDialog and ThoughtMapToolbar
  *
  * Node type mapping:
- *   topic  → topic-node   (TopicNode)
- *   branch → thought-node (ThoughtNode)
- *   leaf   → thought-node (ThoughtNode)
- *
- * QuestionNode and InsightNode are registered for future use.
+ *   topic    → topic-node    (TopicNode)
+ *   branch   → thought-node  (ThoughtNode)
+ *   leaf     → thought-node  (ThoughtNode)
+ *   insight  → insight-node  (InsightNode)
+ *   question → question-node (QuestionNode)
+ *   ghost    → question-node (QuestionNode, isGhost: true)
  */
 
 import '@xyflow/react/dist/style.css';
@@ -36,10 +39,18 @@ import {
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import type { GhostNode } from '@/lib/stores/thought-map-store';
 import type { ThoughtMapNode } from '@/types/thought-map';
 
 import { useThoughtMap as useThoughtMapQuery } from '@/lib/hooks/use-thought-map';
 import {
+  ghostNodeToFlowNodeId,
+  useColdStartSuggestions,
+  useGhostNodeAutoDismiss,
+  useThoughtMapSuggestions,
+} from '@/lib/hooks/use-thought-map-suggestions';
+import {
+  useGhostNodes,
   useThoughtMapActions,
   useThoughtMapNodes,
   useThoughtMapStore,
@@ -53,6 +64,7 @@ import { InsightNode } from './nodes/InsightNode';
 import { QuestionNode } from './nodes/QuestionNode';
 import { ThoughtNode } from './nodes/ThoughtNode';
 import { TopicNode } from './nodes/TopicNode';
+import { ThoughtMapDialoguePanel } from './ThoughtMapDialoguePanel';
 import { ThoughtMapToolbar } from './ThoughtMapToolbar';
 
 // ============================================================================
@@ -115,13 +127,29 @@ export function ThoughtMapCanvas({ className, mapId }: ThoughtMapCanvasProps) {
 // Inner canvas + helpers (non-exported, alphabetical order)
 // ============================================================================
 
+/** Map each domain node type to the correct React Flow custom node type key */
+function resolveNodeType(type: ThoughtMapNode['type']): string {
+  switch (type) {
+    case 'insight':
+      return 'insight-node';
+    case 'question':
+      return 'question-node';
+    case 'topic':
+      return 'topic-node';
+    default:
+      // 'branch' | 'leaf' | 'thought'
+      return 'thought-node';
+  }
+}
+
 function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   const { data, error, isLoading } = useThoughtMapQuery(mapId);
-  const { setMap, setNodePosition, setSelectedNodeId } = useThoughtMapActions();
+  const { acceptGhostNode, removeGhostNode, setMap, setSelectedNodeId, updateNode } =
+    useThoughtMapActions();
   const storeNodes = useThoughtMapNodes();
+  const ghostNodes = useGhostNodes();
   const selectedNodeId = useThoughtMapStore((s) => s.selectedNodeId);
   const activeMap = useThoughtMapStore((s) => s.map);
-
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogParentLabel, setDialogParentLabel] = useState<string | undefined>(undefined);
@@ -134,6 +162,27 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     }
   }, [data, setMap]);
 
+  // ---- Ghost node lifecycle hooks -----------------------------------
+  useGhostNodeAutoDismiss();
+
+  const rootNodeId = activeMap?.rootNodeId ?? '';
+  useColdStartSuggestions(mapId, rootNodeId, !selectedNodeId);
+
+  // ---- Ghost node callbacks ---------------------------------------------------
+  const handleAcceptGhost = useCallback(
+    (ghostId: string) => {
+      void acceptGhostNode(ghostId);
+    },
+    [acceptGhostNode]
+  );
+
+  const handleDismissGhost = useCallback(
+    (ghostId: string) => {
+      removeGhostNode(ghostId);
+    },
+    [removeGhostNode]
+  );
+
   // ---- "Add Branch" handler (called by node context menus / toolbar) ----------
   const handleAddBranch = useCallback(
     (nodeId: string) => {
@@ -145,12 +194,41 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     [storeNodes]
   );
 
+  // ---- "Suggest Branches" handler (called by node context menus) --------------
+  const [suggestParentNodeId, setSuggestParentNodeId] = useState<string>('');
+  const handleSuggestBranches = useCallback((nodeId: string) => {
+    setSuggestParentNodeId(nodeId);
+  }, []);
+
+  // Trigger suggestion stream whenever a node's "Suggest Branches" is clicked
+  const { requestSuggestions } = useThoughtMapSuggestions(mapId, suggestParentNodeId);
+  useEffect(() => {
+    if (suggestParentNodeId) {
+      void requestSuggestions();
+      // Reset so a second click on the same node re-triggers
+      setSuggestParentNodeId('');
+    }
+    // requestSuggestions changes identity when suggestParentNodeId changes — that's fine
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestParentNodeId]);
+
   // ---- Build React Flow nodes + edges from the store --------------------------
   const domainNodesList = useMemo(() => Object.values(storeNodes), [storeNodes]);
 
   const flowNodes = useMemo(
-    () => toFlowNodes(domainNodesList, handleAddBranch),
-    [domainNodesList, handleAddBranch]
+    () => [
+      ...toFlowNodes(domainNodesList, handleAddBranch, handleSuggestBranches),
+      ...toGhostFlowNodes(ghostNodes, storeNodes, handleAcceptGhost, handleDismissGhost),
+    ],
+    [
+      domainNodesList,
+      ghostNodes,
+      handleAcceptGhost,
+      handleAddBranch,
+      handleDismissGhost,
+      handleSuggestBranches,
+      storeNodes,
+    ]
   );
 
   const flowEdges = useMemo(() => toFlowEdges(domainNodesList), [domainNodesList]);
@@ -167,9 +245,9 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   // ---- Drag stop → persist position to store ----------------------------------
   const handleNodeDragStop: RFOnNodeDrag = useCallback(
     (_event, node) => {
-      setNodePosition(node.id, node.position.x, node.position.y);
+      void updateNode(node.id, { x: node.position.x, y: node.position.y });
     },
-    [setNodePosition]
+    [updateNode]
   );
 
   // ---- Selection → update store -----------------------------------------------
@@ -204,11 +282,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
 
   // ---- Can the selected node have a branch added? ----------------------------
   const canAddBranch = useMemo(() => {
-    if (!selectedNodeId) {
-      return false;
-    }
-    const node = storeNodes[selectedNodeId];
-    return node?.type === 'topic' || node?.type === 'branch';
+    return !!selectedNodeId && !!storeNodes[selectedNodeId];
   }, [selectedNodeId, storeNodes]);
 
   // ---- Loading / error states ------------------------------------------------
@@ -268,8 +342,18 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
           canAddBranch={canAddBranch}
           onAddBranch={handleToolbarAddBranch}
           selectedNodeId={selectedNodeId}
+          sourceConversationId={activeMap?.sourceConversationId ?? undefined}
         />
       </div>
+
+      {/* Per-node Socratic dialogue panel */}
+      {selectedNodeId && storeNodes[selectedNodeId] && (
+        <ThoughtMapDialoguePanel
+          mapId={mapId}
+          node={storeNodes[selectedNodeId]!}
+          onClose={() => setSelectedNodeId(null)}
+        />
+      )}
 
       {/* Create node dialog */}
       {activeMap && (
@@ -286,7 +370,8 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
 }
 
 /**
- * Build React Flow edges from parent-child relationships in domain nodes
+ * Build React Flow edges from parent-child relationships in domain nodes.
+ * Ghost nodes also get a dashed edge connecting them to their parent.
  */
 function toFlowEdges(domainNodes: ThoughtMapNode[]): RFEdge[] {
   return domainNodes
@@ -300,24 +385,75 @@ function toFlowEdges(domainNodes: ThoughtMapNode[]): RFEdge[] {
 }
 
 /**
- * Convert domain nodes to React Flow nodes, applying layout overrides
+ * Convert domain nodes to React Flow nodes, applying layout overrides.
+ * Fixes: each node type is now mapped correctly (was always 'thought-node' except 'topic').
  */
 function toFlowNodes(
   domainNodes: ThoughtMapNode[],
-  onAddBranch: (nodeId: string) => void
+  onAddBranch: (nodeId: string) => void,
+  onSuggestBranches: (nodeId: string) => void
 ): RFNode[] {
   const layoutPositions: Record<string, NodePosition> = computeThoughtMapLayout(domainNodes);
 
   return domainNodes.map((n) => {
     const layoutPos = layoutPositions[n.nodeId];
     const position = layoutPos ?? n.position;
-    const type = n.type === 'topic' ? 'topic-node' : 'thought-node';
+    const type = resolveNodeType(n.type);
 
     return {
-      data: { node: n, onAddBranch },
+      data: { node: n, onAddBranch, onSuggestBranches },
       id: n.nodeId,
       position,
       type,
+    } satisfies RFNode;
+  });
+}
+
+/**
+ * Convert ghost nodes to React Flow question-node entries.
+ *
+ * Each ghost is rendered as a `question-node` (QuestionNode component).
+ * A synthetic ThoughtMapNode is constructed so QuestionNode can render the label.
+ * The ghost's ghostId is used as nodeId so onAccept/onDismiss callbacks
+ * (which receive `node.nodeId`) correctly identify which ghost to act on.
+ *
+ * Position: offset 220px to the right and staggered 80px vertically from parent.
+ */
+function toGhostFlowNodes(
+  ghostNodes: GhostNode[],
+  storeNodes: Record<string, ThoughtMapNode>,
+  onAccept: (ghostId: string) => void,
+  onDismiss: (ghostId: string) => void
+): RFNode[] {
+  return ghostNodes.map((ghost, index) => {
+    const parent = storeNodes[ghost.parentId];
+    const baseX = parent ? parent.position.x + 280 : 400;
+    const baseY = parent ? parent.position.y + index * 90 - 45 : index * 90;
+
+    // Synthetic ThoughtMapNode for QuestionNode rendering
+    const now = new Date().toISOString();
+    const syntheticNode: ThoughtMapNode = {
+      createdAt: now,
+      depth: (parent?.depth ?? 0) + 1,
+      fromSuggestion: true,
+      id: ghost.ghostId,
+      isCollapsed: false,
+      isExplored: false,
+      label: ghost.label,
+      mapId: parent?.mapId ?? '',
+      messageCount: 0,
+      nodeId: ghost.ghostId,
+      parentNodeId: ghost.parentId,
+      position: { x: baseX, y: baseY },
+      type: 'question',
+      updatedAt: now,
+    };
+
+    return {
+      data: { node: syntheticNode, onAccept, onDismiss },
+      id: ghostNodeToFlowNodeId(ghost),
+      position: { x: baseX, y: baseY },
+      type: 'question-node',
     } satisfies RFNode;
   });
 }

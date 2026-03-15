@@ -14,11 +14,17 @@
  */
 
 import { Handle, Position } from '@xyflow/react';
-import { GitBranch, MapPin } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { GitBranch, MapPin, Sparkles } from 'lucide-react';
+import { useCallback } from 'react';
 
 import type { ThoughtMapNode } from '@/types/thought-map';
 
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -31,6 +37,7 @@ import { cn } from '@/lib/utils';
 export interface TopicNodeData {
   node: ThoughtMapNode;
   onAddBranch: (nodeId: string) => void;
+  onSuggestBranches?: (nodeId: string) => void;
 }
 
 /**
@@ -55,120 +62,96 @@ export interface TopicNodeProps {
  * @param selected - Whether the node is currently selected in React Flow
  */
 export function TopicNode({ data, selected }: TopicNodeProps) {
-  const { node, onAddBranch } = data;
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
-  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
-
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenuPos({ x: e.clientX, y: e.clientY });
-    setContextMenuOpen(true);
-  }, []);
+  const { node, onAddBranch, onSuggestBranches } = data;
 
   const handleAddBranch = useCallback(() => {
-    setContextMenuOpen(false);
     onAddBranch(node.nodeId);
   }, [node.nodeId, onAddBranch]);
 
-  const handleCloseMenu = useCallback(() => {
-    setContextMenuOpen(false);
-  }, []);
+  const handleSuggestBranches = useCallback(() => {
+    onSuggestBranches?.(node.nodeId);
+  }, [node.nodeId, onSuggestBranches]);
 
   return (
-    <>
-      <div
-        className={cn(
-          // Base — larger than branch nodes
-          'relative min-w-[220px] max-w-[320px] cursor-default rounded-2xl border-2 p-5',
-          // Japandi primary: warm dark tone gradient
-          'bg-gradient-to-br from-stone-800 to-stone-900',
-          'transition-all duration-200',
-          // Border + shadow
-          'border-stone-600 shadow-xl shadow-stone-900/30',
-          // Selected ring
-          selected && [
-            'border-stone-400 ring-2 ring-stone-400/40 ring-offset-2 ring-offset-background',
-            'shadow-2xl shadow-stone-900/50',
-          ],
-          // Hover
-          !selected && 'hover:border-stone-500 hover:shadow-xl hover:shadow-stone-900/40'
-        )}
-        onContextMenu={handleContextMenu}
-      >
-        {/* Node header */}
-        <div className="mb-3 flex items-center gap-2">
-          <div className="rounded-lg bg-stone-600/60 p-1.5">
-            <MapPin className="h-4 w-4 text-stone-200" />
-          </div>
-          <span className="text-xs font-semibold uppercase tracking-widest text-stone-400">
-            Topic
-          </span>
-        </div>
-
-        {/* Main label — large, bold, warm white */}
-        <p className="text-base font-bold leading-snug text-stone-50">{node.label}</p>
-
-        {/* Exploration indicator */}
-        {node.isExplored && (
-          <div className="mt-3 flex items-center gap-1.5">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-400/80">
-              Explored
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          className={cn(
+            // Base — larger than branch nodes
+            'relative min-w-[220px] max-w-[320px] cursor-default rounded-2xl border-2 p-5',
+            // Japandi primary: warm dark tone gradient
+            'bg-gradient-to-br from-stone-800 to-stone-900',
+            'transition-all duration-200',
+            // Border + shadow
+            'border-stone-600 shadow-xl shadow-stone-900/30',
+            // Selected ring
+            selected && [
+              'border-stone-400 ring-2 ring-stone-400/40 ring-offset-2 ring-offset-background',
+              'shadow-2xl shadow-stone-900/50',
+            ],
+            // Hover
+            !selected && 'hover:border-stone-500 hover:shadow-xl hover:shadow-stone-900/40'
+          )}
+        >
+          {/* Node header */}
+          <div className="mb-3 flex items-center gap-2">
+            <div className="rounded-lg bg-stone-600/60 p-1.5">
+              <MapPin className="h-4 w-4 text-stone-200" />
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-widest text-stone-400">
+              Topic
             </span>
           </div>
+
+          {/* Main label — large, bold, warm white */}
+          <p className="text-base font-bold leading-snug text-stone-50">{node.label}</p>
+
+          {/* Exploration indicator */}
+          {node.isExplored && (
+            <div className="mt-3 flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-400/80">
+                Explored
+              </span>
+            </div>
+          )}
+
+          {/* React Flow source handles on all 4 sides for radial edge layout */}
+          <Handle
+            className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
+            position={Position.Top}
+            type="source"
+          />
+          <Handle
+            className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
+            position={Position.Bottom}
+            type="source"
+          />
+          <Handle
+            className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
+            position={Position.Left}
+            type="source"
+          />
+          <Handle
+            className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
+            position={Position.Right}
+            type="source"
+          />
+        </div>
+      </ContextMenuTrigger>
+
+      <ContextMenuContent className="min-w-[180px]">
+        <ContextMenuItem inset={false} onClick={handleAddBranch}>
+          <GitBranch className="h-4 w-4 text-stone-500 dark:text-stone-400" />
+          Add Branch
+        </ContextMenuItem>
+        {onSuggestBranches && (
+          <ContextMenuItem inset={false} onClick={handleSuggestBranches}>
+            <Sparkles className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+            Suggest Branches
+          </ContextMenuItem>
         )}
-
-        {/* React Flow source handles on all 4 sides for radial edge layout */}
-        <Handle
-          className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
-          position={Position.Top}
-          type="source"
-        />
-        <Handle
-          className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
-          position={Position.Bottom}
-          type="source"
-        />
-        <Handle
-          className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
-          position={Position.Left}
-          type="source"
-        />
-        <Handle
-          className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
-          position={Position.Right}
-          type="source"
-        />
-      </div>
-
-      {/* Context menu */}
-      {contextMenuOpen && (
-        <>
-          {/* Backdrop to close menu */}
-          <div className="fixed inset-0 z-40" onClick={handleCloseMenu} />
-          <div
-            className={cn(
-              'fixed z-50 min-w-[160px] rounded-lg border border-stone-200 bg-white p-1 shadow-lg',
-              'dark:border-stone-700 dark:bg-stone-900'
-            )}
-            style={{ left: contextMenuPos.x, top: contextMenuPos.y }}
-          >
-            <button
-              className={cn(
-                'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm',
-                'text-stone-700 hover:bg-stone-100',
-                'dark:text-stone-200 dark:hover:bg-stone-800',
-                'transition-colors duration-150'
-              )}
-              onClick={handleAddBranch}
-            >
-              <GitBranch className="h-4 w-4 text-stone-500 dark:text-stone-400" />
-              Add Branch
-            </button>
-          </div>
-        </>
-      )}
-    </>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
