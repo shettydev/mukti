@@ -59,14 +59,18 @@ import { DialogueService } from './services/dialogue.service';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          db: configService.get<number>('REDIS_DB', 0),
-          host: configService.get<string>('REDIS_HOST', 'localhost'),
-          password: configService.get<string>('REDIS_PASSWORD'),
-          port: configService.get<number>('REDIS_PORT', 6379),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const password = configService.get<string>('REDIS_PASSWORD')?.trim();
+
+        return {
+          connection: {
+            db: configService.get<number>('REDIS_DB', 0),
+            host: configService.get<string>('REDIS_HOST', 'localhost'),
+            port: configService.get<number>('REDIS_PORT', 6379),
+            ...(password ? { password } : {}),
+          },
+        };
+      },
     }),
     // Register dialogue-requests queue
     BullModule.registerQueue({

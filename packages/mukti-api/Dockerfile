@@ -27,6 +27,8 @@ RUN bun install
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Default port (can be overridden at runtime)
+ENV PORT=3000
 
 # Copy production dependencies
 COPY --from=prod-deps --chown=bun:bun /app/node_modules ./node_modules
@@ -35,7 +37,7 @@ COPY --from=prod-deps --chown=bun:bun /app/node_modules ./node_modules
 COPY --from=builder --chown=bun:bun /app/packages/mukti-api/dist ./dist
 COPY --from=builder --chown=bun:bun /app/packages/mukti-api/package.json ./
 
-EXPOSE 3000
+EXPOSE ${PORT}
 
 USER bun
 

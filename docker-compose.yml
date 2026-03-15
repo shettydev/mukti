@@ -5,11 +5,11 @@ services:
     container_name: mukti-mongodb
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - '27017:27017'
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,15 +19,41 @@ services:
     container_name: mukti-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
-    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+      - '6379:6379'
+    command: ['redis-server', '--save', '60', '1', '--loglevel', 'warning']
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
+
+  seed:
+    build:
+      context: .
+      dockerfile: packages/mukti-api/Dockerfile
+    container_name: mukti-api-seed
+    restart: 'no'
+    command: ['bun', 'dist/seed.js']
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/mukti
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-secret}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-30d}
+      # Public browser-facing frontend URL for email links and callbacks.
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   api:
     build:
@@ -36,7 +62,7 @@ services:
     container_name: mukti-api
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -48,28 +74,38 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-secret}
       - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-30d}
-      - FRONTEND_URL=http://localhost:3001
-      - API_URL=http://localhost:3000
+      # Use public DNS names here, not Docker service/container names.
+      # CORS validates the browser origin, so this should be your real frontend URL.
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-localhost}
+      # This is the browser-facing API base URL. If you reverse proxy API under the
+      # same domain, set this to that public URL instead of the internal Docker name.
+      - API_URL=${API_URL:-http://localhost:3000}
     depends_on:
       mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
+      seed:
+        condition: service_completed_successfully
 
   web:
     build:
       context: .
       dockerfile: packages/mukti-web/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+        # Browser code must call the public API URL (or same-origin reverse proxy URL),
+        # not an internal Docker hostname such as http://api:3000.
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api/v1}
     container_name: mukti-web
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - '3001:3000'
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api/v1}
     depends_on:
       - api
 
