@@ -8,7 +8,6 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { ConversationList } from '@/components/sidebar/conversation-list';
-import { ThoughtMapList } from '@/components/sidebar/thought-map-list';
 import { UserProfilePopover } from '@/components/sidebar/user-profile-popover';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -206,17 +205,6 @@ export function Sidebar({
 
           {!collapsed && (
             <>
-              <div className="pb-2 pt-4">
-                <div className="mb-2 border-t border-japandi-sand/70" />
-                <p className="text-japandi-label px-3 text-japandi-stone/60">Thought Maps</p>
-              </div>
-
-              <ThoughtMapList
-                onThoughtMapClick={() => {
-                  onMobileClose?.();
-                }}
-              />
-
               <div className="pb-2 pt-4">
                 <div className="mb-2 border-t border-japandi-sand/70" />
                 <p className="text-japandi-label px-3 text-japandi-stone/60">Conversations</p>

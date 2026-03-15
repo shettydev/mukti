@@ -42,7 +42,7 @@ function ThoughtMapDetailContent({ mapId }: ThoughtMapDetailContentProps) {
 
   if (isLoading) {
     return (
-      <DashboardLayout showNavbar showSidebar>
+      <DashboardLayout title="Thought Maps">
         <ThoughtMapLoadingSkeleton />
       </DashboardLayout>
     );
@@ -50,7 +50,7 @@ function ThoughtMapDetailContent({ mapId }: ThoughtMapDetailContentProps) {
 
   if (error) {
     return (
-      <DashboardLayout showNavbar showSidebar>
+      <DashboardLayout title="Thought Maps">
         <ThoughtMapErrorState error={error} />
       </DashboardLayout>
     );
@@ -58,11 +58,7 @@ function ThoughtMapDetailContent({ mapId }: ThoughtMapDetailContentProps) {
 
   if (data) {
     return (
-      <DashboardLayout
-        contentClassName="flex flex-col overflow-hidden p-0"
-        showNavbar={false}
-        showSidebar={false}
-      >
+      <DashboardLayout contentClassName="flex flex-col overflow-hidden p-0" title={data.map.title}>
         <ThoughtMapCanvas className="h-full w-full" mapId={mapId} />
       </DashboardLayout>
     );
