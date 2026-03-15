@@ -112,12 +112,7 @@ export class ThoughtMapService {
       );
     }
 
-    // Auto-generate nodeId: count existing nodes of this type, then append index
-    const existingCount = await this.thoughtNodeModel.countDocuments({
-      mapId: new Types.ObjectId(mapId),
-      type: nodeType,
-    });
-    const nodeId = `${nodeType}-${existingCount}`;
+    const nodeId = await this.getNextNodeId(mapId, nodeType);
 
     // Create the node at parent depth + 1
     const node = await this.thoughtNodeModel.create({
@@ -646,6 +641,44 @@ export class ThoughtMapService {
 
     this.logger.log(`Settings updated for map ${mapId}`);
     return updated;
+  }
+
+  /**
+   * Allocates the next stable nodeId for a given type within a map.
+   *
+   * @remarks
+   * We intentionally derive this from the maximum numeric suffix rather than
+   * `countDocuments()` so deletions do not cause duplicate nodeId reuse.
+   */
+  private async getNextNodeId(
+    mapId: string,
+    nodeType: Exclude<ThoughtNodeType, 'topic'>,
+  ): Promise<string> {
+    const existingNodes = await this.thoughtNodeModel
+      .find(
+        { mapId: new Types.ObjectId(mapId), type: nodeType },
+        { nodeId: 1, _id: 0 },
+      )
+      .lean();
+
+    const nodeIdPattern = new RegExp(`^${nodeType}-(\\d+)$`);
+    let maxSuffix = -1;
+
+    for (const node of existingNodes) {
+      const match = node.nodeId.match(nodeIdPattern);
+      if (!match) {
+        continue;
+      }
+
+      const suffix = Number.parseInt(match[1], 10);
+      if (Number.isNaN(suffix)) {
+        continue;
+      }
+
+      maxSuffix = Math.max(maxSuffix, suffix);
+    }
+
+    return `${nodeType}-${maxSuffix + 1}`;
   }
 
   /**

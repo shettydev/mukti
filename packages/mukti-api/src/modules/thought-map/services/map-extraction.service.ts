@@ -682,13 +682,13 @@ export class MapExtractionService extends WorkerHost {
     });
     nodes.push(rootNode);
 
-    // Create branch nodes and their sub-points
-    let branchCount = 0;
-    let leafCount = 0;
+    // Allocate stable, monotonic IDs per node type across the full draft map.
+    let nextQuestionIndex = 0;
+    let nextThoughtIndex = 0;
 
     for (const branch of extraction.branches) {
-      const branchNodeId = `thought-${branchCount}`;
-      branchCount++;
+      const branchNodeId = `thought-${nextThoughtIndex}`;
+      nextThoughtIndex++;
 
       const branchNode = await this.thoughtNodeModel.create({
         depth: 1,
@@ -703,8 +703,8 @@ export class MapExtractionService extends WorkerHost {
       nodes.push(branchNode);
 
       for (const subPoint of branch.subPoints) {
-        const subNodeId = `thought-${branchCount + leafCount}`;
-        leafCount++;
+        const subNodeId = `thought-${nextThoughtIndex}`;
+        nextThoughtIndex++;
 
         const subNode = await this.thoughtNodeModel.create({
           depth: 2,
@@ -722,8 +722,8 @@ export class MapExtractionService extends WorkerHost {
 
     // Create unresolved question nodes as direct children of the root
     for (const question of extraction.unresolvedQuestions) {
-      const questionNodeId = `question-${leafCount}`;
-      leafCount++;
+      const questionNodeId = `question-${nextQuestionIndex}`;
+      nextQuestionIndex++;
 
       const questionNode = await this.thoughtNodeModel.create({
         depth: 1,

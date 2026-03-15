@@ -529,6 +529,91 @@ export class ThoughtMapController {
       );
     }
 
+    const jobState = await job.getState();
+
+    if (jobState === 'completed') {
+      return new Observable<MessageEvent>((observer) => {
+        void (async () => {
+          try {
+            const result = job.returnvalue;
+            if (!result?.mapId) {
+              observer.next({
+                data: {
+                  data: {
+                    code: 'EXTRACTION_ERROR',
+                    message: 'Extraction job result missing mapId',
+                    retriable: false,
+                  },
+                  type: 'error',
+                },
+                type: 'message',
+              } as MessageEvent);
+              observer.complete();
+              return;
+            }
+
+            const draftMap = await this.thoughtMapService.getMap(
+              result.mapId,
+              user._id,
+            );
+
+            observer.next({
+              data: {
+                data: draftMap,
+                type: 'preview',
+              },
+              type: 'message',
+            } as MessageEvent);
+            observer.next({
+              data: {
+                data: {
+                  jobId,
+                  mapId: result.mapId,
+                  nodeCount: result.nodeCount,
+                },
+                type: 'complete',
+              },
+              type: 'message',
+            } as MessageEvent);
+          } catch (error: unknown) {
+            observer.next({
+              data: {
+                data: {
+                  code: 'EXTRACTION_ERROR',
+                  message:
+                    error instanceof Error
+                      ? error.message
+                      : 'Extraction stream failed',
+                  retriable: false,
+                },
+                type: 'error',
+              },
+              type: 'message',
+            } as MessageEvent);
+          } finally {
+            observer.complete();
+          }
+        })();
+      });
+    }
+
+    if (jobState === 'failed') {
+      return new Observable<MessageEvent>((observer) => {
+        observer.next({
+          data: {
+            data: {
+              code: 'EXTRACTION_ERROR',
+              message: job.failedReason || 'Extraction job failed',
+              retriable: false,
+            },
+            type: 'error',
+          },
+          type: 'message',
+        } as MessageEvent);
+        observer.complete();
+      });
+    }
+
     return new Observable<MessageEvent>((observer) => {
       const connectionId = `conn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
