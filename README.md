@@ -83,8 +83,8 @@ Mukti responds with a compact sequence:
 .
 ├── packages/mukti-web        # Next.js app
 ├── packages/mukti-api        # NestJS API
-├── mukti-mcp-server          # MCP prototype
-└── docs/reference            # technical docs assets
+├── packages/mukti-mcp        # MCP prototype
+└── docs/*                    # technical docs assets
 ```
 
 ## Quickstart (Local Dev)
