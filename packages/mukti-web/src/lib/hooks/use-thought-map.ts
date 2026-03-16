@@ -45,6 +45,13 @@ interface CreateThoughtNodeVariables {
 }
 
 /**
+ * Context for optimistic update rollback on map deletion
+ */
+interface DeleteThoughtMapContext {
+  previousMaps: ThoughtMap[] | undefined;
+}
+
+/**
  * Context for optimistic update rollback on node deletion
  */
 interface DeleteThoughtNodeContext {
@@ -162,6 +169,63 @@ export function useCreateThoughtNode(mapId: string) {
     onSuccess: () => {
       // Invalidate to refetch fresh server data
       queryClient.invalidateQueries({ queryKey: thoughtMapKeys.detail(mapId) });
+    },
+  });
+}
+
+/**
+ * Delete a Thought Map with optimistic update
+ *
+ * Optimistically removes the map from the list cache for immediate UI feedback,
+ * with automatic rollback on errors.
+ *
+ * @returns Mutation result with delete function
+ *
+ * @example
+ * ```typescript
+ * const { mutate: deleteMap, isPending } = useDeleteThoughtMap();
+ *
+ * deleteMap('507f1f77bcf86cd799439011', {
+ *   onSuccess: () => toast.success('Thought map deleted'),
+ * });
+ * ```
+ */
+export function useDeleteThoughtMap() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string, DeleteThoughtMapContext>({
+    mutationFn: (mapId: string) => thoughtMapApi.deleteThoughtMap(mapId),
+
+    onError: (_err, _mapId, context) => {
+      // Rollback to previous state on error
+      if (context?.previousMaps) {
+        queryClient.setQueryData(thoughtMapKeys.lists(), context.previousMaps);
+      }
+    },
+
+    onMutate: async (mapId) => {
+      // Cancel outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: thoughtMapKeys.lists() });
+
+      // Snapshot previous value for rollback
+      const previousMaps = queryClient.getQueryData<ThoughtMap[]>(thoughtMapKeys.lists());
+
+      // Optimistically remove the map from cache
+      if (previousMaps) {
+        queryClient.setQueryData<ThoughtMap[]>(
+          thoughtMapKeys.lists(),
+          previousMaps.filter((map) => map.id !== mapId)
+        );
+      }
+
+      return { previousMaps };
+    },
+
+    onSuccess: (_data, mapId) => {
+      // Invalidate list queries to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: thoughtMapKeys.lists() });
+      // Remove detail query from cache
+      queryClient.removeQueries({ queryKey: thoughtMapKeys.detail(mapId) });
     },
   });
 }

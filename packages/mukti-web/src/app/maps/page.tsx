@@ -1,8 +1,9 @@
 'use client';
 
-import { Loader2, Network, Plus } from 'lucide-react';
+import { Loader2, MoreHorizontal, Network, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 import type { ThoughtMap } from '@/types/thought-map';
 
@@ -10,8 +11,29 @@ import { ProtectedRoute } from '@/components/auth/protected-route';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
 import { CreateThoughtMapDialog } from '@/components/thought-map/CreateThoughtMapDialog';
 import { Button } from '@/components/ui/button';
-import { useThoughtMaps } from '@/lib/hooks/use-thought-map';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useDeleteThoughtMap, useThoughtMaps } from '@/lib/hooks/use-thought-map';
+import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/time-formatting';
+
+interface ThoughtMapCardProps {
+  map: ThoughtMap;
+  onClick: () => void;
+  onDelete: (id: string, title: string) => void;
+}
 
 export default function ThoughtMapsPage() {
   return (
@@ -21,20 +43,60 @@ export default function ThoughtMapsPage() {
   );
 }
 
-function ThoughtMapCard({ map, onClick }: { map: ThoughtMap; onClick: () => void }) {
+function ThoughtMapCard({ map, onClick, onDelete }: ThoughtMapCardProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <button
-      className="flex min-h-44 flex-col rounded-2xl border border-japandi-sand/70 bg-japandi-cream/60 p-5 text-left transition-all hover:border-japandi-sage/60 hover:bg-japandi-cream/80 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    <div
+      className="group relative flex min-h-44 cursor-pointer flex-col rounded-2xl border border-japandi-sand/70 bg-japandi-cream/60 p-5 text-left transition-all hover:border-japandi-sage/60 hover:bg-japandi-cream/80 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       onClick={onClick}
-      type="button"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="rounded-xl bg-primary/10 p-3">
           <Network className="h-5 w-5 text-primary" />
         </div>
-        <span className="rounded-full bg-japandi-sage/15 px-2.5 py-1 text-xs font-medium capitalize text-japandi-stone/75">
-          {map.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-japandi-sage/15 px-2.5 py-1 text-xs font-medium capitalize text-japandi-stone/75">
+            {map.status}
+          </span>
+          <DropdownMenu onOpenChange={setMenuOpen} open={menuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className={cn(
+                  'h-7 w-7 p-0 transition-opacity hover:bg-primary/10',
+                  menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                )}
+                onClick={(e) => e.stopPropagation()}
+                size="icon"
+                variant="ghost"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-destructive focus:bg-red-500/10 focus:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  onDelete(map.id, map.title);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <div className="min-w-0">
@@ -47,14 +109,37 @@ function ThoughtMapCard({ map, onClick }: { map: ThoughtMap; onClick: () => void
       <p className="mt-auto pt-6 text-xs text-japandi-stone/55">
         Updated {formatRelativeTime(map.updatedAt)}
       </p>
-    </button>
+    </div>
   );
 }
 
 function ThoughtMapsContent() {
   const router = useRouter();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    id: string;
+    open: boolean;
+    title: string;
+  }>({ id: '', open: false, title: '' });
+
   const { data: maps, error, isLoading } = useThoughtMaps();
+  const { isPending: isDeleting, mutate: deleteMap } = useDeleteThoughtMap();
+
+  const handleDeleteRequest = (id: string, title: string) => {
+    setDeleteDialog({ id, open: true, title });
+  };
+
+  const handleDeleteConfirm = () => {
+    deleteMap(deleteDialog.id, {
+      onError: () => {
+        toast.error('Failed to delete thought map');
+      },
+      onSuccess: () => {
+        toast.success('Thought map deleted successfully');
+        setDeleteDialog({ id: '', open: false, title: '' });
+      },
+    });
+  };
 
   return (
     <DashboardLayout
@@ -81,6 +166,7 @@ function ThoughtMapsContent() {
                 onClick={() => {
                   router.push(`/maps/${map.id}`);
                 }}
+                onDelete={handleDeleteRequest}
               />
             ))}
           </div>
@@ -96,6 +182,34 @@ function ThoughtMapsContent() {
         }}
         open={createDialogOpen}
       />
+
+      <Dialog
+        onOpenChange={(open) => !isDeleting && setDeleteDialog((prev) => ({ ...prev, open }))}
+        open={deleteDialog.open}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete thought map</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{deleteDialog.title}&quot;? All nodes and share
+              links will be permanently removed. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              disabled={isDeleting}
+              onClick={() => setDeleteDialog({ id: '', open: false, title: '' })}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button disabled={isDeleting} onClick={handleDeleteConfirm} variant="destructive">
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

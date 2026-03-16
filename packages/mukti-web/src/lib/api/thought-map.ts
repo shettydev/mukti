@@ -323,6 +323,21 @@ export const thoughtMapApi = {
   },
 
   /**
+   * Delete an entire Thought Map and all associated data (nodes, share links)
+   *
+   * @param mapId - Thought map ID to delete
+   * @throws {ApiClientError} If deletion fails or user doesn't own the map
+   *
+   * @example
+   * ```typescript
+   * await thoughtMapApi.deleteThoughtMap('507f1f77bcf86cd799439011');
+   * ```
+   */
+  deleteThoughtMap: async (mapId: string): Promise<void> => {
+    await apiClient.delete(`/thought-maps/${mapId}`);
+  },
+
+  /**
    * Delete a node from a Thought Map
    *
    * @param mapId - Thought map ID
