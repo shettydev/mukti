@@ -17,8 +17,8 @@ describe('ThoughtMapDialogueQueueService', () => {
   };
 
   const mockNodeDialogueModel = {
-    create: jest.fn(),
     findOne: jest.fn(),
+    findOneAndUpdate: jest.fn(),
   };
 
   const mockDialogueMessageModel = {};
@@ -195,19 +195,36 @@ describe('ThoughtMapDialogueQueueService', () => {
     it('returns an existing dialogue without creating a new one', async () => {
       const dialogue = { _id: new Types.ObjectId() };
       const mapId = validMapId();
-      mockNodeDialogueModel.findOne.mockResolvedValue(dialogue);
+      mockNodeDialogueModel.findOneAndUpdate.mockResolvedValue(dialogue);
 
       await expect(
         service.getOrCreateMapDialogue(mapId, 'node-1', 'thought', 'Node'),
       ).resolves.toBe(dialogue);
-      expect(mockNodeDialogueModel.create).not.toHaveBeenCalled();
+      expect(mockNodeDialogueModel.findOneAndUpdate).toHaveBeenCalledWith(
+        {
+          mapId: expect.any(Types.ObjectId),
+          nodeId: 'node-1',
+        },
+        {
+          $setOnInsert: {
+            mapId: expect.any(Types.ObjectId),
+            messageCount: 0,
+            nodeId: 'node-1',
+            nodeLabel: 'Node',
+            nodeType: 'thought',
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+        },
+      );
     });
 
-    it('creates a new dialogue and marks the node as explored', async () => {
+    it('upserts a dialogue and marks the node as explored', async () => {
       const created = { _id: new Types.ObjectId(), nodeId: 'node-1' };
       const mapId = validMapId();
-      mockNodeDialogueModel.findOne.mockResolvedValue(null);
-      mockNodeDialogueModel.create.mockResolvedValue(created);
+      mockNodeDialogueModel.findOneAndUpdate.mockResolvedValue(created);
 
       const result = await service.getOrCreateMapDialogue(
         mapId,
@@ -216,13 +233,25 @@ describe('ThoughtMapDialogueQueueService', () => {
         'Node',
       );
 
-      expect(mockNodeDialogueModel.create).toHaveBeenCalledWith({
-        mapId: expect.any(Types.ObjectId),
-        messageCount: 0,
-        nodeId: 'node-1',
-        nodeLabel: 'Node',
-        nodeType: 'thought',
-      });
+      expect(mockNodeDialogueModel.findOneAndUpdate).toHaveBeenCalledWith(
+        {
+          mapId: expect.any(Types.ObjectId),
+          nodeId: 'node-1',
+        },
+        {
+          $setOnInsert: {
+            mapId: expect.any(Types.ObjectId),
+            messageCount: 0,
+            nodeId: 'node-1',
+            nodeLabel: 'Node',
+            nodeType: 'thought',
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+        },
+      );
       expect(mockThoughtNodeModel.updateOne).toHaveBeenCalledWith(
         { mapId: expect.any(Types.ObjectId), nodeId: 'node-1' },
         { $set: { isExplored: true } },
