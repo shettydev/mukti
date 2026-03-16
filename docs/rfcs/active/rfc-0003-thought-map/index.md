@@ -2,14 +2,14 @@
 
 <!-- HEADER BLOCK: Identifies the RFC and its current lifecycle state at a glance. -->
 
-| Field            | Value                                                              |
-| ---------------- | ------------------------------------------------------------------ |
-| **RFC Number**   | 0003                                                               |
-| **Title**        | Thought Map — Unified Visual Thinking Canvas                       |
-| **Status**       | ![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow) |
-| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                     |
-| **Created**      | 2026-03-08                                                         |
-| **Last Updated** | 2026-03-08                                                         |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **RFC Number**   | 0003                                                                          |
+| **Title**        | Thought Map — Unified Visual Thinking Canvas                                  |
+| **Status**       | ![Status: Accepted](https://img.shields.io/badge/Status-Accepted-brightgreen) |
+| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                                |
+| **Created**      | 2026-03-08                                                                    |
+| **Last Updated** | 2026-03-08                                                                    |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Implemented` | `Rejected` | `Superseded`
 
