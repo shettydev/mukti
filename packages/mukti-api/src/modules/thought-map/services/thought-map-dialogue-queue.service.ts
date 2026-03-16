@@ -266,12 +266,6 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
       );
     }
 
-    // Mark the ThoughtNode as explored
-    await this.thoughtNodeModel.updateOne(
-      { mapId: mapObjectId, nodeId },
-      { $set: { isExplored: true } },
-    );
-
     return dialogue;
   }
 
@@ -327,6 +321,12 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         dialogue._id,
         'user',
         message,
+      );
+
+      // Mark the ThoughtNode as explored on first user message
+      await this.thoughtNodeModel.updateOne(
+        { mapId: new Types.ObjectId(mapId), nodeId },
+        { $set: { isExplored: true } },
       );
 
       this.dialogueStreamService.emitToNodeDialogue(
