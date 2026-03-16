@@ -186,21 +186,28 @@ export class NodeDialogue {
 
 export const NodeDialogueSchema = SchemaFactory.createForClass(NodeDialogue);
 
-// Compound index for efficient queries by session and node (unique when both present)
-// sparse: true so the constraint is only enforced when sessionId is provided
+// Compound index for efficient queries by session and node.
+// Use a partial filter instead of sparse because nodeId is always present; a sparse
+// compound index would still index Thought Map dialogues as { sessionId: null }.
 NodeDialogueSchema.index(
   { nodeId: 1, sessionId: 1 },
-  { sparse: true, unique: true },
+  {
+    partialFilterExpression: { sessionId: { $type: 'objectId' } },
+    unique: true,
+  },
 );
 
 // Index for listing dialogues by session with recent first
 NodeDialogueSchema.index({ lastMessageAt: -1, sessionId: 1 });
 
-// Sparse compound index for Thought Map node dialogues (RFC-0003)
-// sparse: true because mapId is absent on legacy Canvas node dialogues
+// Compound index for Thought Map node dialogues (RFC-0003).
+// Partial filtering keeps legacy Canvas dialogues out of the unique constraint.
 NodeDialogueSchema.index(
   { mapId: 1, nodeId: 1 },
-  { sparse: true, unique: true },
+  {
+    partialFilterExpression: { mapId: { $type: 'objectId' } },
+    unique: true,
+  },
 );
 
 // Virtual for session population
