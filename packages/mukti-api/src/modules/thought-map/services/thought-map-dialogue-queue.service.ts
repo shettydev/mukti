@@ -241,22 +241,30 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     nodeLabel: string,
   ): Promise<NodeDialogue> {
     const mapObjectId = new Types.ObjectId(mapId);
-
-    const existing = await this.nodeDialogueModel.findOne({
-      mapId: mapObjectId,
-      nodeId,
-    });
-    if (existing) {
-      return existing;
+    const dialogue = await this.nodeDialogueModel.findOneAndUpdate(
+      {
+        mapId: mapObjectId,
+        nodeId,
+      },
+      {
+        $setOnInsert: {
+          mapId: mapObjectId,
+          messageCount: 0,
+          nodeId,
+          nodeLabel,
+          nodeType,
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+      },
+    );
+    if (!dialogue) {
+      throw new Error(
+        `Failed to upsert NodeDialogue for map=${mapId}, node=${nodeId}`,
+      );
     }
-
-    const created = await this.nodeDialogueModel.create({
-      mapId: mapObjectId,
-      messageCount: 0,
-      nodeId,
-      nodeLabel,
-      nodeType,
-    });
 
     // Mark the ThoughtNode as explored
     await this.thoughtNodeModel.updateOne(
@@ -264,10 +272,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
       { $set: { isExplored: true } },
     );
 
-    this.logger.log(
-      `Created NodeDialogue ${created._id.toString()} for map=${mapId}, node=${nodeId}`,
-    );
-    return created;
+    return dialogue;
   }
 
   /**
