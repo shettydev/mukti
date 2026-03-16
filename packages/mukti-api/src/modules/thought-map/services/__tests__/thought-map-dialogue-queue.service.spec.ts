@@ -221,7 +221,7 @@ describe('ThoughtMapDialogueQueueService', () => {
       );
     });
 
-    it('upserts a dialogue and marks the node as explored', async () => {
+    it('upserts a dialogue without marking the node as explored', async () => {
       const created = { _id: new Types.ObjectId(), nodeId: 'node-1' };
       const mapId = validMapId();
       mockNodeDialogueModel.findOneAndUpdate.mockResolvedValue(created);
@@ -252,10 +252,8 @@ describe('ThoughtMapDialogueQueueService', () => {
           upsert: true,
         },
       );
-      expect(mockThoughtNodeModel.updateOne).toHaveBeenCalledWith(
-        { mapId: expect.any(Types.ObjectId), nodeId: 'node-1' },
-        { $set: { isExplored: true } },
-      );
+      // isExplored is NOT set here — it's set in process() after the user sends a message
+      expect(mockThoughtNodeModel.updateOne).not.toHaveBeenCalled();
       expect(result).toBe(created);
     });
   });
@@ -363,6 +361,11 @@ describe('ThoughtMapDialogueQueueService', () => {
         tokens: 30,
         userMessageId: userMessage._id.toString(),
       });
+      // isExplored is set in process() after the user message is added
+      expect(mockThoughtNodeModel.updateOne).toHaveBeenCalledWith(
+        { mapId: expect.any(Types.ObjectId), nodeId: 'node-1' },
+        { $set: { isExplored: true } },
+      );
       expect(
         mockDialogueStreamService.emitToNodeDialogue,
       ).toHaveBeenCalledTimes(5);
