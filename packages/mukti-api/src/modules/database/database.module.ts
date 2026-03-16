@@ -1,9 +1,10 @@
-import { Logger, Module } from '@nestjs/common';
+import { Logger, Module, type OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
-import { type Connection } from 'mongoose';
+import { InjectModel, MongooseModule } from '@nestjs/mongoose';
+import { type Connection, type Model } from 'mongoose';
 
 import { ALL_SCHEMAS } from '../../schemas';
+import { NodeDialogue } from '../../schemas/node-dialogue.schema';
 
 @Module({
   exports: [MongooseModule],
@@ -58,4 +59,20 @@ import { ALL_SCHEMAS } from '../../schemas';
     MongooseModule.forFeature(ALL_SCHEMAS),
   ],
 })
-export class DatabaseModule {}
+export class DatabaseModule implements OnModuleInit {
+  private readonly logger = new Logger(DatabaseModule.name);
+
+  constructor(
+    @InjectModel(NodeDialogue.name)
+    private readonly nodeDialogueModel: Model<NodeDialogue>,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.nodeDialogueModel.syncIndexes();
+      this.logger.log('NodeDialogue indexes synced successfully');
+    } catch (error) {
+      this.logger.error('Failed to sync NodeDialogue indexes', error);
+    }
+  }
+}
