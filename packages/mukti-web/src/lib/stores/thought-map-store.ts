@@ -492,10 +492,11 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
   },
 
   /**
-   * Delete a node with optimistic update + rollback
+   * Delete a node and all its descendants with optimistic update + rollback.
+   * Also clears ghost nodes whose parent is in the deleted subtree.
    */
   deleteNode: async (nodeId: string): Promise<boolean> => {
-    const { map, nodes } = get();
+    const { ghostNodes, map, nodes } = get();
 
     if (!map) {
       console.error('Cannot delete node: No active thought map');
@@ -514,9 +515,40 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
       return false;
     }
 
-    // Optimistic remove
-    const { [nodeId]: _removed, ...remainingNodes } = nodes;
-    set({ nodes: remainingNodes });
+    // BFS to collect all descendants
+    const toDelete = new Set<string>([nodeId]);
+    const queue = [nodeId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const n of Object.values(nodes)) {
+        if (n.parentNodeId === current && !toDelete.has(n.nodeId)) {
+          toDelete.add(n.nodeId);
+          queue.push(n.nodeId);
+        }
+      }
+    }
+
+    // Snapshot for rollback
+    const snapshotNodes: Record<string, ThoughtMapNode> = {};
+    for (const id of toDelete) {
+      snapshotNodes[id] = nodes[id]!;
+    }
+
+    // Optimistic remove: nodes
+    const remainingNodes = { ...nodes };
+    for (const id of toDelete) {
+      delete remainingNodes[id];
+    }
+
+    // Optimistic remove: ghost nodes whose parent is in the deleted subtree
+    const remainingGhosts = { ...ghostNodes };
+    for (const [gid, ghost] of Object.entries(ghostNodes)) {
+      if (toDelete.has(ghost.parentId)) {
+        delete remainingGhosts[gid];
+      }
+    }
+
+    set({ ghostNodes: remainingGhosts, nodes: remainingNodes });
 
     try {
       await thoughtMapApi.deleteThoughtNode(map.id, nodeId);
@@ -524,7 +556,10 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
     } catch (err) {
       // Rollback
       console.error('Failed to delete thought node:', err);
-      set({ nodes: { ...get().nodes, [nodeId]: existing } });
+      set({
+        ghostNodes: { ...get().ghostNodes, ...ghostNodes },
+        nodes: { ...get().nodes, ...snapshotNodes },
+      });
       return false;
     }
   },

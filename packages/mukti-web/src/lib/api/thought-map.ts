@@ -350,7 +350,7 @@ export const thoughtMapApi = {
    * ```
    */
   deleteThoughtNode: async (mapId: string, nodeId: string): Promise<void> => {
-    await apiClient.delete(`/thought-maps/${mapId}/nodes/${nodeId}`);
+    await apiClient.delete(`/thought-maps/${mapId}/nodes/${nodeId}?cascade=true`);
   },
 
   /**
