@@ -16,11 +16,17 @@
  */
 
 import { Handle, Position } from '@xyflow/react';
-import { Check, Sparkles, X } from 'lucide-react';
+import { Check, Sparkles, Trash2, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
 import type { ThoughtMapNode } from '@/types/thought-map';
 
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -34,6 +40,7 @@ export interface QuestionNodeData {
   isGhost?: boolean;
   node: ThoughtMapNode;
   onAccept?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string) => void;
   onDismiss?: (nodeId: string) => void;
 }
 
@@ -59,7 +66,7 @@ export interface QuestionNodeProps {
  * @param selected - Whether the node is currently selected in React Flow
  */
 export function QuestionNode({ data, selected }: QuestionNodeProps) {
-  const { isGhost = false, node, onAccept, onDismiss } = data;
+  const { isGhost = false, node, onAccept, onDeleteNode, onDismiss } = data;
   const [hovered, setHovered] = useState(false);
 
   const handleAccept = useCallback(
@@ -78,7 +85,11 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
     [node.nodeId, onDismiss]
   );
 
-  return (
+  const handleDelete = useCallback(() => {
+    onDeleteNode?.(node.nodeId);
+  }, [node.nodeId, onDeleteNode]);
+
+  const nodeContent = (
     <div
       className={cn(
         'relative min-w-[160px] max-w-[240px] cursor-default rounded-xl border p-4',
@@ -184,5 +195,25 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
         type="source"
       />
     </div>
+  );
+
+  // Ghost nodes don't get a context menu
+  if (isGhost) {
+    return nodeContent;
+  }
+
+  // Non-ghost question nodes get a context menu with Delete
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{nodeContent}</ContextMenuTrigger>
+      <ContextMenuContent className="min-w-[160px]">
+        {onDeleteNode && (
+          <ContextMenuItem inset={false} onClick={handleDelete}>
+            <Trash2 className="h-4 w-4 text-red-500" />
+            <span className="text-red-600 dark:text-red-400">Delete</span>
+          </ContextMenuItem>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

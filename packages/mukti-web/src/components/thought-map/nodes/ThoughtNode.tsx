@@ -15,7 +15,7 @@
  */
 
 import { Handle, Position } from '@xyflow/react';
-import { GitBranch, Sparkles } from 'lucide-react';
+import { GitBranch, Sparkles, Trash2 } from 'lucide-react';
 import { useCallback } from 'react';
 
 import type { ThoughtMapNode } from '@/types/thought-map';
@@ -24,6 +24,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ import { cn } from '@/lib/utils';
 export interface ThoughtNodeData {
   node: ThoughtMapNode;
   onAddBranch: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string) => void;
   onSuggestBranches?: (nodeId: string) => void;
 }
 
@@ -63,7 +65,7 @@ export interface ThoughtNodeProps {
  * @param selected - Whether the node is currently selected in React Flow
  */
 export function ThoughtNode({ data, selected }: ThoughtNodeProps) {
-  const { node, onAddBranch, onSuggestBranches } = data;
+  const { node, onAddBranch, onDeleteNode, onSuggestBranches } = data;
   const badgeLabel = node.depth === 1 ? 'Branch' : 'Thought';
 
   const handleAddBranch = useCallback(() => {
@@ -73,6 +75,10 @@ export function ThoughtNode({ data, selected }: ThoughtNodeProps) {
   const handleSuggestBranches = useCallback(() => {
     onSuggestBranches?.(node.nodeId);
   }, [node.nodeId, onSuggestBranches]);
+
+  const handleDelete = useCallback(() => {
+    onDeleteNode?.(node.nodeId);
+  }, [node.nodeId, onDeleteNode]);
 
   return (
     <ContextMenu>
@@ -143,6 +149,15 @@ export function ThoughtNode({ data, selected }: ThoughtNodeProps) {
             <Sparkles className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             Suggest Branches
           </ContextMenuItem>
+        )}
+        {onDeleteNode && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem inset={false} onClick={handleDelete}>
+              <Trash2 className="h-4 w-4 text-red-500" />
+              <span className="text-red-600 dark:text-red-400">Delete Branch</span>
+            </ContextMenuItem>
+          </>
         )}
       </ContextMenuContent>
     </ContextMenu>

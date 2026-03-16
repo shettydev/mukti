@@ -150,7 +150,8 @@ export function toFlowNodes(
   domainNodes: ThoughtMapNode[],
   layoutPositions: Record<string, NodePosition>,
   onAddBranch: (nodeId: string) => void,
-  onSuggestBranches: (nodeId: string) => void
+  onSuggestBranches: (nodeId: string) => void,
+  onDeleteNode?: (nodeId: string) => void
 ): RFNode[] {
   return domainNodes.map((n) => {
     const position = getDisplayedNodePosition(n, layoutPositions);
@@ -161,6 +162,7 @@ export function toFlowNodes(
         ...(n.type === 'question' && { isGhost: false }),
         node: n,
         onAddBranch,
+        onDeleteNode: n.type !== 'topic' ? onDeleteNode : undefined,
         onSuggestBranches,
       },
       id: n.nodeId,
@@ -237,7 +239,7 @@ function getDisplayedNodePosition(
 
 function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   const { data, error, isLoading } = useThoughtMapQuery(mapId);
-  const { acceptGhostNode, removeGhostNode, setMap, setSelectedNodeId, updateNode } =
+  const { acceptGhostNode, deleteNode, removeGhostNode, setMap, setSelectedNodeId, updateNode } =
     useThoughtMapActions();
   const storeNodes = useThoughtMapNodes();
   const ghostNodes = useGhostNodes();
@@ -288,6 +290,14 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     [storeNodes]
   );
 
+  // ---- "Delete Node" handler (called by node context menus) -------------------
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      void deleteNode(nodeId);
+    },
+    [deleteNode]
+  );
+
   // ---- "Suggest Branches" handler (called by node context menus) --------------
   const [suggestParentNodeId, setSuggestParentNodeId] = useState<string>('');
   const handleSuggestBranches = useCallback((nodeId: string) => {
@@ -315,7 +325,13 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
 
   const flowNodes = useMemo(
     () => [
-      ...toFlowNodes(domainNodesList, layoutPositions, handleAddBranch, handleSuggestBranches),
+      ...toFlowNodes(
+        domainNodesList,
+        layoutPositions,
+        handleAddBranch,
+        handleSuggestBranches,
+        handleDeleteNode
+      ),
       ...toGhostFlowNodes(
         ghostNodes,
         storeNodes,
@@ -329,6 +345,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       ghostNodes,
       handleAcceptGhost,
       handleAddBranch,
+      handleDeleteNode,
       handleDismissGhost,
       handleSuggestBranches,
       layoutPositions,
