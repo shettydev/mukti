@@ -103,6 +103,25 @@ interface ThoughtMapCanvasInnerProps {
 // Public export — wraps inner canvas in ReactFlowProvider
 // ============================================================================
 
+/** Map each domain node type to the correct React Flow custom node type key */
+export function resolveNodeType(type: ThoughtMapNode['type']): string {
+  switch (type) {
+    case 'insight':
+      return 'insight-node';
+    case 'question':
+      return 'question-node';
+    case 'topic':
+      return 'topic-node';
+    default:
+      // 'branch' | 'leaf' | 'thought'
+      return 'thought-node';
+  }
+}
+
+// ============================================================================
+// Inner canvas + helpers (non-exported, alphabetical order)
+// ============================================================================
+
 /**
  * ThoughtMapCanvas - Full Thought Map canvas experience
  *
@@ -123,23 +142,97 @@ export function ThoughtMapCanvas({ className, mapId }: ThoughtMapCanvasProps) {
   );
 }
 
-// ============================================================================
-// Inner canvas + helpers (non-exported, alphabetical order)
-// ============================================================================
+/**
+ * Convert domain nodes to React Flow nodes, applying layout overrides.
+ * Fixes: each node type is now mapped correctly (was always 'thought-node' except 'topic').
+ */
+export function toFlowNodes(
+  domainNodes: ThoughtMapNode[],
+  layoutPositions: Record<string, NodePosition>,
+  onAddBranch: (nodeId: string) => void,
+  onSuggestBranches: (nodeId: string) => void
+): RFNode[] {
+  return domainNodes.map((n) => {
+    const position = getDisplayedNodePosition(n, layoutPositions);
+    const type = resolveNodeType(n.type);
 
-/** Map each domain node type to the correct React Flow custom node type key */
-function resolveNodeType(type: ThoughtMapNode['type']): string {
-  switch (type) {
-    case 'insight':
-      return 'insight-node';
-    case 'question':
-      return 'question-node';
-    case 'topic':
-      return 'topic-node';
-    default:
-      // 'branch' | 'leaf' | 'thought'
-      return 'thought-node';
-  }
+    return {
+      data: {
+        ...(n.type === 'question' && { isGhost: false }),
+        node: n,
+        onAddBranch,
+        onSuggestBranches,
+      },
+      id: n.nodeId,
+      position,
+      type,
+    } satisfies RFNode;
+  });
+}
+
+/**
+ * Convert ghost nodes to React Flow question-node entries.
+ *
+ * Each ghost is rendered as a `question-node` (QuestionNode component).
+ * A synthetic ThoughtMapNode is constructed so QuestionNode can render the label.
+ * The ghost's ghostId is used as nodeId so onAccept/onDismiss callbacks
+ * (which receive `node.nodeId`) correctly identify which ghost to act on.
+ *
+ * Position: offset 220px to the right and staggered 80px vertically from parent.
+ */
+export function toGhostFlowNodes(
+  ghostNodes: GhostNode[],
+  storeNodes: Record<string, ThoughtMapNode>,
+  layoutPositions: Record<string, NodePosition>,
+  onAccept: (ghostId: string) => void,
+  onDismiss: (ghostId: string) => void
+): RFNode[] {
+  const ghostIndexByParent = new Map<string, number>();
+
+  return ghostNodes.map((ghost) => {
+    const parent = storeNodes[ghost.parentId];
+    const parentIndex = ghostIndexByParent.get(ghost.parentId) ?? 0;
+    ghostIndexByParent.set(ghost.parentId, parentIndex + 1);
+
+    const parentPosition = parent
+      ? getDisplayedNodePosition(parent, layoutPositions)
+      : { x: 120, y: parentIndex * 90 - 45 };
+    const baseX = parentPosition.x + 280;
+    const baseY = parentPosition.y + parentIndex * 90 - 45;
+
+    // Synthetic ThoughtMapNode for QuestionNode rendering
+    const now = new Date().toISOString();
+    const syntheticNode: ThoughtMapNode = {
+      createdAt: now,
+      depth: (parent?.depth ?? 0) + 1,
+      fromSuggestion: true,
+      id: ghost.ghostId,
+      isCollapsed: false,
+      isExplored: false,
+      label: ghost.label,
+      mapId: parent?.mapId ?? '',
+      messageCount: 0,
+      nodeId: ghost.ghostId,
+      parentNodeId: ghost.parentId,
+      position: { x: baseX, y: baseY },
+      type: 'question',
+      updatedAt: now,
+    };
+
+    return {
+      data: { isGhost: true, node: syntheticNode, onAccept, onDismiss },
+      id: ghostNodeToFlowNodeId(ghost),
+      position: { x: baseX, y: baseY },
+      type: 'question-node',
+    } satisfies RFNode;
+  });
+}
+
+function getDisplayedNodePosition(
+  node: ThoughtMapNode,
+  layoutPositions: Record<string, NodePosition>
+): NodePosition {
+  return layoutPositions[node.nodeId] ?? node.position;
 }
 
 function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
@@ -215,11 +308,21 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
 
   // ---- Build React Flow nodes + edges from the store --------------------------
   const domainNodesList = useMemo(() => Object.values(storeNodes), [storeNodes]);
+  const layoutPositions = useMemo(
+    () => computeThoughtMapLayout(domainNodesList),
+    [domainNodesList]
+  );
 
   const flowNodes = useMemo(
     () => [
-      ...toFlowNodes(domainNodesList, handleAddBranch, handleSuggestBranches),
-      ...toGhostFlowNodes(ghostNodes, storeNodes, handleAcceptGhost, handleDismissGhost),
+      ...toFlowNodes(domainNodesList, layoutPositions, handleAddBranch, handleSuggestBranches),
+      ...toGhostFlowNodes(
+        ghostNodes,
+        storeNodes,
+        layoutPositions,
+        handleAcceptGhost,
+        handleDismissGhost
+      ),
     ],
     [
       domainNodesList,
@@ -228,6 +331,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       handleAddBranch,
       handleDismissGhost,
       handleSuggestBranches,
+      layoutPositions,
       storeNodes,
     ]
   );
@@ -383,78 +487,4 @@ function toFlowEdges(domainNodes: ThoughtMapNode[]): RFEdge[] {
       target: n.nodeId,
       type: 'thought-map-edge',
     }));
-}
-
-/**
- * Convert domain nodes to React Flow nodes, applying layout overrides.
- * Fixes: each node type is now mapped correctly (was always 'thought-node' except 'topic').
- */
-function toFlowNodes(
-  domainNodes: ThoughtMapNode[],
-  onAddBranch: (nodeId: string) => void,
-  onSuggestBranches: (nodeId: string) => void
-): RFNode[] {
-  const layoutPositions: Record<string, NodePosition> = computeThoughtMapLayout(domainNodes);
-
-  return domainNodes.map((n) => {
-    const layoutPos = layoutPositions[n.nodeId];
-    const position = layoutPos ?? n.position;
-    const type = resolveNodeType(n.type);
-
-    return {
-      data: { node: n, onAddBranch, onSuggestBranches },
-      id: n.nodeId,
-      position,
-      type,
-    } satisfies RFNode;
-  });
-}
-
-/**
- * Convert ghost nodes to React Flow question-node entries.
- *
- * Each ghost is rendered as a `question-node` (QuestionNode component).
- * A synthetic ThoughtMapNode is constructed so QuestionNode can render the label.
- * The ghost's ghostId is used as nodeId so onAccept/onDismiss callbacks
- * (which receive `node.nodeId`) correctly identify which ghost to act on.
- *
- * Position: offset 220px to the right and staggered 80px vertically from parent.
- */
-function toGhostFlowNodes(
-  ghostNodes: GhostNode[],
-  storeNodes: Record<string, ThoughtMapNode>,
-  onAccept: (ghostId: string) => void,
-  onDismiss: (ghostId: string) => void
-): RFNode[] {
-  return ghostNodes.map((ghost, index) => {
-    const parent = storeNodes[ghost.parentId];
-    const baseX = parent ? parent.position.x + 280 : 400;
-    const baseY = parent ? parent.position.y + index * 90 - 45 : index * 90;
-
-    // Synthetic ThoughtMapNode for QuestionNode rendering
-    const now = new Date().toISOString();
-    const syntheticNode: ThoughtMapNode = {
-      createdAt: now,
-      depth: (parent?.depth ?? 0) + 1,
-      fromSuggestion: true,
-      id: ghost.ghostId,
-      isCollapsed: false,
-      isExplored: false,
-      label: ghost.label,
-      mapId: parent?.mapId ?? '',
-      messageCount: 0,
-      nodeId: ghost.ghostId,
-      parentNodeId: ghost.parentId,
-      position: { x: baseX, y: baseY },
-      type: 'question',
-      updatedAt: now,
-    };
-
-    return {
-      data: { node: syntheticNode, onAccept, onDismiss },
-      id: ghostNodeToFlowNodeId(ghost),
-      position: { x: baseX, y: baseY },
-      type: 'question-node',
-    } satisfies RFNode;
-  });
 }

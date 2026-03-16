@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
  * Data passed to QuestionNode via React Flow's custom node API
  */
 export interface QuestionNodeData {
+  isGhost?: boolean;
   node: ThoughtMapNode;
   onAccept?: (nodeId: string) => void;
   onDismiss?: (nodeId: string) => void;
@@ -58,7 +59,7 @@ export interface QuestionNodeProps {
  * @param selected - Whether the node is currently selected in React Flow
  */
 export function QuestionNode({ data, selected }: QuestionNodeProps) {
-  const { node, onAccept, onDismiss } = data;
+  const { isGhost = false, node, onAccept, onDismiss } = data;
   const [hovered, setHovered] = useState(false);
 
   const handleAccept = useCallback(
@@ -80,73 +81,96 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
   return (
     <div
       className={cn(
-        // Base — ghost / provisional visual
-        'relative min-w-[160px] max-w-[240px] cursor-default rounded-xl border border-dashed p-4',
-        // Muted lavender-stone ghost background
-        'bg-stone-50/60 dark:bg-stone-800/50',
-        'opacity-70 transition-all duration-200',
-        // Border colour — muted slate suggestion
-        'border-slate-300 dark:border-slate-600',
-        'shadow-sm shadow-slate-200/40 dark:shadow-slate-900/20',
+        'relative min-w-[160px] max-w-[240px] cursor-default rounded-xl border p-4',
+        'transition-all duration-200',
+        isGhost
+          ? [
+              'border-dashed bg-stone-50/60 opacity-70 dark:bg-stone-800/50',
+              'border-slate-300 shadow-sm shadow-slate-200/40 dark:border-slate-600 dark:shadow-slate-900/20',
+            ]
+          : [
+              'bg-stone-50 dark:bg-stone-800',
+              'border-stone-200 shadow-md shadow-stone-200/60 dark:border-stone-700 dark:shadow-stone-900/40',
+            ],
         // Selected / hover raises opacity
         (selected || hovered) && 'opacity-100',
         selected && [
-          'border-slate-400 dark:border-slate-500',
+          isGhost
+            ? 'border-slate-400 dark:border-slate-500'
+            : 'border-stone-400 dark:border-stone-500',
           'ring-2 ring-slate-300/30 ring-offset-2 ring-offset-background',
-        ]
+        ],
+        !selected &&
+          (isGhost
+            ? 'hover:border-slate-400 dark:hover:border-slate-500'
+            : 'hover:border-stone-300 dark:hover:border-stone-600')
       )}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Header: AI badge */}
-      <div className="mb-2 flex items-center gap-1.5">
-        <Sparkles className="h-3 w-3 text-slate-400 dark:text-slate-500" />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-          Suggestion
-        </span>
-      </div>
+      {isGhost ? (
+        <div className="mb-2 flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            Suggestion
+          </span>
+        </div>
+      ) : (
+        <div className="mb-2 flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-stone-400 dark:text-stone-500" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-400 dark:text-stone-500">
+            Question
+          </span>
+        </div>
+      )}
 
       {/* Question label */}
-      <p className="text-sm font-medium leading-snug text-stone-600 dark:text-stone-300">
+      <p
+        className={cn(
+          'text-sm font-medium leading-snug',
+          isGhost ? 'text-stone-600 dark:text-stone-300' : 'text-stone-700 dark:text-stone-200'
+        )}
+      >
         {node.label}
       </p>
 
-      {/* Accept / Dismiss — visible on hover */}
-      <div
-        className={cn(
-          'mt-3 flex items-center gap-2 transition-opacity duration-150',
-          hovered || selected ? 'opacity-100' : 'opacity-0'
-        )}
-      >
-        <button
-          aria-label="Accept suggestion"
+      {isGhost && (
+        <div
           className={cn(
-            'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium',
-            'border-emerald-200 bg-emerald-50 text-emerald-600',
-            'hover:bg-emerald-100',
-            'dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-400',
-            'transition-colors duration-150'
+            'mt-3 flex items-center gap-2 transition-opacity duration-150',
+            hovered || selected ? 'opacity-100' : 'opacity-0'
           )}
-          onClick={handleAccept}
         >
-          <Check className="h-3 w-3" />
-          Accept
-        </button>
-        <button
-          aria-label="Dismiss suggestion"
-          className={cn(
-            'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium',
-            'border-stone-200 bg-stone-50 text-stone-500',
-            'hover:bg-stone-100',
-            'dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400',
-            'transition-colors duration-150'
-          )}
-          onClick={handleDismiss}
-        >
-          <X className="h-3 w-3" />
-          Dismiss
-        </button>
-      </div>
+          <button
+            aria-label="Accept suggestion"
+            className={cn(
+              'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium',
+              'border-emerald-200 bg-emerald-50 text-emerald-600',
+              'hover:bg-emerald-100',
+              'dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-400',
+              'transition-colors duration-150'
+            )}
+            onClick={handleAccept}
+          >
+            <Check className="h-3 w-3" />
+            Accept
+          </button>
+          <button
+            aria-label="Dismiss suggestion"
+            className={cn(
+              'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium',
+              'border-stone-200 bg-stone-50 text-stone-500',
+              'hover:bg-stone-100',
+              'dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400',
+              'transition-colors duration-150'
+            )}
+            onClick={handleDismiss}
+          >
+            <X className="h-3 w-3" />
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* React Flow handles */}
       <Handle

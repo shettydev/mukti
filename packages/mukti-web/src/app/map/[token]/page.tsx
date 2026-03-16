@@ -272,7 +272,12 @@ function StaticMapCanvas({ nodes }: { nodes: ThoughtMapNode[] }) {
       const type = resolveNodeType(n.type);
 
       return {
-        data: { node: n, onAddBranch: noop, onSuggestBranches: noop },
+        data: {
+          ...(n.type === 'question' && { isGhost: false }),
+          node: n,
+          onAddBranch: noop,
+          onSuggestBranches: noop,
+        },
         id: n.nodeId,
         position,
         type,
