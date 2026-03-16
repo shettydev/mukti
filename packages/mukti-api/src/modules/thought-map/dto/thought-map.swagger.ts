@@ -278,6 +278,47 @@ export const ApiUpdateThoughtNode = () =>
   );
 
 /**
+ * Swagger documentation for deleting an entire ThoughtMap and all associated data.
+ */
+export const ApiDeleteThoughtMap = () =>
+  applyDecorators(
+    ApiOperation({
+      description:
+        'Deletes a Thought Map and all associated data (nodes, share links). ' +
+        'This action is irreversible. Validates ownership before deletion.',
+      summary: 'Delete a Thought Map',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      description: 'Thought Map ID',
+      example: '507f1f77bcf86cd799439011',
+      name: 'id',
+    }),
+    ApiResponse({
+      description: 'Thought Map deleted successfully',
+      schema: {
+        example: {
+          meta: {
+            requestId: 'req-1234567890-abc123',
+            timestamp: '2026-01-01T00:00:00Z',
+          },
+          success: true,
+        },
+      },
+      status: 200,
+    }),
+    ApiResponse({
+      description: 'Unauthorized - JWT token missing or invalid',
+      status: 401,
+    }),
+    ApiResponse({
+      description: 'Forbidden - User does not own this Thought Map',
+      status: 403,
+    }),
+    ApiResponse({ description: 'Thought Map not found', status: 404 }),
+  );
+
+/**
  * Swagger documentation for deleting a ThoughtNode.
  */
 export const ApiDeleteThoughtNode = () =>

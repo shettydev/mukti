@@ -42,6 +42,7 @@ import {
   ApiCreateShareLink,
   ApiCreateThoughtMap,
   ApiDeleteShareLink,
+  ApiDeleteThoughtMap,
   ApiDeleteThoughtNode,
   ApiExtractConversation,
   ApiGetSharedMap,
@@ -206,6 +207,23 @@ export class ThoughtMapController {
       user._id,
       shouldCascade,
     );
+    return {
+      meta: {
+        requestId: this.generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Deletes a ThoughtMap and all associated data (nodes, share links).
+   */
+  @ApiDeleteThoughtMap()
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async deleteMap(@Param('id') id: string, @CurrentUser() user: User) {
+    await this.thoughtMapService.deleteMap(id, user._id);
     return {
       meta: {
         requestId: this.generateRequestId(),

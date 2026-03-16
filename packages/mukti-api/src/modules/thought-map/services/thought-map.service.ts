@@ -14,6 +14,10 @@ import {
   CanvasSessionDocument,
 } from '../../../schemas/canvas-session.schema';
 import {
+  ThoughtMapShareLink,
+  ThoughtMapShareLinkDocument,
+} from '../../../schemas/thought-map-share-link.schema';
+import {
   ThoughtMap,
   ThoughtMapDocument,
 } from '../../../schemas/thought-map.schema';
@@ -48,6 +52,8 @@ export class ThoughtMapService {
     private readonly thoughtNodeModel: Model<ThoughtNodeDocument>,
     @InjectModel(CanvasSession.name)
     private readonly canvasSessionModel: Model<CanvasSessionDocument>,
+    @InjectModel(ThoughtMapShareLink.name)
+    private readonly shareLinkModel: Model<ThoughtMapShareLinkDocument>,
   ) {}
 
   /**
@@ -330,6 +336,59 @@ export class ThoughtMapService {
       `Thought Map created: ${map._id.toString()} with root node ${rootNodeId}`,
     );
     return { map, rootNode };
+  }
+
+  /**
+   * Deletes a ThoughtMap and all associated data (nodes, share links).
+   *
+   * @param mapId - The ThoughtMap ID
+   * @param userId - The ID of the requesting user
+   * @throws {NotFoundException} If the map doesn't exist
+   * @throws {ForbiddenException} If the user doesn't own the map
+   *
+   * @example
+   * ```typescript
+   * await thoughtMapService.deleteMap(mapId, userId);
+   * ```
+   */
+  async deleteMap(
+    mapId: string,
+    userId: string | Types.ObjectId,
+  ): Promise<void> {
+    const userIdStr = userId.toString();
+    this.logger.log(`Deleting Thought Map ${mapId} by user ${userIdStr}`);
+
+    // Validate ownership (throws NotFoundException or ForbiddenException)
+    await this.findMapById(mapId, userId);
+
+    const mapObjectId = new Types.ObjectId(mapId);
+
+    // Delete all associated nodes
+    const deleteNodesResult = await this.thoughtNodeModel.deleteMany({
+      mapId: mapObjectId,
+    });
+
+    this.logger.log(
+      `Deleted ${deleteNodesResult.deletedCount} nodes for map ${mapId}`,
+    );
+
+    // Delete all associated share links
+    const deleteShareLinksResult = await this.shareLinkModel.deleteMany({
+      thoughtMapId: mapObjectId,
+    });
+
+    this.logger.log(
+      `Deleted ${deleteShareLinksResult.deletedCount} share links for map ${mapId}`,
+    );
+
+    // Delete the thought map itself
+    const deleteMapResult = await this.thoughtMapModel.findByIdAndDelete(mapId);
+
+    if (!deleteMapResult) {
+      throw new NotFoundException(`Thought Map with ID ${mapId} not found`);
+    }
+
+    this.logger.log(`Thought Map ${mapId} deleted successfully`);
   }
 
   /**
