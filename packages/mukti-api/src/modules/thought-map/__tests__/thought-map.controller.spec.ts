@@ -31,6 +31,7 @@ describe('ThoughtMapController', () => {
     confirmMap: jest.fn(),
     convertFromCanvas: jest.fn(),
     createMap: jest.fn(),
+    deleteMap: jest.fn(),
     deleteNode: jest.fn(),
     findMapById: jest.fn(),
     getMap: jest.fn(),
@@ -259,6 +260,18 @@ describe('ThoughtMapController', () => {
       'node-1',
       mockUser._id,
       false,
+    );
+    expectEnvelope(result);
+  });
+
+  it('deletes a map with the standard response envelope', async () => {
+    mockThoughtMapService.deleteMap.mockResolvedValue(undefined);
+
+    const result = await controller.deleteMap('map-1', mockUser as any);
+
+    expect(mockThoughtMapService.deleteMap).toHaveBeenCalledWith(
+      'map-1',
+      mockUser._id,
     );
     expectEnvelope(result);
   });

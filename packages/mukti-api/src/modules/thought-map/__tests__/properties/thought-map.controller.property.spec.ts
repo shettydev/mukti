@@ -25,6 +25,7 @@ describe('ThoughtMapController - Query Parsing (Property-Based)', () => {
     confirmMap: jest.fn(),
     convertFromCanvas: jest.fn(),
     createMap: jest.fn(),
+    deleteMap: jest.fn(),
     deleteNode: jest.fn(),
     findMapById: jest.fn(),
     getMap: jest.fn(),

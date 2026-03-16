@@ -9,6 +9,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 import { CanvasSession } from '../../../../schemas/canvas-session.schema';
+import { ThoughtMapShareLink } from '../../../../schemas/thought-map-share-link.schema';
 import { ThoughtMap } from '../../../../schemas/thought-map.schema';
 import { ThoughtNode } from '../../../../schemas/thought-node.schema';
 import { ThoughtMapService } from '../thought-map.service';
@@ -20,6 +21,7 @@ describe('ThoughtMapService', () => {
     create: jest.fn(),
     find: jest.fn(),
     findById: jest.fn(),
+    findByIdAndDelete: jest.fn(),
     findByIdAndUpdate: jest.fn(),
   };
 
@@ -38,6 +40,10 @@ describe('ThoughtMapService', () => {
     findById: jest.fn(),
   };
 
+  const mockShareLinkModel = {
+    deleteMany: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -53,6 +59,10 @@ describe('ThoughtMapService', () => {
         {
           provide: getModelToken(CanvasSession.name),
           useValue: mockCanvasSessionModel,
+        },
+        {
+          provide: getModelToken(ThoughtMapShareLink.name),
+          useValue: mockShareLinkModel,
         },
       ],
     }).compile();
@@ -495,6 +505,81 @@ describe('ThoughtMapService', () => {
       await expect(
         service.convertFromCanvas(new Types.ObjectId().toString(), userId),
       ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('deleteMap', () => {
+    it('deletes the map, all nodes, and all share links for the owner', async () => {
+      const userId = new Types.ObjectId();
+      const map = createOwnedMap(userId);
+
+      mockThoughtMapModel.findById.mockResolvedValue(map);
+      mockThoughtNodeModel.deleteMany.mockResolvedValue({ deletedCount: 5 });
+      mockShareLinkModel.deleteMany.mockResolvedValue({ deletedCount: 1 });
+      mockThoughtMapModel.findByIdAndDelete.mockResolvedValue(map);
+
+      await service.deleteMap(map._id.toString(), userId);
+
+      expect(mockThoughtNodeModel.deleteMany).toHaveBeenCalledWith({
+        mapId: expect.any(Types.ObjectId),
+      });
+      expect(mockShareLinkModel.deleteMany).toHaveBeenCalledWith({
+        thoughtMapId: expect.any(Types.ObjectId),
+      });
+      expect(mockThoughtMapModel.findByIdAndDelete).toHaveBeenCalledWith(
+        map._id.toString(),
+      );
+    });
+
+    it('throws NotFoundException when the map does not exist', async () => {
+      const userId = new Types.ObjectId();
+
+      mockThoughtMapModel.findById.mockResolvedValue(null);
+
+      await expect(
+        service.deleteMap(new Types.ObjectId().toString(), userId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws ForbiddenException when the map belongs to another user', async () => {
+      const userId = new Types.ObjectId();
+      const otherUserId = new Types.ObjectId();
+
+      mockThoughtMapModel.findById.mockResolvedValue(
+        createOwnedMap(otherUserId),
+      );
+
+      await expect(
+        service.deleteMap(new Types.ObjectId().toString(), userId),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws NotFoundException when findByIdAndDelete returns null', async () => {
+      const userId = new Types.ObjectId();
+      const map = createOwnedMap(userId);
+
+      mockThoughtMapModel.findById.mockResolvedValue(map);
+      mockThoughtNodeModel.deleteMany.mockResolvedValue({ deletedCount: 0 });
+      mockShareLinkModel.deleteMany.mockResolvedValue({ deletedCount: 0 });
+      mockThoughtMapModel.findByIdAndDelete.mockResolvedValue(null);
+
+      await expect(
+        service.deleteMap(map._id.toString(), userId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('succeeds even when there are no nodes or share links to delete', async () => {
+      const userId = new Types.ObjectId();
+      const map = createOwnedMap(userId);
+
+      mockThoughtMapModel.findById.mockResolvedValue(map);
+      mockThoughtNodeModel.deleteMany.mockResolvedValue({ deletedCount: 0 });
+      mockShareLinkModel.deleteMany.mockResolvedValue({ deletedCount: 0 });
+      mockThoughtMapModel.findByIdAndDelete.mockResolvedValue(map);
+
+      await expect(
+        service.deleteMap(map._id.toString(), userId),
+      ).resolves.toBeUndefined();
     });
   });
 
