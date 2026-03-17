@@ -42,6 +42,8 @@ export interface QuestionNodeData {
   onAccept?: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string) => void;
   onDismiss?: (nodeId: string) => void;
+  /** Which hemisphere this node sits in — drives handle placement for correct edge routing */
+  side?: 'left' | 'right';
 }
 
 /**
@@ -66,7 +68,7 @@ export interface QuestionNodeProps {
  * @param selected - Whether the node is currently selected in React Flow
  */
 export function QuestionNode({ data, selected }: QuestionNodeProps) {
-  const { isGhost = false, node, onAccept, onDeleteNode, onDismiss } = data;
+  const { isGhost = false, node, onAccept, onDeleteNode, onDismiss, side = 'right' } = data;
   const [hovered, setHovered] = useState(false);
 
   const handleAccept = useCallback(
@@ -183,17 +185,38 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
         </div>
       )}
 
-      {/* React Flow handles */}
-      <Handle
-        className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
-        position={Position.Left}
-        type="target"
-      />
-      <Handle
-        className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
-        position={Position.Right}
-        type="source"
-      />
+      {/* React Flow handles: side-aware for correct edge routing in radial layout */}
+      {side === 'left' ? (
+        <>
+          <Handle
+            className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+            id="target-right"
+            position={Position.Right}
+            type="target"
+          />
+          <Handle
+            className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+            id="source-left"
+            position={Position.Left}
+            type="source"
+          />
+        </>
+      ) : (
+        <>
+          <Handle
+            className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+            id="target-left"
+            position={Position.Left}
+            type="target"
+          />
+          <Handle
+            className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+            id="source-right"
+            position={Position.Right}
+            type="source"
+          />
+        </>
+      )}
     </div>
   );
 

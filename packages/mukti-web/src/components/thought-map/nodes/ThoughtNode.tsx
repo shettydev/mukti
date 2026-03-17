@@ -41,6 +41,8 @@ export interface ThoughtNodeData {
   onAddBranch: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string) => void;
   onSuggestBranches?: (nodeId: string) => void;
+  /** Which hemisphere this node sits in — drives handle placement for clean edge routing */
+  side?: 'left' | 'right';
 }
 
 /**
@@ -65,7 +67,7 @@ export interface ThoughtNodeProps {
  * @param selected - Whether the node is currently selected in React Flow
  */
 export function ThoughtNode({ data, selected }: ThoughtNodeProps) {
-  const { node, onAddBranch, onDeleteNode, onSuggestBranches } = data;
+  const { node, onAddBranch, onDeleteNode, onSuggestBranches, side = 'right' } = data;
   const badgeLabel = node.depth === 1 ? 'Branch' : 'Thought';
 
   const handleAddBranch = useCallback(() => {
@@ -125,17 +127,38 @@ export function ThoughtNode({ data, selected }: ThoughtNodeProps) {
             </div>
           )}
 
-          {/* React Flow handles: target (incoming) on left, source (outgoing) on right */}
-          <Handle
-            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-            position={Position.Left}
-            type="target"
-          />
-          <Handle
-            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-            position={Position.Right}
-            type="source"
-          />
+          {/* React Flow handles: side-aware for correct edge routing in radial layout */}
+          {side === 'left' ? (
+            <>
+              <Handle
+                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+                id="target-right"
+                position={Position.Right}
+                type="target"
+              />
+              <Handle
+                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+                id="source-left"
+                position={Position.Left}
+                type="source"
+              />
+            </>
+          ) : (
+            <>
+              <Handle
+                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+                id="target-left"
+                position={Position.Left}
+                type="target"
+              />
+              <Handle
+                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+                id="source-right"
+                position={Position.Right}
+                type="source"
+              />
+            </>
+          )}
         </div>
       </ContextMenuTrigger>
 

@@ -39,6 +39,8 @@ import { cn } from '@/lib/utils';
 export interface InsightNodeData {
   node: ThoughtMapNode;
   onDeleteNode?: (nodeId: string) => void;
+  /** Which hemisphere this node sits in — drives handle placement for clean edge routing */
+  side?: 'left' | 'right';
 }
 
 /**
@@ -63,7 +65,7 @@ export interface InsightNodeProps {
  * @param selected - Whether the node is currently selected in React Flow
  */
 export function InsightNode({ data, selected }: InsightNodeProps) {
-  const { node, onDeleteNode } = data;
+  const { node, onDeleteNode, side = 'right' } = data;
 
   const handleDelete = useCallback(() => {
     onDeleteNode?.(node.nodeId);
@@ -117,17 +119,38 @@ export function InsightNode({ data, selected }: InsightNodeProps) {
             </div>
           )}
 
-          {/* React Flow handles */}
-          <Handle
-            className="!h-2.5 !w-2.5 !border-amber-200 !bg-amber-100 dark:!border-amber-700 dark:!bg-amber-900/60"
-            position={Position.Left}
-            type="target"
-          />
-          <Handle
-            className="!h-2.5 !w-2.5 !border-amber-200 !bg-amber-100 dark:!border-amber-700 dark:!bg-amber-900/60"
-            position={Position.Right}
-            type="source"
-          />
+          {/* React Flow handles: side-aware for correct edge routing in radial layout */}
+          {side === 'left' ? (
+            <>
+              <Handle
+                className="!h-2.5 !w-2.5 !border-amber-200 !bg-amber-100 dark:!border-amber-700 dark:!bg-amber-900/60"
+                id="target-right"
+                position={Position.Right}
+                type="target"
+              />
+              <Handle
+                className="!h-2.5 !w-2.5 !border-amber-200 !bg-amber-100 dark:!border-amber-700 dark:!bg-amber-900/60"
+                id="source-left"
+                position={Position.Left}
+                type="source"
+              />
+            </>
+          ) : (
+            <>
+              <Handle
+                className="!h-2.5 !w-2.5 !border-amber-200 !bg-amber-100 dark:!border-amber-700 dark:!bg-amber-900/60"
+                id="target-left"
+                position={Position.Left}
+                type="target"
+              />
+              <Handle
+                className="!h-2.5 !w-2.5 !border-amber-200 !bg-amber-100 dark:!border-amber-700 dark:!bg-amber-900/60"
+                id="source-right"
+                position={Position.Right}
+                type="source"
+              />
+            </>
+          )}
         </div>
       </ContextMenuTrigger>
       {onDeleteNode && (

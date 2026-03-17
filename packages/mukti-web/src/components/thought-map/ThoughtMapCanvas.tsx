@@ -156,10 +156,13 @@ export function toFlowNodes(
   return domainNodes.map((n) => {
     const position = getDisplayedNodePosition(n, layoutPositions);
     const type = resolveNodeType(n.type);
+    // Determine which hemisphere this node sits in so handles face the right way
+    const side: 'left' | 'right' = position.x <= 0 ? 'left' : 'right';
 
     return {
       data: {
         ...(n.type === 'question' && { isGhost: false }),
+        ...(n.type !== 'topic' && { side }),
         node: n,
         onAddBranch,
         onDeleteNode: n.type !== 'topic' ? onDeleteNode : undefined,
@@ -353,7 +356,10 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     ]
   );
 
-  const flowEdges = useMemo(() => toFlowEdges(domainNodesList), [domainNodesList]);
+  const flowEdges = useMemo(
+    () => toFlowEdges(domainNodesList, layoutPositions),
+    [domainNodesList, layoutPositions]
+  );
 
   // React Flow useNodesState for local drag management
   const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
@@ -494,14 +500,25 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
 /**
  * Build React Flow edges from parent-child relationships in domain nodes.
  * Ghost nodes also get a dashed edge connecting them to their parent.
+ * sourceHandle / targetHandle are set based on which hemisphere the child sits
+ * in, ensuring edges always route through the horizontal sides of nodes.
  */
-function toFlowEdges(domainNodes: ThoughtMapNode[]): RFEdge[] {
+function toFlowEdges(
+  domainNodes: ThoughtMapNode[],
+  layoutPositions: Record<string, NodePosition>
+): RFEdge[] {
   return domainNodes
     .filter((n): n is ThoughtMapNode & { parentNodeId: string } => n.parentNodeId !== null)
-    .map((n) => ({
-      id: `edge-${n.parentNodeId}-${n.nodeId}`,
-      source: n.parentNodeId,
-      target: n.nodeId,
-      type: 'thought-map-edge',
-    }));
+    .map((n) => {
+      const childPos = layoutPositions[n.nodeId] ?? n.position;
+      const isRight = childPos.x > 0;
+      return {
+        id: `edge-${n.parentNodeId}-${n.nodeId}`,
+        source: n.parentNodeId,
+        sourceHandle: isRight ? 'source-right' : 'source-left',
+        target: n.nodeId,
+        targetHandle: isRight ? 'target-left' : 'target-right',
+        type: 'thought-map-edge',
+      };
+    });
 }
