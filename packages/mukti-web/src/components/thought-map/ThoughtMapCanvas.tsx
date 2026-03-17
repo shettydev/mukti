@@ -156,10 +156,13 @@ export function toFlowNodes(
   return domainNodes.map((n) => {
     const position = getDisplayedNodePosition(n, layoutPositions);
     const type = resolveNodeType(n.type);
+    // Determine which hemisphere this node sits in so handles face the right way
+    const side: 'left' | 'right' = position.x <= 0 ? 'left' : 'right';
 
     return {
       data: {
         ...(n.type === 'question' && { isGhost: false }),
+        ...(n.type !== 'topic' && { side }),
         node: n,
         onAddBranch,
         onDeleteNode: n.type !== 'topic' ? onDeleteNode : undefined,
@@ -180,7 +183,9 @@ export function toFlowNodes(
  * The ghost's ghostId is used as nodeId so onAccept/onDismiss callbacks
  * (which receive `node.nodeId`) correctly identify which ghost to act on.
  *
- * Position: offset 220px to the right and staggered 80px vertically from parent.
+ * Position: offset 280px outward (hemisphere-aware) and staggered 90px vertically.
+ * Ghosts whose parent is not in the store are skipped — they will be cleaned up
+ * by useGhostNodeAutoDismiss on the next render cycle.
  */
 export function toGhostFlowNodes(
   ghostNodes: GhostNode[],
@@ -191,28 +196,36 @@ export function toGhostFlowNodes(
 ): RFNode[] {
   const ghostIndexByParent = new Map<string, number>();
 
-  return ghostNodes.map((ghost) => {
+  return ghostNodes.flatMap((ghost) => {
     const parent = storeNodes[ghost.parentId];
+
+    // Skip ghosts whose parent isn't in the store — they have no valid anchor.
+    if (!parent) {
+      return [];
+    }
+
     const parentIndex = ghostIndexByParent.get(ghost.parentId) ?? 0;
     ghostIndexByParent.set(ghost.parentId, parentIndex + 1);
 
-    const parentPosition = parent
-      ? getDisplayedNodePosition(parent, layoutPositions)
-      : { x: 120, y: parentIndex * 90 - 45 };
-    const baseX = parentPosition.x + 280;
+    const parentPosition = getDisplayedNodePosition(parent, layoutPositions);
+
+    // Mirror the X-offset based on which hemisphere the parent sits in so
+    // ghosts extend outward rather than toward the canvas centre.
+    const xOffset = parentPosition.x < 0 ? -280 : 280;
+    const baseX = parentPosition.x + xOffset;
     const baseY = parentPosition.y + parentIndex * 90 - 45;
 
     // Synthetic ThoughtMapNode for QuestionNode rendering
     const now = new Date().toISOString();
     const syntheticNode: ThoughtMapNode = {
       createdAt: now,
-      depth: (parent?.depth ?? 0) + 1,
+      depth: parent.depth + 1,
       fromSuggestion: true,
       id: ghost.ghostId,
       isCollapsed: false,
       isExplored: false,
       label: ghost.label,
-      mapId: parent?.mapId ?? '',
+      mapId: parent.mapId,
       messageCount: 0,
       nodeId: ghost.ghostId,
       parentNodeId: ghost.parentId,
@@ -221,12 +234,20 @@ export function toGhostFlowNodes(
       updatedAt: now,
     };
 
-    return {
-      data: { isGhost: true, node: syntheticNode, onAccept, onDismiss },
-      id: ghostNodeToFlowNodeId(ghost),
-      position: { x: baseX, y: baseY },
-      type: 'question-node',
-    } satisfies RFNode;
+    return [
+      {
+        data: {
+          ghostCreatedAt: ghost.createdAt,
+          isGhost: true,
+          node: syntheticNode,
+          onAccept,
+          onDismiss,
+        },
+        id: ghostNodeToFlowNodeId(ghost),
+        position: { x: baseX, y: baseY },
+        type: 'question-node',
+      } satisfies RFNode,
+    ];
   });
 }
 
@@ -249,6 +270,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogParentLabel, setDialogParentLabel] = useState<string | undefined>(undefined);
   const [dialogParentNodeId, setDialogParentNodeId] = useState<string>('');
+  const [dialogueNodeId, setDialogueNodeId] = useState<null | string>(null);
 
   // ---- Sync remote data into the Zustand store --------------------------------
   useEffect(() => {
@@ -305,7 +327,10 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   }, []);
 
   // Trigger suggestion stream whenever a node's "Suggest Branches" is clicked
-  const { requestSuggestions } = useThoughtMapSuggestions(mapId, suggestParentNodeId);
+  const { isStreaming: isSuggesting, requestSuggestions } = useThoughtMapSuggestions(
+    mapId,
+    suggestParentNodeId
+  );
   useEffect(() => {
     if (suggestParentNodeId) {
       void requestSuggestions();
@@ -353,7 +378,10 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     ]
   );
 
-  const flowEdges = useMemo(() => toFlowEdges(domainNodesList), [domainNodesList]);
+  const flowEdges = useMemo(
+    () => toFlowEdges(domainNodesList, layoutPositions),
+    [domainNodesList, layoutPositions]
+  );
 
   // React Flow useNodesState for local drag management
   const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
@@ -378,22 +406,29 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       onNodesChange(changes);
 
       // Mirror selection into the Zustand store
-      const selectOn = changes.find((c) => c.type === 'select' && c.selected);
-      if (selectOn && selectOn.type === 'select') {
+      const selectOn = changes.find(
+        (c): c is Extract<RFNodeChange, { type: 'select' }> => c.type === 'select' && c.selected
+      );
+      if (selectOn) {
         setSelectedNodeId(selectOn.id);
         return;
       }
 
       // If the currently selected node was deselected, clear the store
       const deselected = changes.find(
-        (c) => c.type === 'select' && !c.selected && c.id === selectedNodeId
+        (c): c is Extract<RFNodeChange, { type: 'select' }> => c.type === 'select' && !c.selected
       );
-      if (deselected) {
+      if (deselected?.id === selectedNodeId) {
+        setDialogueNodeId((current) => (current === deselected.id ? null : current));
         setSelectedNodeId(null);
       }
     },
     [onNodesChange, selectedNodeId, setSelectedNodeId]
   );
+
+  const handleNodeClick = useCallback((_: React.MouseEvent, node: RFNode) => {
+    setDialogueNodeId(node.id);
+  }, []);
 
   // ---- Toolbar "Add Branch" (uses current selection) -------------------------
   const handleToolbarAddBranch = useCallback(() => {
@@ -431,6 +466,25 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
 
   return (
     <div className="relative h-full w-full">
+      {/* AI suggestion loading indicator */}
+      {isSuggesting && (
+        <div
+          aria-live="polite"
+          className={cn(
+            'pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2',
+            'flex items-center gap-2 rounded-full px-3 py-1.5',
+            'border border-stone-200/60 bg-stone-50/90 shadow-sm backdrop-blur-sm',
+            'dark:border-stone-700/60 dark:bg-stone-900/90',
+            'animate-in fade-in slide-in-from-top-1 duration-200'
+          )}
+        >
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-stone-400 dark:bg-stone-500" />
+          <span className="text-[11px] font-medium tracking-wide text-stone-500 dark:text-stone-400">
+            Thinking…
+          </span>
+        </div>
+      )}
+
       {/* React Flow canvas */}
       <ReactFlow
         className={cn(
@@ -446,6 +500,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
         minZoom={0.2}
         nodes={nodes}
         nodeTypes={nodeTypes}
+        onNodeClick={handleNodeClick}
         onNodeDragStop={handleNodeDragStop}
         onNodesChange={handleNodesChange}
         proOptions={{ hideAttribution: true }}
@@ -469,11 +524,14 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       </div>
 
       {/* Per-node Socratic dialogue panel */}
-      {selectedNodeId && storeNodes[selectedNodeId] && (
+      {dialogueNodeId && storeNodes[dialogueNodeId] && (
         <ThoughtMapDialoguePanel
           mapId={mapId}
-          node={storeNodes[selectedNodeId]!}
-          onClose={() => setSelectedNodeId(null)}
+          node={storeNodes[dialogueNodeId]!}
+          onClose={() => {
+            setDialogueNodeId(null);
+            setSelectedNodeId(null);
+          }}
         />
       )}
 
@@ -494,14 +552,25 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
 /**
  * Build React Flow edges from parent-child relationships in domain nodes.
  * Ghost nodes also get a dashed edge connecting them to their parent.
+ * sourceHandle / targetHandle are set based on which hemisphere the child sits
+ * in, ensuring edges always route through the horizontal sides of nodes.
  */
-function toFlowEdges(domainNodes: ThoughtMapNode[]): RFEdge[] {
+function toFlowEdges(
+  domainNodes: ThoughtMapNode[],
+  layoutPositions: Record<string, NodePosition>
+): RFEdge[] {
   return domainNodes
     .filter((n): n is ThoughtMapNode & { parentNodeId: string } => n.parentNodeId !== null)
-    .map((n) => ({
-      id: `edge-${n.parentNodeId}-${n.nodeId}`,
-      source: n.parentNodeId,
-      target: n.nodeId,
-      type: 'thought-map-edge',
-    }));
+    .map((n) => {
+      const childPos = layoutPositions[n.nodeId] ?? n.position;
+      const isRight = childPos.x > 0;
+      return {
+        id: `edge-${n.parentNodeId}-${n.nodeId}`,
+        source: n.parentNodeId,
+        sourceHandle: isRight ? 'source-right' : 'source-left',
+        target: n.nodeId,
+        targetHandle: isRight ? 'target-left' : 'target-right',
+        type: 'thought-map-edge',
+      };
+    });
 }

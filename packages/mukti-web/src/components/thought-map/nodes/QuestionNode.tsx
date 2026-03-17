@@ -13,11 +13,13 @@
  * - Hoverable Accept / Dismiss action buttons (visual only — wired in canvas)
  * - Target handle on left, source handle on right
  * - Japandi aesthetic: very muted lavender-tinged stone tones
+ * - Animated countdown background sweep on ghost nodes (moves horizontally over
+ *   the 60s auto-dismiss window; falls back to plain text when prefers-reduced-motion)
  */
 
 import { Handle, Position } from '@xyflow/react';
 import { Check, Sparkles, Trash2, X } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { ThoughtMapNode } from '@/types/thought-map';
 
@@ -30,6 +32,13 @@ import {
 import { cn } from '@/lib/utils';
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/** Must match GHOST_AUTO_DISMISS_MS in use-thought-map-suggestions.ts */
+const GHOST_AUTO_DISMISS_MS = 60_000;
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -37,11 +46,18 @@ import { cn } from '@/lib/utils';
  * Data passed to QuestionNode via React Flow's custom node API
  */
 export interface QuestionNodeData {
+  /**
+   * Date.now() timestamp when the ghost was created.
+   * Drives the ghost countdown background. Only meaningful when isGhost is true.
+   */
+  ghostCreatedAt?: number;
   isGhost?: boolean;
   node: ThoughtMapNode;
   onAccept?: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string) => void;
   onDismiss?: (nodeId: string) => void;
+  /** Which hemisphere this node sits in — drives handle placement for correct edge routing */
+  side?: 'left' | 'right';
 }
 
 /**
@@ -53,7 +69,7 @@ export interface QuestionNodeProps {
 }
 
 // ============================================================================
-// Component
+// useGhostCountdown
 // ============================================================================
 
 /**
@@ -66,7 +82,15 @@ export interface QuestionNodeProps {
  * @param selected - Whether the node is currently selected in React Flow
  */
 export function QuestionNode({ data, selected }: QuestionNodeProps) {
-  const { isGhost = false, node, onAccept, onDeleteNode, onDismiss } = data;
+  const {
+    ghostCreatedAt,
+    isGhost = false,
+    node,
+    onAccept,
+    onDeleteNode,
+    onDismiss,
+    side = 'right',
+  } = data;
   const [hovered, setHovered] = useState(false);
 
   const handleAccept = useCallback(
@@ -119,6 +143,11 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Countdown background — ghost nodes only */}
+      {isGhost && ghostCreatedAt !== undefined && (
+        <GhostCountdownBackground createdAt={ghostCreatedAt} hovered={hovered} />
+      )}
+
       {isGhost ? (
         <div className="mb-2 flex items-center gap-1.5">
           <Sparkles className="h-3 w-3 text-slate-400 dark:text-slate-500" />
@@ -183,17 +212,38 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
         </div>
       )}
 
-      {/* React Flow handles */}
-      <Handle
-        className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
-        position={Position.Left}
-        type="target"
-      />
-      <Handle
-        className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
-        position={Position.Right}
-        type="source"
-      />
+      {/* React Flow handles: side-aware for correct edge routing in radial layout */}
+      {side === 'left' ? (
+        <>
+          <Handle
+            className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+            id="target-right"
+            position={Position.Right}
+            type="target"
+          />
+          <Handle
+            className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+            id="source-left"
+            position={Position.Left}
+            type="source"
+          />
+        </>
+      ) : (
+        <>
+          <Handle
+            className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+            id="target-left"
+            position={Position.Left}
+            type="target"
+          />
+          <Handle
+            className="!h-2.5 !w-2.5 !border-slate-300 !bg-slate-200 dark:!border-slate-600 dark:!bg-slate-700"
+            id="source-right"
+            position={Position.Right}
+            type="source"
+          />
+        </>
+      )}
     </div>
   );
 
@@ -216,4 +266,92 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
       </ContextMenuContent>
     </ContextMenu>
   );
+}
+
+// ============================================================================
+// GhostCountdownBackground
+// ============================================================================
+
+/**
+ * Subtle animated background sweep for a ghost card.
+ * Slides horizontally from right → left over the 60s auto-dismiss window.
+ * Respects prefers-reduced-motion: shows a plain text countdown instead.
+ */
+function GhostCountdownBackground({ createdAt, hovered }: { createdAt: number; hovered: boolean }) {
+  const { progress, reducedMotion, secondsLeft } = useGhostCountdown(createdAt);
+  const translateX = Math.min(progress * 100, 100);
+
+  if (reducedMotion) {
+    return (
+      <span
+        aria-label={`Suggestion dismisses in ${secondsLeft} seconds`}
+        className={cn(
+          'absolute bottom-2 right-3 z-10 text-[9px] tabular-nums text-stone-400 dark:text-stone-500',
+          'transition-opacity duration-150',
+          hovered ? 'opacity-40' : 'opacity-70'
+        )}
+      >
+        {secondsLeft}s
+      </span>
+    );
+  }
+
+  return (
+    <div
+      aria-label={`Suggestion dismisses in ${secondsLeft} seconds`}
+      className={cn(
+        'pointer-events-none absolute inset-[1px] overflow-hidden rounded-[11px]',
+        'transition-opacity duration-150',
+        hovered ? 'opacity-45' : 'opacity-70'
+      )}
+      data-testid="ghost-countdown-background"
+    >
+      <div className="absolute inset-0 bg-slate-200/15 dark:bg-slate-500/10" />
+      <div
+        className="absolute inset-y-0 right-0 w-full bg-gradient-to-l from-slate-300/40 via-slate-200/25 to-transparent dark:from-slate-500/25 dark:via-slate-400/15 dark:to-transparent"
+        style={{ transform: `translateX(-${translateX}%)`, transition: 'transform 0.25s linear' }}
+      />
+    </div>
+  );
+}
+
+// ============================================================================
+// QuestionNode
+// ============================================================================
+
+/**
+ * Drives the countdown background for a ghost node.
+ * Polls at 250ms for a smooth drain without excessive re-renders.
+ *
+ * @returns progress (0→1), secondsLeft (integer), reducedMotion flag
+ */
+function useGhostCountdown(createdAt: number | undefined) {
+  const [progress, setProgress] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!createdAt) {
+      return;
+    }
+
+    const tick = () => {
+      const elapsed = Date.now() - createdAt;
+      const clamped = Math.min(elapsed, GHOST_AUTO_DISMISS_MS);
+      setProgress(clamped / GHOST_AUTO_DISMISS_MS);
+      setSecondsLeft(Math.max(0, Math.ceil((GHOST_AUTO_DISMISS_MS - clamped) / 1000)));
+    };
+
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [createdAt]);
+
+  return { progress, reducedMotion, secondsLeft };
 }

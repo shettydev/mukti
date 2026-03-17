@@ -129,11 +129,13 @@ export function TopicNode({ data, selected }: TopicNodeProps) {
           />
           <Handle
             className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
+            id="source-left"
             position={Position.Left}
             type="source"
           />
           <Handle
             className="!h-3 !w-3 !border-stone-500 !bg-stone-600"
+            id="source-right"
             position={Position.Right}
             type="source"
           />
