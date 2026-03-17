@@ -2,14 +2,14 @@
 
 <!-- HEADER BLOCK: Identifies the RFC and its current lifecycle state at a glance. -->
 
-| Field            | Value                                                                         |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **RFC Number**   | 0003                                                                          |
-| **Title**        | Thought Map — Unified Visual Thinking Canvas                                  |
-| **Status**       | ![Status: Accepted](https://img.shields.io/badge/Status-Accepted-brightgreen) |
-| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                                |
-| **Created**      | 2026-03-08                                                                    |
-| **Last Updated** | 2026-03-08                                                                    |
+| Field            | Value                                                                        |
+| ---------------- | ---------------------------------------------------------------------------- |
+| **RFC Number**   | 0003                                                                         |
+| **Title**        | Thought Map — Unified Visual Thinking Canvas                                 |
+| **Status**       | ![Status: Implemented](https://img.shields.io/badge/Status-Implemented-blue) |
+| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                               |
+| **Created**      | 2026-03-08                                                                   |
+| **Last Updated** | 2026-03-17                                                                   |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Implemented` | `Rejected` | `Superseded`
 
@@ -43,19 +43,19 @@ Mukti currently offers two disconnected thinking experiences: linear Socratic co
 
 ### Goals
 
-- [ ] Introduce a free-form Thought Map canvas with unlimited branching depth and user-labeled nodes
-- [ ] Support a "blank canvas" entry point: type a topic → land on canvas → branch freely
-- [ ] Enable AI-powered conversion of chat conversations into visual Thought Maps
-- [ ] Implement Socratic Branch Suggestions: AI-generated questions as ghost nodes
-- [ ] Preserve the existing Seed/Soil/Root canvas as a "Guided Mode" option
-- [ ] Maintain per-node Socratic dialogue on all Thought Map nodes
-- [ ] Integrate with RFC-0001 (Knowledge Gap Detection) and RFC-0002 (Adaptive Scaffolding) per-node
-- [ ] Ensure backward compatibility — existing canvas sessions continue to work unchanged
+- [x] Introduce a free-form Thought Map canvas with unlimited branching depth and user-labeled nodes
+- [x] Support a "blank canvas" entry point: type a topic → land on canvas → branch freely
+- [x] Enable AI-powered conversion of chat conversations into visual Thought Maps
+- [x] Implement Socratic Branch Suggestions: AI-generated questions as ghost nodes
+- [x] Preserve the existing Seed/Soil/Root canvas as a "Guided Mode" option
+- [x] Maintain per-node Socratic dialogue on all Thought Map nodes
+- [x] Integrate with RFC-0001 (Knowledge Gap Detection) and RFC-0002 (Adaptive Scaffolding) per-node
+- [x] Ensure backward compatibility — existing canvas sessions continue to work unchanged
 
 ### Non-Goals
 
 - **Real-time collaboration:** Multi-user editing of the same Thought Map is valuable but out of scope. This RFC focuses on single-user experience.
-- **Automatic mind map generation without review:** The Conversation → Map feature always produces a draft that the user reviews and edits. Fully autonomous structure extraction is not a goal.
+- **Automatic mind map generation without user confirmation:** The Conversation → Map feature creates a draft map that remains in `draft` status until the user explicitly opens/confirms it. Inline pre-confirm editing is not part of the current implementation.
 - **Replacing Socratic dialogue:** The Thought Map is a _complement_ to dialogue, not a replacement. Per-node Socratic conversations remain the core interaction.
 - **Full graph database migration:** We use MongoDB's document model with embedded graph structures, not a dedicated graph database. Performance is acceptable for the expected node counts (< 200 nodes per map).
 - **Deprecating Guided Mode:** The Seed/Soil/Root wizard remains available for users who prefer structured setup. No forced migration.
@@ -229,11 +229,16 @@ sequenceDiagram
     Queue->>DB: Create ThoughtMap + ThoughtNodes
     Queue-->>Web: SSE: "processing" → "preview" → "complete"
 
-    Web->>Web: Show draft map in review mode
-    User->>Web: Edit nodes, accept/reject branches
-    User->>Web: Confirm
-    Web->>API: PATCH /api/v1/thought-maps/:id/confirm
-    API-->>Web: 200 OK (map finalized)
+    Web->>Web: Show extraction summary banner
+    alt User opens map
+        User->>Web: Click "Open Map"
+        Web->>API: PATCH /api/v1/thought-maps/:id/confirm
+        API-->>Web: 200 OK (map activated)
+        Web->>Web: Navigate to /maps/:id
+    else User dismisses preview
+        User->>Web: Click "Discard"
+        Web->>Web: Clear extraction preview from client state
+    end
 ```
 
 #### 5.0.3 Socratic Branch Suggestions
@@ -247,16 +252,19 @@ sequenceDiagram
     participant AI as AI Provider
 
     User->>Web: Click "Suggest Branches" on a node
-    Web->>API: POST /api/v1/thought-maps/:id/suggest { nodeId }
+    Web->>API: POST /api/v1/thought-maps/:id/suggest { parentNodeId }
     API->>Queue: Enqueue suggestion job
     API-->>Web: 202 Accepted { jobId }
-    Web->>API: GET /api/v1/thought-maps/:id/suggest/:jobId/stream (SSE)
+
+    loop Until job completes
+        Web->>API: GET /api/v1/thought-maps/:id/suggest/jobs/:jobId
+        API-->>Web: { state, result? }
+    end
 
     Queue->>AI: Send map context + node context + suggestion prompt
     AI-->>Queue: Array of question-suggestions
 
-    Queue-->>Web: SSE: "suggestion" events (one per ghost node)
-    Web->>Web: Render ghost nodes (dimmed, dashed border)
+    Web->>Web: Render 3 ghost nodes (dimmed, dashed border)
 
     alt User accepts suggestion
         User->>Web: Click ghost node → "Accept"
@@ -266,10 +274,6 @@ sequenceDiagram
     else User dismisses
         User->>Web: Click ghost node → "Dismiss"
         Web->>Web: Remove ghost node (no API call)
-    else User edits then accepts
-        User->>Web: Click ghost node → Edit text → "Accept"
-        Web->>API: POST /api/v1/thought-maps/:id/nodes { parentId, label, fromSuggestion: true }
-        Web->>Web: Promote edited ghost → solid node
     end
 ```
 
@@ -330,10 +334,9 @@ The blank canvas is the primary new entry point — designed for users who want 
 4. User lands on the canvas with a single Topic node at center
 5. User can:
    - **Right-click** any node → "Add Branch" to create a child
-   - **Click** "Suggest Branches" button (or wait for auto-suggestion after 10s idle)
+   - **Request suggestions** from the node actions / toolbar
    - **Click** any node to open Socratic dialogue
    - **Drag** nodes to rearrange
-   - **Double-click** a node to edit its label
 
 **Auto-Suggestion Trigger:**
 When the canvas has only the Topic node and the user has been idle for 10 seconds, the system automatically requests branch suggestions. This addresses the cold-start problem — a user who types "How should I design my database schema?" and then stares at the screen gets helpful questions like:
@@ -343,7 +346,7 @@ When the canvas has only the Topic node and the user has been idle for 10 second
 - _"What scale are you designing for?"_
 - _"Are there existing schemas you need to be compatible with?"_
 
-These appear as ghost nodes (dimmed, dashed border) that the user can accept, edit, or dismiss.
+These appear as ghost nodes (dimmed, dashed border) that the user can accept or dismiss.
 
 #### 5.3 Conversation → Map Extraction
 
@@ -351,7 +354,7 @@ This feature bridges Mukti's chat and canvas experiences. A user who has had a r
 
 **Extraction Algorithm:**
 
-The AI receives the full conversation history and a structured extraction prompt:
+The AI receives the conversation's `recentMessages` history and a structured extraction prompt:
 
 ```
 Given this Socratic conversation, extract a mind map structure:
@@ -363,26 +366,27 @@ Given this Socratic conversation, extract a mind map structure:
 
 Return as JSON:
 {
-  "topic": "string",
+  "centralTopic": "string",
   "branches": [
     {
       "label": "string",
-      "type": "thought" | "question",
-      "children": [
-        { "label": "string", "type": "thought" | "question" | "insight" }
-      ],
-      "sourceMessageIndices": [0, 3, 7]  // links back to conversation
+      "sourceMessageIndices": [0, 3, 7],
+      "subPoints": [
+        { "label": "string", "sourceMessageIndices": [1, 4] }
+      ]
     }
-  ]
+  ],
+  "unresolvedQuestions": ["string"]
 }
 ```
 
 **Key Design Decisions:**
 
 - **Maximum extraction depth: 3 levels** (Topic → Branch → Sub-branch). Deeper structure should emerge from user exploration, not AI extraction.
-- **Source message linking:** Each extracted node stores indices of the conversation messages it was derived from. The UI can show "View source messages" on hover.
-- **Review before finalize:** The extracted map always appears in a "draft" state. The user must review, edit, and confirm before it becomes a permanent Thought Map. This prevents AI from imposing structure the user doesn't agree with.
-- **Bidirectional navigation:** From the Thought Map, users can click "View Conversation" to jump back to the source chat. From the conversation, a banner shows "This conversation has been visualized as a Thought Map."
+- **Source message linking:** Extracted branch and sub-point nodes store `sourceMessageIndices` derived from `recentMessages`.
+- **Node type mapping:** Extracted branches and sub-points are persisted as `thought` nodes; `unresolvedQuestions` are persisted as `question` nodes.
+- **Lightweight review before finalize:** The extracted map appears in a lightweight preview banner. The user must explicitly open/confirm it before it becomes an active Thought Map.
+- **Navigation:** Extracted Thought Maps retain `sourceConversationId`, and the map toolbar links back to the source conversation.
 
 #### 5.4 Socratic Branch Suggestions
 
@@ -407,16 +411,16 @@ Current map structure:
 
 The user is on node: "{nodeLabel}" (depth: {depth}, siblings: {siblingCount})
 
-Generate 2-4 QUESTIONS that would help the user explore this branch further.
+Generate exactly 3 QUESTIONS that would help the user explore this branch further.
 
 Rules:
 - Every suggestion MUST be a question, never a statement or answer
 - Questions should reveal unexplored dimensions, hidden assumptions, or missing perspectives
 - Avoid questions the map already addresses
 - Vary question types: definitional, counterfactual, analogical, causal
-- Keep questions concise (under 80 characters)
+- Keep questions concise (under 15 words)
 
-Return as JSON array: ["question1", "question2", ...]
+Return as JSON array of objects: [{ "label": "question1", "suggestedType": "question" | "thought" }]
 ```
 
 **Ghost Node UX:**
@@ -426,17 +430,16 @@ Ghost nodes are visually distinct from real nodes:
 - **Opacity:** 50% (dimmed)
 - **Border:** Dashed, using a muted purple color
 - **Icon:** Sparkle icon (✨) indicating AI-generated
-- **Actions on hover:** Accept (✓), Edit (✎), Dismiss (✕)
+- **Actions on hover:** Accept (✓), Dismiss (✕)
 - **Animation:** Fade in with a subtle scale animation
 - **Auto-dismiss:** Ghost nodes disappear after 60 seconds if not interacted with
-- **Maximum:** 4 ghost nodes visible at once per parent node
+- **Current generator output:** 3 ghost nodes per request
 
 **Trigger Mechanisms:**
 
 1. **Explicit:** User clicks "Suggest Branches" button on any node
 2. **Auto (cold start):** Canvas has ≤ 1 real node and user idle for 10 seconds
-3. **Auto (exploration):** User has been on the same node for 30 seconds without branching (configurable, can be disabled)
-4. **Never auto on dialogue:** Suggestions don't appear while a Socratic dialogue is active (would be distracting)
+3. **Never auto on dialogue:** Cold-start suggestions are suppressed while a Socratic dialogue is active
 
 #### 5.5 Guided Mode Preservation
 
@@ -447,7 +450,8 @@ The existing Seed/Soil/Root canvas is preserved as "Guided Mode" — a structure
 - Dashboard shows two creation options: "New Thought Map" (free-form) and "New Guided Canvas" (wizard)
 - Existing `CanvasSession` schema and all related code remain unchanged
 - Existing canvas sessions are accessible at their current URLs (`/canvas/:id`)
-- New Thought Maps use a new URL pattern (`/map/:id`)
+- Authenticated Thought Maps use `/maps/:id`
+- Public shared Thought Maps use `/map/:token`
 - No automatic migration of existing sessions
 - Optional manual conversion: "Convert to Thought Map" button on existing canvas sessions (one-way, creates a copy)
 
@@ -470,7 +474,7 @@ The Thought Map uses a **radial tree layout** with automatic positioning, simila
 - **Deeper branches** extend outward from their parent, with automatic spacing to avoid overlap
 - **Smooth curved edges** (bezier curves) connecting parent to child
 - **Auto-layout on creation** with manual drag override (positions persist)
-- **Collapse/expand** subtrees by clicking the expand indicator on any node
+- **Collapse state persistence** exists in the node model/API (`isCollapsed`), but subtree collapse/expand is not yet exposed in the current canvas UI
 
 The layout algorithm distributes nodes to minimize edge crossings and maintain readability:
 
@@ -502,6 +506,12 @@ graph LR
 
 ### Endpoints
 
+#### `GET /api/v1/thought-maps`
+
+List all Thought Maps for the authenticated user.
+
+---
+
 #### `POST /api/v1/thought-maps`
 
 Create a new Thought Map with a single Topic node.
@@ -510,7 +520,19 @@ Create a new Thought Map with a single Topic node.
 | ------- | ------ | -------- | ------------------------------- |
 | `title` | string | Yes      | The central topic (5–500 chars) |
 
-**Response (201 Created):** Returns the map with `id`, `title`, `rootNodeId`, a single Topic node at position `(0, 0)`, empty edges array, and timestamps. Wrapped in standard `{ success, data, meta }` envelope.
+**Response (201 Created):** Returns `{ map, rootNode }` in Mukti's standard response envelope.
+
+---
+
+#### `GET /api/v1/thought-maps/:id`
+
+Return a single Thought Map plus all of its nodes.
+
+---
+
+#### `DELETE /api/v1/thought-maps/:id`
+
+Delete a Thought Map and its associated nodes/share links.
 
 ---
 
@@ -525,16 +547,7 @@ Add a new node (branch) to the Thought Map.
 | `type`           | string  | No       | `thought` (default), `question`, or `insight`       |
 | `fromSuggestion` | boolean | No       | Whether promoted from a ghost node (default: false) |
 
-**Response (201 Created):** Returns the created node with `nodeId`, `label`, `type`, `parentId`, `depth`, `position`, and `fromSuggestion`.
-
-**Error Responses:**
-
-| Status Code | Description                                  |
-| ----------- | -------------------------------------------- |
-| 400         | Invalid request body or label too short/long |
-| 401         | Authentication required                      |
-| 404         | Thought Map or parent node not found         |
-| 422         | Maximum node limit reached (100)             |
+**Response (201 Created):** Returns the created node.
 
 ---
 
@@ -546,41 +559,92 @@ Update a node's label, position, or collapsed state. All fields optional.
 | ------------- | ------- | -------------------------- |
 | `label`       | string  | Updated label text         |
 | `position`    | object  | `{ x: number, y: number }` |
-| `isCollapsed` | boolean | Collapse/expand subtree    |
+| `isCollapsed` | boolean | Persist collapsed state    |
 
-**Response (200 OK):** Returns the updated node fields.
+**Response (200 OK):** Returns the updated node.
 
 ---
 
 #### `DELETE /api/v1/thought-maps/:id/nodes/:nodeId`
 
-Delete a node. Query param `?cascade=true|false` (default: false). If `cascade=false` and the node has children, returns 409 Conflict. Cannot delete the Topic (root) node (400).
+Delete a node. Query param `?cascade=true|false` is supported; the frontend currently deletes with `cascade=true`.
 
 ---
 
 #### `POST /api/v1/thought-maps/extract`
 
-Extract a Thought Map from a conversation. Accepts `{ conversationId }`.
+Extract a Thought Map from a conversation. Accepts `{ conversationId, model? }`.
 
 **Response (202 Accepted):** Returns `{ jobId, position }` for queue tracking.
 
-**SSE Stream:** `GET /api/v1/thought-maps/extract/:jobId/stream` — Events: `processing` → `preview` (with draft map JSON) → `complete` | `error`
-
----
-
-#### `POST /api/v1/thought-maps/:id/suggest`
-
-Request Socratic branch suggestions for a node. Accepts `{ nodeId }`.
-
-**Response (202 Accepted):** Returns `{ jobId, position }` for queue tracking.
-
-**SSE Stream:** `GET /api/v1/thought-maps/:id/suggest/:jobId/stream` — Events: `processing` → `suggestion` (repeated, one per ghost node) → `complete` | `error`. Each `suggestion` event contains `{ label, parentId, suggestedType }`.
+**SSE Stream:** `GET /api/v1/thought-maps/extract/:jobId/stream` — Events: `processing` → `preview` → `complete` | `error`.
 
 ---
 
 #### `PATCH /api/v1/thought-maps/:id/confirm`
 
-Confirm a draft Thought Map (from extraction) as finalized. Returns the map with `status: "active"` and `confirmedAt` timestamp.
+Confirm a draft Thought Map produced by extraction, transitioning it from `draft` to `active`.
+
+---
+
+#### `POST /api/v1/thought-maps/:id/suggest`
+
+Request Socratic branch suggestions for a node. Accepts `{ parentNodeId, model? }`.
+
+**Response (202 Accepted):** Returns `{ jobId, position }` for queue tracking.
+
+---
+
+#### `GET /api/v1/thought-maps/:id/suggest/jobs/:jobId`
+
+Poll suggestion job state and result. The current frontend uses this endpoint to populate ghost nodes after completion.
+
+---
+
+#### `GET /api/v1/thought-maps/:id/suggest/stream?jobId=...`
+
+Optional SSE stream for suggestion events. Events are `processing` → `suggestion` → `complete` | `error`.
+
+---
+
+#### `POST /api/v1/thought-maps/convert-from-canvas/:sessionId`
+
+Convert an existing guided `CanvasSession` into a new Thought Map.
+
+---
+
+#### `PATCH /api/v1/thought-maps/:id/settings`
+
+Update Thought Map settings such as `autoSuggestEnabled`, `autoSuggestIdleSeconds`, and `maxSuggestionsPerNode`.
+
+---
+
+#### `POST /api/v1/thought-maps/:id/share`
+
+Create or replace a public share link for a Thought Map.
+
+#### `GET /api/v1/thought-maps/:id/share`
+
+Return the currently active share link for the authenticated owner.
+
+#### `DELETE /api/v1/thought-maps/:id/share`
+
+Revoke the currently active share link.
+
+#### `GET /api/v1/thought-maps/share/:token`
+
+Public, unauthenticated endpoint that resolves a share token and returns a read-only Thought Map payload.
+
+---
+
+#### Thought Map node dialogue endpoints
+
+The Thought Map implementation ships a dedicated node-dialogue surface under the same module:
+
+- `POST /api/v1/thought-maps/:mapId/nodes/:nodeId/start` — create or resume node dialogue and return the initial Socratic question
+- `GET /api/v1/thought-maps/:mapId/nodes/:nodeId/messages` — fetch paginated dialogue history
+- `POST /api/v1/thought-maps/:mapId/nodes/:nodeId/messages` — enqueue a user message and return `{ jobId, position }`
+- `GET /api/v1/thought-maps/:mapId/nodes/:nodeId/stream` — stream dialogue updates via SSE
 
 ---
 
@@ -754,7 +818,7 @@ Store the Thought Map as a native graph in a graph database instead of MongoDB d
 
 - **AI Prompt Injection via Node Labels:** Users could craft node labels designed to manipulate the AI suggestion or extraction prompts. **Mitigation:** Sanitize node labels before including in AI prompts. Apply the same input validation used for conversation messages (max length, no control characters).
 
-- **Conversation Data Exposure in Extraction:** The Conversation → Map extraction sends full conversation history to the AI provider. **Mitigation:** This follows the same data flow as existing conversation AI responses — no new exposure surface. BYOK users' keys are used per existing `AiPolicyService`.
+- **Conversation Data Exposure in Extraction:** The Conversation → Map extraction sends the conversation's `recentMessages` history to the AI provider. **Mitigation:** This follows the same data flow as existing conversation AI responses — no new exposure surface. BYOK users' keys are used per existing `AiPolicyService`.
 
 - **Ghost Node Content Filtering:** AI-generated suggestions could contain inappropriate content. **Mitigation:** Apply the same content moderation pipeline used for AI conversation responses.
 
@@ -787,7 +851,7 @@ No changes to auth flows. All new endpoints are JWT-protected (global `APP_GUARD
 
 - **Large Map Rendering:** React Flow performance degrades above ~500 nodes. **Mitigation:** Hard limit of 100 nodes per map. Subtree collapse reduces visible node count. Virtualization for off-screen nodes (React Flow built-in).
 
-- **AI Extraction for Long Conversations:** Conversations with 50+ messages produce large prompts. **Mitigation:** Truncate to most recent 50 messages (same as existing `recentMessages` limit). Summarize older messages if `hasArchivedMessages` is true.
+- **AI Extraction for Long Conversations:** Extraction currently operates on `conversation.recentMessages`, so older archived history is not summarized into the prompt in the current implementation.
 
 - **Concurrent Suggestion Requests:** Multiple users requesting suggestions simultaneously. **Mitigation:** BullMQ queue with concurrency limits (same pattern as existing conversation and dialogue queues).
 
@@ -826,72 +890,54 @@ No changes to auth flows. All new endpoints are JWT-protected (global `APP_GUARD
 
 ---
 
-## 12. Rollout Plan
+## 12. Implementation Status
 
-### Phases
+### Shipped Scope
 
-| Phase | Description                        | Entry Criteria                 | Exit Criteria                                    |
-| ----- | ---------------------------------- | ------------------------------ | ------------------------------------------------ |
-| 1     | Blank Canvas + basic branching     | RFC accepted, schemas deployed | Users can create maps and add branches           |
-| 2     | Socratic dialogue on Thought nodes | Phase 1 complete               | Per-node dialogue works with technique selection |
-| 3     | Socratic Branch Suggestions        | Phase 2 complete               | Ghost nodes render, accept/dismiss works         |
-| 4     | Conversation → Map extraction      | Phase 3 complete               | Extraction produces reviewable draft maps        |
-| 5     | Guided Mode conversion + polish    | Phase 4 complete               | Convert existing canvases, auto-suggest tuned    |
+| Capability                    | Status      | Notes                                                                      |
+| ----------------------------- | ----------- | -------------------------------------------------------------------------- |
+| Blank canvas + node CRUD      | Implemented | Authenticated maps live at `/maps/:id`                                     |
+| Per-node Socratic dialogue    | Implemented | Dedicated Thought Map dialogue endpoints and SSE stream                    |
+| Socratic branch suggestions   | Implemented | Explicit request + cold-start trigger; frontend currently polls job status |
+| Conversation → Map extraction | Implemented | Draft map preview banner + explicit confirm flow                           |
+| Guided canvas conversion      | Implemented | `POST /thought-maps/convert-from-canvas/:sessionId`                        |
+| Public sharing                | Implemented | Public read-only viewer at `/map/:token`                                   |
 
-### Feature Flags
+### Operational Notes
 
-- **Flag name:** `thought_map_enabled`
-- **Default state:** Off
-- **Kill switch:** Yes — disabling hides all Thought Map UI and returns 404 on new endpoints. Existing maps remain in DB but are inaccessible until re-enabled.
-
-- **Flag name:** `thought_map_suggestions_enabled`
-- **Default state:** Off (enabled separately from base Thought Map)
-- **Kill switch:** Yes — disabling hides suggestion UI. Maps continue to work without suggestions.
-
-- **Flag name:** `thought_map_extraction_enabled`
-- **Default state:** Off (enabled separately)
-- **Kill switch:** Yes — disabling hides "Visualize as Map" button on conversations.
-
-### Rollback Strategy
-
-1. Disable feature flags (`thought_map_enabled`, `thought_map_suggestions_enabled`, `thought_map_extraction_enabled`)
-2. All Thought Map UI disappears immediately (feature-flagged components)
-3. New API endpoints return 404 (feature-flag middleware)
-4. Existing data in `thought_maps` and `thought_nodes` collections is preserved but inaccessible
-5. No schema rollback needed (additive changes only)
-6. Existing Guided Mode canvases are completely unaffected at all times
+- The shipped implementation does **not** currently use the RFC's proposed `thought_map_*` feature flags in the web app.
+- Rollback currently relies on normal deploy rollback practices rather than dedicated feature-flag kill switches.
+- The schema rollout remains additive: `thought_maps`, `thought_nodes`, and share-link data coexist with guided canvas data.
 
 ---
 
-## 13. Open Questions
+## 13. Post-Implementation Follow-Ups
 
-1. **Extraction depth limit** — Should AI extraction go 2 levels deep (Topic → Branch → Sub-branch) or 3 levels? Deeper extraction is more useful but risks imposing structure the user didn't intend. — _Recommendation: Start with 2 levels, add 3rd level as opt-in._
+1. **Extraction review UX** — Should the lightweight preview banner evolve into a richer pre-confirm editing flow, or should confirmation remain intentionally minimal?
 
-2. **Auto-suggestion frequency** — The 10-second idle trigger for cold start is a starting point. Should auto-suggestions also trigger when a user adds a node but doesn't branch further for 30 seconds? Too aggressive feels pushy; too passive loses the benefit. — _Recommendation: Start with explicit-only (button click) + cold start auto. Add idle-based auto in Phase 5 after user testing._
+2. **Suggestion delivery path** — The backend exposes both SSE and polling-compatible job APIs, but the frontend currently polls job status. Should the client switch to direct SSE consumption for suggestions?
 
-3. **Suggestion AI call routing** — Should suggestions use a separate, cheaper AI model (e.g., a smaller model for fast question generation) or the same model as Socratic dialogue? Separate model is faster/cheaper but may produce lower-quality questions. — _Recommendation: Use the user's configured model (respects BYOK) but with a lower max_tokens limit._
+3. **Canvas editing affordances** — Should inline label editing and visible collapse/expand controls be added, now that the underlying node model already persists `isCollapsed`?
 
-4. **Maximum nodes per map** — 100 is proposed. Is this sufficient? Coggle has no limit but degrades visually above ~200. React Flow handles ~500 before frame drops. — _Recommendation: 100 for v1, increase based on usage data._
+4. **Operational gating** — Should dedicated feature flags be added for Thought Map, extraction, and suggestions to support safer future rollouts or emergency disablement?
 
-5. **Collaborative editing** — Should the data model be designed with future multi-user support in mind (e.g., operational transforms, CRDTs)? This adds complexity now for a feature that may never ship. — _Recommendation: No. Design for single-user. If collaboration is needed later, it warrants its own RFC._
-
-6. **Guided Mode deprecation timeline** — Should there be a long-term plan to sunset Guided Mode, or should it remain indefinitely as an alternative? — _Recommendation: Keep indefinitely. Some users genuinely prefer structured decomposition. Let usage data inform future decisions._
-
-7. **Map sharing** — Should Thought Maps support the same sharing mechanism as conversations (`shareToken`, public viewer)? — _Recommendation: Yes, in Phase 5. Reuse the existing `SharedLink` schema pattern._
-
-> **Reviewers:** Please reference open questions by number (e.g., "Regarding OQ-2, ...") in your comments.
+> **Reviewers:** Please reference follow-up items by number (e.g., "Regarding follow-up 2, ...") in your comments.
 
 ---
 
 ## 14. Decision Log
 
-| Date       | Decision                                          | Rationale                                                        | Decided By                                     |
-| ---------- | ------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
-| 2026-03-08 | Separate collections over extending CanvasSession | Clean separation of concerns; no migration risk to existing data | [Prathik Shetty](https://github.com/shettydev) |
-| 2026-03-08 | Preserve Guided Mode as alternative               | Some users prefer structured decomposition; no forced migration  | [Prathik Shetty](https://github.com/shettydev) |
-| 2026-03-08 | Suggestions as questions only                     | Preserves Mukti's "more questions than answers" core philosophy  | [Prathik Shetty](https://github.com/shettydev) |
-| 2026-03-08 | 3-level max extraction depth                      | Deeper structure should emerge from user exploration, not AI     | [Prathik Shetty](https://github.com/shettydev) |
-| 2026-03-08 | Context-aware technique selection                 | Replaces rigid type→technique mapping with dynamic algorithm     | [Prathik Shetty](https://github.com/shettydev) |
+| Date       | Decision                                            | Rationale                                                                                    | Decided By                                     |
+| ---------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 2026-03-08 | Separate collections over extending CanvasSession   | Clean separation of concerns; no migration risk to existing data                             | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-08 | Preserve Guided Mode as alternative                 | Some users prefer structured decomposition; no forced migration                              | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-08 | Suggestions as questions only                       | Preserves Mukti's "more questions than answers" core philosophy                              | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-08 | 3-level max extraction depth                        | Deeper structure should emerge from user exploration, not AI                                 | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-08 | Context-aware technique selection                   | Replaces rigid type→technique mapping with dynamic algorithm                                 | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-17 | Authenticated and public map routes were split      | `/maps/:id` serves owned maps; `/map/:token` serves shared read-only maps                    | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-17 | Extraction review stayed lightweight                | Shipped UX uses a preview banner plus explicit confirm instead of pre-confirm canvas editing | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-17 | Suggestion jobs support both polling and SSE        | Backend exposes SSE, but frontend currently polls `suggest/jobs/:jobId` for simpler delivery | [Prathik Shetty](https://github.com/shettydev) |
+| 2026-03-17 | Guided canvas conversion and public sharing shipped | Thought Maps now support canvas conversion and public share links in the base implementation | [Prathik Shetty](https://github.com/shettydev) |
 
 ---
 
@@ -909,9 +955,9 @@ No changes to auth flows. All new endpoints are JWT-protected (global `APP_GUARD
 > **Reviewer Notes:**
 >
 > This RFC introduces the largest UX surface area change since Mukti's initial canvas implementation.
-> The phased rollout (5 phases) and independent feature flags allow incremental validation.
+> The implemented surface now spans blank-map creation, extraction, suggestions, guided-canvas conversion, and public sharing.
 >
-> WARNING: The Conversation → Map extraction feature sends full conversation history to the AI provider.
+> WARNING: The Conversation → Map extraction feature sends the conversation's `recentMessages` history to the AI provider.
 > This follows existing data flow patterns but reviewers should verify BYOK key handling in the new `MapExtractionService`.
 >
-> WARNING: Auto-suggestion triggers (idle timers) may feel intrusive to some users. Phase 5 tuning based on user feedback is critical before enabling auto-suggestions by default.
+> WARNING: Auto-suggestion currently ships with explicit requests plus a 10-second cold-start idle trigger. Additional idle-based triggers are not implemented today and should be evaluated deliberately if added later.
