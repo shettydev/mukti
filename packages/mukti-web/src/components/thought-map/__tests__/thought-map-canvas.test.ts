@@ -84,7 +84,7 @@ describe('ThoughtMapCanvas helpers', () => {
     );
 
     expect(ghostNodes[0]?.position).toEqual({
-      x: displayedParent.x + 280,
+      x: displayedParent.x + (displayedParent.x < 0 ? -280 : 280),
       y: displayedParent.y - 45,
     });
     expect(ghostNodes[0]?.data).toMatchObject({ isGhost: true });
