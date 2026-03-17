@@ -21,6 +21,7 @@
   <p>
     <a href="DEVELOPMENT.md">Setup</a> |
     <a href="docs/reference/architecture/overview.md">Architecture</a> |
+    <a href="docs/reference/planning/mvp-engineering-bootstrap.md">Engineering Bootstrap</a> |
     <a href="RELEASE.md">Release</a> |
     <a href="packages/mukti-api/README.md">API</a> |
     <a href="mukti-mcp-server/README.md">MCP server</a>
@@ -93,6 +94,13 @@ For full setup variants and troubleshooting, see [DEVELOPMENT.md](DEVELOPMENT.md
 
 ```bash
 bun run dev
+```
+
+Pre-merge quality checks:
+
+```bash
+bun run check:affected   # changed projects
+bun run check:all        # full workspace
 ```
 
 Optional dependencies:

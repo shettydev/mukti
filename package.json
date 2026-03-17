@@ -54,6 +54,8 @@
     "docs:rfc:check": "bun scripts/check-rfc-standards.ts",
     "docs:structure:check": "bun scripts/check-docs-structure.ts",
     "docs:check": "bun run docs:rfc:check && bun run docs:structure:check",
+    "check:affected": "bun run docs:check && bun run affected:lint && bun run affected:type-check && bun run affected:test && bun run affected:build",
+    "check:all": "bun run docs:check && bun run format:check && bun run lint && bun run type-check && bun run test && bun run build",
     "commit": "czg",
     "commit:ai": "bun run scripts/ai-commit.js"
   },

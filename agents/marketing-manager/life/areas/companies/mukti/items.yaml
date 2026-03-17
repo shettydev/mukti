@@ -1,0 +1,33 @@
+- id: mukti-positioning-2026-03-17-01
+  fact: "Mukti is positioned around 'Liberation from AI Dependency' and frames itself as a Socratic thinking workspace rather than a generic AI assistant."
+  category: positioning
+  timestamp: "2026-03-17"
+  source: "2026-03-17"
+  status: active
+  superseded_by: null
+  related_entities:
+    - issues/MUK-9
+  last_accessed: "2026-03-17"
+  access_count: 1
+- id: mukti-product-2026-03-17-01
+  fact: "The public experience is still early-access and waitlist-led, but the private product already includes waitlist-gated signup, Socratic chat, Thinking Canvas, Thought Maps, and conversation-to-map extraction."
+  category: product
+  timestamp: "2026-03-17"
+  source: "2026-03-17"
+  status: active
+  superseded_by: null
+  related_entities:
+    - issues/MUK-9
+  last_accessed: "2026-03-17"
+  access_count: 1
+- id: mukti-gtm-2026-03-17-01
+  fact: "The recommended initial go-to-market wedge is developers and technical learners who want AI leverage without losing problem-solving ownership, with a private beta strategy centered on activation, interviews, and case studies."
+  category: strategy
+  timestamp: "2026-03-17"
+  source: "2026-03-17"
+  status: active
+  superseded_by: null
+  related_entities:
+    - issues/MUK-9
+  last_accessed: "2026-03-17"
+  access_count: 1

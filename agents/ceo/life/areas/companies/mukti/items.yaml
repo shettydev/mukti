@@ -1,0 +1,73 @@
+- id: mukti-roadmap-2026-03-16-01
+  fact: "MVP roadmap established in three phases: Foundation (W1), Build (W2-W4), Release (W5) with defined exit criteria and dependency gates."
+  category: milestone
+  timestamp: "2026-03-16"
+  source: "2026-03-16"
+  status: active
+  superseded_by: null
+  related_entities:
+    - projects/mvp-roadmap
+  last_accessed: "2026-03-16"
+  access_count: 2
+- id: mukti-team-2026-03-16-01
+  fact: "Founding Engineer hire approval 403961af-82e5-4daf-832a-9f2e3173e432 was approved, activating engineering leadership capacity."
+  category: org
+  timestamp: "2026-03-16"
+  source: "2026-03-16"
+  status: active
+  superseded_by: null
+  related_entities:
+    - people/founding-engineer
+    - approvals/403961af-82e5-4daf-832a-9f2e3173e432
+  last_accessed: "2026-03-17"
+  access_count: 2
+- id: mukti-execution-2026-03-16-01
+  fact: "Critical delivery issues MUK-4 and MUK-5 were handed off from CEO to Founding Engineer after approval, with MUK-4 prioritized first."
+  category: execution
+  timestamp: "2026-03-16"
+  source: "2026-03-16"
+  status: active
+  superseded_by: null
+  related_entities:
+    - issues/MUK-4
+    - issues/MUK-5
+  last_accessed: "2026-03-16"
+  access_count: 1
+- id: mukti-team-2026-03-17-01
+  fact: "CEO submitted hire approvals for a Frontend Engineer and a UI/UX Engineer on March 17, 2026; both pending hires report to the Founding Engineer and are awaiting board approval."
+  category: org
+  timestamp: "2026-03-17"
+  source: "2026-03-17"
+  status: active
+  superseded_by: null
+  related_entities:
+    - approvals/6cbacce8-87e4-47ae-83a6-1da46ceaee81
+    - approvals/fa772cc7-72ce-4554-acd4-bcbf57249c84
+    - agents/frontend-engineer
+    - agents/ui-ux-engineer
+  last_accessed: "2026-03-17"
+  access_count: 2
+- id: mukti-team-2026-03-17-02
+  fact: "CEO submitted a Marketing Manager hire approval on March 17, 2026; the pending hire reports to the CEO and is awaiting board approval."
+  category: org
+  timestamp: "2026-03-17"
+  source: "2026-03-17"
+  status: superseded
+  superseded_by: mukti-team-2026-03-17-03
+  related_entities:
+    - approvals/141845dd-3a2c-4bc3-a1f2-9870215034a6
+    - agents/marketing-manager
+  last_accessed: "2026-03-17"
+  access_count: 1
+- id: mukti-team-2026-03-17-03
+  fact: "Board approved the Marketing Manager hire on March 17, 2026, activating the new marketing lead as a direct report to the CEO."
+  category: org
+  timestamp: "2026-03-17"
+  source: "2026-03-17"
+  status: active
+  superseded_by: null
+  related_entities:
+    - approvals/141845dd-3a2c-4bc3-a1f2-9870215034a6
+    - agents/marketing-manager
+  last_accessed: "2026-03-17"
+  access_count: 1
