@@ -64,7 +64,7 @@ describe('QuestionNode', () => {
   });
 });
 
-describe('QuestionNode — GhostCountdownRing', () => {
+describe('QuestionNode — GhostCountdownBackground', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -73,7 +73,7 @@ describe('QuestionNode — GhostCountdownRing', () => {
     jest.useRealTimers();
   });
 
-  it('renders the countdown ring when ghostCreatedAt is provided', () => {
+  it('renders the countdown background when ghostCreatedAt is provided', () => {
     const now = Date.now();
 
     render(
@@ -88,11 +88,11 @@ describe('QuestionNode — GhostCountdownRing', () => {
       />
     );
 
-    // SVG ring has an aria-label containing the countdown text
-    expect(screen.getByRole('img', { name: /suggestion dismisses in/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/suggestion dismisses in/i)).toBeInTheDocument();
+    expect(screen.getByTestId('ghost-countdown-background')).toBeInTheDocument();
   });
 
-  it('does not render a countdown ring when ghostCreatedAt is absent', () => {
+  it('does not render a countdown background when ghostCreatedAt is absent', () => {
     render(
       <QuestionNode
         data={{
@@ -104,10 +104,10 @@ describe('QuestionNode — GhostCountdownRing', () => {
       />
     );
 
-    expect(screen.queryByRole('img', { name: /suggestion dismisses in/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/suggestion dismisses in/i)).not.toBeInTheDocument();
   });
 
-  it('does not render a countdown ring for non-ghost nodes even if ghostCreatedAt is set', () => {
+  it('does not render a countdown background for non-ghost nodes even if ghostCreatedAt is set', () => {
     render(
       <QuestionNode
         data={{
@@ -118,7 +118,7 @@ describe('QuestionNode — GhostCountdownRing', () => {
       />
     );
 
-    expect(screen.queryByRole('img', { name: /suggestion dismisses in/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/suggestion dismisses in/i)).not.toBeInTheDocument();
   });
 
   it('updates the seconds-left label as time passes', () => {
@@ -136,22 +136,17 @@ describe('QuestionNode — GhostCountdownRing', () => {
       />
     );
 
-    // Initially 60 s remaining
-    expect(
-      screen.getByRole('img', { name: /suggestion dismisses in 60 seconds/i })
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/suggestion dismisses in 60 seconds/i)).toBeInTheDocument();
 
     // Advance 10 s — the 250 ms interval fires multiple times
     act(() => {
       jest.advanceTimersByTime(10_000);
     });
 
-    expect(
-      screen.getByRole('img', { name: /suggestion dismisses in 50 seconds/i })
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/suggestion dismisses in 50 seconds/i)).toBeInTheDocument();
   });
 
-  it('dims the ring while the card is hovered', () => {
+  it('dims the countdown background while the card is hovered', () => {
     const now = Date.now();
 
     const { container } = render(
@@ -167,39 +162,39 @@ describe('QuestionNode — GhostCountdownRing', () => {
     );
 
     const card = container.firstChild as HTMLElement;
-    const ring = screen.getByRole('img', { name: /suggestion dismisses in/i });
+    const background = screen.getByTestId('ghost-countdown-background');
 
     // Before hover — higher opacity class present
-    expect(ring).toHaveClass('opacity-60');
-    expect(ring).not.toHaveClass('opacity-30');
+    expect(background).toHaveClass('opacity-70');
+    expect(background).not.toHaveClass('opacity-45');
 
     fireEvent.mouseEnter(card);
 
     // After hover — dimmed
-    expect(ring).toHaveClass('opacity-30');
-    expect(ring).not.toHaveClass('opacity-60');
+    expect(background).toHaveClass('opacity-45');
+    expect(background).not.toHaveClass('opacity-70');
 
     fireEvent.mouseLeave(card);
 
     // Back to normal
-    expect(ring).toHaveClass('opacity-60');
+    expect(background).toHaveClass('opacity-70');
   });
 
   it('shows plain text fallback when prefers-reduced-motion is active', async () => {
     // Patch matchMedia to report reduced-motion: reduce before render
     const originalMatchMedia = window.matchMedia;
     Object.defineProperty(window, 'matchMedia', {
-      writable: true,
       value: (query: string) => ({
+        addEventListener: jest.fn(),
+        addListener: jest.fn(),
+        dispatchEvent: jest.fn(),
         matches: query === '(prefers-reduced-motion: reduce)',
         media: query,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
+        removeListener: jest.fn(),
       }),
+      writable: true,
     });
 
     const now = Date.now();
@@ -218,11 +213,10 @@ describe('QuestionNode — GhostCountdownRing', () => {
       );
     });
 
-    // Should show a text span rather than an SVG img role
-    expect(screen.queryByRole('img', { name: /suggestion dismisses in/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ghost-countdown-background')).not.toBeInTheDocument();
     expect(screen.getByLabelText(/suggestion dismisses in 60 seconds/i)).toBeInTheDocument();
 
     // Restore
-    Object.defineProperty(window, 'matchMedia', { writable: true, value: originalMatchMedia });
+    Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, writable: true });
   });
 });

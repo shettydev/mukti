@@ -13,8 +13,8 @@
  * - Hoverable Accept / Dismiss action buttons (visual only — wired in canvas)
  * - Target handle on left, source handle on right
  * - Japandi aesthetic: very muted lavender-tinged stone tones
- * - Animated SVG countdown ring on ghost nodes (drains clockwise over the 60s
- *   auto-dismiss window; falls back to plain text when prefers-reduced-motion)
+ * - Animated countdown background sweep on ghost nodes (moves horizontally over
+ *   the 60s auto-dismiss window; falls back to plain text when prefers-reduced-motion)
  */
 
 import { Handle, Position } from '@xyflow/react';
@@ -38,11 +38,6 @@ import { cn } from '@/lib/utils';
 /** Must match GHOST_AUTO_DISMISS_MS in use-thought-map-suggestions.ts */
 const GHOST_AUTO_DISMISS_MS = 60_000;
 
-/** SVG ring badge geometry (20×20 px, rendered in top-right corner) */
-const RING_SIZE = 20;
-const RING_RADIUS = 7;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
 // ============================================================================
 // Types
 // ============================================================================
@@ -53,7 +48,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 export interface QuestionNodeData {
   /**
    * Date.now() timestamp when the ghost was created.
-   * Drives the SVG countdown ring. Only meaningful when isGhost is true.
+   * Drives the ghost countdown background. Only meaningful when isGhost is true.
    */
   ghostCreatedAt?: number;
   isGhost?: boolean;
@@ -75,115 +70,6 @@ export interface QuestionNodeProps {
 
 // ============================================================================
 // useGhostCountdown
-// ============================================================================
-
-/**
- * Drives the countdown ring for a ghost node.
- * Polls at 250ms for a smooth drain without excessive re-renders.
- *
- * @returns progress (0→1), secondsLeft (integer), reducedMotion flag
- */
-function useGhostCountdown(createdAt: number | undefined) {
-  const [progress, setProgress] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(60);
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!createdAt) return;
-
-    const tick = () => {
-      const elapsed = Date.now() - createdAt;
-      const clamped = Math.min(elapsed, GHOST_AUTO_DISMISS_MS);
-      setProgress(clamped / GHOST_AUTO_DISMISS_MS);
-      setSecondsLeft(Math.max(0, Math.ceil((GHOST_AUTO_DISMISS_MS - clamped) / 1000)));
-    };
-
-    tick();
-    const id = setInterval(tick, 250);
-    return () => clearInterval(id);
-  }, [createdAt]);
-
-  return { progress, reducedMotion, secondsLeft };
-}
-
-// ============================================================================
-// GhostCountdownRing
-// ============================================================================
-
-/**
- * Small SVG ring badge in the top-right corner of a ghost card.
- * Drains clockwise from full → empty over the 60s auto-dismiss window.
- * Respects prefers-reduced-motion: shows a plain text countdown instead.
- */
-function GhostCountdownRing({ createdAt, hovered }: { createdAt: number; hovered: boolean }) {
-  const { progress, reducedMotion, secondsLeft } = useGhostCountdown(createdAt);
-
-  // strokeDashoffset: 0 = full ring (fresh) → CIRCUMFERENCE = empty (about to dismiss)
-  const offset = RING_CIRCUMFERENCE * progress;
-
-  if (reducedMotion) {
-    return (
-      <span
-        aria-label={`Suggestion dismisses in ${secondsLeft} seconds`}
-        className={cn(
-          'absolute right-2 top-2 text-[9px] tabular-nums text-stone-400 dark:text-stone-500',
-          'transition-opacity duration-150',
-          hovered ? 'opacity-40' : 'opacity-70'
-        )}
-      >
-        {secondsLeft}s
-      </span>
-    );
-  }
-
-  return (
-    <svg
-      aria-label={`Suggestion dismisses in ${secondsLeft} seconds`}
-      className={cn(
-        'absolute right-2 top-2 -rotate-90',
-        'transition-opacity duration-150',
-        hovered ? 'opacity-30' : 'opacity-60'
-      )}
-      fill="none"
-      height={RING_SIZE}
-      role="img"
-      viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-      width={RING_SIZE}
-    >
-      {/* Background track */}
-      <circle
-        className="text-stone-200 dark:text-stone-700"
-        cx={RING_SIZE / 2}
-        cy={RING_SIZE / 2}
-        r={RING_RADIUS}
-        stroke="currentColor"
-        strokeWidth={2}
-      />
-      {/* Draining progress arc */}
-      <circle
-        className="text-stone-400 dark:text-stone-500"
-        cx={RING_SIZE / 2}
-        cy={RING_SIZE / 2}
-        r={RING_RADIUS}
-        stroke="currentColor"
-        strokeDasharray={RING_CIRCUMFERENCE}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        strokeWidth={2}
-        style={{ transition: 'stroke-dashoffset 0.25s linear' }}
-      />
-    </svg>
-  );
-}
-
-// ============================================================================
-// QuestionNode
 // ============================================================================
 
 /**
@@ -257,9 +143,9 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Countdown ring — ghost nodes only */}
+      {/* Countdown background — ghost nodes only */}
       {isGhost && ghostCreatedAt !== undefined && (
-        <GhostCountdownRing createdAt={ghostCreatedAt} hovered={hovered} />
+        <GhostCountdownBackground createdAt={ghostCreatedAt} hovered={hovered} />
       )}
 
       {isGhost ? (
@@ -380,4 +266,92 @@ export function QuestionNode({ data, selected }: QuestionNodeProps) {
       </ContextMenuContent>
     </ContextMenu>
   );
+}
+
+// ============================================================================
+// GhostCountdownBackground
+// ============================================================================
+
+/**
+ * Subtle animated background sweep for a ghost card.
+ * Slides horizontally from right → left over the 60s auto-dismiss window.
+ * Respects prefers-reduced-motion: shows a plain text countdown instead.
+ */
+function GhostCountdownBackground({ createdAt, hovered }: { createdAt: number; hovered: boolean }) {
+  const { progress, reducedMotion, secondsLeft } = useGhostCountdown(createdAt);
+  const translateX = Math.min(progress * 100, 100);
+
+  if (reducedMotion) {
+    return (
+      <span
+        aria-label={`Suggestion dismisses in ${secondsLeft} seconds`}
+        className={cn(
+          'absolute bottom-2 right-3 z-10 text-[9px] tabular-nums text-stone-400 dark:text-stone-500',
+          'transition-opacity duration-150',
+          hovered ? 'opacity-40' : 'opacity-70'
+        )}
+      >
+        {secondsLeft}s
+      </span>
+    );
+  }
+
+  return (
+    <div
+      aria-label={`Suggestion dismisses in ${secondsLeft} seconds`}
+      className={cn(
+        'pointer-events-none absolute inset-[1px] overflow-hidden rounded-[11px]',
+        'transition-opacity duration-150',
+        hovered ? 'opacity-45' : 'opacity-70'
+      )}
+      data-testid="ghost-countdown-background"
+    >
+      <div className="absolute inset-0 bg-slate-200/15 dark:bg-slate-500/10" />
+      <div
+        className="absolute inset-y-0 right-0 w-full bg-gradient-to-l from-slate-300/40 via-slate-200/25 to-transparent dark:from-slate-500/25 dark:via-slate-400/15 dark:to-transparent"
+        style={{ transform: `translateX(-${translateX}%)`, transition: 'transform 0.25s linear' }}
+      />
+    </div>
+  );
+}
+
+// ============================================================================
+// QuestionNode
+// ============================================================================
+
+/**
+ * Drives the countdown background for a ghost node.
+ * Polls at 250ms for a smooth drain without excessive re-renders.
+ *
+ * @returns progress (0→1), secondsLeft (integer), reducedMotion flag
+ */
+function useGhostCountdown(createdAt: number | undefined) {
+  const [progress, setProgress] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!createdAt) {
+      return;
+    }
+
+    const tick = () => {
+      const elapsed = Date.now() - createdAt;
+      const clamped = Math.min(elapsed, GHOST_AUTO_DISMISS_MS);
+      setProgress(clamped / GHOST_AUTO_DISMISS_MS);
+      setSecondsLeft(Math.max(0, Math.ceil((GHOST_AUTO_DISMISS_MS - clamped) / 1000)));
+    };
+
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [createdAt]);
+
+  return { progress, reducedMotion, secondsLeft };
 }

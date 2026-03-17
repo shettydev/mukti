@@ -270,6 +270,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogParentLabel, setDialogParentLabel] = useState<string | undefined>(undefined);
   const [dialogParentNodeId, setDialogParentNodeId] = useState<string>('');
+  const [dialogueNodeId, setDialogueNodeId] = useState<null | string>(null);
 
   // ---- Sync remote data into the Zustand store --------------------------------
   useEffect(() => {
@@ -405,22 +406,29 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       onNodesChange(changes);
 
       // Mirror selection into the Zustand store
-      const selectOn = changes.find((c) => c.type === 'select' && c.selected);
-      if (selectOn && selectOn.type === 'select') {
+      const selectOn = changes.find(
+        (c): c is Extract<RFNodeChange, { type: 'select' }> => c.type === 'select' && c.selected
+      );
+      if (selectOn) {
         setSelectedNodeId(selectOn.id);
         return;
       }
 
       // If the currently selected node was deselected, clear the store
       const deselected = changes.find(
-        (c) => c.type === 'select' && !c.selected && c.id === selectedNodeId
+        (c): c is Extract<RFNodeChange, { type: 'select' }> => c.type === 'select' && !c.selected
       );
-      if (deselected) {
+      if (deselected?.id === selectedNodeId) {
+        setDialogueNodeId((current) => (current === deselected.id ? null : current));
         setSelectedNodeId(null);
       }
     },
     [onNodesChange, selectedNodeId, setSelectedNodeId]
   );
+
+  const handleNodeClick = useCallback((_: React.MouseEvent, node: RFNode) => {
+    setDialogueNodeId(node.id);
+  }, []);
 
   // ---- Toolbar "Add Branch" (uses current selection) -------------------------
   const handleToolbarAddBranch = useCallback(() => {
@@ -492,6 +500,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
         minZoom={0.2}
         nodes={nodes}
         nodeTypes={nodeTypes}
+        onNodeClick={handleNodeClick}
         onNodeDragStop={handleNodeDragStop}
         onNodesChange={handleNodesChange}
         proOptions={{ hideAttribution: true }}
@@ -515,11 +524,14 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       </div>
 
       {/* Per-node Socratic dialogue panel */}
-      {selectedNodeId && storeNodes[selectedNodeId] && (
+      {dialogueNodeId && storeNodes[dialogueNodeId] && (
         <ThoughtMapDialoguePanel
           mapId={mapId}
-          node={storeNodes[selectedNodeId]!}
-          onClose={() => setSelectedNodeId(null)}
+          node={storeNodes[dialogueNodeId]!}
+          onClose={() => {
+            setDialogueNodeId(null);
+            setSelectedNodeId(null);
+          }}
         />
       )}
 
