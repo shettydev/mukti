@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
-import { AppModule } from './app.module';
+import { SeedModule } from './common/seeds/seed.module';
 import { SeedService } from './common/seeds/seed.service';
 
 /**
@@ -17,7 +17,7 @@ async function seed() {
 
   try {
     logger.log('Initializing application context...');
-    const app = await NestFactory.createApplicationContext(AppModule, {
+    const app = await NestFactory.createApplicationContext(SeedModule, {
       logger: ['error', 'warn', 'log'],
     });
 
