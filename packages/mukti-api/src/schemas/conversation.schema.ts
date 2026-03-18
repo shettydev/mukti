@@ -56,6 +56,17 @@ export class Conversation {
   @Prop({ default: false, index: true, type: Boolean })
   isShared: boolean;
 
+  /**
+   * Most recent misconception detection snapshot (RFC-0004).
+   */
+  @Prop({ type: Object })
+  lastMisconception?: {
+    conceptName?: string;
+    correctDirection?: string;
+    detectedAt: Date;
+    detectedBelief?: string;
+  };
+
   @Prop({
     default: {
       estimatedCost: 0,
@@ -96,8 +107,20 @@ export class Conversation {
   @Prop({ required: true, trim: true })
   title: string;
 
+  /**
+   * Total breakthroughs confirmed in this conversation (RFC-0004).
+   */
+  @Prop({ default: 0, type: Number })
+  totalBreakthroughsConfirmed: number;
+
   @Prop({ default: 0, type: Number })
   totalMessageCount: number;
+
+  /**
+   * Total misconceptions detected in this conversation (RFC-0004).
+   */
+  @Prop({ default: 0, type: Number })
+  totalMisconceptionsDetected: number;
   updatedAt: Date;
   @Prop({ index: true, ref: 'User', required: true, type: Types.ObjectId })
   userId: Types.ObjectId;

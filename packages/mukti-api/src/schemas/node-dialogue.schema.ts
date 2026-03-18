@@ -103,6 +103,17 @@ export class NodeDialogue {
   lastMessageAt?: Date;
 
   /**
+   * Most recent misconception detection snapshot (RFC-0004).
+   */
+  @Prop({ type: Object })
+  lastMisconception?: {
+    conceptName?: string;
+    correctDirection?: string;
+    detectedAt: Date;
+    detectedBelief?: string;
+  };
+
+  /**
    * Optional reference to the parent ThoughtMap (RFC-0003).
    * Set only when this dialogue belongs to a Thought Map node.
    * Null / undefined for legacy Canvas node dialogues.
@@ -174,6 +185,18 @@ export class NodeDialogue {
     type: Types.ObjectId,
   })
   sessionId?: Types.ObjectId;
+
+  /**
+   * Total breakthroughs confirmed in this dialogue (RFC-0004).
+   */
+  @Prop({ default: 0, type: Number })
+  totalBreakthroughsConfirmed: number;
+
+  /**
+   * Total misconceptions detected in this dialogue (RFC-0004).
+   */
+  @Prop({ default: 0, type: Number })
+  totalMisconceptionsDetected: number;
 
   updatedAt: Date;
 
