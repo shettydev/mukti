@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 
 import type { QualityAssessmentInput } from '../../interfaces/quality.interface';
 
+import { AcknowledgmentProtocolService } from '../acknowledgment-protocol.service';
 import { BreakthroughDetectorService } from '../breakthrough-detector.service';
 import { DialogueQualityService } from '../dialogue-quality.service';
 import { MisconceptionDetectorService } from '../misconception-detector.service';
@@ -15,6 +16,7 @@ describe('DialogueQualityService', () => {
   let service: DialogueQualityService;
   let misconceptionDetector: MisconceptionDetectorService;
   let breakthroughDetector: BreakthroughDetectorService;
+  let acknowledgmentProtocol: AcknowledgmentProtocolService;
   let singleQuestionEnforcer: SingleQuestionEnforcerService;
 
   beforeEach(async () => {
@@ -28,6 +30,12 @@ describe('DialogueQualityService', () => {
               fromCache: false,
               hasMisconception: false,
             }),
+          },
+        },
+        {
+          provide: AcknowledgmentProtocolService,
+          useValue: {
+            getDirective: jest.fn().mockReturnValue(null),
           },
         },
         {
@@ -52,6 +60,7 @@ describe('DialogueQualityService', () => {
     service = module.get(DialogueQualityService);
     misconceptionDetector = module.get(MisconceptionDetectorService);
     breakthroughDetector = module.get(BreakthroughDetectorService);
+    acknowledgmentProtocol = module.get(AcknowledgmentProtocolService);
     singleQuestionEnforcer = module.get(SingleQuestionEnforcerService);
   });
 
@@ -59,6 +68,7 @@ describe('DialogueQualityService', () => {
     conceptContext: ['concept1'],
     consecutiveFailures: 0,
     conversationHistory: [],
+    scaffoldLevel: 0,
     userId: 'user1',
     userMessage: 'test message',
   };
@@ -103,6 +113,56 @@ describe('DialogueQualityService', () => {
     expect(result.directives).toHaveLength(2);
     expect(result.directives[0].source).toBe('breakthrough');
     expect(result.directives[1].source).toBe('single-question');
+  });
+
+  it('should include acknowledgment directive when understanding is demonstrated', async () => {
+    (acknowledgmentProtocol.getDirective as jest.Mock).mockReturnValue({
+      instruction: 'ACKNOWLEDGMENT PROTOCOL: validate',
+      priority: 2,
+      source: 'acknowledgment',
+    });
+
+    const result = await service.assess({
+      ...baseInput,
+      demonstratesUnderstanding: true,
+    });
+
+    expect(result.directives).toHaveLength(2);
+    expect(result.directives[0].source).toBe('acknowledgment');
+    expect(result.directives[1].source).toBe('single-question');
+  });
+
+  it('should pass scaffoldLevel to acknowledgment protocol', async () => {
+    await service.assess({
+      ...baseInput,
+      demonstratesUnderstanding: true,
+      scaffoldLevel: 3,
+    });
+
+    expect(acknowledgmentProtocol.getDirective).toHaveBeenCalledWith({
+      demonstratesUnderstanding: true,
+      scaffoldLevel: 3,
+    });
+  });
+
+  it('should skip acknowledgment when breakthrough fires (breakthrough subsumes it)', async () => {
+    (breakthroughDetector.detect as jest.Mock).mockReturnValue({
+      instruction: 'BREAKTHROUGH',
+      priority: 1,
+      source: 'breakthrough',
+    });
+
+    const result = await service.assess({
+      ...baseInput,
+      consecutiveFailures: 3,
+      demonstratesUnderstanding: true,
+    });
+
+    // Breakthrough fires, acknowledgment should NOT also fire
+    expect(acknowledgmentProtocol.getDirective).not.toHaveBeenCalled();
+    const sources = result.directives.map((d) => d.source);
+    expect(sources).toContain('breakthrough');
+    expect(sources).not.toContain('acknowledgment');
   });
 
   it('should sort directives by priority', async () => {
