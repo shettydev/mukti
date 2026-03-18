@@ -14,6 +14,8 @@ import { UsageEvent } from '../../../../schemas/usage-event.schema';
 import { User } from '../../../../schemas/user.schema';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
+import { DialogueQualityService } from '../../../dialogue-quality/services/dialogue-quality.service';
+import { PostResponseMonitorService } from '../../../dialogue-quality/services/post-response-monitor.service';
 import { KnowledgeGapDetectorService } from '../../../scaffolding/services/knowledge-gap-detector.service';
 import { ResponseEvaluatorService } from '../../../scaffolding/services/response-evaluator.service';
 import { ScaffoldFadeService } from '../../../scaffolding/services/scaffold-fade.service';
@@ -227,6 +229,29 @@ describe('QueueService', () => {
                 },
               },
             }),
+          },
+        },
+        {
+          provide: DialogueQualityService,
+          useValue: {
+            assess: jest.fn().mockResolvedValue({
+              directives: [
+                {
+                  instruction: 'Ask ONE question',
+                  priority: 10,
+                  source: 'single-question',
+                },
+              ],
+              misconception: { fromCache: false, hasMisconception: false },
+            }),
+          },
+        },
+        {
+          provide: PostResponseMonitorService,
+          useValue: {
+            monitor: jest
+              .fn()
+              .mockReturnValue({ questionCount: 1, violations: [] }),
           },
         },
         {
