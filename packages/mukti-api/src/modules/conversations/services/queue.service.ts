@@ -513,6 +513,7 @@ export class QueueService extends WorkerHost {
           })),
           demonstratesUnderstanding:
             preEvaluation.quality.demonstratesUnderstanding,
+          scaffoldLevel: storedLevel,
           userId,
           userMessage: message,
         }),

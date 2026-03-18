@@ -16,6 +16,7 @@ export interface QualityAssessmentInput {
   consecutiveFailures: number;
   conversationHistory: { content: string; role: 'assistant' | 'user' }[];
   demonstratesUnderstanding?: boolean;
+  scaffoldLevel: number;
   userId: string;
   userMessage: string;
 }
@@ -23,7 +24,11 @@ export interface QualityAssessmentInput {
 export interface QualityDirective {
   instruction: string;
   priority: number; // lower = higher priority
-  source: 'breakthrough' | 'misconception' | 'single-question';
+  source:
+    | 'acknowledgment'
+    | 'breakthrough'
+    | 'misconception'
+    | 'single-question';
 }
 
 export interface QualityDirectives {

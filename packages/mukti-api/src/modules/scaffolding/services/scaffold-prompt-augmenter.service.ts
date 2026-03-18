@@ -75,7 +75,8 @@ FORBIDDEN:
 - Giving direct answers or explanations
 - Providing examples or analogies
 - Suggesting specific approaches or strategies
-- Offering encouragement like "good job" (maintain Socratic neutrality)`,
+- Offering emotional praise like "good job", "well done", "great work" (maintain Socratic neutrality)
+- NOTE: Epistemic VALIDATION ("Yes, that's the right concept") is NOT forbidden — see ACKNOWLEDGMENT PROTOCOL`,
 
   /**
    * Level 2: Strategic Hints

@@ -345,6 +345,7 @@ export class DialogueQueueService extends WorkerHost {
           })),
           demonstratesUnderstanding:
             preEvaluation.quality.demonstratesUnderstanding,
+          scaffoldLevel: storedLevel,
           userId,
           userMessage: message,
         }),

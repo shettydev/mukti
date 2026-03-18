@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 import { AiModule } from '../ai/ai.module';
+import { AcknowledgmentProtocolService } from './services/acknowledgment-protocol.service';
 import { BreakthroughDetectorService } from './services/breakthrough-detector.service';
 import { DialogueQualityService } from './services/dialogue-quality.service';
 import { MisconceptionDetectorService } from './services/misconception-detector.service';
@@ -14,6 +15,7 @@ import { SingleQuestionEnforcerService } from './services/single-question-enforc
   imports: [ConfigModule, AiModule],
   providers: [
     DialogueQualityService,
+    AcknowledgmentProtocolService,
     MisconceptionDetectorService,
     BreakthroughDetectorService,
     SingleQuestionEnforcerService,

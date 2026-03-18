@@ -6,6 +6,7 @@ import type {
   QualityDirectives,
 } from '../interfaces/quality.interface';
 
+import { AcknowledgmentProtocolService } from './acknowledgment-protocol.service';
 import { BreakthroughDetectorService } from './breakthrough-detector.service';
 import { MisconceptionDetectorService } from './misconception-detector.service';
 import { SingleQuestionEnforcerService } from './single-question-enforcer.service';
@@ -16,6 +17,7 @@ export class DialogueQualityService {
 
   constructor(
     private readonly misconceptionDetector: MisconceptionDetectorService,
+    private readonly acknowledgmentProtocol: AcknowledgmentProtocolService,
     private readonly breakthroughDetector: BreakthroughDetectorService,
     private readonly singleQuestionEnforcer: SingleQuestionEnforcerService,
   ) {}
@@ -49,7 +51,7 @@ export class DialogueQualityService {
       });
     }
 
-    // 2. Breakthrough detection (sync)
+    // 2. Breakthrough detection (sync) — special case: understanding after struggle
     const breakthroughDirective = this.breakthroughDetector.detect({
       consecutiveFailures: input.consecutiveFailures,
       demonstratesUnderstanding: input.demonstratesUnderstanding,
@@ -58,7 +60,20 @@ export class DialogueQualityService {
       directives.push(breakthroughDirective);
     }
 
-    // 3. Single question enforcer (sync)
+    // 3. RFC-0004 §5.1: Acknowledgment protocol (sync) — fires on ANY demonstrated understanding
+    // Skipped when breakthrough already fires (breakthrough subsumes acknowledgment with
+    // a stronger "after struggle" message)
+    if (!breakthroughDirective) {
+      const acknowledgmentDirective = this.acknowledgmentProtocol.getDirective({
+        demonstratesUnderstanding: input.demonstratesUnderstanding,
+        scaffoldLevel: input.scaffoldLevel,
+      });
+      if (acknowledgmentDirective) {
+        directives.push(acknowledgmentDirective);
+      }
+    }
+
+    // 4. Single question enforcer (sync)
     const singleQuestionDirective = this.singleQuestionEnforcer.getDirective();
     if (singleQuestionDirective) {
       directives.push(singleQuestionDirective);
