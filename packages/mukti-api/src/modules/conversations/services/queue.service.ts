@@ -466,7 +466,7 @@ export class QueueService extends WorkerHost {
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
       const apiKey = await this.resolveApiKey(userId, usedByok);
 
-      // 4. RFC-0001: Detect knowledge gaps before AI generation
+      // 4. RFC-0001 + RFC-0004: Detect knowledge gaps and assess quality in parallel.
       // Use recentMessages (which carry real timestamps) so temporal signals
       // (abandonment, long pauses) are accurate. Fall back to new Date() only
       // when a message has no stored timestamp.
@@ -480,8 +480,22 @@ export class QueueService extends WorkerHost {
         .filter((m) => m.role === 'user')
         .map((m) => m.content.trim().length);
 
-      const gapResult: GapDetectionResult =
-        await this.knowledgeGapDetector.analyze({
+      // RFC-0004: Pre-evaluate user message (sync) using stored concepts so we can
+      // feed demonstratesUnderstanding to quality assessment without waiting for gap detection.
+      const storedLevel =
+        conversation.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
+
+      const preEvaluation = this.responseEvaluator.evaluate({
+        conceptKeywords: conversation.detectedConcepts ?? [],
+        scaffoldLevel: storedLevel,
+        userResponse: message,
+      });
+
+      // Run gap detection and quality assessment in parallel.
+      // Quality assessment uses stored concepts (from previous turn) — accurate enough
+      // for misconception context and avoids serialising the two async operations.
+      const [gapResult, qualityDirectives] = await Promise.all([
+        this.knowledgeGapDetector.analyze({
           aiApiKey: apiKey,
           aiModel: effectiveModel,
           conceptContext: conversation.detectedConcepts,
@@ -489,13 +503,24 @@ export class QueueService extends WorkerHost {
           previousResponseLengths,
           userId,
           userMessage: message,
-        });
+        }),
+        this.dialogueQualityService.assess({
+          conceptContext: conversation.detectedConcepts ?? [],
+          consecutiveFailures: conversation.consecutiveFailures ?? 0,
+          conversationHistory: conversationHistory.map((m) => ({
+            content: m.content,
+            role: m.role,
+          })),
+          demonstratesUnderstanding:
+            preEvaluation.quality.demonstratesUnderstanding,
+          userId,
+          userMessage: message,
+        }),
+      ]);
 
       // Build scaffold context from gap result + stored state
       // Gap detection can only ESCALATE the level; the fade controller (2-success rule) is
       // the only mechanism that REDUCES. This prevents jarring level drops mid-conversation.
-      const storedLevel =
-        conversation.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
       const effectiveLevel = Math.max(
         gapResult.scaffoldLevel,
         storedLevel,
@@ -508,29 +533,6 @@ export class QueueService extends WorkerHost {
         level: effectiveLevel,
         rootGap: gapResult.rootGap ?? undefined,
       };
-
-      // RFC-0004: Pre-evaluate user message to get real demonstratesUnderstanding
-      const preEvaluation = this.responseEvaluator.evaluate({
-        conceptKeywords:
-          conversation.detectedConcepts ?? gapResult.detectedConcepts,
-        scaffoldLevel: storedLevel,
-        userResponse: message,
-      });
-
-      // RFC-0004: Assess dialogue quality before AI generation
-      const qualityDirectives = await this.dialogueQualityService.assess({
-        apiKey,
-        conceptContext: gapResult.detectedConcepts,
-        consecutiveFailures: conversation.consecutiveFailures ?? 0,
-        conversationHistory: conversationHistory.map((m) => ({
-          content: m.content,
-          role: m.role,
-        })),
-        demonstratesUnderstanding:
-          preEvaluation.quality.demonstratesUnderstanding,
-        userId,
-        userMessage: message,
-      });
 
       // 5. Build prompt with scaffold-augmented system prompt + quality guardrails
       const messages = this.openRouterService.buildPrompt(

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import type { QualityDirectives } from '../../dialogue-quality/interfaces/quality.interface';
 
+import { appendQualityGuardrails } from '../../dialogue/utils/prompt-builder';
 import {
   ScaffoldContext,
   ScaffoldLevel,
@@ -225,20 +226,7 @@ ${context.conceptContext?.length ? `\nRELATED CONCEPTS: ${context.conceptContext
     );
 
     // RFC-0004: Append quality guardrails if present
-    if (qualityDirectives && qualityDirectives.directives.length > 0) {
-      const directiveLines = qualityDirectives.directives
-        .map((d) => `- ${d.instruction}`)
-        .join('\n');
-
-      return `${augmentedPrompt}
-
----
-QUALITY GUARDRAILS
----
-${directiveLines}`;
-    }
-
-    return augmentedPrompt;
+    return appendQualityGuardrails(augmentedPrompt, qualityDirectives);
   }
 
   /**

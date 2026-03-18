@@ -25,8 +25,8 @@ export class DialogueQualityService {
 
     // 1. Misconception detection (async, fail-open)
     const misconception = await this.misconceptionDetector.detect({
-      apiKey: input.apiKey,
       conceptContext: input.conceptContext,
+      conversationHistory: input.conversationHistory,
       userId: input.userId,
       userMessage: input.userMessage,
     });

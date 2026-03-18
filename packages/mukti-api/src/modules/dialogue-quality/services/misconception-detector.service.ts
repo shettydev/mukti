@@ -12,7 +12,10 @@ Analyze the user's message for factual misconceptions or fundamental misundersta
 
 Concepts in context: {concepts}
 
-User message: "{message}"
+Recent exchange (last 3 turns):
+{recentHistory}
+
+Student message: "{message}"
 
 Respond with a JSON object (no markdown, no code fences):
 {
@@ -38,8 +41,8 @@ export class MisconceptionDetectorService {
   ) {}
 
   async detect(input: {
-    apiKey: string;
     conceptContext?: string[];
+    conversationHistory?: { content: string; role: 'assistant' | 'user' }[];
     userId: string;
     userMessage: string;
   }): Promise<MisconceptionResult> {
@@ -71,19 +74,34 @@ export class MisconceptionDetectorService {
     }
 
     // LLM call with 500ms timeout — fail open
-    // Always use the cheap configured model, never the user's dialogue model
+    // Always use the platform key, never the user's BYOK key (RFC-0004 OQ-3)
     const model = this.configService.get<string>(
       'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
       'google/gemini-3-flash-preview',
     );
+    const platformKey = this.configService.get<string>('OPENROUTER_API_KEY');
+    if (!platformKey) {
+      this.logger.warn(
+        'Platform OPENROUTER_API_KEY not configured, skipping misconception detection',
+      );
+      return { fromCache: false, hasMisconception: false };
+    }
+
+    // Build recent history excerpt (last 3 turns) for context
+    const recentHistory = (input.conversationHistory ?? [])
+      .slice(-3)
+      .map((m) => `${m.role}: ${m.content}`)
+      .join('\n');
 
     let timer: ReturnType<typeof setTimeout>;
     try {
-      const client = this.openRouterClientFactory.create(input.apiKey);
+      const client = this.openRouterClientFactory.create(platformKey);
       const prompt = MISCONCEPTION_DETECTION_PROMPT.replace(
         '{concepts}',
         concepts || 'general',
-      ).replace('{message}', input.userMessage);
+      )
+        .replace('{recentHistory}', recentHistory || '(no prior context)')
+        .replace('{message}', input.userMessage);
 
       const responsePromise = client.chat.send({
         messages: [{ content: prompt, role: 'user' }],

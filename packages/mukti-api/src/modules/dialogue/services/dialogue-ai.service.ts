@@ -9,6 +9,7 @@ import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.i
 
 import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
 import {
+  appendQualityGuardrails,
   buildScaffoldAwarePrompt,
   buildSystemPrompt,
   getRecommendedTechnique,
@@ -277,13 +278,7 @@ export class DialogueAIService {
         : systemPrompt;
 
       // RFC-0004: Append quality guardrails
-      if (qualityDirectives && qualityDirectives.directives.length > 0) {
-        const directiveLines = qualityDirectives.directives
-          .map((d) => `- ${d.instruction}`)
-          .join('\n');
-
-        finalPrompt = `${finalPrompt}\n\n---\nQUALITY GUARDRAILS\n---\n${directiveLines}`;
-      }
+      finalPrompt = appendQualityGuardrails(finalPrompt, qualityDirectives);
 
       const messages = this.buildMessages(
         finalPrompt,

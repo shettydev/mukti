@@ -12,7 +12,6 @@ export interface PostResponseMetrics {
 }
 
 export interface QualityAssessmentInput {
-  apiKey: string;
   conceptContext?: string[];
   consecutiveFailures: number;
   conversationHistory: { content: string; role: 'assistant' | 'user' }[];

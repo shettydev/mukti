@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Inject, Module, type OnModuleDestroy, Optional } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -37,4 +37,16 @@ import { SingleQuestionEnforcerService } from './services/single-question-enforc
     },
   ],
 })
-export class DialogueQualityModule {}
+export class DialogueQualityModule implements OnModuleDestroy {
+  constructor(
+    @Optional()
+    @Inject('QUALITY_REDIS_CLIENT')
+    private readonly redis?: Redis,
+  ) {}
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.redis?.status === 'ready') {
+      await this.redis.quit();
+    }
+  }
+}

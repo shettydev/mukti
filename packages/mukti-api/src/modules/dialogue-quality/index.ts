@@ -1,3 +1,4 @@
+export { appendQualityGuardrails } from '../dialogue/utils/prompt-builder';
 export { DialogueQualityModule } from './dialogue-quality.module';
 export type {
   MisconceptionResult,

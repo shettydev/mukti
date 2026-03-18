@@ -22,7 +22,6 @@ import { AiSecretsService } from '../../ai/services/ai-secrets.service';
 import { DialogueQualityService } from '../../dialogue-quality/services/dialogue-quality.service';
 import { PostResponseMonitorService } from '../../dialogue-quality/services/post-response-monitor.service';
 import {
-  type GapDetectionResult,
   type ScaffoldContext,
   ScaffoldLevel,
 } from '../../scaffolding/interfaces/scaffolding.interface';
@@ -310,9 +309,22 @@ export class DialogueQueueService extends WorkerHost {
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
       const apiKey = await this.resolveApiKey(userId, usedByok);
 
-      // RFC-0001: Detect knowledge gaps before AI generation
-      const gapResult: GapDetectionResult =
-        await this.knowledgeGapDetector.analyze({
+      // RFC-0004: Pre-evaluate user message (sync) using stored concepts so we can
+      // feed demonstratesUnderstanding to quality assessment without waiting for gap detection.
+      const storedLevel =
+        dialogue.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
+
+      const preEvaluation = this.responseEvaluator.evaluate({
+        conceptKeywords: dialogue.detectedConcepts ?? [],
+        scaffoldLevel: storedLevel,
+        userResponse: message,
+      });
+
+      // RFC-0001 + RFC-0004: Run gap detection and quality assessment in parallel.
+      // Quality assessment uses stored concepts (from previous turn) — accurate enough
+      // for misconception context and avoids serialising the two async operations.
+      const [gapResult, qualityDirectives] = await Promise.all([
+        this.knowledgeGapDetector.analyze({
           aiApiKey: apiKey,
           aiModel: effectiveModel,
           conceptContext: dialogue.detectedConcepts,
@@ -323,13 +335,24 @@ export class DialogueQueueService extends WorkerHost {
             : undefined,
           userId,
           userMessage: message,
-        });
+        }),
+        this.dialogueQualityService.assess({
+          conceptContext: dialogue.detectedConcepts ?? [],
+          consecutiveFailures: dialogue.consecutiveFailures ?? 0,
+          conversationHistory: conversationHistory.map((m) => ({
+            content: m.content,
+            role: m.role,
+          })),
+          demonstratesUnderstanding:
+            preEvaluation.quality.demonstratesUnderstanding,
+          userId,
+          userMessage: message,
+        }),
+      ]);
 
       // Build scaffold context from gap detection
       // Gap detection can only ESCALATE the level; the fade controller (2-success rule) is
       // the only mechanism that REDUCES. This prevents jarring level drops mid-conversation.
-      const storedLevel =
-        dialogue.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
       const effectiveLevel = Math.max(
         gapResult.scaffoldLevel,
         storedLevel,
@@ -342,31 +365,6 @@ export class DialogueQueueService extends WorkerHost {
         level: effectiveLevel,
         rootGap: gapResult.rootGap ?? undefined,
       };
-
-      // RFC-0004: Pre-evaluate user message to get real demonstratesUnderstanding
-      // (the consecutiveSuccesses counter is mutually exclusive with consecutiveFailures,
-      // so we run the lightweight heuristic evaluator directly on the current message)
-      const preEvaluation = this.responseEvaluator.evaluate({
-        conceptKeywords:
-          dialogue.detectedConcepts ?? gapResult.detectedConcepts,
-        scaffoldLevel: storedLevel,
-        userResponse: message,
-      });
-
-      // RFC-0004: Assess dialogue quality before AI generation
-      const qualityDirectives = await this.dialogueQualityService.assess({
-        apiKey,
-        conceptContext: gapResult.detectedConcepts,
-        consecutiveFailures: dialogue.consecutiveFailures ?? 0,
-        conversationHistory: conversationHistory.map((m) => ({
-          content: m.content,
-          role: m.role,
-        })),
-        demonstratesUnderstanding:
-          preEvaluation.quality.demonstratesUnderstanding,
-        userId,
-        userMessage: message,
-      });
 
       // RFC-0002: Generate scaffolded AI response
       const aiResponse =

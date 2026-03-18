@@ -45,6 +45,30 @@ export interface ThoughtMapNodeTechniqueContext {
 }
 
 /**
+ * Appends quality guardrails section to a prompt if directives are present.
+ * RFC-0004: Dialogue Quality Guardrails.
+ */
+export function appendQualityGuardrails(
+  prompt: string,
+  qualityDirectives?: QualityDirectives,
+): string {
+  if (!qualityDirectives || qualityDirectives.directives.length === 0) {
+    return prompt;
+  }
+
+  const directiveLines = qualityDirectives.directives
+    .map((d) => `- ${d.instruction}`)
+    .join('\n');
+
+  return `${prompt}
+
+---
+QUALITY GUARDRAILS
+---
+${directiveLines}`;
+}
+
+/**
  * Builds a scaffold-aware system prompt that integrates gap detection results.
  * This is the main entry point for prompt building when scaffolding is enabled.
  *
@@ -342,30 +366,6 @@ export function selectTechniqueForNode(
     return 'definitional';
   }
   return 'maieutics';
-}
-
-/**
- * Appends quality guardrails section to a prompt if directives are present.
- * RFC-0004: Dialogue Quality Guardrails.
- */
-function appendQualityGuardrails(
-  prompt: string,
-  qualityDirectives?: QualityDirectives,
-): string {
-  if (!qualityDirectives || qualityDirectives.directives.length === 0) {
-    return prompt;
-  }
-
-  const directiveLines = qualityDirectives.directives
-    .map((d) => `- ${d.instruction}`)
-    .join('\n');
-
-  return `${prompt}
-
----
-QUALITY GUARDRAILS
----
-${directiveLines}`;
 }
 
 /**
