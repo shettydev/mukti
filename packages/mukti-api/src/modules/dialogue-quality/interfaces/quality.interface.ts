@@ -17,7 +17,6 @@ export interface QualityAssessmentInput {
   consecutiveFailures: number;
   conversationHistory: { content: string; role: 'assistant' | 'user' }[];
   demonstratesUnderstanding?: boolean;
-  model?: string;
   userId: string;
   userMessage: string;
 }

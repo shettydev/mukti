@@ -40,7 +40,6 @@ export class MisconceptionDetectorService {
   async detect(input: {
     apiKey: string;
     conceptContext?: string[];
-    model?: string;
     userId: string;
     userMessage: string;
   }): Promise<MisconceptionResult> {
@@ -72,13 +71,13 @@ export class MisconceptionDetectorService {
     }
 
     // LLM call with 500ms timeout — fail open
-    const model =
-      input.model ??
-      this.configService.get<string>(
-        'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
-        'google/gemini-3-flash-preview',
-      );
+    // Always use the cheap configured model, never the user's dialogue model
+    const model = this.configService.get<string>(
+      'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
+      'google/gemini-3-flash-preview',
+    );
 
+    let timer: ReturnType<typeof setTimeout>;
     try {
       const client = this.openRouterClientFactory.create(input.apiKey);
       const prompt = MISCONCEPTION_DETECTION_PROMPT.replace(
@@ -92,15 +91,15 @@ export class MisconceptionDetectorService {
         stream: false,
         temperature: 0,
       });
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(
           () => reject(new Error('Misconception detection timeout')),
           500,
-        ),
-      );
+        );
+      });
 
       const response = await Promise.race([responsePromise, timeoutPromise]);
+      clearTimeout(timer!);
 
       const content = this.extractContent(response);
       const parsed = JSON.parse(content);
@@ -124,6 +123,7 @@ export class MisconceptionDetectorService {
 
       return result;
     } catch (error) {
+      clearTimeout(timer!);
       this.logger.warn(
         `Misconception detection failed (fail-open): ${error instanceof Error ? error.message : String(error)}`,
       );

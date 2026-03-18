@@ -27,7 +27,6 @@ export class DialogueQualityService {
     const misconception = await this.misconceptionDetector.detect({
       apiKey: input.apiKey,
       conceptContext: input.conceptContext,
-      model: input.model,
       userId: input.userId,
       userMessage: input.userMessage,
     });
