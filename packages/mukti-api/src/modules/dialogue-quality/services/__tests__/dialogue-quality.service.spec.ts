@@ -56,7 +56,6 @@ describe('DialogueQualityService', () => {
   });
 
   const baseInput: QualityAssessmentInput = {
-    apiKey: 'test-key',
     conceptContext: ['concept1'],
     consecutiveFailures: 0,
     conversationHistory: [],

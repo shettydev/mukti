@@ -28,6 +28,7 @@ describe('MisconceptionDetectorService', () => {
                 DIALOGUE_QUALITY_MISCONCEPTION_ENABLED: 'true',
                 DIALOGUE_QUALITY_MISCONCEPTION_MODEL:
                   'google/gemini-3-flash-preview',
+                OPENROUTER_API_KEY: 'test-platform-key',
               };
               return config[key] ?? defaultVal;
             }),
@@ -55,7 +56,6 @@ describe('MisconceptionDetectorService', () => {
     jest.spyOn(configService, 'get').mockReturnValue('false');
 
     const result = await service.detect({
-      apiKey: 'test-key',
       userId: 'user1',
       userMessage: 'The sun revolves around the earth',
     });
@@ -72,7 +72,6 @@ describe('MisconceptionDetectorService', () => {
     redis.get.mockResolvedValue(JSON.stringify(cached));
 
     const result = await service.detect({
-      apiKey: 'test-key',
       conceptContext: ['astronomy'],
       userId: 'user1',
       userMessage: 'The sun revolves around the earth',
@@ -106,8 +105,11 @@ describe('MisconceptionDetectorService', () => {
     });
 
     const result = await service.detect({
-      apiKey: 'test-key',
       conceptContext: ['physics'],
+      conversationHistory: [
+        { content: 'What makes things fall?', role: 'assistant' },
+        { content: 'Objects fall because they are heavy', role: 'user' },
+      ],
       userId: 'user1',
       userMessage: 'Objects fall because they are heavy',
     });
@@ -136,7 +138,6 @@ describe('MisconceptionDetectorService', () => {
     });
 
     const result = await service.detect({
-      apiKey: 'test-key',
       userId: 'user1',
       userMessage: 'Some message',
     });
@@ -154,11 +155,33 @@ describe('MisconceptionDetectorService', () => {
     });
 
     const result = await service.detect({
-      apiKey: 'test-key',
       userId: 'user1',
       userMessage: 'Some message',
     });
 
     expect(result.hasMisconception).toBe(false);
+  });
+
+  it('should fail open when platform key is not configured', async () => {
+    jest
+      .spyOn(configService, 'get')
+      .mockImplementation((key: string, defaultVal?: string) => {
+        if (key === 'OPENROUTER_API_KEY') {
+          return undefined;
+        }
+        if (key === 'DIALOGUE_QUALITY_MISCONCEPTION_ENABLED') {
+          return 'true';
+        }
+        return defaultVal;
+      });
+    redis.get.mockResolvedValue(null);
+
+    const result = await service.detect({
+      userId: 'user1',
+      userMessage: 'Some message',
+    });
+
+    expect(result.hasMisconception).toBe(false);
+    expect(clientFactory.create).not.toHaveBeenCalled();
   });
 });
