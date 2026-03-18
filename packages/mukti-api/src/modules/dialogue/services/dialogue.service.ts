@@ -7,6 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import type { MisconceptionResult } from '../../dialogue-quality/interfaces/quality.interface';
 import type {
   GapDetectionResult,
   TransitionResult,
@@ -296,6 +297,52 @@ export class DialogueService {
       `Created new dialogue ${dialogue._id.toString()} for node ${nodeId}`,
     );
     return dialogue;
+  }
+
+  /**
+   * Updates quality state for a dialogue after response evaluation.
+   * RFC-0004: Dialogue Quality Guardrails.
+   */
+  async updateQualityState(
+    dialogueId: string | Types.ObjectId,
+    misconception?: MisconceptionResult,
+    isBreakthrough?: boolean,
+  ): Promise<void> {
+    const dialogueObjectId =
+      typeof dialogueId === 'string'
+        ? new Types.ObjectId(dialogueId)
+        : dialogueId;
+
+    const updateDoc: Record<string, unknown> = {};
+
+    if (misconception?.hasMisconception) {
+      updateDoc.$set = {
+        lastMisconception: {
+          conceptName: misconception.conceptName,
+          correctDirection: misconception.correctDirection,
+          detectedAt: new Date(),
+          detectedBelief: misconception.detectedBelief,
+        },
+      };
+      updateDoc.$inc = { totalMisconceptionsDetected: 1 };
+    }
+
+    if (isBreakthrough) {
+      updateDoc.$inc = {
+        ...(updateDoc.$inc as Record<string, number> | undefined),
+        totalBreakthroughsConfirmed: 1,
+      };
+    }
+
+    if (Object.keys(updateDoc).length > 0) {
+      await this.nodeDialogueModel.findByIdAndUpdate(
+        dialogueObjectId,
+        updateDoc,
+      );
+      this.logger.debug(
+        `Quality state updated for dialogue ${dialogueObjectId.toString()}`,
+      );
+    }
   }
 
   /**

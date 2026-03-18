@@ -18,6 +18,7 @@ import {
 import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { AiModule } from '../ai/ai.module';
+import { DialogueQualityModule } from '../dialogue-quality/dialogue-quality.module';
 import { ScaffoldingModule } from '../scaffolding/scaffolding.module';
 import { DialogueController } from './dialogue.controller';
 import { DialogueAIService } from './services/dialogue-ai.service';
@@ -47,6 +48,7 @@ import { DialogueService } from './services/dialogue.service';
   imports: [
     ConfigModule,
     AiModule,
+    DialogueQualityModule,
     ScaffoldingModule,
     MongooseModule.forFeature([
       { name: CanvasSession.name, schema: CanvasSessionSchema },

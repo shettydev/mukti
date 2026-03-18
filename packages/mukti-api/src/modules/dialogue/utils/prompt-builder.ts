@@ -1,5 +1,6 @@
 import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
+import type { QualityDirectives } from '../../dialogue-quality/interfaces/quality.interface';
 
 import {
   type ScaffoldContext,
@@ -63,19 +64,21 @@ export function buildScaffoldAwarePrompt(
   problemStructure: ProblemStructure,
   scaffoldContext?: ScaffoldContext,
   technique: SocraticTechnique = 'elenchus',
+  qualityDirectives?: QualityDirectives,
 ): string {
   // Build base prompt
   const basePrompt = buildSystemPrompt(node, problemStructure, technique);
 
-  // If no scaffold context, return base prompt
+  // If no scaffold context, append quality guardrails if present and return
   if (!scaffoldContext) {
-    return basePrompt;
+    return appendQualityGuardrails(basePrompt, qualityDirectives);
   }
 
   // Import dynamically to avoid circular dependency
   // The ScaffoldPromptAugmenter provides the level-specific instructions
   // For direct integration, we inline the core augmentation logic here
-  return augmentWithScaffoldContext(basePrompt, scaffoldContext);
+  const scaffolded = augmentWithScaffoldContext(basePrompt, scaffoldContext);
+  return appendQualityGuardrails(scaffolded, qualityDirectives);
 }
 
 /**
@@ -339,6 +342,30 @@ export function selectTechniqueForNode(
     return 'definitional';
   }
   return 'maieutics';
+}
+
+/**
+ * Appends quality guardrails section to a prompt if directives are present.
+ * RFC-0004: Dialogue Quality Guardrails.
+ */
+function appendQualityGuardrails(
+  prompt: string,
+  qualityDirectives?: QualityDirectives,
+): string {
+  if (!qualityDirectives || qualityDirectives.directives.length === 0) {
+    return prompt;
+  }
+
+  const directiveLines = qualityDirectives.directives
+    .map((d) => `- ${d.instruction}`)
+    .join('\n');
+
+  return `${prompt}
+
+---
+QUALITY GUARDRAILS
+---
+${directiveLines}`;
 }
 
 /**

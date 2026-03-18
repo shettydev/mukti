@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
 import type { DialogueMessage } from '../../../schemas/dialogue-message.schema';
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
+import type { QualityDirectives } from '../../dialogue-quality/interfaces/quality.interface';
 import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
 
 import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
@@ -171,6 +172,7 @@ export class DialogueAIService {
     model: string,
     apiKey: string,
     scaffoldContext?: ScaffoldContext,
+    qualityDirectives?: QualityDirectives,
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
@@ -182,12 +184,13 @@ export class DialogueAIService {
       // Get recommended technique for this node type
       const technique = getRecommendedTechnique(nodeContext.nodeType);
 
-      // Build scaffold-aware system prompt
+      // Build scaffold-aware system prompt with quality guardrails
       const systemPrompt = buildScaffoldAwarePrompt(
         nodeContext,
         problemStructure,
         scaffoldContext,
         technique,
+        qualityDirectives,
       );
 
       // Build messages array
@@ -256,6 +259,7 @@ export class DialogueAIService {
     model: string,
     apiKey: string,
     scaffoldContext?: ScaffoldContext,
+    qualityDirectives?: QualityDirectives,
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
@@ -265,12 +269,21 @@ export class DialogueAIService {
 
     try {
       // Optionally augment with scaffold instructions
-      const finalPrompt = scaffoldContext
+      let finalPrompt = scaffoldContext
         ? this.augmentPromptWithScaffoldInstructions(
             systemPrompt,
             scaffoldContext,
           )
         : systemPrompt;
+
+      // RFC-0004: Append quality guardrails
+      if (qualityDirectives && qualityDirectives.directives.length > 0) {
+        const directiveLines = qualityDirectives.directives
+          .map((d) => `- ${d.instruction}`)
+          .join('\n');
+
+        finalPrompt = `${finalPrompt}\n\n---\nQUALITY GUARDRAILS\n---\n${directiveLines}`;
+      }
 
       const messages = this.buildMessages(
         finalPrompt,

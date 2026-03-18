@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import type { QualityDirectives } from '../../dialogue-quality/interfaces/quality.interface';
+
 import {
   ScaffoldContext,
   ScaffoldLevel,
@@ -168,7 +170,11 @@ export class ScaffoldPromptAugmenter {
    * @param context - Scaffold context with level and state information
    * @returns Augmented prompt with scaffolding instructions
    */
-  augment(basePrompt: string, context: ScaffoldContext): string {
+  augment(
+    basePrompt: string,
+    context: ScaffoldContext,
+    qualityDirectives?: QualityDirectives,
+  ): string {
     const scaffoldPrompt = SCAFFOLD_PROMPTS[context.level];
 
     // Build contextual additions
@@ -217,6 +223,20 @@ ${context.conceptContext?.length ? `\nRELATED CONCEPTS: ${context.conceptContext
     this.logger.debug(
       `Augmented prompt with scaffold level ${context.level} (${ScaffoldLevel[context.level]})`,
     );
+
+    // RFC-0004: Append quality guardrails if present
+    if (qualityDirectives && qualityDirectives.directives.length > 0) {
+      const directiveLines = qualityDirectives.directives
+        .map((d) => `- ${d.instruction}`)
+        .join('\n');
+
+      return `${augmentedPrompt}
+
+---
+QUALITY GUARDRAILS
+---
+${directiveLines}`;
+    }
 
     return augmentedPrompt;
   }

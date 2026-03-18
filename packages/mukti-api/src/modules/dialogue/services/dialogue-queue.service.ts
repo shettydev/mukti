@@ -19,6 +19,8 @@ import {
 import { User, UserDocument } from '../../../schemas/user.schema';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import { DialogueQualityService } from '../../dialogue-quality/services/dialogue-quality.service';
+import { PostResponseMonitorService } from '../../dialogue-quality/services/post-response-monitor.service';
 import {
   type GapDetectionResult,
   type ScaffoldContext,
@@ -83,9 +85,11 @@ export class DialogueQueueService extends WorkerHost {
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiSecretsService: AiSecretsService,
     private readonly dialogueAIService: DialogueAIService,
+    private readonly dialogueQualityService: DialogueQualityService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
     private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
+    private readonly postResponseMonitor: PostResponseMonitorService,
     private readonly scaffoldFadeService: ScaffoldFadeService,
     private readonly responseEvaluator: ResponseEvaluatorService,
   ) {
@@ -339,6 +343,31 @@ export class DialogueQueueService extends WorkerHost {
         rootGap: gapResult.rootGap ?? undefined,
       };
 
+      // RFC-0004: Pre-evaluate user message to get real demonstratesUnderstanding
+      // (the consecutiveSuccesses counter is mutually exclusive with consecutiveFailures,
+      // so we run the lightweight heuristic evaluator directly on the current message)
+      const preEvaluation = this.responseEvaluator.evaluate({
+        conceptKeywords:
+          dialogue.detectedConcepts ?? gapResult.detectedConcepts,
+        scaffoldLevel: storedLevel,
+        userResponse: message,
+      });
+
+      // RFC-0004: Assess dialogue quality before AI generation
+      const qualityDirectives = await this.dialogueQualityService.assess({
+        apiKey,
+        conceptContext: gapResult.detectedConcepts,
+        consecutiveFailures: dialogue.consecutiveFailures ?? 0,
+        conversationHistory: conversationHistory.map((m) => ({
+          content: m.content,
+          role: m.role,
+        })),
+        demonstratesUnderstanding:
+          preEvaluation.quality.demonstratesUnderstanding,
+        userId,
+        userMessage: message,
+      });
+
       // RFC-0002: Generate scaffolded AI response
       const aiResponse =
         await this.dialogueAIService.generateScaffoldedResponse(
@@ -349,7 +378,11 @@ export class DialogueQueueService extends WorkerHost {
           effectiveModel,
           apiKey,
           scaffoldContext,
+          qualityDirectives,
         );
+
+      // RFC-0004: Post-response monitoring
+      this.postResponseMonitor.monitor(aiResponse.content);
 
       // Add AI response to dialogue
       const aiMessage = await this.dialogueService.addMessage(
@@ -424,6 +457,16 @@ export class DialogueQueueService extends WorkerHost {
           `Skipping response evaluation for dialogue ${dialogueId} because no prior assistant scaffold exists`,
         );
       }
+
+      // RFC-0004: Persist quality state (always, even on first exchange)
+      await this.dialogueService.updateQualityState(
+        dialogue._id,
+        qualityDirectives.misconception,
+        hasPriorAssistantMessage
+          ? preEvaluation.quality.demonstratesUnderstanding &&
+              (dialogue.consecutiveFailures ?? 0) >= 2
+          : false,
+      );
 
       // Emit AI message event
       this.dialogueStreamService.emitToNodeDialogue(
