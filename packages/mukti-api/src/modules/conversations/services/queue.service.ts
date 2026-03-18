@@ -5,6 +5,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
+import type { MisconceptionResult } from '../../dialogue-quality/interfaces/quality.interface';
+
 import {
   Conversation,
   ConversationDocument,
@@ -20,6 +22,8 @@ import {
 import { User, UserDocument } from '../../../schemas/user.schema';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import { DialogueQualityService } from '../../dialogue-quality/services/dialogue-quality.service';
+import { PostResponseMonitorService } from '../../dialogue-quality/services/post-response-monitor.service';
 import {
   type GapDetectionResult,
   type ScaffoldContext,
@@ -90,7 +94,9 @@ export class QueueService extends WorkerHost {
     private readonly configService: ConfigService,
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiSecretsService: AiSecretsService,
+    private readonly dialogueQualityService: DialogueQualityService,
     private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
+    private readonly postResponseMonitor: PostResponseMonitorService,
     private readonly scaffoldFadeService: ScaffoldFadeService,
     private readonly responseEvaluator: ResponseEvaluatorService,
     private readonly messageService: MessageService,
@@ -503,7 +509,30 @@ export class QueueService extends WorkerHost {
         rootGap: gapResult.rootGap ?? undefined,
       };
 
-      // 5. Build prompt with scaffold-augmented system prompt
+      // RFC-0004: Pre-evaluate user message to get real demonstratesUnderstanding
+      const preEvaluation = this.responseEvaluator.evaluate({
+        conceptKeywords:
+          conversation.detectedConcepts ?? gapResult.detectedConcepts,
+        scaffoldLevel: storedLevel,
+        userResponse: message,
+      });
+
+      // RFC-0004: Assess dialogue quality before AI generation
+      const qualityDirectives = await this.dialogueQualityService.assess({
+        apiKey,
+        conceptContext: gapResult.detectedConcepts,
+        consecutiveFailures: conversation.consecutiveFailures ?? 0,
+        conversationHistory: conversationHistory.map((m) => ({
+          content: m.content,
+          role: m.role,
+        })),
+        demonstratesUnderstanding:
+          preEvaluation.quality.demonstratesUnderstanding,
+        userId,
+        userMessage: message,
+      });
+
+      // 5. Build prompt with scaffold-augmented system prompt + quality guardrails
       const messages = this.openRouterService.buildPrompt(
         techniqueDoc.template,
         context.messages.map((m) => ({
@@ -513,6 +542,7 @@ export class QueueService extends WorkerHost {
         })),
         message,
         scaffoldContext,
+        qualityDirectives,
       );
 
       // Emit progress event - calling AI
@@ -530,6 +560,9 @@ export class QueueService extends WorkerHost {
         apiKey,
         techniqueDoc.template,
       );
+
+      // RFC-0004: Post-response monitoring
+      this.postResponseMonitor.monitor(response.content);
 
       // 6. Add messages to conversation
       const updatedConversation =
@@ -620,6 +653,16 @@ export class QueueService extends WorkerHost {
           },
         );
       }
+
+      // RFC-0004: Persist quality state (always, even on first exchange)
+      await this.updateConversationQualityState(
+        conversationId,
+        qualityDirectives.misconception,
+        hasPriorAssistantMessage
+          ? preEvaluation.quality.demonstratesUnderstanding &&
+              (conversation.consecutiveFailures ?? 0) >= 2
+          : false,
+      );
 
       // Use the conversation-wide total count so sequences remain monotonic even when
       // recentMessages is truncated/archived.
@@ -781,6 +824,44 @@ export class QueueService extends WorkerHost {
     this.logger.log(
       'Job event listeners configured via WorkerHost lifecycle hooks',
     );
+  }
+
+  /**
+   * Persist quality state updates to the conversation document.
+   * RFC-0004: Dialogue Quality Guardrails.
+   */
+  private async updateConversationQualityState(
+    conversationId: string,
+    misconception?: MisconceptionResult,
+    isBreakthrough?: boolean,
+  ): Promise<void> {
+    const updateDoc: Record<string, unknown> = {};
+
+    if (misconception?.hasMisconception) {
+      updateDoc.$set = {
+        lastMisconception: {
+          conceptName: misconception.conceptName,
+          correctDirection: misconception.correctDirection,
+          detectedAt: new Date(),
+          detectedBelief: misconception.detectedBelief,
+        },
+      };
+      updateDoc.$inc = { totalMisconceptionsDetected: 1 };
+    }
+
+    if (isBreakthrough) {
+      updateDoc.$inc = {
+        ...(updateDoc.$inc as Record<string, number> | undefined),
+        totalBreakthroughsConfirmed: 1,
+      };
+    }
+
+    if (Object.keys(updateDoc).length > 0) {
+      await this.conversationModel.updateOne(
+        { _id: conversationId },
+        updateDoc,
+      );
+    }
   }
 
   /**

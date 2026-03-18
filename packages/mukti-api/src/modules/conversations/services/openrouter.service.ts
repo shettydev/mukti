@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 import type { RecentMessage } from '../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../schemas/technique.schema';
+import type { QualityDirectives } from '../../dialogue-quality/interfaces/quality.interface';
 import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
 
 import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
@@ -91,19 +92,29 @@ export class OpenRouterService {
     conversationHistory: RecentMessage[],
     userMessage: string,
     scaffoldContext?: ScaffoldContext,
+    qualityDirectives?: QualityDirectives,
   ): { content: string; role: 'assistant' | 'system' | 'user' }[] {
     const messages: {
       content: string;
       role: 'assistant' | 'system' | 'user';
     }[] = [];
 
-    // Add system prompt from technique, augmented with scaffold context if present
-    const systemPrompt = scaffoldContext
+    // Add system prompt from technique, augmented with scaffold context + quality directives
+    let systemPrompt = scaffoldContext
       ? this.scaffoldPromptAugmenter.augment(
           technique.systemPrompt,
           scaffoldContext,
+          qualityDirectives,
         )
       : technique.systemPrompt;
+
+    // Append quality guardrails even without scaffold context
+    if (!scaffoldContext && qualityDirectives?.directives.length) {
+      const directiveLines = qualityDirectives.directives
+        .map((d) => `- ${d.instruction}`)
+        .join('\n');
+      systemPrompt = `${systemPrompt}\n\n---\nQUALITY GUARDRAILS\n---\n${directiveLines}`;
+    }
 
     messages.push({
       content: systemPrompt,

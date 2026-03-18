@@ -19,6 +19,7 @@ import { Technique, TechniqueSchema } from '../../schemas/technique.schema';
 import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { AiModule } from '../ai/ai.module';
+import { DialogueQualityModule } from '../dialogue-quality/dialogue-quality.module';
 import { ScaffoldingModule } from '../scaffolding/scaffolding.module';
 import { ConversationController } from './conversation.controller';
 import { ConversationService } from './services/conversation.service';
@@ -52,6 +53,7 @@ import { StreamService } from './services/stream.service';
   imports: [
     ConfigModule,
     AiModule,
+    DialogueQualityModule,
     ScaffoldingModule,
     // Register Mongoose schemas
     MongooseModule.forFeature([
