@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import type { Conversation } from '@/types/conversation.types';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -33,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { conversationsApi } from '@/lib/api/conversations';
 import {
   useDeleteConversation,
@@ -85,8 +85,8 @@ export function ConversationList({
   const params = useParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // State for showing archived conversations
-  const [showArchived, setShowArchived] = useState(false);
+  // State for conversation filter
+  const [filter, setFilter] = useState<'active' | 'archived'>('active');
 
   // State for rename dialog
   const [renameDialog, setRenameDialog] = useState<{
@@ -108,7 +108,7 @@ export function ConversationList({
   // Fetch conversations with infinite scroll, sorted by last activity
   const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, refetch } =
     useInfiniteConversations({
-      isArchived: showArchived ? true : undefined,
+      isArchived: filter === 'archived' ? true : false,
       sort: 'updatedAt',
     });
 
@@ -225,18 +225,25 @@ export function ConversationList({
 
   return (
     <>
-      {/* Archived toggle */}
+      {/* Filter tabs */}
       {!collapsed && (
-        <div className="flex items-center gap-2 px-3 py-2 mb-2">
-          <Checkbox
-            checked={showArchived}
-            className="border-japandi-sand/90 data-[state=checked]:border-japandi-sage data-[state=checked]:bg-japandi-sage data-[state=checked]:text-white"
-            id="show-archived"
-            onCheckedChange={(checked) => setShowArchived(checked === true)}
-          />
-          <Label className="cursor-pointer text-xs text-japandi-stone/60" htmlFor="show-archived">
-            Show archived
-          </Label>
+        <div className="px-3 py-2 mb-2">
+          <Tabs onValueChange={(value) => setFilter(value as 'active' | 'archived')} value={filter}>
+            <TabsList className="h-8 w-full bg-japandi-light-stone/40">
+              <TabsTrigger
+                className="h-6 flex-1 text-xs data-[state=active]:bg-japandi-cream data-[state=active]:text-japandi-stone data-[state=active]:shadow-sm cursor-pointer"
+                value="active"
+              >
+                Active
+              </TabsTrigger>
+              <TabsTrigger
+                className="h-6 flex-1 text-xs data-[state=active]:bg-japandi-cream data-[state=active]:text-japandi-stone data-[state=active]:shadow-sm cursor-pointer"
+                value="archived"
+              >
+                Archived
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       )}
 
@@ -244,9 +251,9 @@ export function ConversationList({
       {conversations.length === 0 ? (
         <div className={cn('px-3 py-4 text-center', collapsed && 'hidden')}>
           <p className="text-xs text-japandi-stone/60">
-            {showArchived ? 'No archived conversations' : 'No conversations yet'}
+            {filter === 'archived' ? 'No archived conversations' : 'No conversations yet'}
           </p>
-          {!showArchived && (
+          {filter === 'active' && (
             <p className="mt-1 text-xs text-japandi-stone/45">Start a new chat to begin</p>
           )}
         </div>
