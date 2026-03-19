@@ -244,7 +244,7 @@ export function MessageList({
         <div className="space-y-1 px-3 pb-4 pt-16 md:px-5 md:pt-[4.5rem]">
           {allMessages.map((message) => (
             <Message
-              key={`${message.sequence}-${message.timestamp}`}
+              key={`${message.role}-${message.sequence}-${message.timestamp}`}
               message={message}
               onQuestionClick={onQuestionClick}
             />
