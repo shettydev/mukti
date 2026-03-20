@@ -46,7 +46,7 @@
     "format:root:check": "bun prettier --check .",
     "test": "bun nx run-many --target=test --all",
     "test:cov": "bun nx run-many --target=test:cov --all",
-    "validate": "bun run lint --fix && bun run type-check && bun run test && bun run docs:check && bun run format:root:check",
+    "validate": "bun run lint --fix && bun run type-check && bun run test && bun run docs:check && bun run format:root",
     "affected:lint": "bun nx affected --target=lint",
     "affected:type-check": "bun nx affected --target=type-check",
     "affected:test": "bun nx affected --target=test",
