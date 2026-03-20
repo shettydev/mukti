@@ -40,6 +40,8 @@ export function mergeConversationPreservingRecentMessages(
 
   return {
     ...incomingConversation,
+    // Preserve transient SSE-only flags that the API doesn't return
+    conclusionReady: cachedConversation.conclusionReady ?? incomingConversation.conclusionReady,
     hasArchivedMessages:
       incomingConversation.hasArchivedMessages || cachedConversation.hasArchivedMessages,
     metadata: {
