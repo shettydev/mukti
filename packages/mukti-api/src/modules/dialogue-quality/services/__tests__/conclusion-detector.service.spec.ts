@@ -147,10 +147,20 @@ describe('ConclusionDetectorService', () => {
       expect(closureSignal!.confidence).toBe(0.8);
     });
 
-    it('triggers conclusion on explicit closure alone (>= 0.8)', () => {
+    it('sets conclusionReady on explicit closure but does not emit directive without wrapUpRequested', () => {
       const result = service.assess({
         ...baseInput,
         userMessage: "I think we're done here",
+      });
+      expect(result.conclusionReady).toBe(true);
+      expect(result.directive).toBeUndefined();
+    });
+
+    it('emits directive on explicit closure when wrapUpRequested', () => {
+      const result = service.assess({
+        ...baseInput,
+        userMessage: "I think we're done here",
+        wrapUpRequested: true,
       });
       expect(result.conclusionReady).toBe(true);
       expect(result.directive).toBeDefined();
@@ -271,18 +281,26 @@ describe('ConclusionDetectorService', () => {
     });
   });
 
-  describe('conclusionOffered', () => {
-    it('does not emit directive when conclusion already offered', () => {
+  describe('directive emission', () => {
+    it('does not emit directive on auto-detected signals (only sets conclusionReady)', () => {
       const result = service.assess({
         ...baseInput,
-        conclusionOffered: true,
         userMessage: "I'll try this approach",
       });
       expect(result.conclusionReady).toBe(true);
       expect(result.directive).toBeUndefined();
     });
 
-    it('still emits directive on wrapUpRequested even if already offered', () => {
+    it('emits directive only when wrapUpRequested is true', () => {
+      const result = service.assess({
+        ...baseInput,
+        wrapUpRequested: true,
+      });
+      expect(result.conclusionReady).toBe(true);
+      expect(result.directive).toBeDefined();
+    });
+
+    it('emits directive on wrapUpRequested even if conclusionOffered is true', () => {
       const result = service.assess({
         ...baseInput,
         conclusionOffered: true,
