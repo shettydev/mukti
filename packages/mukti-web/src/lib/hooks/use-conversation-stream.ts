@@ -72,6 +72,7 @@ export interface BaseStreamEvent {
  */
 export interface CompleteEvent extends BaseStreamEvent {
   data: {
+    conclusionReady?: boolean;
     cost: number;
     jobId: string;
     latency: number;
@@ -357,6 +358,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
 
             return {
               ...old,
+              conclusionReady: event.data.conclusionReady ?? old.conclusionReady,
               metadata: {
                 ...old.metadata,
                 estimatedCost: old.metadata.estimatedCost + event.data.cost,

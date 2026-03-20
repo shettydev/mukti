@@ -28,6 +28,7 @@ import { apiClient } from './client';
  */
 interface BackendConversation {
   _id: string;
+  conclusionOffered?: boolean;
   createdAt: string;
   hasArchivedMessages: boolean;
   isArchived: boolean;
@@ -97,6 +98,7 @@ function transformConversation(backend: BackendConversation | Conversation): Con
   }));
 
   return {
+    conclusionOffered: ('conclusionOffered' in backend && backend.conclusionOffered) || false,
     createdAt: backend.createdAt,
     hasArchivedMessages: backend.hasArchivedMessages ?? false,
     id,
@@ -112,6 +114,7 @@ function transformConversation(backend: BackendConversation | Conversation): Con
     tags: backend.tags || [],
     technique: (backend.technique || 'elenchus') as Conversation['technique'],
     title: backend.title || '',
+    totalMessageCount: totalCount,
     updatedAt: backend.updatedAt,
     userId: backend.userId,
   };

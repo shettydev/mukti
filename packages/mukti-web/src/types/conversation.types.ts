@@ -7,6 +7,8 @@
  * Full conversation object
  */
 export interface Conversation {
+  conclusionOffered?: boolean;
+  conclusionReady?: boolean;
   createdAt: string;
   hasArchivedMessages: boolean;
   id: string;
@@ -17,6 +19,7 @@ export interface Conversation {
   tags: string[];
   technique: SocraticTechnique;
   title: string;
+  totalMessageCount?: number;
   updatedAt: string;
   userId: string;
 }
@@ -97,6 +100,7 @@ export interface RateLimitError {
 export interface SendMessageDto {
   content: string;
   model?: string;
+  wrapUpRequested?: boolean;
 }
 
 /**
