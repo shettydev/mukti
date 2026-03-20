@@ -556,6 +556,7 @@ describe('ConversationController', () => {
         'elenchus',
         undefined,
         false,
+        undefined,
       );
     });
   });
