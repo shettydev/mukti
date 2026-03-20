@@ -13,12 +13,15 @@ export interface PostResponseMetrics {
 
 export interface QualityAssessmentInput {
   conceptContext?: string[];
+  conclusionOffered?: boolean;
   consecutiveFailures: number;
   conversationHistory: { content: string; role: 'assistant' | 'user' }[];
   demonstratesUnderstanding?: boolean;
   scaffoldLevel: number;
+  totalMessageCount?: number;
   userId: string;
   userMessage: string;
+  wrapUpRequested?: boolean;
 }
 
 export interface QualityDirective {
@@ -27,11 +30,13 @@ export interface QualityDirective {
   source:
     | 'acknowledgment'
     | 'breakthrough'
+    | 'conclusion'
     | 'misconception'
     | 'single-question';
 }
 
 export interface QualityDirectives {
+  conclusionReady?: boolean;
   directives: QualityDirective[];
   misconception?: MisconceptionResult;
 }
