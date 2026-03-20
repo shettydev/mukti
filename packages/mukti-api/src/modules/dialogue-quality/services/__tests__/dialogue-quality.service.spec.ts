@@ -8,6 +8,7 @@ import type { QualityAssessmentInput } from '../../interfaces/quality.interface'
 
 import { AcknowledgmentProtocolService } from '../acknowledgment-protocol.service';
 import { BreakthroughDetectorService } from '../breakthrough-detector.service';
+import { ConclusionDetectorService } from '../conclusion-detector.service';
 import { DialogueQualityService } from '../dialogue-quality.service';
 import { MisconceptionDetectorService } from '../misconception-detector.service';
 import { SingleQuestionEnforcerService } from '../single-question-enforcer.service';
@@ -42,6 +43,15 @@ describe('DialogueQualityService', () => {
           provide: BreakthroughDetectorService,
           useValue: {
             detect: jest.fn().mockReturnValue(null),
+          },
+        },
+        {
+          provide: ConclusionDetectorService,
+          useValue: {
+            assess: jest.fn().mockReturnValue({
+              conclusionReady: false,
+              signals: [],
+            }),
           },
         },
         {
