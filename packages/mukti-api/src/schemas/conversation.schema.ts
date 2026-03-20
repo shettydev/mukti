@@ -30,6 +30,9 @@ export class Conversation {
   // Virtual fields
   _id: Types.ObjectId;
 
+  @Prop({ default: false, type: Boolean })
+  conclusionOffered: boolean;
+
   @Prop({ default: 0, type: Number })
   consecutiveFailures: number;
 
