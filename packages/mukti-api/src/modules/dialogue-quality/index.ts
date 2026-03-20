@@ -7,5 +7,6 @@ export type {
   QualityDirective,
   QualityDirectives,
 } from './interfaces/quality.interface';
+export { ConclusionDetectorService } from './services/conclusion-detector.service';
 export { DialogueQualityService } from './services/dialogue-quality.service';
 export { PostResponseMonitorService } from './services/post-response-monitor.service';

@@ -8,6 +8,7 @@ import type {
 
 import { AcknowledgmentProtocolService } from './acknowledgment-protocol.service';
 import { BreakthroughDetectorService } from './breakthrough-detector.service';
+import { ConclusionDetectorService } from './conclusion-detector.service';
 import { MisconceptionDetectorService } from './misconception-detector.service';
 import { SingleQuestionEnforcerService } from './single-question-enforcer.service';
 
@@ -19,6 +20,7 @@ export class DialogueQualityService {
     private readonly misconceptionDetector: MisconceptionDetectorService,
     private readonly acknowledgmentProtocol: AcknowledgmentProtocolService,
     private readonly breakthroughDetector: BreakthroughDetectorService,
+    private readonly conclusionDetector: ConclusionDetectorService,
     private readonly singleQuestionEnforcer: SingleQuestionEnforcerService,
   ) {}
 
@@ -73,15 +75,35 @@ export class DialogueQualityService {
       }
     }
 
-    // 4. Single question enforcer (sync)
-    const singleQuestionDirective = this.singleQuestionEnforcer.getDirective();
-    if (singleQuestionDirective) {
-      directives.push(singleQuestionDirective);
+    // 4. Conclusion detection (sync)
+    const conclusionAssessment = this.conclusionDetector.assess({
+      conclusionOffered: input.conclusionOffered ?? false,
+      conversationHistory: input.conversationHistory,
+      totalMessageCount: input.totalMessageCount ?? 0,
+      userMessage: input.userMessage,
+      wrapUpRequested: input.wrapUpRequested,
+    });
+
+    if (conclusionAssessment.directive) {
+      directives.push(conclusionAssessment.directive);
+    }
+
+    // 5. Single question enforcer (sync) — skip when conclusion fires (they conflict)
+    if (!conclusionAssessment.conclusionReady) {
+      const singleQuestionDirective =
+        this.singleQuestionEnforcer.getDirective();
+      if (singleQuestionDirective) {
+        directives.push(singleQuestionDirective);
+      }
     }
 
     // Sort by priority (lower = higher priority)
     directives.sort((a, b) => a.priority - b.priority);
 
-    return { directives, misconception };
+    return {
+      conclusionReady: conclusionAssessment.conclusionReady,
+      directives,
+      misconception,
+    };
   }
 }

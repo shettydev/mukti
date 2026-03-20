@@ -5,6 +5,7 @@ import Redis from 'ioredis';
 import { AiModule } from '../ai/ai.module';
 import { AcknowledgmentProtocolService } from './services/acknowledgment-protocol.service';
 import { BreakthroughDetectorService } from './services/breakthrough-detector.service';
+import { ConclusionDetectorService } from './services/conclusion-detector.service';
 import { DialogueQualityService } from './services/dialogue-quality.service';
 import { MisconceptionDetectorService } from './services/misconception-detector.service';
 import { PostResponseMonitorService } from './services/post-response-monitor.service';
@@ -16,6 +17,7 @@ import { SingleQuestionEnforcerService } from './services/single-question-enforc
   providers: [
     DialogueQualityService,
     AcknowledgmentProtocolService,
+    ConclusionDetectorService,
     MisconceptionDetectorService,
     BreakthroughDetectorService,
     SingleQuestionEnforcerService,
