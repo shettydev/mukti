@@ -30,6 +30,7 @@ interface BaseStreamEvent {
  */
 interface CompleteEvent extends BaseStreamEvent {
   data: {
+    conclusionReady?: boolean;
     cost: number;
     jobId: string;
     latency: number;

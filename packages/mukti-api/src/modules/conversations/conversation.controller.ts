@@ -352,6 +352,7 @@ export class ConversationController {
       conversation.technique,
       effectiveModel,
       usedByok,
+      sendMessageDto.wrapUpRequested,
     );
 
     return {

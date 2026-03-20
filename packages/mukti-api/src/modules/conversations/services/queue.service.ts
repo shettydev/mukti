@@ -48,6 +48,7 @@ export interface ConversationRequestJobData {
   technique: string;
   usedByok: boolean;
   userId: string;
+  wrapUpRequested?: boolean;
 }
 
 /**
@@ -144,6 +145,7 @@ export class QueueService extends WorkerHost {
     technique: string,
     model: string,
     usedByok: boolean,
+    wrapUpRequested?: boolean,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = this.formatId(userId);
     const conversationIdString = this.formatId(conversationId);
@@ -165,6 +167,7 @@ export class QueueService extends WorkerHost {
         technique,
         usedByok,
         userId: userIdString,
+        ...(wrapUpRequested ? { wrapUpRequested } : {}),
       };
 
       // Add job to queue with priority
@@ -412,6 +415,7 @@ export class QueueService extends WorkerHost {
       technique,
       usedByok,
       userId,
+      wrapUpRequested,
     } = job.data;
 
     this.logger.log(
@@ -506,6 +510,7 @@ export class QueueService extends WorkerHost {
         }),
         this.dialogueQualityService.assess({
           conceptContext: conversation.detectedConcepts ?? [],
+          conclusionOffered: conversation.conclusionOffered ?? false,
           consecutiveFailures: conversation.consecutiveFailures ?? 0,
           conversationHistory: conversationHistory.map((m) => ({
             content: m.content,
@@ -514,8 +519,10 @@ export class QueueService extends WorkerHost {
           demonstratesUnderstanding:
             preEvaluation.quality.demonstratesUnderstanding,
           scaffoldLevel: storedLevel,
+          totalMessageCount: conversation.totalMessageCount ?? 0,
           userId,
           userMessage: message,
+          wrapUpRequested,
         }),
       ]);
 
@@ -665,6 +672,8 @@ export class QueueService extends WorkerHost {
           ? preEvaluation.quality.demonstratesUnderstanding &&
               (conversation.consecutiveFailures ?? 0) >= 2
           : false,
+        qualityDirectives.conclusionReady &&
+          qualityDirectives.directives.some((d) => d.source === 'conclusion'),
       );
 
       // Use the conversation-wide total count so sequences remain monotonic even when
@@ -730,6 +739,7 @@ export class QueueService extends WorkerHost {
       // Emit complete event
       this.streamService.emitToConversation(conversationId, {
         data: {
+          conclusionReady: qualityDirectives.conclusionReady ?? false,
           cost: response.cost,
           jobId: job.id!,
           latency,
@@ -837,6 +847,7 @@ export class QueueService extends WorkerHost {
     conversationId: string,
     misconception?: MisconceptionResult,
     isBreakthrough?: boolean,
+    conclusionOffered?: boolean,
   ): Promise<void> {
     const updateDoc: Record<string, unknown> = {};
 
@@ -856,6 +867,13 @@ export class QueueService extends WorkerHost {
       updateDoc.$inc = {
         ...(updateDoc.$inc as Record<string, number> | undefined),
         totalBreakthroughsConfirmed: 1,
+      };
+    }
+
+    if (conclusionOffered) {
+      updateDoc.$set = {
+        ...(updateDoc.$set as Record<string, unknown> | undefined),
+        conclusionOffered: true,
       };
     }
 
