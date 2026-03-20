@@ -106,8 +106,10 @@ export class ConclusionDetectorService {
       return { conclusionReady: false, signals };
     }
 
-    // Only emit directive if conclusion hasn't been offered yet, or wrap-up was explicitly requested
-    if (!input.conclusionOffered || input.wrapUpRequested) {
+    // Only emit the conclusion directive when the user explicitly requests wrap-up.
+    // For auto-detected signals, just set conclusionReady so the frontend can show the
+    // wrap-up chip — don't auto-fire the synthesis response.
+    if (input.wrapUpRequested) {
       return {
         conclusionReady: true,
         directive: {

@@ -672,7 +672,7 @@ export class QueueService extends WorkerHost {
           ? preEvaluation.quality.demonstratesUnderstanding &&
               (conversation.consecutiveFailures ?? 0) >= 2
           : false,
-        qualityDirectives.conclusionReady &&
+        wrapUpRequested &&
           qualityDirectives.directives.some((d) => d.source === 'conclusion'),
       );
 
