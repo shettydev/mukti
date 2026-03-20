@@ -14,14 +14,7 @@ const eslintConfig = [
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   perfectionist.configs['recommended-natural'],
   {
-    ignores: [
-      '.next/**',
-      'out/**',
-      'node_modules/**',
-      '.turbo/**',
-      'coverage/**',
-      '*.lock'
-    ],
+    ignores: ['.next/**', 'out/**', 'node_modules/**', '.turbo/**', 'coverage/**', '*.lock'],
   },
   {
     rules: {
@@ -96,10 +89,7 @@ const eslintConfig = [
       'react-hooks/rules-of-hooks': 'error',
       // React/Next.js best practices
       'react/jsx-boolean-value': ['error', 'never'],
-      'react/jsx-curly-brace-presence': [
-        'error',
-        { children: 'never', props: 'never' },
-      ],
+      'react/jsx-curly-brace-presence': ['error', { children: 'never', props: 'never' }],
       'react/jsx-no-useless-fragment': 'error',
       'react/jsx-pascal-case': 'error',
       'react/self-closing-comp': 'error',

@@ -6,8 +6,6 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "transformIgnorePatterns": [
-    "node_modules/(?!(@openrouter)/)"
-  ],
+  "transformIgnorePatterns": ["node_modules/(?!(@openrouter)/)"],
   "watchman": false
 }

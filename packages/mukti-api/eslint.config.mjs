@@ -7,7 +7,13 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'dist/**', 'node_modules/**', 'coverage/**', '*.lock'],
+    ignores: [
+      'eslint.config.mjs',
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      '*.lock',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
