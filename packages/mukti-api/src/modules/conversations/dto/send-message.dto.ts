@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 /**
  * DTO for sending a message to a conversation.
@@ -26,4 +26,11 @@ export class SendMessageDto {
   @IsOptional()
   @IsString()
   model?: string;
+
+  @ApiPropertyOptional({
+    description: 'Request conversation conclusion synthesis',
+  })
+  @IsOptional()
+  @IsBoolean()
+  wrapUpRequested?: boolean;
 }
