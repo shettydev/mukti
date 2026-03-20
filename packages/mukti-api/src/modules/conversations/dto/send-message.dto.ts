@@ -30,7 +30,7 @@ export class SendMessageDto {
   @ApiPropertyOptional({
     description: 'Request conversation conclusion synthesis',
   })
-  @IsOptional()
   @IsBoolean()
+  @IsOptional()
   wrapUpRequested?: boolean;
 }

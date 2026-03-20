@@ -3,16 +3,6 @@ import { ConfigService } from '@nestjs/config';
 
 import type { QualityDirective } from '../interfaces/quality.interface';
 
-export interface ConclusionSignal {
-  confidence: number;
-  type:
-    | 'action-commitment'
-    | 'diminishing-engagement'
-    | 'explicit-closure'
-    | 'satisfaction'
-    | 'user-wrap-up';
-}
-
 export interface ConclusionAssessment {
   conclusionReady: boolean;
   directive?: QualityDirective;
@@ -25,6 +15,16 @@ export interface ConclusionAssessmentInput {
   totalMessageCount: number;
   userMessage: string;
   wrapUpRequested?: boolean;
+}
+
+export interface ConclusionSignal {
+  confidence: number;
+  type:
+    | 'action-commitment'
+    | 'diminishing-engagement'
+    | 'explicit-closure'
+    | 'satisfaction'
+    | 'user-wrap-up';
 }
 
 const ACTION_COMMITMENT_PATTERN =
