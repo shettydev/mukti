@@ -13,32 +13,32 @@ graph TB
         ChatPanel[NodeChatPanel]
         InsightDialog[InsightNodeDialog]
         ExportDialog[ExportCanvasDialog]
-        
+
         ThinkingCanvas --> ChatPanel
         ChatPanel --> InsightDialog
         ThinkingCanvas --> ExportDialog
-        
+
         ChatStore[useChatStore]
         ChatPanel --> ChatStore
-        
+
         DialogueHooks[useNodeDialogue]
         ChatPanel --> DialogueHooks
     end
-    
+
     subgraph Backend ["Backend (mukti-api)"]
         DialogueController[DialogueController]
         DialogueService[DialogueService]
         AIService[AIService]
-        
+
         DialogueSchema[(NodeDialogue)]
         MessageSchema[(DialogueMessage)]
-        
+
         DialogueController --> DialogueService
         DialogueService --> AIService
         DialogueService --> DialogueSchema
         DialogueService --> MessageSchema
     end
-    
+
     DialogueHooks --> DialogueController
 ```
 
@@ -119,12 +119,12 @@ interface ExportOptions {
 interface ChatState {
   // Active dialogue
   activeNodeId: string | null;
-  messages: Map<string, DialogueMessage[]>;  // nodeId -> messages
-  
+  messages: Map<string, DialogueMessage[]>; // nodeId -> messages
+
   // UI state
   panelWidth: number;
   isLoading: boolean;
-  
+
   // Actions
   setActiveNode: (nodeId: string | null) => void;
   addMessage: (nodeId: string, message: DialogueMessage) => void;
@@ -150,25 +150,25 @@ const DEFAULT_PANEL_WIDTH = 400;
 @Schema({ collection: 'node_dialogues', timestamps: true })
 export class NodeDialogue {
   _id: Types.ObjectId;
-  
+
   @Prop({ required: true, ref: 'CanvasSession', index: true })
   sessionId: Types.ObjectId;
-  
+
   @Prop({ required: true, index: true })
-  nodeId: string;  // e.g., 'seed', 'soil-0', 'root-1', 'insight-0'
-  
+  nodeId: string; // e.g., 'seed', 'soil-0', 'root-1', 'insight-0'
+
   @Prop({ required: true, enum: ['seed', 'soil', 'root', 'insight'] })
   nodeType: string;
-  
+
   @Prop({ required: true })
-  nodeLabel: string;  // The node's content for context
-  
+  nodeLabel: string; // The node's content for context
+
   @Prop({ default: 0 })
   messageCount: number;
-  
+
   @Prop({ type: Date })
   lastMessageAt?: Date;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -183,26 +183,26 @@ NodeDialogueSchema.index({ sessionId: 1, nodeId: 1 }, { unique: true });
 @Schema({ collection: 'dialogue_messages', timestamps: true })
 export class DialogueMessage {
   _id: Types.ObjectId;
-  
+
   @Prop({ required: true, ref: 'NodeDialogue', index: true })
   dialogueId: Types.ObjectId;
-  
+
   @Prop({ required: true, enum: ['user', 'assistant'] })
   role: string;
-  
+
   @Prop({ required: true })
   content: string;
-  
+
   @Prop({ default: 0 })
   sequence: number;
-  
+
   @Prop({ type: Object })
   metadata?: {
     tokens?: number;
     model?: string;
     latencyMs?: number;
   };
-  
+
   createdAt: Date;
 }
 
@@ -262,7 +262,7 @@ Context (constraints): ${problemStructure.soil.join(', ')}
 Assumptions being examined: ${problemStructure.roots.join(', ')}`;
 
   const nodeSpecificPrompt = getNodeSpecificPrompt(node);
-  
+
   return `${basePrompt}\n\n${nodeSpecificPrompt}`;
 }
 
@@ -271,21 +271,21 @@ function getNodeSpecificPrompt(node: CanvasNode): string {
     case 'seed':
       return `The user wants to explore the core problem statement: "${node.data.label}"
 Ask questions that help clarify the problem and identify hidden assumptions.`;
-    
+
     case 'soil':
       return `The user is examining a constraint: "${node.data.label}"
 Ask questions that explore whether this constraint is truly fixed or if there's flexibility.
 Challenge whether this is a real limitation or a perceived one.`;
-    
+
     case 'root':
       return `The user is examining an assumption: "${node.data.label}"
 Challenge the validity of this assumption. Ask for evidence.
 Explore what would change if this assumption were false.`;
-    
+
     case 'insight':
       return `The user discovered this insight: "${node.data.label}"
 Help them explore the implications and how it connects to their original problem.`;
-    
+
     default:
       return '';
   }
@@ -299,16 +299,16 @@ function generateInitialQuestion(node: CanvasNode): string {
   switch (node.type) {
     case 'root':
       return `You've identified "${node.data.label}" as an assumption. What evidence do you have that supports this belief? Have you considered what might happen if this assumption were incorrect?`;
-    
+
     case 'soil':
       return `You've noted "${node.data.label}" as a constraint. Is this truly fixed, or might there be ways to work around it? What would change if this constraint didn't exist?`;
-    
+
     case 'seed':
       return `Let's explore your problem: "${node.data.label}". Before we dive in, what do you think is the root cause? What have you already tried?`;
-    
+
     case 'insight':
       return `You've discovered: "${node.data.label}". How does this change your understanding of the original problem? What new questions does this raise?`;
-    
+
     default:
       return `Tell me more about "${node.data.label}". What aspects would you like to explore?`;
   }
@@ -340,18 +340,16 @@ function calculateInsightPosition(
   parentNode: CanvasNode,
   existingInsights: CanvasNode[]
 ): Position {
-  const INSIGHT_OFFSET = 150;  // Distance from parent
-  const ANGLE_SPREAD = Math.PI / 4;  // 45 degrees between insights
-  
+  const INSIGHT_OFFSET = 150; // Distance from parent
+  const ANGLE_SPREAD = Math.PI / 4; // 45 degrees between insights
+
   // Count existing insights for this parent
-  const siblingCount = existingInsights.filter(
-    n => n.data.parentNodeId === parentNode.id
-  ).length;
-  
+  const siblingCount = existingInsights.filter((n) => n.data.parentNodeId === parentNode.id).length;
+
   // Calculate angle (spread below the parent)
-  const baseAngle = Math.PI / 2;  // Start pointing down
+  const baseAngle = Math.PI / 2; // Start pointing down
   const angle = baseAngle + (siblingCount - existingInsights.length / 2) * ANGLE_SPREAD;
-  
+
   return {
     x: parentNode.position.x + Math.cos(angle) * INSIGHT_OFFSET,
     y: parentNode.position.y + Math.sin(angle) * INSIGHT_OFFSET,
@@ -371,33 +369,33 @@ function generateMarkdownExport(
 ): string {
   let markdown = `# Thinking Canvas: ${session.problemStructure.seed}\n\n`;
   markdown += `*Exported on ${new Date().toLocaleDateString()}*\n\n`;
-  
+
   // Problem Structure
   markdown += `## Problem Statement\n${session.problemStructure.seed}\n\n`;
-  
+
   markdown += `## Context & Constraints\n`;
   session.problemStructure.soil.forEach((item, i) => {
     markdown += `- ${item}\n`;
   });
   markdown += '\n';
-  
+
   markdown += `## Assumptions Examined\n`;
   session.problemStructure.roots.forEach((item, i) => {
     markdown += `- ${item}\n`;
   });
   markdown += '\n';
-  
+
   // Dialogues
   if (options.includeDialogues) {
     markdown += `## Dialogue Transcripts\n\n`;
-    
+
     for (const [nodeId, messages] of dialogues) {
       if (messages.length === 0) continue;
-      
+
       markdown += `### ${getNodeLabel(nodeId, session)}\n\n`;
-      
+
       if (options.dialogueDetail === 'full') {
-        messages.forEach(msg => {
+        messages.forEach((msg) => {
           const role = msg.role === 'user' ? '**You**' : '**Mentor**';
           markdown += `${role}: ${msg.content}\n\n`;
         });
@@ -407,57 +405,68 @@ function generateMarkdownExport(
       }
     }
   }
-  
+
   return markdown;
 }
 ```
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property 1: Context-aware prompt construction
-*For any* node type (seed, soil, root, insight), the AI system prompt should include type-specific questioning instructions appropriate to that node type.
+
+_For any_ node type (seed, soil, root, insight), the AI system prompt should include type-specific questioning instructions appropriate to that node type.
 **Validates: Requirements 1.4, 1.5, 2.5**
 
 ### Property 2: AI context inclusion
-*For any* dialogue message sent to the AI, the prompt should include the node's content, the problem structure context, and the conversation history.
+
+_For any_ dialogue message sent to the AI, the prompt should include the node's content, the problem structure context, and the conversation history.
 **Validates: Requirements 1.2, 2.2, 4.3**
 
 ### Property 3: Dialogue history display
-*For any* node with dialogue history, selecting that node should display all messages in chronological order with timestamps.
+
+_For any_ node with dialogue history, selecting that node should display all messages in chronological order with timestamps.
 **Validates: Requirements 4.1, 4.2, 5.3**
 
 ### Property 4: Node switching preserves state
-*For any* sequence of node selections, switching between nodes should preserve each node's dialogue state without data loss.
+
+_For any_ sequence of node selections, switching between nodes should preserve each node's dialogue state without data loss.
 **Validates: Requirements 5.1, 5.2**
 
 ### Property 5: Insight node creation
-*For any* insight node created from dialogue, the node should be positioned relative to its parent node and connected by an edge.
+
+_For any_ insight node created from dialogue, the node should be positioned relative to its parent node and connected by an edge.
 **Validates: Requirements 3.3, 3.4**
 
 ### Property 6: Exploration status tracking
-*For any* canvas session, nodes with dialogue history should display an explored indicator, and completion status should reflect when all Root nodes have been explored.
+
+_For any_ canvas session, nodes with dialogue history should display an explored indicator, and completion status should reflect when all Root nodes have been explored.
 **Validates: Requirements 6.1, 6.2, 6.3**
 
 ### Property 7: Dialogue persistence
-*For any* message sent in a node dialogue, the message should be persisted to the backend with correct node association and retrievable on subsequent loads.
+
+_For any_ message sent in a node dialogue, the message should be persisted to the backend with correct node association and retrievable on subsequent loads.
 **Validates: Requirements 4.4**
 
 ### Property 8: Export completeness
-*For any* canvas export, the output should include all nodes (Seed, Soil, Roots, Insights) and their associated dialogue content based on export options.
+
+_For any_ canvas export, the output should include all nodes (Seed, Soil, Roots, Insights) and their associated dialogue content based on export options.
 **Validates: Requirements 8.2, 8.3**
 
 ### Property 9: Efficient dialogue loading
-*For any* canvas session load, dialogue history should only be fetched when a node is selected (lazy loading), and long histories should be paginated.
+
+_For any_ canvas session load, dialogue history should only be fetched when a node is selected (lazy loading), and long histories should be paginated.
 **Validates: Requirements 9.2, 9.3**
 
 ### Property 10: Panel width constraints
-*For any* panel resize operation, the resulting width should be clamped between MIN_PANEL_WIDTH (320px) and MAX_PANEL_WIDTH (600px).
+
+_For any_ panel resize operation, the resulting width should be clamped between MIN_PANEL_WIDTH (320px) and MAX_PANEL_WIDTH (600px).
 **Validates: Requirements 7.2**
 
 ### Property 11: Panel size preference persistence
-*For any* panel width change, the preference should be persisted and restored on subsequent canvas loads.
+
+_For any_ panel width change, the preference should be persisted and restored on subsequent canvas loads.
 **Validates: Requirements 7.4**
 
 ## Error Handling
@@ -479,10 +488,10 @@ const sendMessage = async (content: string) => {
     sequence: messages.length,
     timestamp: new Date().toISOString(),
   };
-  
+
   // Add optimistically
   addMessage(activeNodeId, optimisticMessage);
-  
+
   try {
     const response = await dialogueApi.sendMessage(sessionId, activeNodeId, { content });
     // Replace optimistic with real message
@@ -504,6 +513,7 @@ const sendMessage = async (content: string) => {
 ## Testing Strategy
 
 ### Property-Based Testing Library
+
 Use **fast-check** for property-based testing. Configure each test to run a minimum of 100 iterations.
 
 ### Unit Tests
@@ -535,7 +545,7 @@ describe('Context-aware prompt construction', () => {
         (nodeType, label) => {
           const node = { type: nodeType, data: { label } };
           const prompt = getNodeSpecificPrompt(node);
-          
+
           // Verify type-specific content
           if (nodeType === 'root') {
             return prompt.includes('assumption') && prompt.includes('evidence');

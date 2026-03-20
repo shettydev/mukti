@@ -23,7 +23,7 @@ export class ConversationService {
   constructor(
     @InjectModel(Conversation.name) private conversationModel: Model<ConversationDocument>,
     private readonly userService: UserService,
-    private readonly logger: LoggerService,
+    private readonly logger: LoggerService
   ) {}
 }
 ```
@@ -180,6 +180,7 @@ Standardize all API responses:
 ### HTTP Status Codes
 
 Use appropriate status codes:
+
 - `200 OK` - Successful GET, PATCH, PUT
 - `201 Created` - Successful POST
 - `204 No Content` - Successful DELETE
@@ -232,6 +233,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {}
 To keep controllers clean and maintainable, create separate Swagger documentation files in the `dto/` folder:
 
 **File Structure:**
+
 ```
 src/modules/users/
 ├── dto/
@@ -305,7 +307,7 @@ export const ApiCreateUser = () =>
           },
         },
       },
-    }),
+    })
   );
 
 /**
@@ -344,7 +346,7 @@ export const ApiGetUserById = () =>
     ApiResponse({
       status: 401,
       description: 'Unauthorized - JWT token missing or invalid',
-    }),
+    })
   );
 
 /**
@@ -401,7 +403,7 @@ export const ApiGetUsers = () =>
           },
         },
       },
-    }),
+    })
   );
 
 /**
@@ -432,7 +434,7 @@ export const ApiUpdateUser = () =>
     ApiResponse({
       status: 403,
       description: 'Forbidden - Cannot update other users',
-    }),
+    })
   );
 
 /**
@@ -461,7 +463,7 @@ export const ApiDeleteUser = () =>
     ApiResponse({
       status: 403,
       description: 'Forbidden - Insufficient permissions',
-    }),
+    })
   );
 ```
 
@@ -498,7 +500,7 @@ export class UserController {
   async findAll(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-    @Query('search') search?: string,
+    @Query('search') search?: string
   ) {
     return this.userService.findAllUsers({ page, limit, search });
   }
@@ -587,7 +589,7 @@ app.useGlobalPipes(
     transformOptions: {
       enableImplicitConversion: true,
     },
-  }),
+  })
 );
 ```
 
@@ -631,6 +633,7 @@ export class ConversationService {
 ### What to Log
 
 **DO log:**
+
 - Service method entry/exit for important operations
 - External API calls and responses
 - Database operations (create, update, delete)
@@ -639,6 +642,7 @@ export class ConversationService {
 - Performance metrics for slow operations
 
 **DON'T log:**
+
 - Sensitive data (passwords, tokens, PII)
 - Full request/response bodies in production
 - Excessive debug info in production
@@ -649,7 +653,7 @@ export class ConversationService {
 
 Document all public APIs with TSDoc comments:
 
-```typescript
+````typescript
 /**
  * Service responsible for managing user conversations and Socratic inquiry sessions.
  * Handles CRUD operations, message management, and conversation analytics.
@@ -690,14 +694,11 @@ export class ConversationService {
    * @returns The conversation if found
    * @throws {NotFoundException} If conversation doesn't exist
    */
-  async findConversationById(
-    id: string,
-    populateUser = false,
-  ): Promise<Conversation> {
+  async findConversationById(id: string, populateUser = false): Promise<Conversation> {
     // Implementation
   }
 }
-```
+````
 
 ### TSDoc Tags
 
@@ -763,17 +764,17 @@ export class ConversationNotFoundException extends NotFoundException {
 async findConversationById(id: string): Promise<Conversation> {
   try {
     const conversation = await this.conversationModel.findById(id);
-    
+
     if (!conversation) {
       throw new ConversationNotFoundException(id);
     }
-    
+
     return conversation;
   } catch (error) {
     if (error instanceof ConversationNotFoundException) {
       throw error;
     }
-    
+
     this.logger.error(`Error finding conversation ${id}: ${error.message}`, error.stack);
     throw new InternalServerErrorException('Failed to retrieve conversation');
   }
@@ -888,7 +889,7 @@ async findConversationsByUserId(
   limit = 20,
 ): Promise<PaginatedResponse<Conversation>> {
   const skip = (page - 1) * limit;
-  
+
   const [conversations, total] = await Promise.all([
     this.conversationModel
       .find({ userId })
@@ -922,6 +923,7 @@ async findConversationsByUserId(
 ### Import Organization
 
 Use perfectionist plugin for automatic import sorting:
+
 1. Type imports
 2. External dependencies
 3. Internal modules
@@ -964,6 +966,7 @@ export default registerAs('database', () => ({
 ### Environment Variables
 
 Required variables in `.env`:
+
 - `NODE_ENV` - Environment (development, production, test)
 - `PORT` - Server port
 - `MONGODB_URI` - Database connection string

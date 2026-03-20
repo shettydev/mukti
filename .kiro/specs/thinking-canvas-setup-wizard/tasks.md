@@ -7,7 +7,7 @@
     - Add userId reference with index
     - Add timestamps
     - _Requirements: 7.2_
-  - [ ]* 1.2 Write property test for problem structure schema
+  - [ ]\* 1.2 Write property test for problem structure schema
     - **Property 9: Problem structure round-trip**
     - **Validates: Requirements 7.2**
     - Test that valid problem structures can be serialized and deserialized correctly
@@ -28,7 +28,7 @@
     - Add validation pipe for DTOs
     - Wire up Swagger documentation
     - _Requirements: 7.1, 7.3_
-  - [ ]* 1.6 Write unit tests for CanvasService
+  - [ ]\* 1.6 Write unit tests for CanvasService
     - Test createSession with valid data
     - Test user association
     - Test findSessionById
@@ -44,19 +44,19 @@
     - Implement rootsItemSchema and rootsSchema (1-8 items, 5-200 chars each)
     - Implement problemStructureSchema combining all
     - _Requirements: 1.2, 1.3, 2.2, 2.4, 3.2, 3.4_
-  - [ ]* 3.2 Write property test for seed validation
+  - [ ]\* 3.2 Write property test for seed validation
     - **Property 1: Seed validation**
     - **Validates: Requirements 1.2, 1.3**
     - Test that validation accepts strings with trimmed length 10-500
-  - [ ]* 3.3 Write property test for item validation
+  - [ ]\* 3.3 Write property test for item validation
     - **Property 2: Item validation**
     - **Validates: Requirements 2.2, 3.2**
     - Test that validation accepts strings with trimmed length 5-200
-  - [ ]* 3.4 Write property test for soil array constraints
+  - [ ]\* 3.4 Write property test for soil array constraints
     - **Property 4: Soil array constraints**
     - **Validates: Requirements 2.4**
     - Test that validation accepts arrays with 0-10 items
-  - [ ]* 3.5 Write property test for roots array constraints
+  - [ ]\* 3.5 Write property test for roots array constraints
     - **Property 5: Roots array constraints**
     - **Validates: Requirements 3.4**
     - Test that validation accepts arrays with 1-8 items
@@ -87,11 +87,11 @@
     - Implement state: seed, soil, roots, currentStep
     - Implement actions: setSeed, addSoilItem, removeSoilItem, addRootsItem, removeRootsItem, setStep, nextStep, prevStep, reset
     - _Requirements: 5.1, 5.2, 5.3_
-  - [ ]* 5.2 Write property test for navigation data preservation
+  - [ ]\* 5.2 Write property test for navigation data preservation
     - **Property 7: Navigation preserves data**
     - **Validates: Requirements 5.2, 5.3**
     - Test that navigating back and forward preserves all entered data
-  - [ ]* 5.3 Write property test for list management
+  - [ ]\* 5.3 Write property test for list management
     - **Property 3: List management consistency**
     - **Validates: Requirements 2.3, 3.3**
     - Test that add/remove operations maintain correct list state
@@ -130,7 +130,7 @@
     - Add Back and Confirm buttons
     - Show loading state during submission
     - _Requirements: 4.1, 4.2, 4.3_
-  - [ ]* 7.5 Write property test for review display
+  - [ ]\* 7.5 Write property test for review display
     - **Property 6: Review displays complete structure**
     - **Validates: Requirements 4.1**
     - Test that all problem structure components are rendered correctly
@@ -149,7 +149,7 @@
     - Handle error: display error message, allow retry
     - Reset wizard state on close
     - _Requirements: 4.3, 4.4, 7.1, 7.4_
-  - [ ]* 8.3 Write property test for problem structure persistence
+  - [ ]\* 8.3 Write property test for problem structure persistence
     - **Property 8: Problem structure persistence**
     - **Validates: Requirements 4.3, 4.4, 7.1, 7.5**
     - Test that API call includes complete structure and user ID

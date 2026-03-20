@@ -38,15 +38,15 @@
     - Implement generateLayout function for radial positioning
     - Implement node ID helper functions (SEED_NODE_ID, getSoilNodeId, getRootNodeId)
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
-  - [ ]* 3.3 Write property test for node generation
+  - [ ]\* 3.3 Write property test for node generation
     - **Property 1: Node generation from problem structure**
     - **Validates: Requirements 1.1, 2.1, 3.1**
     - Test that node count equals 1 + soil.length + roots.length
-  - [ ]* 3.4 Write property test for edge generation
+  - [ ]\* 3.4 Write property test for edge generation
     - **Property 3: Edge generation**
     - **Validates: Requirements 2.4, 3.4**
     - Test that edge count equals soil.length + roots.length
-  - [ ]* 3.5 Write property test for auto-layout grouping
+  - [ ]\* 3.5 Write property test for auto-layout grouping
     - **Property 4: Auto-layout grouping**
     - **Validates: Requirements 6.2, 6.3, 6.4, 6.5, 2.2, 3.2**
     - Test Seed at center, Soil in left hemisphere, Roots in right hemisphere, minimum spacing
@@ -57,7 +57,7 @@
     - Implement truncateText function with configurable threshold
     - Export SEED_TRUNCATE_LENGTH (100) and SATELLITE_TRUNCATE_LENGTH (50) constants
     - _Requirements: 1.4, 2.5, 3.5_
-  - [ ]* 4.2 Write property test for text truncation
+  - [ ]\* 4.2 Write property test for text truncation
     - **Property 2: Text truncation at thresholds**
     - **Validates: Requirements 1.4, 2.5, 3.5**
     - Test truncation behavior at specified thresholds
@@ -88,7 +88,7 @@
     - Create `packages/mukti-web/src/components/canvas/nodes/index.ts`
     - Export all node components and nodeTypes map for React Flow
     - _Requirements: N/A (code organization)_
-  - [ ]* 5.5 Write property test for exploration status indicator
+  - [ ]\* 5.5 Write property test for exploration status indicator
     - **Property 9: Exploration status indicator**
     - **Validates: Requirements 8.4**
     - Test that explored nodes display visual indicator
@@ -123,11 +123,11 @@
     - Implement selectNode, updateNodePosition, setViewport actions
     - Implement initializeFromSession to generate layout from session
     - _Requirements: 5.1, 5.2, 5.3, 7.1, 7.3_
-  - [ ]* 7.2 Write property test for single selection invariant
+  - [ ]\* 7.2 Write property test for single selection invariant
     - **Property 5: Single selection invariant**
     - **Validates: Requirements 5.1, 5.2, 5.3**
     - Test that at most one node is selected at any time
-  - [ ]* 7.3 Write property test for zoom constraints
+  - [ ]\* 7.3 Write property test for zoom constraints
     - **Property 6: Zoom constraints**
     - **Validates: Requirements 4.3**
     - Test that zoom is clamped between 0.25 and 2.0
@@ -165,7 +165,7 @@
     - Add useCanvasSession query hook
     - Add useUpdateCanvasSession mutation hook
     - _Requirements: 10.2, 7.3_
-  - [ ]* 10.4 Write property test for position persistence round-trip
+  - [ ]\* 10.4 Write property test for position persistence round-trip
     - **Property 7: Position persistence round-trip**
     - **Validates: Requirements 7.3**
     - Test that saved positions are restored correctly
@@ -186,11 +186,11 @@
     - Create `packages/mukti-web/src/app/dashboard/canvas/[id]/not-found.tsx`
     - Display friendly message with link to canvas listing page (`/dashboard/canvas`)
     - _Requirements: 10.3_
-  - [ ]* 11.4 Write property test for canvas data loading
+  - [ ]\* 11.4 Write property test for canvas data loading
     - **Property 10: Canvas data loading**
     - **Validates: Requirements 10.2**
     - Test that correct session data is loaded for route
-  - [ ]* 11.5 Write property test for authorization enforcement
+  - [ ]\* 11.5 Write property test for authorization enforcement
     - **Property 11: Authorization enforcement**
     - **Validates: Requirements 10.5**
     - Test that users can only view their own sessions

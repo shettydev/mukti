@@ -5,6 +5,7 @@
 This design implements Server-Sent Events (SSE) to enable real-time message delivery in the Mukti conversation system. The solution addresses the current limitation where users must manually reload the page to see AI responses after sending messages.
 
 The implementation consists of three main components:
+
 1. **Backend SSE Endpoint**: A NestJS controller endpoint that establishes and maintains SSE connections
 2. **Event Emission System**: Integration with the BullMQ queue service to emit events when messages are processed
 3. **Frontend SSE Client**: A React hook that manages SSE connections and updates the UI in real-time
@@ -74,22 +75,26 @@ Frontend: Receives events and updates UI in real-time
 The system will implement multiple loading states to provide clear feedback during message processing:
 
 #### 1. Initial Loading State (0-1 seconds)
+
 - Display a message bubble with AI avatar
 - Show animated dots (three dots that pulse in sequence)
 - Text: "AI is thinking..."
 - Subtle fade-in animation (200ms)
 
 #### 2. Processing State (1-5 seconds)
+
 - Continue showing animated dots
 - Update text: "Generating response..."
 - Add subtle pulsing effect to the message bubble border
 
 #### 3. Extended Processing State (5+ seconds)
+
 - Update text: "Still working on it..."
 - Show queue position if available: "You're #2 in queue"
 - Add progress indicator or estimated time if available
 
 #### 4. Response Arrival
+
 - Smooth transition from loading state to actual message (300ms fade)
 - Brief highlight effect on new message (subtle glow that fades over 1 second)
 - Auto-scroll to new message if user is at bottom
@@ -97,6 +102,7 @@ The system will implement multiple loading states to provide clear feedback duri
 ### Visual Design Elements
 
 #### Loading Message Bubble
+
 ```
 ┌─────────────────────────────────────┐
 │  [AI Avatar]  AI is thinking...     │
@@ -106,6 +112,7 @@ The system will implement multiple loading states to provide clear feedback duri
 ```
 
 **Styling:**
+
 - Background: Slightly different shade from regular messages (e.g., `bg-muted/50`)
 - Border: Subtle animated border or glow effect
 - Padding: Same as regular messages for consistency
@@ -113,6 +120,7 @@ The system will implement multiple loading states to provide clear feedback duri
 - Animation: Pulsing opacity on dots (0.3s interval per dot)
 
 #### Typing Indicator Animation
+
 ```typescript
 // Three dots that pulse in sequence
 const TypingIndicator = () => (
@@ -125,6 +133,7 @@ const TypingIndicator = () => (
 ```
 
 #### Status Text Progression
+
 1. **0-1s**: "AI is thinking..."
 2. **1-5s**: "Generating response..."
 3. **5-10s**: "Still working on it..."
@@ -133,35 +142,60 @@ const TypingIndicator = () => (
 ### Animation Specifications
 
 #### Fade-In Animation
+
 ```css
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 ```
 
 #### Pulse Animation (for dots)
+
 ```css
 @keyframes pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 ```
 
 #### Shimmer Animation (for skeleton loader)
+
 ```css
 @keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
 }
 ```
 
 #### Highlight Animation (for new message)
+
 ```css
 @keyframes highlight {
-  0% { box-shadow: 0 0 0 0 rgba(var(--primary), 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(var(--primary), 0.1); }
-  100% { box-shadow: 0 0 0 0 rgba(var(--primary), 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--primary), 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(var(--primary), 0.1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--primary), 0);
+  }
 }
 ```
 
@@ -213,19 +247,24 @@ interface StreamConnection {
 class StreamService {
   // Store active connections
   private connections: Map<string, StreamConnection[]>;
-  
+
   // Add a new SSE connection
-  addConnection(conversationId: string, userId: string, response: Response, controller: ReadableStreamDefaultController): void;
-  
+  addConnection(
+    conversationId: string,
+    userId: string,
+    response: Response,
+    controller: ReadableStreamDefaultController
+  ): void;
+
   // Remove a connection when client disconnects
   removeConnection(conversationId: string, userId: string): void;
-  
+
   // Emit event to all connections for a conversation
   emitToConversation(conversationId: string, event: StreamEvent): void;
-  
+
   // Emit event to specific user's connection
   emitToUser(conversationId: string, userId: string, event: StreamEvent): void;
-  
+
   // Clean up all connections for a conversation
   cleanupConversation(conversationId: string): void;
 }
@@ -239,10 +278,10 @@ Add a new SSE endpoint to the existing controller.
 @Controller('conversations')
 export class ConversationController {
   // Existing methods...
-  
+
   /**
    * Establishes SSE connection for real-time conversation updates
-   * 
+   *
    * @param id - Conversation ID
    * @param req - Request with authenticated user
    * @returns SSE stream
@@ -269,39 +308,39 @@ Modify the existing queue service to emit events through StreamService.
 export class QueueService extends WorkerHost {
   constructor(
     // Existing dependencies...
-    private readonly streamService: StreamService,
+    private readonly streamService: StreamService
   ) {}
-  
+
   async process(job: Job<ConversationRequestJobData>): Promise<ConversationRequestJobResult> {
     const { conversationId, userId } = job.data;
-    
+
     try {
       // Emit processing started event
       this.streamService.emitToConversation(conversationId, {
         type: 'processing',
-        data: { jobId: job.id, status: 'started' }
+        data: { jobId: job.id, status: 'started' },
       });
-      
+
       // Existing processing logic...
-      
+
       // Emit message received event
       this.streamService.emitToConversation(conversationId, {
         type: 'message',
-        data: { role: 'assistant', content: response.content, timestamp: new Date() }
+        data: { role: 'assistant', content: response.content, timestamp: new Date() },
       });
-      
+
       // Emit completion event
       this.streamService.emitToConversation(conversationId, {
         type: 'complete',
-        data: { jobId: job.id, tokens: response.totalTokens, cost: response.cost }
+        data: { jobId: job.id, tokens: response.totalTokens, cost: response.cost },
       });
-      
+
       return result;
     } catch (error) {
       // Emit error event
       this.streamService.emitToConversation(conversationId, {
         type: 'error',
-        data: { message: error.message, retriable: true }
+        data: { message: error.message, retriable: true },
       });
       throw error;
     }
@@ -333,57 +372,54 @@ function useConversationStream(options: UseConversationStreamOptions) {
   const [error, setError] = useState<Error | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const queryClient = useQueryClient();
-  
+
   useEffect(() => {
     if (!options.enabled) return;
-    
+
     // Establish SSE connection
     const eventSource = new EventSource(
       `${API_URL}/conversations/${options.conversationId}/stream`,
       { withCredentials: true }
     );
-    
+
     // Handle connection open
     eventSource.onopen = () => {
       setIsConnected(true);
       setError(null);
     };
-    
+
     // Handle messages
     eventSource.addEventListener('message', (e) => {
       const event: StreamEvent = JSON.parse(e.data);
-      
+
       // Update TanStack Query cache
       if (event.type === 'message') {
-        queryClient.setQueryData(
-          conversationKeys.detail(options.conversationId),
-          (old) => {
-            // Add new message to conversation
-          }
-        );
+        queryClient.setQueryData(conversationKeys.detail(options.conversationId), (old) => {
+          // Add new message to conversation
+        });
       }
-      
+
       // Call custom handler
       options.onMessage?.(event);
     });
-    
+
     // Handle errors
     eventSource.onerror = (error) => {
       setIsConnected(false);
       setError(new Error('SSE connection failed'));
       options.onError?.(error);
-      
+
       // Attempt reconnection with exponential backoff
     };
-    
+
     eventSourceRef.current = eventSource;
-    
+
     // Cleanup on unmount
     return () => {
       eventSource.close();
     };
   }, [options.conversationId, options.enabled]);
-  
+
   return { isConnected, error };
 }
 ```
@@ -403,7 +439,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     isProcessing: false,
     status: '',
   });
-  
+
   // Establish SSE connection
   const { isConnected } = useConversationStream({
     conversationId,
@@ -429,9 +465,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     },
     onError: (error) => {
       console.error('Stream error:', error);
-    }
+    },
   });
-  
+
   // Existing component logic...
 }
 ```
@@ -454,15 +490,15 @@ export function LoadingMessage({ status, queuePosition, duration = 0 }: LoadingM
       return 'This is taking longer than usual. Your response will arrive shortly.';
     }
     if (duration > 5) {
-      return queuePosition 
+      return queuePosition
         ? `Still working on it... You're #${queuePosition} in queue`
         : 'Still working on it...';
     }
     return status;
   }, [status, queuePosition, duration]);
-  
+
   return (
-    <div 
+    <div
       className="flex items-start gap-3 animate-fade-in"
       role="status"
       aria-live="polite"
@@ -475,7 +511,7 @@ export function LoadingMessage({ status, queuePosition, duration = 0 }: LoadingM
         </div>
         <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
       </div>
-      
+
       {/* Loading message bubble */}
       <div className="flex-1 max-w-[80%]">
         <div className="rounded-lg bg-muted/50 border border-muted px-4 py-3 animate-pulse-border">
@@ -582,54 +618,66 @@ data: {"type":"complete","data":{"jobId":"123","tokens":200,"cost":0.0004},"time
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property 1: Connection Ownership
-*For any* SSE connection request, the system should only establish a connection if the requesting user owns the conversation
+
+_For any_ SSE connection request, the system should only establish a connection if the requesting user owns the conversation
 **Validates: Requirements 4.2**
 
 ### Property 2: Event Delivery Order
-*For any* sequence of events emitted for a conversation, all connected clients should receive events in the same order they were emitted
+
+_For any_ sequence of events emitted for a conversation, all connected clients should receive events in the same order they were emitted
 **Validates: Requirements 5.5**
 
 ### Property 3: Connection Cleanup
-*For any* SSE connection that is closed (by client or server), the system should remove the connection from the active connections map and release all associated resources
+
+_For any_ SSE connection that is closed (by client or server), the system should remove the connection from the active connections map and release all associated resources
 **Validates: Requirements 2.4**
 
 ### Property 4: Message Persistence
-*For any* message event emitted through SSE, the message should also be persisted in the database before the event is sent
+
+_For any_ message event emitted through SSE, the message should also be persisted in the database before the event is sent
 **Validates: Requirements 1.3**
 
 ### Property 5: Reconnection Idempotency
-*For any* SSE reconnection attempt, re-establishing the connection should not cause duplicate message delivery or state inconsistency
+
+_For any_ SSE reconnection attempt, re-establishing the connection should not cause duplicate message delivery or state inconsistency
 **Validates: Requirements 1.5, 7.2**
 
 ### Property 6: Authentication Validation
-*For any* SSE connection attempt, the system should validate the authentication token before establishing the connection
+
+_For any_ SSE connection attempt, the system should validate the authentication token before establishing the connection
 **Validates: Requirements 4.1**
 
 ### Property 7: Error Event Emission
-*For any* error that occurs during message processing, the system should emit an error event through the SSE stream before throwing the error
+
+_For any_ error that occurs during message processing, the system should emit an error event through the SSE stream before throwing the error
 **Validates: Requirements 7.4**
 
 ### Property 8: Auto-scroll Preservation
-*For any* new message received via SSE, if the user is scrolled to the bottom, the system should auto-scroll to show the new message; otherwise, it should preserve the current scroll position
+
+_For any_ new message received via SSE, if the user is scrolled to the bottom, the system should auto-scroll to show the new message; otherwise, it should preserve the current scroll position
 **Validates: Requirements 6.1, 6.2**
 
 ### Property 9: Multiple Connection Support
-*For any* conversation, the system should support multiple concurrent SSE connections from different clients without event duplication or loss
+
+_For any_ conversation, the system should support multiple concurrent SSE connections from different clients without event duplication or loss
 **Validates: Requirements 2.5**
 
 ### Property 10: Stream Closure on Navigation
-*For any* SSE connection, when the user navigates away from the conversation, the connection should be closed and cleaned up
+
+_For any_ SSE connection, when the user navigates away from the conversation, the connection should be closed and cleaned up
 **Validates: Requirements 1.4**
 
 ### Property 11: Loading State Visibility
-*For any* message processing event, the LoadingMessage component should be visible in the UI until a "complete" or "error" event is received
+
+_For any_ message processing event, the LoadingMessage component should be visible in the UI until a "complete" or "error" event is received
 **Validates: Requirements 3.1, 3.2, 3.3, 3.4**
 
 ### Property 12: Status Text Progression
-*For any* loading state that persists for more than 5 seconds, the status text should update to provide progressive feedback to the user
+
+_For any_ loading state that persists for more than 5 seconds, the status text should update to provide progressive feedback to the user
 **Validates: Requirements 3.8, 9.8**
 
 ## Error Handling
@@ -668,10 +716,11 @@ data: {"type":"complete","data":{"jobId":"123","tokens":200,"cost":0.0004},"time
    - Rate limit → Show banner, pause reconnection
 
 3. **Reconnection Logic**
+
    ```typescript
    const MAX_RETRIES = 5;
    const BASE_DELAY = 1000;
-   
+
    function calculateBackoff(attempt: number): number {
      return Math.min(BASE_DELAY * Math.pow(2, attempt), 30000);
    }
@@ -820,10 +869,7 @@ import { map } from 'rxjs/operators';
 @Controller('conversations')
 export class ConversationController {
   @Sse(':id/stream')
-  streamConversation(
-    @Param('id') id: string,
-    @Request() req: any
-  ): Observable<MessageEvent> {
+  streamConversation(@Param('id') id: string, @Request() req: any): Observable<MessageEvent> {
     // Return an observable that emits SSE events
     return this.streamService.getConversationStream(id, req.user.id);
   }
@@ -836,7 +882,7 @@ The browser's native EventSource API handles SSE connections:
 
 ```typescript
 const eventSource = new EventSource(url, {
-  withCredentials: true // Include cookies for authentication
+  withCredentials: true, // Include cookies for authentication
 });
 
 eventSource.addEventListener('message', (event) => {

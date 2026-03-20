@@ -10,36 +10,36 @@ The Canvas Node Management feature extends the Thinking Canvas with persistent d
 graph TB
     subgraph Frontend ["Frontend (mukti-web)"]
         ThinkingCanvas[ThinkingCanvas]
-        
+
         subgraph Dialogs ["Node Dialogs"]
             AddAssumptionDialog[AddAssumptionDialog]
             AddContextDialog[AddContextDialog]
             LinkConstraintDialog[LinkConstraintDialog]
             DeleteNodeDialog[DeleteNodeDialog]
         end
-        
+
         subgraph Store ["State Management"]
             CanvasStore[useCanvasStore]
         end
-        
+
         ThinkingCanvas --> Dialogs
         ThinkingCanvas --> CanvasStore
     end
-    
+
     subgraph Backend ["Backend (mukti-api)"]
         CanvasController[CanvasController]
         CanvasService[CanvasService]
-        
+
         subgraph Schemas ["Data Schemas"]
             CanvasSession[(CanvasSession)]
             InsightNode[(InsightNode)]
         end
-        
+
         CanvasController --> CanvasService
         CanvasService --> CanvasSession
         CanvasService --> InsightNode
     end
-    
+
     CanvasStore --> CanvasController
 ```
 
@@ -53,25 +53,25 @@ graph TB
 @Schema({ collection: 'insight_nodes', timestamps: true })
 export class InsightNode {
   _id: Types.ObjectId;
-  
+
   @Prop({ required: true, ref: 'CanvasSession', index: true })
   sessionId: Types.ObjectId;
-  
+
   @Prop({ required: true })
-  nodeId: string;  // e.g., 'insight-0', 'insight-1'
-  
+  nodeId: string; // e.g., 'insight-0', 'insight-1'
+
   @Prop({ required: true })
   label: string;
-  
+
   @Prop({ required: true })
-  parentNodeId: string;  // e.g., 'root-0', 'soil-1'
-  
+  parentNodeId: string; // e.g., 'root-0', 'soil-1'
+
   @Prop({ type: { x: Number, y: Number } })
   position: { x: number; y: number };
-  
+
   @Prop({ default: false })
   isExplored: boolean;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,13 +112,13 @@ export class CreateInsightNodeDto {
   @MinLength(5)
   @MaxLength(200)
   label: string;
-  
+
   @IsString()
   parentNodeId: string;
-  
+
   @IsNumber()
   x: number;
-  
+
   @IsNumber()
   y: number;
 }
@@ -152,11 +152,11 @@ export class AddContextDto {
 export class CreateRelationshipDto {
   @IsString()
   @Matches(/^root-\d+$/)
-  sourceNodeId: string;  // Must be a root node
-  
+  sourceNodeId: string; // Must be a root node
+
   @IsString()
   @Matches(/^soil-\d+$/)
-  targetNodeId: string;  // Must be a soil node
+  targetNodeId: string; // Must be a soil node
 }
 ```
 
@@ -166,10 +166,10 @@ export class CreateRelationshipDto {
 export class DeleteNodeDto {
   @IsString()
   nodeId: string;
-  
+
   @IsBoolean()
   @IsOptional()
-  deleteDependents?: boolean;  // Whether to delete child insights
+  deleteDependents?: boolean; // Whether to delete child insights
 }
 ```
 
@@ -201,8 +201,8 @@ interface AddAssumptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (assumption: string) => void;
-  currentCount: number;  // For showing limit
-  maxCount: number;      // 8
+  currentCount: number; // For showing limit
+  maxCount: number; // 8
 }
 ```
 
@@ -214,7 +214,7 @@ interface AddContextDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (context: string) => void;
   currentCount: number;
-  maxCount: number;  // 10
+  maxCount: number; // 10
 }
 ```
 
@@ -224,9 +224,9 @@ interface AddContextDialogProps {
 interface LinkConstraintDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  sourceNode: CanvasNode;  // The assumption being linked
-  availableConstraints: CanvasNode[];  // Soil nodes
-  existingLinks: string[];  // Already linked constraint IDs
+  sourceNode: CanvasNode; // The assumption being linked
+  availableConstraints: CanvasNode[]; // Soil nodes
+  existingLinks: string[]; // Already linked constraint IDs
   onConfirm: (constraintNodeId: string) => void;
 }
 ```
@@ -238,7 +238,7 @@ interface DeleteNodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   node: CanvasNode;
-  dependentNodes: CanvasNode[];  // Child insights that will be deleted
+  dependentNodes: CanvasNode[]; // Child insights that will be deleted
   onConfirm: (deleteDependents: boolean) => void;
 }
 ```
@@ -248,18 +248,18 @@ interface DeleteNodeDialogProps {
 ```typescript
 interface CanvasState {
   // Existing state...
-  
+
   // New state
   relationshipEdges: RelationshipEdge[];
   dynamicNodeIds: string[];
-  
+
   // New actions
   addAssumption: (label: string) => Promise<string | null>;
   addContext: (label: string) => Promise<string | null>;
   createRelationship: (sourceNodeId: string, targetNodeId: string) => Promise<string | null>;
   deleteNode: (nodeId: string, deleteDependents?: boolean) => Promise<boolean>;
   deleteRelationship: (relationshipId: string) => Promise<boolean>;
-  
+
   // Helpers
   canDeleteNode: (nodeId: string) => boolean;
   getNodeRelationships: (nodeId: string) => RelationshipEdge[];
@@ -293,70 +293,83 @@ interface CanvasEdge extends Edge {
 interface NodeDeletionRules {
   // Cannot delete
   seed: false;
-  originalRoots: false;  // Roots from initial setup
-  originalSoil: false;   // Soil from initial setup
-  
+  originalRoots: false; // Roots from initial setup
+  originalSoil: false; // Soil from initial setup
+
   // Can delete
-  dynamicRoots: true;    // Roots added after setup
-  dynamicSoil: true;     // Soil added after setup
-  insights: true;        // All insight nodes
+  dynamicRoots: true; // Roots added after setup
+  dynamicSoil: true; // Soil added after setup
+  insights: true; // All insight nodes
 }
 ```
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property 1: Insight node persistence round-trip
-*For any* insight node created with a valid parent node, saving and reloading the canvas session should restore the insight node with the same label, parent node ID, and position.
+
+_For any_ insight node created with a valid parent node, saving and reloading the canvas session should restore the insight node with the same label, parent node ID, and position.
 **Validates: Requirements 1.1, 1.2, 1.3**
 
 ### Property 2: Insight edge creation
-*For any* insight node, there should exist exactly one edge connecting it to its parent node.
+
+_For any_ insight node, there should exist exactly one edge connecting it to its parent node.
 **Validates: Requirements 1.4**
 
 ### Property 3: Parent node validation
-*For any* attempt to create an insight node with a non-existent parent node ID, the system should reject the creation with an error.
+
+_For any_ attempt to create an insight node with a non-existent parent node ID, the system should reject the creation with an error.
 **Validates: Requirements 1.5**
 
 ### Property 4: Dynamic node connection to seed
-*For any* dynamically created assumption or context node, there should exist exactly one edge connecting it to the Seed node.
+
+_For any_ dynamically created assumption or context node, there should exist exactly one edge connecting it to the Seed node.
 **Validates: Requirements 2.3, 5.3**
 
 ### Property 5: Dynamic node positioning
-*For any* dynamically created assumption node, its position should fall within the Root node arc (right hemisphere). *For any* dynamically created context node, its position should fall within the Soil node arc (left hemisphere).
+
+_For any_ dynamically created assumption node, its position should fall within the Root node arc (right hemisphere). _For any_ dynamically created context node, its position should fall within the Soil node arc (left hemisphere).
 **Validates: Requirements 2.4, 5.4**
 
 ### Property 6: Dynamic node persistence
-*For any* dynamically created assumption, it should appear in problemStructure.roots after persistence. *For any* dynamically created context, it should appear in problemStructure.soil after persistence.
+
+_For any_ dynamically created assumption, it should appear in problemStructure.roots after persistence. _For any_ dynamically created context, it should appear in problemStructure.soil after persistence.
 **Validates: Requirements 2.5, 5.5**
 
 ### Property 7: Node count limits
-*For any* canvas session, the total number of assumptions (roots) should not exceed 8, and the total number of context items (soil) should not exceed 10.
+
+_For any_ canvas session, the total number of assumptions (roots) should not exceed 8, and the total number of context items (soil) should not exceed 10.
 **Validates: Requirements 2.6, 5.6**
 
 ### Property 8: Relationship edge creation
-*For any* relationship created between an assumption and a constraint, there should exist a dashed edge connecting the two nodes, and the relationship should be persisted to the backend.
+
+_For any_ relationship created between an assumption and a constraint, there should exist a dashed edge connecting the two nodes, and the relationship should be persisted to the backend.
 **Validates: Requirements 3.3, 3.4, 3.5**
 
 ### Property 9: Multiple relationships to same constraint
-*For any* constraint node, multiple assumption nodes should be able to link to it, and all relationships should be preserved.
+
+_For any_ constraint node, multiple assumption nodes should be able to link to it, and all relationships should be preserved.
 **Validates: Requirements 3.6**
 
 ### Property 10: Relationship count indicator
-*For any* node with N relationships, the node should display an indicator showing the count N.
+
+_For any_ node with N relationships, the node should display an indicator showing the count N.
 **Validates: Requirements 4.4**
 
 ### Property 11: Original node deletion protection
-*For any* node that was part of the original setup (seed, original roots, original soil), the system should prevent deletion.
+
+_For any_ node that was part of the original setup (seed, original roots, original soil), the system should prevent deletion.
 **Validates: Requirements 6.2**
 
 ### Property 12: Edge cleanup on deletion
-*For any* node deletion, all edges connected to that node (both structural and relationship) should be removed.
+
+_For any_ node deletion, all edges connected to that node (both structural and relationship) should be removed.
 **Validates: Requirements 6.3**
 
 ### Property 13: Deletion persistence
-*For any* node deletion, the node should not appear when the canvas session is reloaded.
+
+_For any_ node deletion, the node should not appear when the canvas session is reloaded.
 **Validates: Requirements 6.5**
 
 ## Error Handling
@@ -373,21 +386,21 @@ interface NodeDeletionRules {
 const addAssumption = async (label: string) => {
   const tempId = `root-${Date.now()}`;
   const tempNode = createTempAssumptionNode(tempId, label);
-  
+
   // Optimistic add
-  set(state => ({ nodes: [...state.nodes, tempNode] }));
-  
+  set((state) => ({ nodes: [...state.nodes, tempNode] }));
+
   try {
     const result = await canvasApi.addAssumption(sessionId, { assumption: label });
     // Replace temp with real node
-    set(state => ({
-      nodes: state.nodes.map(n => n.id === tempId ? result.node : n)
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.id === tempId ? result.node : n)),
     }));
     return result.nodeId;
   } catch (error) {
     // Rollback
-    set(state => ({
-      nodes: state.nodes.filter(n => n.id !== tempId)
+    set((state) => ({
+      nodes: state.nodes.filter((n) => n.id !== tempId),
     }));
     throw error;
   }
@@ -405,6 +418,7 @@ const addAssumption = async (label: string) => {
 ## Testing Strategy
 
 ### Property-Based Testing Library
+
 Use **fast-check** for property-based testing. Configure each test to run a minimum of 100 iterations.
 
 ### Unit Tests
@@ -444,14 +458,14 @@ describe('Insight node persistence', () => {
         async (insightData) => {
           // Create insight
           const created = await canvasApi.createInsight(sessionId, insightData);
-          
+
           // Reload session
           const session = await canvasApi.getSession(sessionId);
           const insights = await canvasApi.getInsights(sessionId);
-          
+
           // Find the created insight
-          const found = insights.find(i => i.nodeId === created.nodeId);
-          
+          const found = insights.find((i) => i.nodeId === created.nodeId);
+
           return (
             found !== undefined &&
             found.label === insightData.label &&

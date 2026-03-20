@@ -49,7 +49,6 @@ The conversation backend follows a layered architecture with clear separation of
 └─────────────────────────────────────────────────────────────┘
 ```
 
-
 ### Request Flow
 
 The system implements an asynchronous request processing flow:
@@ -89,7 +88,7 @@ sequenceDiagram
         RateLimit->>Queue: Enqueue request
         Queue-->>API: Request ID & position
         API-->>User: 202 Accepted
-        
+
         Worker->>Queue: Poll for requests
         Queue-->>Worker: Next request
         Worker->>DB: Load conversation & technique
@@ -104,12 +103,12 @@ sequenceDiagram
 
 ## Components and Interfaces
 
-
 ### ConversationController
 
 REST API endpoints for conversation management.
 
 **Endpoints:**
+
 - `POST /conversations` - Create new conversation
 - `GET /conversations` - List user's conversations with filtering/sorting
 - `GET /conversations/:id` - Get conversation by ID
@@ -119,6 +118,7 @@ REST API endpoints for conversation management.
 - `GET /conversations/:id/messages/archived` - Get archived messages
 
 **Responsibilities:**
+
 - Request validation using DTOs
 - Authentication via JWT guards
 - Authorization (ownership verification)
@@ -130,6 +130,7 @@ REST API endpoints for conversation management.
 Core business logic for conversation operations.
 
 **Methods:**
+
 - `createConversation(userId, dto)` - Create new conversation
 - `findConversationById(id, userId)` - Retrieve conversation with ownership check
 - `findUserConversations(userId, filters, pagination)` - List conversations with filtering
@@ -138,6 +139,7 @@ Core business logic for conversation operations.
 - `validateOwnership(conversationId, userId)` - Check user owns conversation
 
 **Responsibilities:**
+
 - Conversation CRUD operations
 - Ownership validation
 - Business rule enforcement
@@ -148,23 +150,25 @@ Core business logic for conversation operations.
 Handles message operations and archival logic.
 
 **Methods:**
+
 - `addMessageToConversation(conversationId, message)` - Append message to conversation
 - `archiveOldMessages(conversationId)` - Move messages to ArchivedMessage collection
 - `getArchivedMessages(conversationId, pagination)` - Retrieve archived messages
 - `buildConversationContext(conversation)` - Prepare context for AI prompt
 
 **Responsibilities:**
+
 - Message appending with 50-message limit
 - Automatic archival when threshold exceeded
 - Metadata updates (tokens, cost, timestamps)
 - Context preparation for AI calls
-
 
 ### OpenRouterService
 
 Integration with OpenRouter API for AI model access.
 
 **Methods:**
+
 - `sendChatCompletion(messages, model, technique)` - Send request to OpenRouter
 - `buildPrompt(technique, conversationHistory, userMessage)` - Construct AI prompt
 - `parseResponse(response)` - Extract content, tokens, and cost
@@ -172,6 +176,7 @@ Integration with OpenRouter API for AI model access.
 - `selectModel(subscriptionTier)` - Choose model based on user tier
 
 **Configuration:**
+
 - API Key: From environment variable `OPENROUTER_API_KEY`
 - Base URL: `https://openrouter.ai/api/v1`
 - Models: Free tier uses `openai/gpt-5-mini`, paid tier uses `openai/gpt-5.1`
@@ -179,6 +184,7 @@ Integration with OpenRouter API for AI model access.
 - Retry: Exponential backoff with max 3 retries
 
 **Responsibilities:**
+
 - HTTP client for OpenRouter API
 - Prompt engineering with technique templates
 - Response parsing and validation
@@ -190,12 +196,14 @@ Integration with OpenRouter API for AI model access.
 Asynchronous request processing using BullMQ with Redis backend.
 
 **Methods:**
+
 - `enqueueRequest(userId, conversationId, message, priority)` - Add job to BullMQ queue
 - `processRequest(job)` - Execute request processing workflow (worker processor)
 - `getJobStatus(jobId)` - Get current job status and progress
 - `getQueueMetrics()` - Get queue statistics (waiting, active, completed, failed)
 
 **BullMQ Configuration:**
+
 - Queue name: `conversation-requests`
 - Redis connection: From environment variables
 - Priority levels: 1-10 (higher = more priority)
@@ -207,11 +215,13 @@ Asynchronous request processing using BullMQ with Redis backend.
   - Remove on fail: After 7 days
 
 **Queue Priority:**
+
 - Paid tier: Priority 10
 - Free tier: Priority 1
 - FIFO within same priority level
 
 **Responsibilities:**
+
 - BullMQ queue initialization and configuration
 - Job enqueueing with priority
 - Worker processor implementation
@@ -219,12 +229,12 @@ Asynchronous request processing using BullMQ with Redis backend.
 - Job status tracking
 - Queue monitoring and metrics
 
-
 ### UsageTrackingService
 
 Analytics and billing event tracking.
 
 **Methods:**
+
 - `logQuestionEvent(userId, conversationId, metadata)` - Record question event
 - `updateSubscriptionUsage(userId, tokens, cost)` - Increment usage counters
 - `resetDailyUsage(userId)` - Reset daily counters
@@ -232,6 +242,7 @@ Analytics and billing event tracking.
 - `getUserUsageStats(userId, dateRange)` - Get usage statistics
 
 **Event Metadata:**
+
 - Event type: QUESTION
 - Tokens: prompt + completion
 - Cost: Calculated from token usage
@@ -241,6 +252,7 @@ Analytics and billing event tracking.
 - Conversation ID: Associated conversation
 
 **Responsibilities:**
+
 - Usage event logging
 - Subscription counter updates
 - Time-based resets
@@ -251,20 +263,24 @@ Analytics and billing event tracking.
 Quota enforcement and anti-spam protection.
 
 **Methods:**
+
 - `checkRateLimit(userId)` - Verify user within quotas
 - `consumeQuota(userId)` - Decrement available requests
 - `getRemainingQuota(userId)` - Get current quota status
 - `getResetTime(userId, window)` - Calculate next reset time
 
 **Rate Limit Windows:**
+
 - Hourly: Rolling 1-hour window
 - Daily: Calendar day (resets at midnight UTC)
 
 **Tier Limits:**
+
 - Free: 10/hour, 50/day
 - Paid: 100/hour, 500/day
 
 **Responsibilities:**
+
 - Quota checking before request processing
 - Counter management
 - Reset time calculation
@@ -272,12 +288,12 @@ Quota enforcement and anti-spam protection.
 
 ## Data Models
 
-
 ### Conversation Model
 
 Primary document for storing conversation state.
 
 **Fields:**
+
 - `_id`: ObjectId - Unique identifier
 - `userId`: ObjectId - Owner reference
 - `title`: String - Conversation title
@@ -300,6 +316,7 @@ Primary document for storing conversation state.
 - `updatedAt`: Date - Last update timestamp
 
 **Indexes:**
+
 - `{ userId: 1, updatedAt: -1 }` - User's conversations sorted by update
 - `{ userId: 1, createdAt: -1 }` - User's conversations sorted by creation
 - `{ userId: 1, isFavorite: 1, updatedAt: -1 }` - Favorite conversations
@@ -312,6 +329,7 @@ Primary document for storing conversation state.
 Scalable storage for conversation history beyond 50 messages.
 
 **Fields:**
+
 - `_id`: ObjectId - Unique identifier
 - `conversationId`: ObjectId - Parent conversation
 - `role`: String - Message role (user/assistant/system)
@@ -330,16 +348,17 @@ Scalable storage for conversation history beyond 50 messages.
 - `editedAt`: Date - Edit timestamp
 
 **Indexes:**
+
 - `{ conversationId: 1, sequenceNumber: 1 }` - Efficient range queries
 - `{ conversationId: 1, timestamp: 1 }` - Time-based retrieval
 - `{ content: 'text' }` - Full-text search
-
 
 ### BullMQ Job Data Structure
 
 Job payload for conversation request processing in BullMQ.
 
 **Job Data Fields:**
+
 - `userId`: String - Requester reference (ObjectId as string)
 - `conversationId`: String - Target conversation (ObjectId as string)
 - `message`: String - User message content
@@ -347,6 +366,7 @@ Job payload for conversation request processing in BullMQ.
 - `technique`: String - Conversation technique
 
 **Job Options:**
+
 - `jobId`: Unique identifier (generated)
 - `priority`: Number - 1 (free) or 10 (paid)
 - `attempts`: 3 - Maximum retry attempts
@@ -355,6 +375,7 @@ Job payload for conversation request processing in BullMQ.
 - `removeOnFail`: 7 days retention
 
 **Job States (BullMQ built-in):**
+
 - `waiting`: Job in queue, not yet processed
 - `active`: Job currently being processed
 - `completed`: Job successfully finished
@@ -362,12 +383,14 @@ Job payload for conversation request processing in BullMQ.
 - `delayed`: Job scheduled for future processing
 
 **Job Result (on completion):**
+
 - `messageId`: String - Created message ID
 - `tokens`: Number - Total tokens used
 - `cost`: Number - Request cost
 - `latency`: Number - Processing time in ms
 
 **Job Error (on failure):**
+
 - `message`: String - Error description
 - `code`: String - Error code
 - `stack`: String - Stack trace
@@ -409,227 +432,232 @@ Socratic questioning methodology templates.
    - Questioning Style: "Speculative and exploratory"
    - Follow-up Strategy: "Vary conditions and examine consequences"
 
-
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property 1: Conversation creation initializes correctly
 
-*For any* valid technique and user, creating a conversation should result in a document with empty recentMessages array, zero message count, and default metadata values (estimatedCost: 0, totalTokens: 0, messageCount: 0).
+_For any_ valid technique and user, creating a conversation should result in a document with empty recentMessages array, zero message count, and default metadata values (estimatedCost: 0, totalTokens: 0, messageCount: 0).
 
 **Validates: Requirements 1.1, 1.2, 1.3, 1.5**
 
 ### Property 2: Invalid techniques are rejected
 
-*For any* string that is not in the set {elenchus, dialectic, maieutics, definitional, analogical, counterfactual}, attempting to create a conversation should return an error.
+_For any_ string that is not in the set {elenchus, dialectic, maieutics, definitional, analogical, counterfactual}, attempting to create a conversation should return an error.
 
 **Validates: Requirements 1.4**
 
 ### Property 3: Ownership validation prevents unauthorized access
 
-*For any* conversation and user where the user does not own the conversation, attempts to read, update, or delete should return HTTP 403 Forbidden.
+_For any_ conversation and user where the user does not own the conversation, attempts to read, update, or delete should return HTTP 403 Forbidden.
 
 **Validates: Requirements 2.1, 3.4, 5.4, 6.3**
 
 ### Property 4: Rate limiting enforces quotas
 
-*For any* user who has reached their hourly or daily question limit, attempting to send a message should return HTTP 429 with appropriate retry-after information.
+_For any_ user who has reached their hourly or daily question limit, attempting to send a message should return HTTP 429 with appropriate retry-after information.
 
 **Validates: Requirements 2.2, 2.3, 11.1, 11.2**
 
 ### Property 5: Request enqueueing returns correct response
 
-*For any* valid message send within rate limits, the system should return HTTP 202 with a request queue ID and position number.
+_For any_ valid message send within rate limits, the system should return HTTP 202 with a request queue ID and position number.
 
 **Validates: Requirements 2.4, 2.5**
 
 ### Property 6: Message appending updates metadata
 
-*For any* message added to a conversation, the conversation metadata should be updated with incremented totalTokens, updated estimatedCost, and current lastMessageAt timestamp.
+_For any_ message added to a conversation, the conversation metadata should be updated with incremented totalTokens, updated estimatedCost, and current lastMessageAt timestamp.
 
 **Validates: Requirements 2.11**
 
 ### Property 7: Archival threshold triggers correctly
 
-*For any* conversation with exactly 50 messages, adding one more message should trigger archival of the oldest messages and set hasArchivedMessages to true.
+_For any_ conversation with exactly 50 messages, adding one more message should trigger archival of the oldest messages and set hasArchivedMessages to true.
 
 **Validates: Requirements 2.12, 2.13**
 
 ### Property 8: Both messages are appended
 
-*For any* successful AI response, both the user message and assistant response should be appended to the conversation's recentMessages array.
+_For any_ successful AI response, both the user message and assistant response should be appended to the conversation's recentMessages array.
 
 **Validates: Requirements 2.10**
 
 ### Property 9: Request completion updates queue status
 
-*For any* successfully processed request, the RequestQueue document should be updated with status COMPLETED and include result data (messageId, tokens, cost).
+_For any_ successfully processed request, the RequestQueue document should be updated with status COMPLETED and include result data (messageId, tokens, cost).
 
 **Validates: Requirements 2.14**
 
 ### Property 10: Usage events are logged
 
-*For any* completed conversation message, a UsageEvent should be created with eventType QUESTION and metadata including tokens, cost, latency, model, and technique.
+_For any_ completed conversation message, a UsageEvent should be created with eventType QUESTION and metadata including tokens, cost, latency, model, and technique.
 
 **Validates: Requirements 2.15, 10.1, 10.2, 10.3**
 
 ### Property 11: Subscription usage counters increment
 
-*For any* UsageEvent created, the associated user's subscription should have questionsToday and questionsThisHour incremented by 1.
+_For any_ UsageEvent created, the associated user's subscription should have questionsToday and questionsThisHour incremented by 1.
 
 **Validates: Requirements 10.4, 10.5**
 
 ### Property 12: Archived messages maintain order
 
-*For any* set of archived messages for a conversation, retrieving them should return messages ordered by sequenceNumber in ascending order.
+_For any_ set of archived messages for a conversation, retrieving them should return messages ordered by sequenceNumber in ascending order.
 
 **Validates: Requirements 3.2**
 
 ### Property 13: Pagination works correctly
 
-*For any* list or archived message query with page and limit parameters, the returned results should have length ≤ limit and skip the correct number of items based on page number.
+_For any_ list or archived message query with page and limit parameters, the returned results should have length ≤ limit and skip the correct number of items based on page number.
 
 **Validates: Requirements 3.3, 4.2**
 
 ### Property 14: Conversation listing respects ownership
 
-*For any* user listing conversations, the results should contain only conversations where userId matches the requesting user's ID.
+_For any_ user listing conversations, the results should contain only conversations where userId matches the requesting user's ID.
 
 **Validates: Requirements 4.1**
 
 ### Property 15: Filtering works correctly
 
-*For any* conversation list query with filters (technique, tags, isArchived, isFavorite), all returned conversations should match the specified filter criteria.
+_For any_ conversation list query with filters (technique, tags, isArchived, isFavorite), all returned conversations should match the specified filter criteria.
 
 **Validates: Requirements 4.3**
 
 ### Property 16: Sorting works correctly
 
-*For any* conversation list query with a sort parameter (createdAt, updatedAt, lastMessageAt), the results should be ordered by that field in descending order.
+_For any_ conversation list query with a sort parameter (createdAt, updatedAt, lastMessageAt), the results should be ordered by that field in descending order.
 
 **Validates: Requirements 4.4**
 
 ### Property 17: Total count is accurate
 
-*For any* paginated list query, the returned total count should equal the actual number of documents matching the query filters.
+_For any_ paginated list query, the returned total count should equal the actual number of documents matching the query filters.
 
 **Validates: Requirements 4.5**
 
 ### Property 18: Title validation rejects empty strings
 
-*For any* conversation update with an empty or whitespace-only title, the system should return a validation error.
+_For any_ conversation update with an empty or whitespace-only title, the system should return a validation error.
 
 **Validates: Requirements 5.1**
 
 ### Property 19: Tags validation enforces array of strings
 
-*For any* conversation update with tags that are not an array of strings, the system should return a validation error.
+_For any_ conversation update with tags that are not an array of strings, the system should return a validation error.
 
 **Validates: Requirements 5.2**
 
 ### Property 20: Boolean flags accept only booleans
 
-*For any* conversation update with isFavorite or isArchived values that are not boolean, the system should return a validation error.
+_For any_ conversation update with isFavorite or isArchived values that are not boolean, the system should return a validation error.
 
 **Validates: Requirements 5.3**
 
 ### Property 30: Technique switching validates and updates
 
-*For any* conversation update with a new technique, if the technique is in the valid set {elenchus, dialectic, maieutics, definitional, analogical, counterfactual}, the conversation should be updated with the new technique; otherwise, a validation error should be returned.
+_For any_ conversation update with a new technique, if the technique is in the valid set {elenchus, dialectic, maieutics, definitional, analogical, counterfactual}, the conversation should be updated with the new technique; otherwise, a validation error should be returned.
 
 **Validates: Requirements 5.4, 5.5**
 
 ### Property 21: Conversation deletion cascades
 
-*For any* conversation deletion, all associated ArchivedMessage documents should also be deleted.
+_For any_ conversation deletion, all associated ArchivedMessage documents should also be deleted.
 
 **Validates: Requirements 6.1, 6.2**
 
 ### Property 22: Non-existent resources return 404
 
-*For any* operation (read, update, delete) on a conversation ID that does not exist, the system should return HTTP 404 Not Found.
+_For any_ operation (read, update, delete) on a conversation ID that does not exist, the system should return HTTP 404 Not Found.
 
 **Validates: Requirements 3.5, 5.5, 6.4**
 
 ### Property 23: Seeded techniques have correct properties
 
-*For all* built-in techniques seeded during initialization, each should have isBuiltIn: true, status: 'approved', and a complete template with systemPrompt, questioningStyle, followUpStrategy, and exampleQuestions.
+_For all_ built-in techniques seeded during initialization, each should have isBuiltIn: true, status: 'approved', and a complete template with systemPrompt, questioningStyle, followUpStrategy, and exampleQuestions.
 
 **Validates: Requirements 7.2, 7.3, 7.4**
 
 ### Property 24: Seeding is idempotent
 
-*For any* technique or user that already exists, running the seed operation again should not create duplicates.
+_For any_ technique or user that already exists, running the seed operation again should not create duplicates.
 
 **Validates: Requirements 7.5, 8.3**
 
 ### Property 25: OpenRouter errors are logged
 
-*For any* OpenRouter API error response, the system should log the error with full context including request details, error message, and stack trace.
+_For any_ OpenRouter API error response, the system should log the error with full context including request details, error message, and stack trace.
 
 **Validates: Requirements 9.1**
 
 ### Property 26: Retriable errors trigger requeue
 
-*For any* OpenRouter API failure where retryCount < maxRetries, the request should be requeued with status PENDING and incremented retryCount.
+_For any_ OpenRouter API failure where retryCount < maxRetries, the request should be requeued with status PENDING and incremented retryCount.
 
 **Validates: Requirements 9.2**
 
 ### Property 27: Failed requests store error details
 
-*For any* request marked as FAILED, the RequestQueue document should contain error details including message, code, and timestamp.
+_For any_ request marked as FAILED, the RequestQueue document should contain error details including message, code, and timestamp.
 
 **Validates: Requirements 9.4**
 
 ### Property 28: Usage counter resets work correctly
 
-*For any* user whose subscription usage counters need daily reset (different calendar day), calling resetDailyUsage should set questionsToday to 0 and update lastResetAt.
+_For any_ user whose subscription usage counters need daily reset (different calendar day), calling resetDailyUsage should set questionsToday to 0 and update lastResetAt.
 
 **Validates: Requirements 11.5**
 
 ### Property 29: Hourly reset works correctly
 
-*For any* user whose subscription usage counters need hourly reset (≥1 hour elapsed), calling resetHourlyUsage should set questionsThisHour to 0 and update lastHourResetAt.
+_For any_ user whose subscription usage counters need hourly reset (≥1 hour elapsed), calling resetHourlyUsage should set questionsThisHour to 0 and update lastHourResetAt.
 
 **Validates: Requirements 11.6**
-
 
 ## Error Handling
 
 ### Error Categories
 
 **Validation Errors (400 Bad Request)**
+
 - Empty or invalid conversation title
 - Invalid technique name
 - Malformed request body
 - Invalid pagination parameters
 
 **Authentication Errors (401 Unauthorized)**
+
 - Missing JWT token
 - Expired JWT token
 - Invalid JWT signature
 
 **Authorization Errors (403 Forbidden)**
+
 - User does not own conversation
 - Insufficient permissions for operation
 
 **Not Found Errors (404 Not Found)**
+
 - Conversation ID does not exist
 - User ID does not exist
 - Technique not found
 
 **Rate Limit Errors (429 Too Many Requests)**
+
 - Hourly quota exceeded
 - Daily quota exceeded
 - Response includes Retry-After header
 
 **External Service Errors (502 Bad Gateway)**
+
 - OpenRouter API unavailable
 - OpenRouter API timeout
 - OpenRouter API returns error
 
 **Internal Errors (500 Internal Server Error)**
+
 - Database connection failure
 - Unexpected exceptions
 - Data corruption
@@ -658,17 +686,18 @@ All errors follow a consistent structure:
 ### Retry Strategy
 
 **OpenRouter API Failures:**
+
 - Max retries: 3
 - Backoff: Exponential (1s, 2s, 4s)
 - Retriable errors: Timeout, 5xx status codes
 - Non-retriable: 4xx status codes (except 429)
 
 **Database Failures:**
+
 - Max retries: 2
 - Backoff: Linear (500ms, 1s)
 - Retriable: Connection errors, timeout
 - Non-retriable: Validation errors, duplicate key
-
 
 ## Testing Strategy
 
@@ -677,6 +706,7 @@ All errors follow a consistent structure:
 Unit tests verify individual components in isolation using mocked dependencies.
 
 **ConversationService Tests:**
+
 - Create conversation with valid/invalid techniques
 - Find conversation by ID with ownership validation
 - List conversations with various filters and sorting
@@ -684,12 +714,14 @@ Unit tests verify individual components in isolation using mocked dependencies.
 - Delete conversation and verify cascade
 
 **MessageService Tests:**
+
 - Add message to conversation
 - Archive messages when threshold exceeded
 - Retrieve archived messages with pagination
 - Build conversation context for AI prompt
 
 **OpenRouterService Tests:**
+
 - Build prompt with technique template
 - Parse API response correctly
 - Calculate cost from token usage
@@ -697,6 +729,7 @@ Unit tests verify individual components in isolation using mocked dependencies.
 - Select correct model based on tier
 
 **QueueService Tests:**
+
 - Enqueue request with correct priority
 - Dequeue requests in priority order
 - Process request workflow
@@ -704,12 +737,14 @@ Unit tests verify individual components in isolation using mocked dependencies.
 - Mark requests as completed/failed
 
 **UsageTrackingService Tests:**
+
 - Log usage events with correct metadata
 - Update subscription counters atomically
 - Reset daily/hourly counters at correct times
 - Calculate usage statistics
 
 **RateLimitService Tests:**
+
 - Check rate limits correctly
 - Consume quota and decrement counters
 - Calculate reset times
@@ -720,11 +755,13 @@ Unit tests verify individual components in isolation using mocked dependencies.
 Property-based tests verify universal properties across many randomly generated inputs using **fast-check** library for TypeScript/JavaScript.
 
 **Configuration:**
+
 - Minimum iterations per property: 100
 - Test framework: Jest with fast-check integration
 - Each property test tagged with: `**Feature: conversation-backend, Property {number}: {property_text}**`
 
 **Property Test Coverage:**
+
 - All 29 correctness properties defined in design document
 - Each property implemented as a single property-based test
 - Generators for: users, conversations, messages, techniques, subscriptions
@@ -741,12 +778,22 @@ it('should initialize conversations correctly for any valid technique and user',
     fc.asyncProperty(
       fc.record({
         userId: fc.hexaString({ minLength: 24, maxLength: 24 }),
-        technique: fc.constantFrom('elenchus', 'dialectic', 'maieutics', 'definitional', 'analogical', 'counterfactual'),
-        title: fc.string({ minLength: 1, maxLength: 100 })
+        technique: fc.constantFrom(
+          'elenchus',
+          'dialectic',
+          'maieutics',
+          'definitional',
+          'analogical',
+          'counterfactual'
+        ),
+        title: fc.string({ minLength: 1, maxLength: 100 }),
       }),
       async ({ userId, technique, title }) => {
-        const conversation = await conversationService.createConversation(userId, { technique, title });
-        
+        const conversation = await conversationService.createConversation(userId, {
+          technique,
+          title,
+        });
+
         expect(conversation.recentMessages).toEqual([]);
         expect(conversation.totalMessageCount).toBe(0);
         expect(conversation.metadata.estimatedCost).toBe(0);
@@ -764,6 +811,7 @@ it('should initialize conversations correctly for any valid technique and user',
 Integration tests verify component interactions with real database and external services.
 
 **Test Scenarios:**
+
 - End-to-end conversation creation and message flow
 - Rate limiting with real subscription data
 - Message archival with database operations
@@ -771,6 +819,7 @@ Integration tests verify component interactions with real database and external 
 - Queue processing with worker simulation
 
 **Test Database:**
+
 - Separate MongoDB instance for testing
 - Automatic cleanup between tests
 - Seeded with test data (users, techniques)
@@ -780,6 +829,7 @@ Integration tests verify component interactions with real database and external 
 E2E tests verify complete user workflows through HTTP API.
 
 **Test Scenarios:**
+
 - User creates conversation and sends messages
 - User lists and filters conversations
 - User updates conversation properties
@@ -788,6 +838,7 @@ E2E tests verify complete user workflows through HTTP API.
 - Archived messages are retrievable
 
 **Test Environment:**
+
 - Test server with in-memory database
 - Mocked OpenRouter API responses
 - JWT authentication with test tokens
@@ -795,31 +846,37 @@ E2E tests verify complete user workflows through HTTP API.
 ## Security Considerations
 
 **Authentication:**
+
 - JWT-based authentication on all endpoints
 - Token expiration: 7 days
 - Refresh token support for extended sessions
 
 **Authorization:**
+
 - Ownership validation on all conversation operations
 - User can only access their own conversations
 - Admin role for moderation (future)
 
 **Input Validation:**
+
 - All DTOs validated with class-validator
 - Whitelist mode: strip unknown properties
 - Sanitize user input to prevent injection
 
 **Rate Limiting:**
+
 - Prevent abuse and DoS attacks
 - Fair resource distribution
 - Tier-based quotas
 
 **Data Privacy:**
+
 - Conversations are private by default
 - Sharing requires explicit opt-in with unique token
 - Sensitive data (passwords, tokens) never logged
 
 **API Security:**
+
 - CORS configured for allowed origins
 - HTTPS required in production
 - API keys stored in environment variables
@@ -828,22 +885,26 @@ E2E tests verify complete user workflows through HTTP API.
 ## Performance Optimization
 
 **Database Optimization:**
+
 - Compound indexes for common queries
 - Lean queries when virtuals not needed
 - Pagination for all list endpoints
 - Projection to limit returned fields
 
 **Caching Strategy (Future):**
+
 - Redis cache for frequently accessed conversations
 - Cache invalidation on updates
 - TTL-based expiration
 
 **Asynchronous Processing:**
+
 - Non-blocking request handling
 - Background workers for AI calls
 - Priority queue for fair processing
 
 **Message Archival:**
+
 - Hybrid storage: recent in-memory, old in separate collection
 - Reduces document size for faster queries
 - On-demand loading of archived messages
@@ -851,6 +912,7 @@ E2E tests verify complete user workflows through HTTP API.
 ## Deployment Considerations
 
 **Environment Variables:**
+
 - `MONGODB_URI`: Database connection string
 - `REDIS_HOST`: Redis host for BullMQ
 - `REDIS_PORT`: Redis port (default: 6379)
@@ -864,17 +926,20 @@ E2E tests verify complete user workflows through HTTP API.
 - `QUEUE_CONCURRENCY`: Number of concurrent workers (default: 5)
 
 **Database Migrations:**
+
 - Seed built-in techniques on first deployment
 - Create indexes for performance
 - Seed test user for development
 
 **Monitoring:**
+
 - Log all OpenRouter API calls
 - Track request processing latency
 - Monitor queue depth and processing rate
 - Alert on high error rates
 
 **Scaling:**
+
 - Horizontal scaling of API servers
 - Multiple queue workers for parallel processing
 - Database read replicas for query load

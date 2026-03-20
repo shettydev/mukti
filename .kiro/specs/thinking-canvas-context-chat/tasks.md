@@ -34,11 +34,11 @@
     - Implement getNodeSpecificPrompt(nodeType, nodeLabel)
     - Implement generateInitialQuestion(nodeType, nodeLabel)
     - _Requirements: 1.3, 1.4, 1.5, 2.2, 2.5_
-  - [ ]* 2.4 Write property test for context-aware prompt construction
+  - [ ]\* 2.4 Write property test for context-aware prompt construction
     - **Property 1: Context-aware prompt construction**
     - **Validates: Requirements 1.4, 1.5, 2.5**
     - Test that prompts include type-specific instructions
-  - [ ]* 2.5 Write property test for AI context inclusion
+  - [ ]\* 2.5 Write property test for AI context inclusion
     - **Property 2: AI context inclusion**
     - **Validates: Requirements 1.2, 2.2, 4.3**
     - Test that prompts include node content, problem structure, and history
@@ -49,7 +49,7 @@
     - Add JWT authentication guard
     - Add ownership verification
     - _Requirements: 1.1, 4.1, 9.2, 9.3_
-  - [ ]* 2.7 Write property test for dialogue persistence
+  - [ ]\* 2.7 Write property test for dialogue persistence
     - **Property 7: Dialogue persistence**
     - **Validates: Requirements 4.4**
     - Test that messages are saved with correct node association
@@ -76,7 +76,7 @@
     - Implement useNodeMessages query hook with pagination
     - Implement useSendMessage mutation hook
     - _Requirements: 4.1, 4.4, 9.2, 9.3_
-  - [ ]* 4.5 Write property test for efficient dialogue loading
+  - [ ]\* 4.5 Write property test for efficient dialogue loading
     - **Property 9: Efficient dialogue loading**
     - **Validates: Requirements 9.2, 9.3**
     - Test lazy loading and pagination behavior
@@ -88,11 +88,11 @@
     - Implement setActiveNode, addMessage, setMessages, setPanelWidth actions
     - Add MIN_PANEL_WIDTH (320), MAX_PANEL_WIDTH (600), DEFAULT_PANEL_WIDTH (400) constants
     - _Requirements: 5.1, 5.2, 7.2_
-  - [ ]* 5.2 Write property test for node switching preserves state
+  - [ ]\* 5.2 Write property test for node switching preserves state
     - **Property 4: Node switching preserves state**
     - **Validates: Requirements 5.1, 5.2**
     - Test that switching nodes preserves dialogue state
-  - [ ]* 5.3 Write property test for panel width constraints
+  - [ ]\* 5.3 Write property test for panel width constraints
     - **Property 10: Panel width constraints**
     - **Validates: Requirements 7.2**
     - Test that width is clamped between min and max
@@ -123,7 +123,7 @@
     - Handle node switching
     - Add "Create Insight" button
     - _Requirements: 1.1, 5.1, 5.3, 7.1, 7.2, 7.3_
-  - [ ]* 6.5 Write property test for dialogue history display
+  - [ ]\* 6.5 Write property test for dialogue history display
     - **Property 3: Dialogue history display**
     - **Validates: Requirements 4.1, 4.2, 5.3**
     - Test chronological display with timestamps
@@ -156,7 +156,7 @@
     - Add createInsightNode action
     - Handle edge creation to parent
     - _Requirements: 3.3, 3.4_
-  - [ ]* 8.5 Write property test for insight node creation
+  - [ ]\* 8.5 Write property test for insight node creation
     - **Property 5: Insight node creation**
     - **Validates: Requirements 3.3, 3.4**
     - Test positioning relative to parent and edge connection
@@ -175,7 +175,7 @@
     - Update `packages/mukti-web/src/components/canvas/controls/canvas-legend.tsx`
     - Add exploration status legend items
     - _Requirements: 6.4_
-  - [ ]* 9.4 Write property test for exploration status tracking
+  - [ ]\* 9.4 Write property test for exploration status tracking
     - **Property 6: Exploration status tracking**
     - **Validates: Requirements 6.1, 6.2, 6.3**
     - Test indicators and completion calculation
@@ -191,7 +191,7 @@
     - Store panel width in localStorage
     - Restore on canvas load
     - _Requirements: 7.4_
-  - [ ]* 10.3 Write property test for panel size preference persistence
+  - [ ]\* 10.3 Write property test for panel size preference persistence
     - **Property 11: Panel size preference persistence**
     - **Validates: Requirements 7.4**
     - Test that width preference is saved and restored
@@ -211,7 +211,7 @@
     - Add options for dialogue inclusion (none, summary, full)
     - Show preview of export
     - _Requirements: 8.1, 8.4_
-  - [ ]* 12.3 Write property test for export completeness
+  - [ ]\* 12.3 Write property test for export completeness
     - **Property 8: Export completeness**
     - **Validates: Requirements 8.2, 8.3**
     - Test that export includes all nodes and dialogues

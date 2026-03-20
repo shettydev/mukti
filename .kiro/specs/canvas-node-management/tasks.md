@@ -31,7 +31,7 @@
     - _Requirements: 5.2_
   - [x] 2.4 Create CreateRelationshipDto
     - Create `packages/mukti-api/src/modules/canvas/dto/create-relationship.dto.ts`
-    - Add validation for sourceNodeId (root-*) and targetNodeId (soil-*)
+    - Add validation for sourceNodeId (root-_) and targetNodeId (soil-_)
     - _Requirements: 3.3_
   - [x] 2.5 Create DeleteNodeDto
     - Create `packages/mukti-api/src/modules/canvas/dto/delete-node.dto.ts`
@@ -45,10 +45,10 @@
     - Implement getInsightsBySession
     - Implement deleteInsightNode
     - _Requirements: 1.1, 1.3, 1.5_
-  - [ ]* 3.2 Write property test for insight persistence round-trip
+  - [ ]\* 3.2 Write property test for insight persistence round-trip
     - **Property 1: Insight node persistence round-trip**
     - **Validates: Requirements 1.1, 1.2, 1.3**
-  - [ ]* 3.3 Write property test for parent node validation
+  - [ ]\* 3.3 Write property test for parent node validation
     - **Property 3: Parent node validation**
     - **Validates: Requirements 1.5**
 
@@ -63,10 +63,10 @@
     - Implement addContext with limit check (max 10)
     - Implement deleteContext with original node protection
     - _Requirements: 5.3, 5.5, 5.6, 6.2_
-  - [ ]* 4.3 Write property test for node count limits
+  - [ ]\* 4.3 Write property test for node count limits
     - **Property 7: Node count limits**
     - **Validates: Requirements 2.6, 5.6**
-  - [ ]* 4.4 Write property test for original node deletion protection
+  - [ ]\* 4.4 Write property test for original node deletion protection
     - **Property 11: Original node deletion protection**
     - **Validates: Requirements 6.2**
 
@@ -77,10 +77,10 @@
     - Implement deleteRelationship
     - Implement getRelationshipsBySession
     - _Requirements: 3.3, 3.5, 3.6_
-  - [ ]* 5.2 Write property test for relationship edge creation
+  - [ ]\* 5.2 Write property test for relationship edge creation
     - **Property 8: Relationship edge creation**
     - **Validates: Requirements 3.3, 3.4, 3.5**
-  - [ ]* 5.3 Write property test for multiple relationships to same constraint
+  - [ ]\* 5.3 Write property test for multiple relationships to same constraint
     - **Property 9: Multiple relationships to same constraint**
     - **Validates: Requirements 3.6**
 
@@ -175,13 +175,13 @@
     - Modify existing createInsightNode to call API
     - Handle optimistic updates with rollback
     - _Requirements: 1.1, 1.4_
-  - [ ]* 10.7 Write property test for insight edge creation
+  - [ ]\* 10.7 Write property test for insight edge creation
     - **Property 2: Insight edge creation**
     - **Validates: Requirements 1.4**
-  - [ ]* 10.8 Write property test for dynamic node positioning
+  - [ ]\* 10.8 Write property test for dynamic node positioning
     - **Property 5: Dynamic node positioning**
     - **Validates: Requirements 2.4, 5.4**
-  - [ ]* 10.9 Write property test for edge cleanup on deletion
+  - [ ]\* 10.9 Write property test for edge cleanup on deletion
     - **Property 12: Edge cleanup on deletion**
     - **Validates: Requirements 6.3**
 
@@ -224,7 +224,7 @@
     - Update SeedNode, SoilNode, RootNode, InsightNode components
     - Display small badge showing relationship count
     - _Requirements: 4.4_
-  - [ ]* 13.4 Write property test for relationship count indicator
+  - [ ]\* 13.4 Write property test for relationship count indicator
     - **Property 10: Relationship count indicator**
     - **Validates: Requirements 4.4**
 
@@ -249,10 +249,10 @@
     - Fetch insights alongside session data
     - Initialize store with insights
     - _Requirements: 1.3_
-  - [ ]* 14.5 Write property test for dynamic node persistence
+  - [ ]\* 14.5 Write property test for dynamic node persistence
     - **Property 6: Dynamic node persistence**
     - **Validates: Requirements 2.5, 5.5**
-  - [ ]* 14.6 Write property test for deletion persistence
+  - [ ]\* 14.6 Write property test for deletion persistence
     - **Property 13: Deletion persistence**
     - **Validates: Requirements 6.5**
 

@@ -59,7 +59,6 @@ packages/mukti-web/src/
     └── conversation.types.ts               # TypeScript types
 ```
 
-
 ### Data Flow
 
 ```
@@ -103,6 +102,7 @@ ConversationDetail (Client Component)
 **Purpose**: Display infinite-scrolling, filterable list of conversations with virtualization
 
 **Props**:
+
 ```typescript
 interface ConversationListProps {
   initialData?: PaginatedConversations;
@@ -111,12 +111,14 @@ interface ConversationListProps {
 ```
 
 **State Management**:
+
 - Uses `useInfiniteConversations()` hook for infinite scroll data fetching
 - Uses `@tanstack/react-virtual` for virtualization of large lists
 - Local state for filter UI
 - URL search params for filter persistence
 
 **Key Features**:
+
 - Infinite scroll with automatic page loading
 - Virtualization for performance with large lists
 - Skeleton loading during fetch
@@ -125,12 +127,12 @@ interface ConversationListProps {
 - Optimistic delete
 - Filter changes reset to page 1
 
-
 #### 2. ConversationDetail (Client Component)
 
 **Purpose**: Display conversation with messages and input
 
 **Props**:
+
 ```typescript
 interface ConversationDetailProps {
   conversationId: string;
@@ -139,11 +141,13 @@ interface ConversationDetailProps {
 ```
 
 **State Management**:
+
 - Uses `useConversation(id)` for conversation data
 - Uses `useArchivedMessages(id)` for older messages
 - Uses `useSendMessage()` for message submission
 
 **Key Features**:
+
 - Real-time message updates via polling or WebSocket (future)
 - Infinite scroll for archived messages
 - Optimistic message sending
@@ -154,6 +158,7 @@ interface ConversationDetailProps {
 **Purpose**: Compose and send messages
 
 **Props**:
+
 ```typescript
 interface MessageInputProps {
   conversationId: string;
@@ -163,6 +168,7 @@ interface MessageInputProps {
 ```
 
 **Key Features**:
+
 - Auto-resize textarea
 - Keyboard shortcuts (Enter to send, Shift+Enter for newline)
 - Character count
@@ -174,6 +180,7 @@ interface MessageInputProps {
 **Purpose**: Modal for creating new conversations
 
 **Props**:
+
 ```typescript
 interface CreateConversationDialogProps {
   open: boolean;
@@ -183,11 +190,11 @@ interface CreateConversationDialogProps {
 ```
 
 **Key Features**:
+
 - Form validation with Zod
 - Technique selector with descriptions
 - Tag input
 - Optimistic creation
-
 
 ## Data Models
 
@@ -199,12 +206,12 @@ interface CreateConversationDialogProps {
 /**
  * Socratic questioning technique
  */
-export type SocraticTechnique = 
-  | 'elenchus' 
-  | 'dialectic' 
-  | 'maieutics' 
-  | 'definitional' 
-  | 'analogical' 
+export type SocraticTechnique =
+  | 'elenchus'
+  | 'dialectic'
+  | 'maieutics'
+  | 'definitional'
+  | 'analogical'
   | 'counterfactual';
 
 /**
@@ -322,7 +329,6 @@ export interface RateLimitError {
 }
 ```
 
-
 ### API Client Layer
 
 ```typescript
@@ -349,7 +355,7 @@ export const conversationsApi = {
    */
   getAll: async (filters?: ConversationFilters): Promise<PaginatedConversations> => {
     const params = new URLSearchParams();
-    
+
     if (filters?.technique) params.append('technique', filters.technique);
     if (filters?.tags) params.append('tags', filters.tags.join(','));
     if (filters?.isArchived !== undefined) params.append('isArchived', String(filters.isArchived));
@@ -357,11 +363,9 @@ export const conversationsApi = {
     if (filters?.sort) params.append('sort', filters.sort);
     if (filters?.page) params.append('page', String(filters.page));
     if (filters?.limit) params.append('limit', String(filters.limit));
-    
+
     const query = params.toString();
-    return apiClient.get<PaginatedConversations>(
-      `/conversations${query ? `?${query}` : ''}`
-    );
+    return apiClient.get<PaginatedConversations>(`/conversations${query ? `?${query}` : ''}`);
   },
 
   /**
@@ -409,7 +413,7 @@ export const conversationsApi = {
     const params = new URLSearchParams();
     if (options?.limit) params.append('limit', String(options.limit));
     if (options?.beforeSequence) params.append('beforeSequence', String(options.beforeSequence));
-    
+
     const query = params.toString();
     return apiClient.get<Message[]>(
       `/conversations/${id}/messages/archived${query ? `?${query}` : ''}`
@@ -417,7 +421,6 @@ export const conversationsApi = {
   },
 };
 ```
-
 
 ### Query Key Factory
 
@@ -444,8 +447,7 @@ export const conversationKeys = {
   /**
    * Key for filtered conversation list
    */
-  list: (filters: ConversationFilters) => 
-    [...conversationKeys.lists(), filters] as const,
+  list: (filters: ConversationFilters) => [...conversationKeys.lists(), filters] as const,
 
   /**
    * Key for conversation details
@@ -470,137 +472,134 @@ export const conversationKeys = {
 };
 ```
 
-
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### API Client Properties
 
 **Property 1: Configuration usage**
-*For any* API request, the fetch call should use the base URL and timeout from centralized config
+_For any_ API request, the fetch call should use the base URL and timeout from centralized config
 **Validates: Requirements 1.1**
 
 **Property 2: Response parsing consistency**
-*For any* successful API response with standardized format, parsing should extract data, success, and meta fields correctly
+_For any_ successful API response with standardized format, parsing should extract data, success, and meta fields correctly
 **Validates: Requirements 1.2**
 
 **Property 3: Error transformation**
-*For any* error response, the API client should throw ApiClientError with code, message, status, and details
+_For any_ error response, the API client should throw ApiClientError with code, message, status, and details
 **Validates: Requirements 1.3**
 
 **Property 4: Auth header injection**
-*For any* authenticated request, when an access token exists, the Authorization header should be present with Bearer token
+_For any_ authenticated request, when an access token exists, the Authorization header should be present with Bearer token
 **Validates: Requirements 1.4**
 
 ### Query Key Properties
 
 **Property 5: Query key hierarchy**
-*For any* query key generated by the factory, it should start with ['conversations'] as the root
+_For any_ query key generated by the factory, it should start with ['conversations'] as the root
 **Validates: Requirements 3.1**
 
 **Property 6: Filter inclusion in keys**
-*For any* conversation list query with filters, the query key should include the filter object
+_For any_ conversation list query with filters, the query key should include the filter object
 **Validates: Requirements 3.2**
 
 **Property 7: ID inclusion in detail keys**
-*For any* conversation detail query, the query key should include the conversation ID
+_For any_ conversation detail query, the query key should include the conversation ID
 **Validates: Requirements 3.3**
 
 **Property 8: Pagination in message keys**
-*For any* archived message query, the query key should include conversation ID and pagination parameters
+_For any_ archived message query, the query key should include conversation ID and pagination parameters
 **Validates: Requirements 3.4**
 
 **Property 9: Cache invalidation scope**
-*For any* cache invalidation operation, invalidating conversationKeys.all should invalidate all conversation-related queries
+_For any_ cache invalidation operation, invalidating conversationKeys.all should invalidate all conversation-related queries
 **Validates: Requirements 3.5**
-
 
 ### Form Validation Properties
 
 **Property 10: Title validation**
-*For any* conversation title input that is empty or only whitespace, validation should fail
+_For any_ conversation title input that is empty or only whitespace, validation should fail
 **Validates: Requirements 4.1, 8.1**
 
 **Property 11: Tag validation**
-*For any* tag array, all tags should be non-empty strings after trimming
+_For any_ tag array, all tags should be non-empty strings after trimming
 **Validates: Requirements 8.6**
 
 **Property 12: Message content validation**
-*For any* message content that is empty or only whitespace, the send button should be disabled
+_For any_ message content that is empty or only whitespace, the send button should be disabled
 **Validates: Requirements 7.1**
 
 ### Optimistic Update Properties
 
 **Property 13: Optimistic creation**
-*For any* conversation creation, the new conversation should appear in the cache before the server responds
+_For any_ conversation creation, the new conversation should appear in the cache before the server responds
 **Validates: Requirements 4.4**
 
 **Property 14: Optimistic update rollback**
-*For any* failed mutation, the cache should revert to its pre-mutation state
+_For any_ failed mutation, the cache should revert to its pre-mutation state
 **Validates: Requirements 4.5, 7.6, 8.7, 9.5**
 
 **Property 15: Optimistic message sending**
-*For any* message send operation, the message should appear in the conversation before the server responds
+_For any_ message send operation, the message should appear in the conversation before the server responds
 **Validates: Requirements 7.2**
 
 **Property 16: Optimistic deletion**
-*For any* conversation deletion, the conversation should be removed from the list before the server responds
+_For any_ conversation deletion, the conversation should be removed from the list before the server responds
 **Validates: Requirements 9.2**
 
 **Property 17: Optimistic toggle**
-*For any* boolean field toggle (favorite, archived), the UI should update immediately before server confirmation
+_For any_ boolean field toggle (favorite, archived), the UI should update immediately before server confirmation
 **Validates: Requirements 8.3, 8.4**
 
 ### Cache Invalidation Properties
 
 **Property 18: Post-creation invalidation**
-*For any* successful conversation creation, the conversation list query should be invalidated
+_For any_ successful conversation creation, the conversation list query should be invalidated
 **Validates: Requirements 4.7**
 
 **Property 19: Post-update invalidation**
-*For any* successful conversation update, related queries (detail and list) should be invalidated
+_For any_ successful conversation update, related queries (detail and list) should be invalidated
 **Validates: Requirements 8.8**
 
 **Property 20: Post-deletion invalidation**
-*For any* successful conversation deletion, the conversation list query should be invalidated
+_For any_ successful conversation deletion, the conversation list query should be invalidated
 **Validates: Requirements 9.4**
 
 **Property 21: Post-message invalidation**
-*For any* completed message processing, the conversation detail query should be refetched
+_For any_ completed message processing, the conversation detail query should be refetched
 **Validates: Requirements 7.5**
-
 
 ### Data Integrity Properties
 
 **Property 22: Message ordering**
-*For any* conversation with messages, messages should be displayed in ascending order by sequence number
+_For any_ conversation with messages, messages should be displayed in ascending order by sequence number
 **Validates: Requirements 6.2**
 
 **Property 23: Archived message prepending**
-*For any* archived message fetch, new messages should be prepended while maintaining chronological order
+_For any_ archived message fetch, new messages should be prepended while maintaining chronological order
 **Validates: Requirements 6.5**
 
 **Property 24: Filter preservation during pagination**
-*For any* page navigation, the active filters should be maintained in the query
+_For any_ page navigation, the active filters should be maintained in the query
 **Validates: Requirements 5.5**
 
 **Property 25: Conversation card completeness**
-*For any* rendered conversation card, it should display title, technique, last message preview, and timestamp
+_For any_ rendered conversation card, it should display title, technique, last message preview, and timestamp
 **Validates: Requirements 5.2**
 
 ### Query Behavior Properties
 
 **Property 26: Filter change triggers refetch**
-*For any* filter change, the conversation list query should refetch with new parameters
+_For any_ filter change, the conversation list query should refetch with new parameters
 **Validates: Requirements 5.3**
 
 **Property 27: Sort change triggers refetch**
-*For any* sort order change, the conversation list query should refetch with new sort parameter
+_For any_ sort order change, the conversation list query should refetch with new sort parameter
 **Validates: Requirements 5.4**
 
 **Property 28: Archived message pagination**
-*For any* "Load older messages" action, archived messages should be fetched with correct beforeSequence parameter
+_For any_ "Load older messages" action, archived messages should be fetched with correct beforeSequence parameter
 **Validates: Requirements 6.4**
 
 ## Error Handling
@@ -637,7 +636,6 @@ export const ERROR_MESSAGES: Record<ApiErrorCode, string> = {
 };
 ```
 
-
 ### Error Handling Strategy
 
 1. **Network Errors**: Display connection error with retry button
@@ -659,7 +657,7 @@ interface ErrorStateProps {
 
 function ErrorState({ error, onRetry, onBack }: ErrorStateProps) {
   const message = ERROR_MESSAGES[error.code as ApiErrorCode] || ERROR_MESSAGES.UNKNOWN_ERROR;
-  
+
   return (
     <div className="flex flex-col items-center justify-center p-8">
       <AlertCircle className="h-12 w-12 text-destructive mb-4" />
@@ -684,7 +682,7 @@ interface RateLimitBannerProps {
 
 function RateLimitBanner({ retryAfter, onDismiss }: RateLimitBannerProps) {
   const [timeLeft, setTimeLeft] = useState(retryAfter);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -696,10 +694,10 @@ function RateLimitBanner({ retryAfter, onDismiss }: RateLimitBannerProps) {
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [retryAfter, onDismiss]);
-  
+
   return (
     <Alert variant="destructive">
       <AlertCircle className="h-4 w-4" />
@@ -712,7 +710,6 @@ function RateLimitBanner({ retryAfter, onDismiss }: RateLimitBannerProps) {
 }
 ```
 
-
 ## Testing Strategy
 
 ### Unit Testing Approach
@@ -720,6 +717,7 @@ function RateLimitBanner({ retryAfter, onDismiss }: RateLimitBannerProps) {
 **Tools**: Vitest, React Testing Library, MSW (Mock Service Worker)
 
 **Coverage Goals**:
+
 - API client: 100% (critical infrastructure)
 - Query hooks: 90%+ (core data layer)
 - Components: 80%+ (UI layer)
@@ -779,7 +777,6 @@ function RateLimitBanner({ retryAfter, onDismiss }: RateLimitBannerProps) {
    - Generate random message sequences
    - Verify ordering is maintained
    - Test pagination boundaries
-
 
 ### Test File Organization
 
@@ -871,7 +868,6 @@ describe('conversationsApi', () => {
 });
 ```
 
-
 ### Example Property-Based Test
 
 ```typescript
@@ -902,15 +898,15 @@ describe('conversationsApi properties', () => {
           limit: fc.integer({ min: 1, max: 100 }),
         }),
         async (filters) => {
-          vi.mocked(apiClient.get).mockResolvedValue({ 
-            data: [], 
-            meta: { page: 1, limit: 20, total: 0, totalPages: 0 } 
+          vi.mocked(apiClient.get).mockResolvedValue({
+            data: [],
+            meta: { page: 1, limit: 20, total: 0, totalPages: 0 },
           });
 
           await conversationsApi.getAll(filters);
 
           const callUrl = vi.mocked(apiClient.get).mock.calls[0][0];
-          
+
           // Verify all filters are in the URL
           expect(callUrl).toContain(`technique=${filters.technique}`);
           expect(callUrl).toContain(`tags=${filters.tags.join(',')}`);
@@ -957,7 +953,7 @@ describe('conversationsApi properties', () => {
           fc.record({
             role: fc.constantFrom('user', 'assistant'),
             content: fc.string({ minLength: 1, maxLength: 500 }),
-            timestamp: fc.date().map(d => d.toISOString()),
+            timestamp: fc.date().map((d) => d.toISOString()),
             sequence: fc.integer({ min: 0, max: 1000 }),
           }),
           { minLength: 2, maxLength: 50 }
@@ -965,7 +961,7 @@ describe('conversationsApi properties', () => {
         (messages) => {
           // Sort messages by sequence
           const sorted = [...messages].sort((a, b) => a.sequence - b.sequence);
-          
+
           // Verify ordering is maintained
           for (let i = 1; i < sorted.length; i++) {
             expect(sorted[i].sequence).toBeGreaterThanOrEqual(sorted[i - 1].sequence);
@@ -977,7 +973,6 @@ describe('conversationsApi properties', () => {
   });
 });
 ```
-
 
 ### Example Query Hook Test
 
@@ -1081,19 +1076,13 @@ describe('useCreateConversation', () => {
 });
 ```
 
-
 ## Implementation Details
 
 ### TanStack Query Hooks
 
 ```typescript
 // lib/hooks/use-conversations.ts
-import { 
-  useQuery, 
-  useMutation, 
-  useQueryClient,
-  useInfiniteQuery,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { conversationsApi } from '@/lib/api/conversations';
 import { conversationKeys } from '@/lib/query-keys';
@@ -1111,8 +1100,7 @@ import type {
 export function useInfiniteConversations(filters?: Omit<ConversationFilters, 'page'>) {
   return useInfiniteQuery({
     queryKey: conversationKeys.list(filters || {}),
-    queryFn: ({ pageParam = 1 }) =>
-      conversationsApi.getAll({ ...filters, page: pageParam }),
+    queryFn: ({ pageParam = 1 }) => conversationsApi.getAll({ ...filters, page: pageParam }),
     getNextPageParam: (lastPage) => {
       // If we have more pages, return the next page number
       if (lastPage.meta.page < lastPage.meta.totalPages) {
@@ -1166,7 +1154,7 @@ export function useCreateConversation() {
 
   return useMutation({
     mutationFn: (dto: CreateConversationDto) => conversationsApi.create(dto),
-    
+
     onMutate: async (newConversation) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: conversationKeys.lists() });
@@ -1209,7 +1197,7 @@ export function useCreateConversation() {
     onSuccess: (data) => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
-      
+
       // Navigate to new conversation
       router.push(`/dashboard/conversations/${data.id}`);
     },
@@ -1344,7 +1332,6 @@ export function useSendMessage(conversationId: string) {
   });
 }
 ```
-
 
 ### Component Implementation Examples
 
@@ -1499,7 +1486,6 @@ export function ConversationList() {
 }
 ```
 
-
 #### MessageInput Component
 
 ```typescript
@@ -1522,7 +1508,7 @@ export function MessageInput({ conversationId }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [rateLimitError, setRateLimitError] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+
   const { mutate: sendMessage, isPending, error } = useSendMessage(conversationId);
 
   // Auto-resize textarea
@@ -1543,7 +1529,7 @@ export function MessageInput({ conversationId }: MessageInputProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const trimmed = content.trim();
     if (!trimmed || isPending) return;
 
@@ -1586,7 +1572,7 @@ export function MessageInput({ conversationId }: MessageInputProps) {
           disabled={isPending || rateLimitError !== null}
           className="min-h-[80px] max-h-[200px] resize-none"
         />
-        
+
         <Button
           type="submit"
           disabled={isDisabled}
@@ -1614,7 +1600,6 @@ export function MessageInput({ conversationId }: MessageInputProps) {
   );
 }
 ```
-
 
 ## Performance Considerations
 
@@ -1698,7 +1683,6 @@ export function ConversationCard({ conversation }) {
 </button>
 ```
 
-
 ## Security Considerations
 
 ### Authentication
@@ -1730,6 +1714,7 @@ export function ConversationCard({ conversation }) {
 ### Environment Variables
 
 Required in production:
+
 ```bash
 NEXT_PUBLIC_API_URL=https://api.mukti.app/api/v1
 NEXT_PUBLIC_APP_URL=https://mukti.app
@@ -1755,6 +1740,7 @@ NEXT_PUBLIC_ENABLE_ANALYTICS=true
 ### Real-Time Updates
 
 Replace polling with WebSocket connection for:
+
 - Live AI response streaming
 - Real-time message updates
 - Typing indicators

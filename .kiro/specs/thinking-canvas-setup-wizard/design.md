@@ -20,28 +20,28 @@ graph TB
         SoilStep[SoilStep]
         RootsStep[RootsStep]
         ReviewStep[ReviewStep]
-        
+
         WizardDialog --> SeedStep
         WizardDialog --> SoilStep
         WizardDialog --> RootsStep
         WizardDialog --> ReviewStep
-        
+
         WizardStore[useWizardStore]
         WizardDialog --> WizardStore
-        
+
         CanvasAPI[canvasApi]
         ReviewStep --> CanvasAPI
     end
-    
+
     subgraph Backend ["Backend (mukti-api)"]
         CanvasController[CanvasController]
         CanvasService[CanvasService]
         CanvasSchema[(CanvasSession)]
-        
+
         CanvasController --> CanvasService
         CanvasService --> CanvasSchema
     end
-    
+
     CanvasAPI --> CanvasController
 ```
 
@@ -50,6 +50,7 @@ graph TB
 ### Frontend Components
 
 #### SetupWizardDialog
+
 The main container component that manages wizard state and step navigation.
 
 ```typescript
@@ -61,6 +62,7 @@ interface SetupWizardDialogProps {
 ```
 
 #### Step Components
+
 Each step is a separate component for maintainability:
 
 ```typescript
@@ -114,10 +116,10 @@ interface WizardState {
   seed: string;
   soil: string[];
   roots: string[];
-  
+
   // Navigation
   currentStep: WizardStep;
-  
+
   // Actions
   setSeed: (seed: string) => void;
   addSoilItem: (item: string) => void;
@@ -134,6 +136,7 @@ interface WizardState {
 ### Backend Components
 
 #### CanvasController
+
 REST controller for canvas session operations.
 
 ```typescript
@@ -141,10 +144,10 @@ REST controller for canvas session operations.
 export class CanvasController {
   @Post('sessions')
   createSession(@Body() dto: CreateCanvasSessionDto): Promise<CanvasSession>;
-  
+
   @Get('sessions/:id')
   getSession(@Param('id') id: string): Promise<CanvasSession>;
-  
+
   @Patch('sessions/:id')
   updateSession(
     @Param('id') id: string,
@@ -154,22 +157,17 @@ export class CanvasController {
 ```
 
 #### CanvasService
+
 Business logic for canvas session management.
 
 ```typescript
 @Injectable()
 export class CanvasService {
-  async createSession(
-    userId: string,
-    dto: CreateCanvasSessionDto
-  ): Promise<CanvasSession>;
-  
+  async createSession(userId: string, dto: CreateCanvasSessionDto): Promise<CanvasSession>;
+
   async findSessionById(id: string): Promise<CanvasSession>;
-  
-  async updateSession(
-    id: string,
-    dto: UpdateCanvasSessionDto
-  ): Promise<CanvasSession>;
+
+  async updateSession(id: string, dto: UpdateCanvasSessionDto): Promise<CanvasSession>;
 }
 ```
 
@@ -188,9 +186,9 @@ interface CanvasSession {
 }
 
 interface ProblemStructure {
-  seed: string;      // Main problem statement (10-500 chars)
-  soil: string[];    // Context items (0-10 items, 5-200 chars each)
-  roots: string[];   // Assumptions (1-8 items, 5-200 chars each)
+  seed: string; // Main problem statement (10-500 chars)
+  soil: string[]; // Context items (0-10 items, 5-200 chars each)
+  roots: string[]; // Assumptions (1-8 items, 5-200 chars each)
 }
 
 // DTOs
@@ -207,17 +205,17 @@ interface CreateCanvasSessionDto {
 @Schema({ collection: 'canvas_sessions', timestamps: true })
 export class CanvasSession {
   _id: Types.ObjectId;
-  
+
   @Prop({ required: true, ref: 'User', index: true })
   userId: Types.ObjectId;
-  
+
   @Prop({ required: true, type: Object })
   problemStructure: {
     seed: string;
     soil: string[];
     roots: string[];
   };
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -243,9 +241,7 @@ export const soilItemSchema = z
   .refine((val) => val.length >= 5, 'Context item cannot be only whitespace');
 
 // Soil array validation
-export const soilSchema = z
-  .array(soilItemSchema)
-  .max(10, 'Maximum 10 context items allowed');
+export const soilSchema = z.array(soilItemSchema).max(10, 'Maximum 10 context items allowed');
 
 // Roots item validation
 export const rootsItemSchema = z
@@ -274,44 +270,53 @@ export const createCanvasSessionSchema = problemStructureSchema;
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 Based on the prework analysis, the following correctness properties have been identified:
 
 ### Property 1: Seed validation
-*For any* string input as a problem statement, the validation should accept it if and only if the trimmed string length is between 10 and 500 characters (inclusive).
+
+_For any_ string input as a problem statement, the validation should accept it if and only if the trimmed string length is between 10 and 500 characters (inclusive).
 **Validates: Requirements 1.2, 1.3**
 
 ### Property 2: Item validation
-*For any* string input as a soil item or roots item, the validation should accept it if and only if the trimmed string length is between 5 and 200 characters (inclusive).
+
+_For any_ string input as a soil item or roots item, the validation should accept it if and only if the trimmed string length is between 5 and 200 characters (inclusive).
 **Validates: Requirements 2.2, 3.2**
 
 ### Property 3: List management consistency
-*For any* sequence of add and remove operations on soil or roots items, the resulting list should contain exactly the items that were added and not subsequently removed, in the order they were added.
+
+_For any_ sequence of add and remove operations on soil or roots items, the resulting list should contain exactly the items that were added and not subsequently removed, in the order they were added.
 **Validates: Requirements 2.3, 3.3**
 
 ### Property 4: Soil array constraints
-*For any* soil array, the validation should accept it if and only if it contains between 0 and 10 items (inclusive).
+
+_For any_ soil array, the validation should accept it if and only if it contains between 0 and 10 items (inclusive).
 **Validates: Requirements 2.4**
 
 ### Property 5: Roots array constraints
-*For any* roots array, the validation should accept it if and only if it contains between 1 and 8 items (inclusive).
+
+_For any_ roots array, the validation should accept it if and only if it contains between 1 and 8 items (inclusive).
 **Validates: Requirements 3.4**
 
 ### Property 6: Review displays complete structure
-*For any* valid problem structure (seed, soil, roots), when rendered in the review step, all components should be present and match the input values exactly.
+
+_For any_ valid problem structure (seed, soil, roots), when rendered in the review step, all components should be present and match the input values exactly.
 **Validates: Requirements 4.1**
 
 ### Property 7: Navigation preserves data
-*For any* wizard state with entered data, navigating backward and forward through steps should preserve all entered data without modification.
+
+_For any_ wizard state with entered data, navigating backward and forward through steps should preserve all entered data without modification.
 **Validates: Requirements 5.2, 5.3**
 
 ### Property 8: Problem structure persistence
-*For any* valid problem structure submitted through the wizard, the API call should include the complete structure (seed, soil, roots) and the authenticated user's ID.
+
+_For any_ valid problem structure submitted through the wizard, the API call should include the complete structure (seed, soil, roots) and the authenticated user's ID.
 **Validates: Requirements 4.3, 4.4, 7.1, 7.5**
 
 ### Property 9: Problem structure round-trip
-*For any* valid problem structure, serializing to JSON and deserializing should produce an equivalent structure.
+
+_For any_ valid problem structure, serializing to JSON and deserializing should produce an equivalent structure.
 **Validates: Requirements 7.2**
 
 ## Error Handling
@@ -320,7 +325,7 @@ Based on the prework analysis, the following correctness properties have been id
 
 1. **Validation Errors**: Display inline error messages below input fields using the Form component's error state.
 
-2. **API Errors**: 
+2. **API Errors**:
    - Network errors: Display toast notification with retry option
    - Server errors (5xx): Display generic error message with retry
    - Validation errors (400): Map to form field errors
@@ -361,6 +366,7 @@ Based on the prework analysis, the following correctness properties have been id
 ## Testing Strategy
 
 ### Property-Based Testing Library
+
 Use **fast-check** for property-based testing in TypeScript. Configure each test to run a minimum of 100 iterations.
 
 ### Unit Tests
@@ -389,14 +395,11 @@ Each correctness property will be implemented as a property-based test using fas
 describe('Seed validation property', () => {
   it('accepts strings with trimmed length 10-500', () => {
     fc.assert(
-      fc.property(
-        fc.string({ minLength: 10, maxLength: 500 }),
-        (input) => {
-          const result = seedSchema.safeParse(input);
-          const trimmedLength = input.trim().length;
-          return result.success === (trimmedLength >= 10 && trimmedLength <= 500);
-        }
-      ),
+      fc.property(fc.string({ minLength: 10, maxLength: 500 }), (input) => {
+        const result = seedSchema.safeParse(input);
+        const trimmedLength = input.trim().length;
+        return result.success === (trimmedLength >= 10 && trimmedLength <= 500);
+      }),
       { numRuns: 100 }
     );
   });
