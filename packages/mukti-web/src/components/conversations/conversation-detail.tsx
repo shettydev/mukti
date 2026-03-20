@@ -45,6 +45,7 @@ import { MessageInput } from './message-input';
 import { MessageList } from './message-list';
 import { RateLimitBanner } from './rate-limit-banner';
 import { VisualizeAsMapButton } from './visualize-as-map-button';
+import { WrapUpChip } from './wrap-up-chip';
 
 interface ConversationDetailProps {
   conversationId: string;
@@ -145,6 +146,27 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       setRateLimitRetryAfter(retryAfter || 60);
     },
   });
+
+  // Wrap-up chip visibility
+  const messageCount = conversation?.metadata?.messageCount ?? 0;
+  const showWrapUp =
+    !!conversation &&
+    !conversation.isArchived &&
+    !conversation.conclusionOffered &&
+    ((messageCount >= 20 && conversation.conclusionReady) || messageCount >= 30);
+
+  // Handle wrap-up
+  const handleWrapUp = useCallback(async () => {
+    try {
+      await sendMessage({
+        content: "Let's wrap up this conversation.",
+        model: activeModel ?? undefined,
+        wrapUpRequested: true,
+      });
+    } catch {
+      // Error handled by MessageInput / rate limit logic
+    }
+  }, [activeModel, sendMessage]);
 
   // Handle sending messages
   const handleSendMessage = useCallback(
@@ -435,6 +457,13 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
           <RateLimitBanner onDismiss={handleRateLimitDismiss} retryAfter={rateLimitRetryAfter} />
         </div>
       )}
+
+      {/* Wrap Up Chip */}
+      <WrapUpChip
+        disabled={isSending || processingState.isProcessing}
+        onWrapUp={handleWrapUp}
+        visible={showWrapUp}
+      />
 
       {/* Message Input */}
       <MessageInput
