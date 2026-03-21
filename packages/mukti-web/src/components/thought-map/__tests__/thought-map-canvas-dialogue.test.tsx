@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { ThoughtMapCanvas } from '../ThoughtMapCanvas';
 
 const mockAcceptGhostNode = jest.fn();
+const mockAddNode = jest.fn();
 const mockDeleteNode = jest.fn();
 const mockRemoveGhostNode = jest.fn();
 const mockRequestSuggestions = jest.fn();
@@ -73,6 +74,7 @@ const storeState = {
 
 const thoughtMapActions = {
   acceptGhostNode: mockAcceptGhostNode,
+  addNode: mockAddNode,
   deleteNode: mockDeleteNode,
   removeGhostNode: mockRemoveGhostNode,
   setMap: mockSetMap,
@@ -110,6 +112,7 @@ jest.mock('@xyflow/react', () => {
     }: any) => {
       const targetNode =
         nodes.find((node: { id: string }) => node.id === branchNode.nodeId) ?? nodes[0];
+      const inlineEditNode = nodes.find((node: { id: string }) => node.id === '__inline-edit__');
 
       return (
         <div>
@@ -141,6 +144,16 @@ jest.mock('@xyflow/react', () => {
           >
             drag stop inline
           </button>
+          {targetNode?.data?.onAddBranch && (
+            <button onClick={() => targetNode.data.onAddBranch(targetNode.id)} type="button">
+              add branch
+            </button>
+          )}
+          {inlineEditNode?.data?.onCommit && (
+            <button onClick={() => inlineEditNode.data.onCommit('New thought')} type="button">
+              commit inline
+            </button>
+          )}
           {children}
         </div>
       );
@@ -266,5 +279,41 @@ describe('ThoughtMapCanvas drag behavior', () => {
     await user.click(screen.getByRole('button', { name: /drag stop$/i }));
 
     expect(mockUpdateNode).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ThoughtMapCanvas inline edit position', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    storeState.selectedNodeId = null;
+    mockSetNodes.mockReset();
+    mockOnNodesChange.mockReset();
+    mockAddNode.mockResolvedValue('new-node-id');
+  });
+
+  it('passes the inline edit position to addNode on commit', async () => {
+    const user = userEvent.setup();
+
+    render(<ThoughtMapCanvas mapId="map-1" />);
+
+    // Trigger "Add Branch" on the branch node
+    await user.click(screen.getByRole('button', { name: /add branch/i }));
+
+    // The inline edit node should now be rendered; commit it
+    await user.click(screen.getByRole('button', { name: /commit inline/i }));
+
+    expect(mockAddNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'New thought',
+        mapId: 'map-1',
+        parentNodeId: 'branch-1',
+        x: expect.any(Number),
+        y: expect.any(Number),
+      })
+    );
+
+    // Position should be non-zero (offset from parent)
+    const call = mockAddNode.mock.calls[0][0];
+    expect(call.x).not.toBe(0);
   });
 });
