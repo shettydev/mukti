@@ -19,6 +19,7 @@ import {
   type CreateThoughtMapRequest,
   type CreateThoughtNodeRequest,
   getThoughtMapNodeType,
+  type ThinkingIntent,
   type ThoughtMap,
   type ThoughtMapNode,
   type ThoughtMapShareLink,
@@ -193,6 +194,11 @@ interface ThoughtMapState {
    */
   setSelectedNodeId: (nodeId: null | string) => void;
 
+  /**
+   * Set the thinking intent for map creation (frontend-only for now)
+   */
+  setThinkingIntent: (intent: null | ThinkingIntent) => void;
+
   /** Active share link for the current map, or null if not loaded / none exists */
   shareLink: null | ThoughtMapShareLink;
 
@@ -206,6 +212,9 @@ interface ThoughtMapState {
    * Mark extraction as started with the given job ID.
    */
   startExtraction: (jobId: string) => void;
+
+  /** Thinking intent selected during map creation */
+  thinkingIntent: null | ThinkingIntent;
 
   /**
    * Update an existing node with optimistic update and rollback
@@ -239,6 +248,7 @@ const initialState = {
   nodes: {} as Record<string, ThoughtMapNode>,
   selectedNodeId: null as null | string,
   shareLink: null as null | ThoughtMapShareLink,
+  thinkingIntent: null as null | ThinkingIntent,
 };
 
 // ============================================================================
@@ -684,6 +694,13 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
   },
 
   /**
+   * Set the thinking intent for map creation
+   */
+  setThinkingIntent: (intent: null | ThinkingIntent): void => {
+    set({ thinkingIntent: intent });
+  },
+
+  /**
    * Create (or replace) a public share link for the current map.
    */
   shareMap: async (opts?: { expiresInDays?: number }): Promise<null | ThoughtMapShareLink> => {
@@ -856,6 +873,7 @@ export const useThoughtMapActions = () =>
       setMap: state.setMap,
       setNodePosition: state.setNodePosition,
       setSelectedNodeId: state.setSelectedNodeId,
+      setThinkingIntent: state.setThinkingIntent,
       shareMap: state.shareMap,
       startExtraction: state.startExtraction,
       updateNode: state.updateNode,

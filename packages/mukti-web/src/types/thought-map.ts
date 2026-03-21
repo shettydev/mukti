@@ -92,6 +92,13 @@ export type ExtractionStreamEvent =
 // Core Domain Types
 // ============================================================================
 
+/**
+ * Thinking intent selected by the user when creating a new Thought Map.
+ * Frontend-only for now — used to customize placeholder text.
+ * Future: adapt AI suggestion prompts by intent.
+ */
+export type ThinkingIntent = 'debug' | 'decide' | 'explore' | 'understand';
+
 // ============================================================================
 // Enums
 // ============================================================================
