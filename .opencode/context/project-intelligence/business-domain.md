@@ -1,90 +1,95 @@
-<!-- Context: project-intelligence/business | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/business | Priority: high | Version: 1.0 | Updated: 2026-03-21 -->
 
 # Business Domain
 
-> Document the business context, problems solved, and value created.
+**Purpose**: Product philosophy, problem statement, and value proposition for Mukti.
+**Last Updated**: 2026-03-21
 
 ## Quick Reference
 
-- **Purpose**: Understand why this project exists
-- **Update When**: Business direction changes, new features shipped, pivot
-- **Audience**: Developers needing context, stakeholders, product team
+- **Purpose**: Understand why Mukti exists and who it serves
+- **Update When**: Product pivot, new feature area, user research findings
+- **Audience**: Developers, designers, stakeholders
 
 ## Project Identity
 
 ```
-Project Name: [Name]
-Tagline: [One-line description]
-Problem Statement: [What problem are we solving?]
-Solution: [How we're solving it]
+Project Name:      Mukti (मुक्ति, "liberation")
+Tagline:           A thinking workspace that combats cognitive dependency on AI
+Problem:           AI tools short-circuit independent thought by giving direct answers
+Solution:          Socratic assistant that guides users through problems — more questions, no answers
+Core Philosophy:   Every feature asks "does this make users think better, or think less?"
 ```
 
 ## Target Users
 
-| User Segment | Who They Are  | What They Need | Pain Points          |
-| ------------ | ------------- | -------------- | -------------------- |
-| [Primary]    | [Description] | [Their needs]  | [Their frustrations] |
-| [Secondary]  | [Description] | [Their needs]  | [Their frustrations] |
+| User Segment        | Who They Are                                   | What They Need                               | Pain Points                                    |
+| ------------------- | ---------------------------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| Knowledge Workers   | Professionals solving complex problems with AI | Tools that build capability, not dependency  | AI answers bypass critical thinking entirely   |
+| Students / Learners | People learning difficult concepts             | Scaffolded guidance that preserves struggle  | AI homework help undermines deep understanding |
+| Researchers/Writers | Creative professionals exploring ideas with AI | Structured reflection to develop originality | AI-generated content feels externally sourced  |
 
 ## Value Proposition
 
+**Core Promise**: Mukti is the anti-ChatGPT — it helps you think better, not think less.
+
 **For Users**:
 
-- [Key benefit 1]
-- [Key benefit 2]
-- [Key benefit 3]
+- Socratic dialogue using 6 techniques: elenchus, dialectic, maieutics, definitional, analogical, counterfactual
+- Visual Thinking Canvas externalizes problem structure (Seed, Soil, Root, Insight nodes)
+- Per-node dialogues with technique auto-selection based on node type
+- Adaptive scaffolding that never gives direct answers (5-level system, auto-fades on success)
+- Knowledge gap detection prevents Socratic overload on unfamiliar concepts
 
-**For Business**:
+**For the Product**:
 
-- [Key value 1]
-- [Key value 2]
+- Differentiated positioning: metacognitive wellness vs. AI productivity tools
+- BYOK model reduces platform AI inference costs and scales to power users
+- MCP server exposes Socratic tools to external agents (standalone, reusable)
 
-## Success Metrics
+## Active Features
 
-| Metric     | Definition         | Target | Current  |
-| ---------- | ------------------ | ------ | -------- |
-| [Metric 1] | [What it measures] | [Goal] | [Actual] |
-| [Metric 2] | [What it measures] | [Goal] | [Actual] |
+| Feature                     | Status     | RFC      | Description                                                          |
+| --------------------------- | ---------- | -------- | -------------------------------------------------------------------- |
+| Thinking Canvas             | ✅ Shipped | —        | Visual problem-solving with Seed/Soil/Root/Insight node dialogues    |
+| Socratic Conversations      | ✅ Shipped | —        | 6-technique text dialogue system with SSE streaming                  |
+| Thought Map                 | ✅ Shipped | RFC-0003 | Extract conversation structure as a visual node map                  |
+| Dialogue Quality Guardrails | ✅ Shipped | RFC-0004 | Single-question enforcement, breakthrough + misconception detection  |
+| Knowledge Gap Detection     | 🔄 Partial | RFC-0001 | BKT-based foundation failure detection (algorithm done, signals WIP) |
+| Adaptive Scaffolding        | 🔄 Partial | RFC-0002 | 5-level scaffold auto-fading (schema done, service wiring WIP)       |
+| Session Continuity          | 📋 Planned | RFC-0005 | Temporal awareness and context preservation across sessions          |
 
-## Business Model (if applicable)
+## Technique Auto-Selection
 
-```
-Revenue Model: [How the business makes money]
-Pricing Strategy: [If applicable]
-Unit Economics: [CAC, LTV, etc.]
-Market Position: [Where we fit in the market]
-```
+Canvas node type drives Socratic technique automatically:
 
-## Key Stakeholders
-
-| Role            | Name   | Responsibility  | Contact   |
-| --------------- | ------ | --------------- | --------- |
-| [Product Owner] | [Name] | [What they own] | [Contact] |
-| [Tech Lead]     | [Name] | [What they own] | [Contact] |
-| [Business Lead] | [Name] | [What they own] | [Contact] |
+| Node Type | Technique      | Purpose                                  |
+| --------- | -------------- | ---------------------------------------- |
+| Seed      | Maieutics      | Draw out latent knowledge of the problem |
+| Root      | Elenchus       | Challenge assumptions by refutation      |
+| Soil      | Counterfactual | Explore constraints by hypothetical      |
+| Insight   | Dialectic      | Synthesize competing views               |
 
 ## Roadmap Context
 
-**Current Focus**: [What we're working on now]
-**Next Milestone**: [Upcoming goal]
-**Long-term Vision**: [Where this is heading]
+**Current Focus**: Complete dialogue quality guardrails (RFC-0004 shipped) → knowledge gap signals (RFC-0001)
+**Next Milestone**: Full adaptive scaffolding integration (RFC-0002)
+**Long-term Vision**: An AI thinking partner that measurably builds metacognitive capability over time
 
-## Business Constraints
+## 📂 Codebase References
 
-- [Constraint 1] - [Why it exists]
-- [Constraint 2] - [Why it exists]
-
-## Onboarding Checklist
-
-- [ ] Understand the problem statement
-- [ ] Identify target users and their needs
-- [ ] Know the key value proposition
-- [ ] Understand success metrics
-- [ ] Know who the stakeholders are
-- [ ] Understand current business constraints
+| Reference              | Path                                                | Description                     |
+| ---------------------- | --------------------------------------------------- | ------------------------------- |
+| Socratic conversations | `packages/mukti-api/src/modules/conversations/`     | 6-technique dialogue engine     |
+| Canvas sessions        | `packages/mukti-api/src/modules/canvas/`            | Node CRUD and relationship mgmt |
+| Dialogue quality       | `packages/mukti-api/src/modules/dialogue-quality/`  | RFC-0004 guardrails             |
+| Knowledge tracing      | `packages/mukti-api/src/modules/knowledge-tracing/` | RFC-0001 BKT algorithm          |
+| Adaptive scaffolding   | `packages/mukti-api/src/modules/scaffolding/`       | RFC-0002 5-level system         |
+| MCP server             | `packages/mukti-mcp/`                               | Standalone Socratic MCP tools   |
+| Active RFCs            | `docs/rfcs/active/`                                 | RFC-0001 through RFC-0005       |
 
 ## Related Files
 
-- `technical-domain.md` - How this business need is solved technically
-- `business-tech-bridge.md` - Mapping between business and technical
-- `decisions-log.md` - Business decisions with context
+- `technical-domain.md` — How the product is built technically
+- `business-tech-bridge.md` — How business needs map to technical solutions
+- `decisions-log.md` — Why key product decisions were made

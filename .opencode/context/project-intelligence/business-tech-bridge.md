@@ -1,100 +1,98 @@
-<!-- Context: project-intelligence/bridge | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/bridge | Priority: high | Version: 1.0 | Updated: 2026-03-21 -->
 
 # Business ↔ Tech Bridge
 
-> Document how business needs translate to technical solutions. This is the critical connection point.
+**Purpose**: Show how Mukti's product philosophy drives every technical decision.
+**Last Updated**: 2026-03-21
 
 ## Quick Reference
 
-- **Purpose**: Show stakeholders technical choices serve business goals
-- **Purpose**: Show developers business constraints drive architecture
-- **Update When**: New features, refactoring, business pivot
+- **Purpose**: Connect "why we build it" to "how we build it"
+- **Update When**: New features ship, architecture changes, business pivot
+- **Audience**: Developers needing context, stakeholders evaluating trade-offs
 
 ## Core Mapping
 
-| Business Need           | Technical Solution         | Why This Mapping | Business Value    |
-| ----------------------- | -------------------------- | ---------------- | ----------------- |
-| [Users need X]          | [Technical implementation] | [Why this maps]  | [Value delivered] |
-| [Business wants Y]      | [Technical implementation] | [Why this maps]  | [Value delivered] |
-| [Compliance requires Z] | [Technical implementation] | [Why this maps]  | [Value delivered] |
+| Business Need                        | Technical Solution                          | Business Value                                   |
+| ------------------------------------ | ------------------------------------------- | ------------------------------------------------ |
+| Real-time Socratic response          | BullMQ queue + SSE streaming                | Users aren't blocked; see progress in real-time  |
+| Visual thinking canvas               | XyFlow/React + Zustand optimistic updates   | Fluid canvas editing without API lag             |
+| Dialogue quality (one question only) | DialogueQualityModule (7 services)          | Socratic contract never broken                   |
+| Knowledge gap detection              | BKT algorithm in KnowledgeTracingModule     | Method doesn't fail on unfamiliar concepts       |
+| Adaptive scaffolding                 | 5-level ScaffoldingModule + auto-fading     | Always-appropriate difficulty, no direct answers |
+| User AI cost control                 | BYOK + AiSecretsService encryption          | Sustainable scale; power user flexibility        |
+| Security by default                  | Global `JwtAuthGuard` + `@Public()` opt-out | Zero accidental public endpoints                 |
 
-## Feature Mapping Examples
+## Feature Mapping
 
-### Feature: [Feature Name]
+### Socratic Conversations
 
-**Business Context**:
+**Business**: Users need guided questioning that never gives direct answers
+**Technical**: POST message → BullMQ enqueue → SSE stream (`processing → message → complete`)
+**Why**: AI inference is 2–15s; queue-based approach keeps the API non-blocking and provides position feedback
+**Trade-off chosen**: Two-step client flow (POST then SSE subscribe) over simpler long-poll; worth it for reliability and real-time streaming
 
-- User need: [What users need]
-- Business goal: [Why this matters to business]
-- Priority: [Why this was prioritized]
+---
 
-**Technical Implementation**:
+### Thinking Canvas
 
-- Solution: [What was built]
-- Architecture: [How it fits the system]
-- Trade-offs: [What was considered and why it won]
+**Business**: Externalizing thought structure (Seed/Soil/Root/Insight) aids metacognition
+**Technical**: XyFlow node graph + Zustand optimistic updates with rollback on API failure
+**Why**: Canvas interactions demand immediate UI feedback; API failures must not lose work
+**Trade-off chosen**: Optimistic update complexity over blocking UI; canvas UX is core to the product promise
 
-**Connection**:
-[Explain clearly how the technical solution serves the business need. What would happen without this feature? What does this feature enable for the business?]
+---
 
-### Feature: [Feature Name]
+### Dialogue Quality Guardrails (RFC-0004)
 
-**Business Context**:
+**Business**: Socratic dialogue must ask exactly one question and detect when users break through
+**Technical**: `DialogueQualityModule` — `SingleQuestionEnforcer`, `BreakthroughDetector`, `MisconceptionDetector`, `AcknowledgmentProtocol`, `ConclusionDetector`, `PostResponseMonitor`, `DialogueQualityService`
+**Why**: Without guardrails, LLMs drift toward lecturing, which breaks Mukti's core promise
+**Trade-off chosen**: Additional AI passes (token cost) over degraded Socratic quality — non-negotiable
 
-- User need: [What users need]
-- Business goal: [Why this matters to business]
-- Priority: [Why this was prioritized]
+---
 
-**Technical Implementation**:
+### Knowledge Gap Detection (RFC-0001)
 
-- Solution: [What was built]
-- Architecture: [How it fits the system]
-- Trade-offs: [What was considered and why it won]
+**Business**: Socratic questioning fails when users lack foundational knowledge — frustrates instead of enlightens
+**Technical**: BKT (Bayesian Knowledge Tracing) + multi-signal detection (behavioral, linguistic, temporal)
+**Why**: Persistent Socratic questioning on a topic the user genuinely doesn't know is cruel, not educational
+**Trade-off chosen**: Bayesian complexity over simple heuristics; accuracy matters for user trust
 
-**Connection**:
-[Explain clearly how the technical solution serves the business need.]
+---
 
-## Trade-off Decisions
+### Adaptive Scaffolding (RFC-0002)
 
-When business and technical needs conflict, document the trade-off:
+**Business**: Different users need different levels of support — pure Socratic isn't always enough
+**Technical**: 5 scaffold levels (0 = pure Socratic → 4 = direct instruction + guided practice); auto-fades on consecutive success/failure streaks
+**Why**: One-size-fits-all Socratic approach loses beginners; adaptive system preserves the anti-answer philosophy at every level
+**Trade-off chosen**: Schema fields (`currentScaffoldLevel`, `consecutiveSuccesses`) over simpler prompt switching; explicit state enables fade logic
 
-| Situation  | Business Priority     | Technical Priority | Decision Made     | Rationale            |
-| ---------- | --------------------- | ------------------ | ----------------- | -------------------- |
-| [Conflict] | [What business wants] | [What tech wants]  | [What was chosen] | [Why this was right] |
+## Key Trade-offs Log
 
-## Common Misalignments
+| Situation            | Business Priority       | Technical Priority | Decision Made          | Rationale                                          |
+| -------------------- | ----------------------- | ------------------ | ---------------------- | -------------------------------------------------- |
+| AI response speed    | User experience         | System reliability | Queue + SSE            | Reliability + position tracking > raw speed        |
+| Auth token storage   | Frictionless login      | XSS security       | Memory-only + cookie   | Security non-negotiable; silent refresh handles UX |
+| AI cost at scale     | Platform sustainability | Feature richness   | BYOK model             | Shifts inference cost to power users               |
+| Canvas edit feedback | Instant UI              | Data consistency   | Optimistic + rollback  | UX wins; rollback preserves correctness            |
+| Socratic quality     | Product integrity       | Token cost         | Quality guardrail pass | Product promise > incremental AI cost              |
 
-| Misalignment       | Warning Signs           | Resolution Approach |
-| ------------------ | ----------------------- | ------------------- |
-| [Type of mismatch] | [Symptoms to watch for] | [How to address]    |
+## 📂 Codebase References
 
-## Stakeholder Communication
-
-This file helps translate between worlds:
-
-**For Business Stakeholders**:
-
-- Shows that technical investments serve business goals
-- Provides context for why certain choices were made
-- Demonstrates ROI of technical decisions
-
-**For Technical Stakeholders**:
-
-- Provides business context for architectural decisions
-- Shows the "why" behind constraints and requirements
-- Helps prioritize technical debt with business impact
-
-## Onboarding Checklist
-
-- [ ] Understand the core business needs this project addresses
-- [ ] See how each major feature maps to business value
-- [ ] Know the key trade-offs and why decisions were made
-- [ ] Be able to explain to stakeholders why technical choices matter
-- [ ] Be able to explain to developers why business constraints exist
+| Reference        | Path                                                                                 | Description                     |
+| ---------------- | ------------------------------------------------------------------------------------ | ------------------------------- |
+| Queue service    | `packages/mukti-api/src/modules/conversations/services/queue.service.ts`             | BullMQ enqueue logic            |
+| SSE streaming    | `packages/mukti-api/src/modules/conversations/services/stream.service.ts`            | SSE event delivery              |
+| Canvas store     | `packages/mukti-web/src/lib/stores/canvas-store.ts`                                  | Optimistic updates + rollback   |
+| Dialogue quality | `packages/mukti-api/src/modules/dialogue-quality/services/`                          | 7 quality guardrail services    |
+| BKT algorithm    | `packages/mukti-api/src/modules/knowledge-tracing/services/bkt-algorithm.service.ts` | Bayesian knowledge tracing      |
+| Scaffolding      | `packages/mukti-api/src/modules/scaffolding/services/`                               | 5-level adaptive scaffold       |
+| BYOK encryption  | `packages/mukti-api/src/modules/ai/services/ai-secrets.service.ts`                   | API key encryption at rest      |
+| Model resolution | `packages/mukti-api/src/modules/ai/services/ai-policy.service.ts`                    | `resolveEffectiveModel()` logic |
 
 ## Related Files
 
-- `business-domain.md` - Business needs in detail
-- `technical-domain.md` - Technical implementation in detail
-- `decisions-log.md` - Decisions made with full context
-- `living-notes.md` - Current open questions and issues
+- `business-domain.md` — Business needs in full detail
+- `technical-domain.md` — Technical implementation in full detail
+- `decisions-log.md` — Decisions with complete rationale

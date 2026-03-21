@@ -1,9 +1,9 @@
-<!-- Context: project-intelligence/technical | Priority: critical | Version: 1.0 | Updated: 2026-03-07 -->
+<!-- Context: project-intelligence/technical | Priority: critical | Version: 1.1 | Updated: 2026-03-21 -->
 
 # Technical Domain
 
 **Purpose**: Tech stack, architecture, and development patterns for the Mukti monorepo.
-**Last Updated**: 2026-03-07
+**Last Updated**: 2026-03-21
 
 ## Quick Reference
 
@@ -27,6 +27,8 @@
 | State (server) | TanStack Query        | v5      | Cache, mutations, optimistic updates               |
 | Forms          | React Hook Form + Zod | v7 + v4 | Validation with schema inference                   |
 | Canvas         | XyFlow/React          | v12     | Node-based visualization                           |
+
+**Modules (12)**: ai · auth · canvas · conversations · database · dialogue · dialogue-quality · health · knowledge-tracing · scaffolding · thought-map · waitlist
 
 ## Code Patterns
 
@@ -76,9 +78,7 @@ export class ResourceController {
 ```typescript
 'use client';
 
-import { Brain } from 'lucide-react';
 import type { CanvasSession } from '@/types/canvas.types';
-import { Button } from '@/components/ui/button';
 import { useDeleteCanvasSession } from '@/lib/hooks/use-canvas';
 import { cn } from '@/lib/utils';
 
@@ -89,13 +89,40 @@ interface SessionCardProps {
 export function SessionCard({ session }: SessionCardProps) {
   const { isPending, mutate: deleteSession } = useDeleteCanvasSession();
   return (
-    <Card className={cn('cursor-pointer transition-all hover:border-primary/50')}
-          onClick={() => router.push(`/dashboard/canvas/${session.id}`)}>
+    <Card
+      className={cn('cursor-pointer transition-all hover:border-primary/50')}
+      onClick={() => router.push(`/dashboard/canvas/${session.id}`)}
+    >
       ...
     </Card>
   );
 }
 ```
+
+## Testing Patterns
+
+**Frameworks**: Jest + ts-jest (API) · Jest + Testing Library (Web) · fast-check (property-based)
+
+```typescript
+// Unit test — AAA pattern (co-located: __tests__/*.spec.ts)
+it('updates pKnown on correct response', () => {
+  const state = { pKnown: 0.5, pLearn: 0.2, pSlip: 0.1, pGuess: 0.25 }; // Arrange
+  const result = service.updateState(state, true); // Act
+  expect(result.pKnown).toBeGreaterThan(0.5); // Assert
+});
+
+// Property-based — security-critical paths (__tests__/properties/*.property.spec.ts)
+fc.assert(
+  fc.property(fc.string(), fc.string(), (userId, otherId) => {
+    fc.pre(userId !== otherId);
+    expect(() => service.accessResource(otherId, userId)).toThrow();
+  })
+);
+```
+
+- **Run**: `bun nx run @mukti/api:test` · `bun nx run @mukti/web:test` · `bun run affected:test`
+- **TDD**: Write failing test → implement → green → refactor. No logic ships untested.
+- **Component tests**: `@testing-library/react` + `jest-environment-jsdom`; test behavior, not markup.
 
 ## Naming Conventions
 
@@ -108,7 +135,10 @@ export function SessionCard({ session }: SessionCardProps) {
 | API routes      | kebab-case           | `/api/v1/conversations/:id/messages`                   |
 | NestJS services | PascalCase class     | `AiPolicyService` → `ai-policy.service.ts`             |
 | DTOs            | PascalCase class     | `CreateConversationDto` → `create-conversation.dto.ts` |
-| Commits         | type(scope): subject | `feat(api): add canvas endpoints`                      |
+| Commits         | type(scope): subject | `feat(api): Add canvas endpoints` (sentence-case)      |
+
+**Commit types**: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, wip, init
+**Commit scopes**: api, web, mcp, config, workflows, deps, docker, deployment, monorepo, scripts, architecture, readme, rfc, planning, db, redis, ui, components, unit, e2e, release, kiro, opencode, claude
 
 ## Code Standards
 
@@ -117,11 +147,11 @@ export function SessionCard({ session }: SessionCardProps) {
 - ESLint + lint-staged via Husky pre-commit hooks
 - Mongoose 8 for DB (schemas in `ALL_SCHEMAS` array at `src/schemas/index.ts`)
 - Zod v4 for frontend validation, NestJS `ValidationPipe` for backend
-- BullMQ for async AI processing (queue-based, never inline)
+- BullMQ for async AI processing (queue-based, never inline AI calls)
 - Prefer server components — `'use client'` only when needed
 - Zustand for client state, TanStack Query for server state
 - Bun as runtime/package manager (not npm/node)
-- Commitlint: `<type>(<scope>): <subject>`
+- Commitlint: `<type>(<scope>): <subject>` — sentence-case, 100 char max header
 - Property-based testing with fast-check on security-critical paths
 - Swagger isolation — each module has a `.swagger.ts` file
 - Response envelope: `{ success, data, meta: { requestId, timestamp } }`
@@ -144,20 +174,20 @@ export function SessionCard({ session }: SessionCardProps) {
 - Access token in memory only — never in localStorage
 - Mongoose handles query injection prevention
 
-## Codebase References
+## 📂 Codebase References
 
-| Reference           | Path                                            | Description              |
-| ------------------- | ----------------------------------------------- | ------------------------ |
-| API controllers     | `packages/mukti-api/src/modules/*/`             | NestJS module structure  |
-| Schemas             | `packages/mukti-api/src/schemas/`               | All Mongoose schemas     |
-| Schema registry     | `packages/mukti-api/src/schemas/index.ts`       | `ALL_SCHEMAS` array      |
-| Frontend components | `packages/mukti-web/src/components/`            | React components         |
-| UI primitives       | `packages/mukti-web/src/components/ui/`         | Radix-based primitives   |
-| Hooks               | `packages/mukti-web/src/lib/hooks/`             | TanStack Query hooks     |
-| API client          | `packages/mukti-web/src/lib/api/`               | API modules              |
-| Stores              | `packages/mukti-web/src/lib/stores/`            | Zustand stores           |
-| App routes          | `packages/mukti-web/src/app/`                   | Next.js App Router pages |
-| Config              | `package.json`, `nx.json`, `tsconfig.base.json` | Monorepo config          |
+| Reference           | Path                                              | Description              |
+| ------------------- | ------------------------------------------------- | ------------------------ |
+| API controllers     | `packages/mukti-api/src/modules/*/`               | NestJS module structure  |
+| Schemas             | `packages/mukti-api/src/schemas/`                 | All Mongoose schemas     |
+| Schema registry     | `packages/mukti-api/src/schemas/index.ts`         | `ALL_SCHEMAS` array      |
+| Frontend components | `packages/mukti-web/src/components/`              | React components         |
+| UI primitives       | `packages/mukti-web/src/components/ui/`           | Radix-based primitives   |
+| Hooks               | `packages/mukti-web/src/lib/hooks/`               | TanStack Query hooks     |
+| API client          | `packages/mukti-web/src/lib/api/`                 | API modules              |
+| Stores              | `packages/mukti-web/src/lib/stores/`              | Zustand stores           |
+| App routes          | `packages/mukti-web/src/app/`                     | Next.js App Router pages |
+| Config              | `package.json`, `nx.json`, `commitlint.config.js` | Monorepo config          |
 
 ## Related Files
 

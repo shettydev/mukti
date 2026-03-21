@@ -1,4 +1,4 @@
-<!-- Context: project-intelligence/nav | Priority: high | Version: 1.1 | Updated: 2026-03-07 -->
+<!-- Context: project-intelligence/nav | Priority: high | Version: 1.2 | Updated: 2026-03-21 -->
 
 # Project Intelligence
 
@@ -9,22 +9,22 @@
 ```
 .opencode/context/project-intelligence/
 ├── navigation.md              # This file - quick overview
-├── business-domain.md         # Business context and problem statement
+├── business-domain.md         # Business context and problem statement ✅ POPULATED
 ├── technical-domain.md        # Stack, architecture, technical decisions ✅ POPULATED
-├── business-tech-bridge.md    # How business needs map to solutions
-├── decisions-log.md           # Major decisions with rationale
-└── living-notes.md            # Active issues, debt, open questions
+├── business-tech-bridge.md    # How business needs map to solutions    ✅ POPULATED
+├── decisions-log.md           # Major decisions with rationale         ✅ POPULATED
+└── living-notes.md            # Active issues, debt, open questions    ✅ POPULATED
 ```
 
 ## Quick Routes
 
-| What You Need         | File                      | Status      | Description                             |
-| --------------------- | ------------------------- | ----------- | --------------------------------------- |
-| Tech stack & patterns | `technical-domain.md`     | ✅ Complete | Stack, API/component patterns, security |
-| Understand the "why"  | `business-domain.md`      | 📝 Template | Problem, users, value proposition       |
-| See the connection    | `business-tech-bridge.md` | 📝 Template | Business → technical mapping            |
-| Know the context      | `decisions-log.md`        | 📝 Template | Why decisions were made                 |
-| Current state         | `living-notes.md`         | 📝 Template | Active issues and open questions        |
+| What You Need         | File                      | Status      | Description                                      |
+| --------------------- | ------------------------- | ----------- | ------------------------------------------------ |
+| Tech stack & patterns | `technical-domain.md`     | ✅ Complete | Stack, API/component/testing patterns, security  |
+| Understand the "why"  | `business-domain.md`      | ✅ Complete | Problem, users, value proposition, 5 active RFCs |
+| See the connection    | `business-tech-bridge.md` | ✅ Complete | Business → technical mapping, trade-offs log     |
+| Know the context      | `decisions-log.md`        | ✅ Complete | 7 architectural decisions with full rationale    |
+| Current state         | `living-notes.md`         | ✅ Complete | Active RFCs, tech debt, gotchas, open questions  |
 
 ## Usage
 
@@ -32,13 +32,15 @@
 
 1. Start with `navigation.md` (this file)
 2. Read `technical-domain.md` for stack, patterns, and conventions
-3. Read remaining files as needed
+3. Read `business-domain.md` for product philosophy and feature status
+4. Read remaining files as needed for decision context and current state
 
 **Quick Reference**:
 
 - Tech stack & patterns → `technical-domain.md`
-- Business focus → `business-domain.md`
-- Decision context → `decisions-log.md`
+- Product philosophy & RFCs → `business-domain.md`
+- Why decisions were made → `decisions-log.md`
+- Current gotchas & debt → `living-notes.md`
 
 ## Integration
 
@@ -53,10 +55,10 @@ See `.opencode/context/core/context-system.md` for the broader context architect
 
 Keep this folder current:
 
-- Update when business direction changes
-- Document decisions as they're made
-- Review `living-notes.md` regularly
-- Archive resolved items from decisions-log.md
+- Update `technical-domain.md` when stack changes or new patterns emerge
+- Update `business-domain.md` when RFCs ship or product direction changes
+- Log new decisions in `decisions-log.md` as they are made
+- Keep `living-notes.md` fresh — review weekly, archive resolved items
 
 **Management Guide**: See `.opencode/context/core/standards/project-intelligence-management.md` for complete lifecycle management including:
 

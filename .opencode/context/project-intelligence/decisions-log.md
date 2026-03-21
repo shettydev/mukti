@@ -1,148 +1,123 @@
-<!-- Context: project-intelligence/decisions | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/decisions | Priority: high | Version: 1.0 | Updated: 2026-03-21 -->
 
 # Decisions Log
 
-> Record major architectural and business decisions with full context. This prevents "why was this done?" debates.
+**Purpose**: Record major architectural decisions with rationale to prevent "why was this done?" debates.
+**Last Updated**: 2026-03-21
 
 ## Quick Reference
 
-- **Purpose**: Document decisions so future team members understand context
-- **Format**: Each decision as a separate entry
+- **Format**: Each decision as a dated entry with context, rationale, and trade-offs
 - **Status**: Decided | Pending | Under Review | Deprecated
 
-## Decision Template
+---
 
-```markdown
-## [Decision Title]
+## Decision: Bun as Runtime and Package Manager
 
-**Date**: YYYY-MM-DD
-**Status**: [Decided/Pending/Under Review/Deprecated]
-**Owner**: [Who owns this decision]
+**Date**: 2025-Q4 | **Status**: Decided
 
-### Context
+**Context**: Node.js + npm required explicit dotenv loading and slower installs across all scripts.
 
-[What situation prompted this decision? What was the problem or opportunity?]
+**Decision**: Bun as the universal runtime and package manager for the entire monorepo.
 
-### Decision
+**Rationale**: Auto-loads `.env` files (no dotenv imports); ~25x faster installs; native TypeScript execution in scripts (`bun <file>` vs `ts-node`); `bun run` replaces `npm run`.
 
-[What was decided? Be specific about the choice made.]
-
-### Rationale
-
-[Why this decision? What were the alternatives and why were they rejected?]
-
-### Alternatives Considered
-
-| Alternative | Pros   | Cons   | Why Rejected?    |
-| ----------- | ------ | ------ | ---------------- |
-| [Alt 1]     | [Pros] | [Cons] | [Why not chosen] |
-| [Alt 2]     | [Pros] | [Cons] | [Why not chosen] |
-
-### Impact
-
-**Positive**: [What this enables or improves]
-**Negative**: [What trade-offs or limitations this creates]
-**Risk**: [What could go wrong]
-
-### Related
-
-- [Links to related decisions, PRs, issues, or documentation]
-```
+**Trade-offs**: Bun ecosystem less mature than Node.js; some npm packages need compatibility shims. Accepted — speed and DX benefits outweigh occasional edge cases.
 
 ---
 
-## Decision: [Title]
+## Decision: NestJS 11 over Express for the API
 
-**Date**: YYYY-MM-DD
-**Status**: [Status]
-**Owner**: [Owner]
+**Date**: 2025-Q4 | **Status**: Decided
 
-### Context
+**Context**: Needed a modular, testable backend with dependency injection and decorator-based routing for a complex multi-module system.
 
-[What was happening? Why did we need to decide?]
+**Decision**: NestJS 11 with strict module-per-feature architecture (one folder per domain, one module per concern).
 
-### Decision
+**Rationale**: Built-in DI container (services injected, not globally imported); decorator-based guards, pipes, interceptors; first-class `@nestjs/swagger` support; `@nestjs/testing` enables proper isolated unit + integration tests.
 
-[What we decided]
-
-### Rationale
-
-[Why this was the right choice]
-
-### Alternatives Considered
-
-| Alternative | Pros          | Cons         | Why Rejected? |
-| ----------- | ------------- | ------------ | ------------- |
-| [Option A]  | [Good things] | [Bad things] | [Reason]      |
-| [Option B]  | [Good things] | [Bad things] | [Reason]      |
-
-### Impact
-
-- **Positive**: [What we gain]
-- **Negative**: [What we trade off]
-- **Risk**: [What to watch for]
-
-### Related
-
-- [Link to PR #000]
-- [Link to issue #000]
-- [Link to documentation]
+**Trade-offs**: More boilerplate than Express. Justified: 12 modules with shared services would be tangled in Express without a DI layer.
 
 ---
 
-## Decision: [Title]
+## Decision: MongoDB + Mongoose over PostgreSQL
 
-**Date**: YYYY-MM-DD
-**Status**: [Status]
-**Owner**: [Owner]
+**Date**: 2025-Q4 | **Status**: Decided
 
-### Context
+**Context**: Canvas sessions have nested node structures; dialogue messages are append-only arrays; knowledge states are per-user-per-concept documents.
 
-[What was happening?]
+**Decision**: MongoDB 7 with Mongoose 8. All schemas registered centrally via `ALL_SCHEMAS` in `src/schemas/index.ts`.
 
-### Decision
+**Rationale**: Document model fits hierarchical canvas/dialogue data without JOIN complexity; Mongoose population handles cross-document references; schema-per-concept keeps the domain model explicit.
 
-[What we decided]
+**Trade-offs**: No ACID transactions across documents (compensated by schema design and optimistic updates on the client). No complex relational queries needed.
 
-### Rationale
+---
 
-[Why this was right]
+## Decision: Queue-Based AI Processing (BullMQ + SSE)
 
-### Alternatives Considered
+**Date**: 2025-Q4 | **Status**: Decided
 
-| Alternative | Pros          | Cons         | Why Rejected? |
-| ----------- | ------------- | ------------ | ------------- |
-| [Option A]  | [Good things] | [Bad things] | [Reason]      |
+**Context**: AI inference via OpenRouter/Gemini takes 2–15s; standard HTTP requests time out; inline AI calls block the event loop.
 
-### Impact
+**Decision**: POST message → 202 Accepted + `{ jobId, position }` → client subscribes to SSE stream for real-time response. SSE events: `processing → message → complete | error`.
 
-- **Positive**: [What we gain]
-- **Negative**: [What we trade off]
+**Rationale**: Non-blocking API; queue position gives users real-time feedback; SSE enables token-by-token streaming; BullMQ handles retries and failure cases. Connections keyed by `sessionId:nodeId` for per-node dialogue isolation.
 
-### Related
+**Trade-offs**: Two-step client flow (POST then SSE subscribe). Documented as the expected pattern; both ConversationsModule and DialogueModule follow it consistently.
 
-- [Link]
+---
+
+## Decision: Nx Monorepo with Shared Config
+
+**Date**: 2025-Q4 | **Status**: Decided
+
+**Context**: `@mukti/api` and `@mukti/web` are developed together but built/deployed independently. Need shared TypeScript config, lint rules, and task orchestration.
+
+**Decision**: Nx 21.6 with `@nx/next`, `@nx/eslint`, `@nx/jest` plugins; shared `tsconfig.base.json`; parallel task execution (3 concurrent); affected commands for CI.
+
+**Rationale**: `bun run affected:test` only tests changed packages; `.nx/cache` skips unchanged builds; `bun run graph` visualizes dependencies. Critical for monorepo scale.
+
+**Trade-offs**: Nx learning curve and plugin-based config complexity. Worth it: affected commands alone reduce CI time by ~60% on partial changes.
+
+---
+
+## Decision: Global JWT Guard with `@Public()` Opt-Out
+
+**Date**: 2025-Q4 | **Status**: Decided
+
+**Context**: Every new NestJS endpoint must be authenticated. Developer error (forgetting a guard) should never create an accidental public endpoint.
+
+**Decision**: `JwtAuthGuard` registered globally via `APP_GUARD` in `AppModule`. Developers use `@Public()` decorator explicitly to opt out on open endpoints (waitlist, OAuth callbacks, health check).
+
+**Rationale**: Secure by default — new controllers can't accidentally be public. Consistent with `@Roles()` + `RolesGuard` layered on top. Prevents security regressions.
+
+**Trade-offs**: Developers must consciously add `@Public()`. Considered a feature, not a bug — forced intentionality on auth decisions.
+
+---
+
+## Decision: BYOK (Bring Your Own Key) AI Model
+
+**Date**: 2026-Q1 | **Status**: Decided
+
+**Context**: Platform-funded AI inference doesn't scale with growth. Power users want to choose their own models beyond the platform default.
+
+**Decision**: Users store encrypted OpenRouter/Gemini API keys in their account settings. `AiPolicyService.resolveEffectiveModel()` determines which key and model to use per request. Platform default: `openai/gpt-5-mini`.
+
+**Rationale**: Shifts AI inference cost to users who opt in; power users get model choice (GPT-4, Claude, Gemini); `AiSecretsService` encrypts keys at rest. Platform cost becomes near-zero for BYOK users.
+
+**Trade-offs**: Users must obtain and manage their own API keys. Mitigated by clear UX in settings and sensible platform default for free-tier users.
 
 ---
 
 ## Deprecated Decisions
 
-Decisions that were later overturned (for historical context):
-
-| Decision       | Date   | Replaced By    | Why      |
-| -------------- | ------ | -------------- | -------- |
-| [Old decision] | [Date] | [New decision] | [Reason] |
-
-## Onboarding Checklist
-
-- [ ] Understand the philosophy behind major architectural choices
-- [ ] Know why certain technologies were chosen over alternatives
-- [ ] Understand trade-offs that were made
-- [ ] Know where to find decision context when questions arise
-- [ ] Understand what decisions are pending and why
+| Decision                     | Date       | Replaced By                                | Why                                               |
+| ---------------------------- | ---------- | ------------------------------------------ | ------------------------------------------------- |
+| `project/project-context.md` | 2026-01-12 | `project-intelligence/technical-domain.md` | Was generic OpenCode template, not Mukti-specific |
 
 ## Related Files
 
-- `technical-domain.md` - Technical implementation affected by these decisions
-- `business-tech-bridge.md` - How decisions connect business and technical
-- `living-notes.md` - Current open questions that may become decisions
+- `technical-domain.md` — Technical implementation affected by these decisions
+- `business-tech-bridge.md` — Business rationale for technical choices
+- `living-notes.md` — Current open questions that may become decisions
