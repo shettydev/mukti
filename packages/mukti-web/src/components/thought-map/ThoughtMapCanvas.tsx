@@ -281,6 +281,8 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
 
   // Track active drag to prevent setNodes from interrupting mid-drag
   const isDraggingRef = useRef(false);
+  // Capture inline edit node position so the committed node appears in the same spot
+  const inlineEditPositionRef = useRef<{ x: number; y: number } | null>(null);
 
   // ---- Sync remote data into the Zustand store --------------------------------
   useEffect(() => {
@@ -323,11 +325,14 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
         return;
       }
       const parentId = inlineEditParentId;
+      const pos = inlineEditPositionRef.current;
       setInlineEditParentId(null);
       const newNodeId = await addNode({
         label,
         mapId: activeMap.id,
         parentNodeId: parentId,
+        x: pos?.x,
+        y: pos?.y,
       });
       if (newNodeId) {
         toast.success('Branch added');
@@ -381,10 +386,12 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   // ---- Inline editable branch node (temporary, not in store) ------------------
   const inlineEditNode = useMemo((): RFNode[] => {
     if (!inlineEditParentId) {
+      inlineEditPositionRef.current = null;
       return [];
     }
     const parent = storeNodes[inlineEditParentId];
     if (!parent) {
+      inlineEditPositionRef.current = null;
       return [];
     }
     const parentPos = layoutPositions[parent.nodeId] ?? parent.position;
@@ -394,6 +401,8 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     const x = parentPos.x + (isRight ? 280 : -280);
     const y = parentPos.y + childCount * 90;
     const side: 'left' | 'right' = isRight ? 'right' : 'left';
+
+    inlineEditPositionRef.current = { x, y };
 
     return [
       {
