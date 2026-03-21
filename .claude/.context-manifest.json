@@ -1,33 +1,19 @@
 {
   "version": "1.0.0",
-  "profile": "all",
+  "profile": "custom",
   "source": {
     "repository": "darrenhinde/OpenAgentsControl",
     "branch": "main",
     "commit": "40dd267b127c26d8a8a65b02bb941fa940c81480",
     "downloaded_at": "2026-03-21T13:56:04Z"
   },
-  "categories": [
-    "core",
-    "openagents-repo",
-    "development",
-    "ui",
-    "content-creation",
-    "data",
-    "product",
-    "learning",
-    "project",
-    "project-intelligence"
-  ],
+  "categories": ["core", "development", "ui", "data", "product", "project", "project-intelligence"],
   "files": {
     "core": 86,
-    "openagents-repo": 107,
-    "development": 34,
-    "ui": 30,
-    "content-creation": 17,
+    "development": 14,
+    "ui": 29,
     "data": 2,
     "product": 2,
-    "learning": 2,
     "project": 2,
     "project-intelligence": 6
   }
