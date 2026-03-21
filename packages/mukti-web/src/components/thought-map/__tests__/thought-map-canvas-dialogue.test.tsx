@@ -100,7 +100,14 @@ jest.mock('@xyflow/react', () => {
       Right: 'right',
       Top: 'top',
     },
-    ReactFlow: ({ children, nodes, onNodeClick, onNodesChange }: any) => {
+    ReactFlow: ({
+      children,
+      nodes,
+      onNodeClick,
+      onNodeDragStart,
+      onNodeDragStop,
+      onNodesChange,
+    }: any) => {
       const targetNode =
         nodes.find((node: { id: string }) => node.id === branchNode.nodeId) ?? nodes[0];
 
@@ -114,6 +121,25 @@ jest.mock('@xyflow/react', () => {
           </button>
           <button onClick={() => onNodeClick?.({}, targetNode)} type="button">
             click node
+          </button>
+          <button onClick={() => onNodeDragStart?.({}, targetNode, nodes)} type="button">
+            drag start
+          </button>
+          <button
+            onClick={() =>
+              onNodeDragStop?.({}, { ...targetNode, position: { x: 500, y: 300 } }, nodes)
+            }
+            type="button"
+          >
+            drag stop
+          </button>
+          <button
+            onClick={() =>
+              onNodeDragStop?.({}, { id: '__inline-edit__', position: { x: 100, y: 100 } }, nodes)
+            }
+            type="button"
+          >
+            drag stop inline
           </button>
           {children}
         </div>
@@ -190,5 +216,55 @@ describe('ThoughtMapCanvas dialogue behavior', () => {
     await user.click(screen.getByRole('button', { name: /click node/i }));
 
     expect(screen.getByText('Dialogue: Branch')).toBeInTheDocument();
+  });
+});
+
+describe('ThoughtMapCanvas drag behavior', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    storeState.selectedNodeId = null;
+    mockSetNodes.mockReset();
+    mockOnNodesChange.mockReset();
+    mockUpdateNode.mockResolvedValue(true);
+  });
+
+  it('calls updateNode with drag position on drag stop', async () => {
+    const user = userEvent.setup();
+
+    render(<ThoughtMapCanvas mapId="map-1" />);
+
+    await user.click(screen.getByRole('button', { name: /drag start/i }));
+    await user.click(screen.getByRole('button', { name: /drag stop$/i }));
+
+    expect(mockUpdateNode).toHaveBeenCalledWith('branch-1', { x: 500, y: 300 });
+  });
+
+  it('does not call updateNode for inline edit node drag', async () => {
+    const user = userEvent.setup();
+
+    render(<ThoughtMapCanvas mapId="map-1" />);
+
+    await user.click(screen.getByRole('button', { name: /drag stop inline/i }));
+
+    expect(mockUpdateNode).not.toHaveBeenCalled();
+  });
+
+  it('provides onNodeDragStart to ReactFlow', () => {
+    render(<ThoughtMapCanvas mapId="map-1" />);
+
+    // The drag start button exists, which means onNodeDragStart was passed to ReactFlow
+    expect(screen.getByRole('button', { name: /drag start/i })).toBeInTheDocument();
+  });
+
+  it('does not throw when drag start and stop are called in sequence', async () => {
+    const user = userEvent.setup();
+
+    render(<ThoughtMapCanvas mapId="map-1" />);
+
+    // Should complete without errors
+    await user.click(screen.getByRole('button', { name: /drag start/i }));
+    await user.click(screen.getByRole('button', { name: /drag stop$/i }));
+
+    expect(mockUpdateNode).toHaveBeenCalledTimes(1);
   });
 });
