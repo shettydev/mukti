@@ -1,120 +1,66 @@
-<!-- Context: project-intelligence/notes | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/notes | Priority: high | Version: 2.0 | Updated: 2026-03-21 -->
 
 # Living Notes
 
-> Active issues, technical debt, open questions, and insights that don't fit elsewhere. Keep this alive.
+> Active RFCs, technical debt, open questions, and insights. Updated as status changes.
 
-## Quick Reference
+## Active RFCs
 
-- **Purpose**: Capture current state, problems, and open questions
-- **Update**: Weekly or when status changes
-- **Archive**: Move resolved items to bottom with status
+| RFC      | Title                   | Status                | Key Impact                                             |
+| -------- | ----------------------- | --------------------- | ------------------------------------------------------ |
+| RFC-0001 | Knowledge Gap Detection | Partially implemented | Bayesian Knowledge Tracing in `KnowledgeTracingModule` |
+| RFC-0002 | Adaptive Scaffolding    | Partially implemented | Schema fields exist on `NodeDialogue`, logic pending   |
+
+### RFC-0001: Knowledge Gap Detection
+
+_Status_: Partial — `KnowledgeTracingModule` exists, BKT core implemented
+_Purpose_: Detect when Socratic questioning fails due to missing foundational knowledge
+_Approach_: Multi-signal detection (behavioral, linguistic, temporal)
+_Key schemas_: `Concept`, `KnowledgeState` (unique on userId + conceptId)
+_Remaining_: Signal integration, threshold tuning, UI indicators
+_Location_: `packages/mukti-api/src/modules/knowledge-tracing/`
+
+### RFC-0002: Adaptive Scaffolding
+
+_Status_: Partial — schema fields exist, scaffold logic pending
+_Purpose_: 5-level system (Level 0 = pure Socratic → Level 4 = direct instruction with guided practice)
+_Key fields on `NodeDialogue`_: `currentScaffoldLevel`, `consecutiveSuccesses`, `consecutiveFailures`, `scaffoldHistory`
+_Remaining_: Level transition logic, auto-fading on consecutive success/failure, UI scaffold indicators
+_Rule_: Level 4 (direct instruction) must always include guided practice — never raw answers
 
 ## Technical Debt
 
-| Item        | Impact                 | Priority       | Mitigation      |
-| ----------- | ---------------------- | -------------- | --------------- |
-| [Debt item] | [What risk it creates] | [High/Med/Low] | [How to manage] |
-
-### Technical Debt Details
-
-**[Debt Item]**  
-_Priority_: [High/Med/Low]  
-_Impact_: [What happens if not addressed]  
-_Root Cause_: [Why this debt exists]  
-_Proposed Solution_: [How to fix it]  
-_Effort_: [Small/Medium/Large]  
-_Status_: [Acknowledged | Scheduled | In Progress | Deferred]
+| Item                                                 | Impact                                      | Priority | Status                       |
+| ---------------------------------------------------- | ------------------------------------------- | -------- | ---------------------------- |
+| Generic OAC context files in `.claude/context/core/` | Context references wrong project (OpenCode) | Low      | Being updated (this session) |
+| `project-context.md` deprecated but not removed      | Confusing for agents                        | Low      | Acknowledged                 |
 
 ## Open Questions
 
-| Question   | Stakeholders          | Status             | Next Action            |
-| ---------- | --------------------- | ------------------ | ---------------------- |
-| [Question] | [Who needs to decide] | [Open/In Progress] | [What needs to happen] |
+| Question                                                          | Status | Next Action                                              |
+| ----------------------------------------------------------------- | ------ | -------------------------------------------------------- |
+| How should scaffold levels interact with knowledge gap detection? | Open   | Design decision needed — RFC-0001 + RFC-0002 integration |
+| Should Thought Maps replace or complement Thinking Canvas?        | Open   | Evaluate new Thought Map feature in progress             |
 
-### Open Question Details
+## Patterns & Conventions Worth Preserving
 
-**[Question]**  
-_Context_: [Why this question matters]  
-_Stakeholders_: [Who needs to be involved]  
-_Options_: [What are the possibilities]  
-_Timeline_: [When does this need resolution]  
-_Status_: [Open/In Progress/Blocked]
+- **Queue + SSE streaming** — Both ConversationsModule and DialogueModule use the same pattern. Any new AI-powered feature should follow it.
+- **Optimistic updates with rollback** — Canvas store pattern for responsive UI. Always store previous state before optimistic update.
+- **Technique auto-selection by node type** — seed→maieutics, root→elenchus, soil→counterfactual, insight→dialectic. Don't let users manually override this.
+- **Response envelope** — `{ success, data, meta }` on all API responses. Never return raw data.
 
-## Known Issues
+## Gotchas for Developers
 
-| Issue   | Severity                | Workaround      | Status                    |
-| ------- | ----------------------- | --------------- | ------------------------- |
-| [Issue] | [Critical/High/Med/Low] | [Temporary fix] | [Known/In Progress/Fixed] |
-
-### Issue Details
-
-**[Issue Title]**  
-_Severity_: [Critical/High/Med/Low]  
-_Impact_: [Who/what is affected]  
-_Reproduction_: [Steps to reproduce if applicable]  
-_Workaround_: [Temporary solution if exists]  
-_Root Cause_: [If known]  
-_Fix Plan_: [How to properly fix]  
-_Status_: [Known/In Progress/Fixed in vX.X]
-
-## Insights & Lessons Learned
-
-### What Works Well
-
-- [Positive pattern 1] - [Why it works]
-- [Positive pattern 2] - [Why it works]
-
-### What Could Be Better
-
-- [Area for improvement 1] - [Why it's a problem]
-- [Area for improvement 2] - [Why it's a problem]
-
-### Lessons Learned
-
-- [Lesson 1] - [Context and implication]
-- [Lesson 2] - [Context and implication]
-
-## Patterns & Conventions
-
-### Code Patterns Worth Preserving
-
-- [Pattern 1] - [Where it lives, why it's good]
-- [Pattern 2] - [Where it lives, why it's good]
-
-### Gotchas for Maintainers
-
-- [Gotcha 1] - [What to watch out for]
-- [Gotcha 2] - [What to watch out for]
-
-## Active Projects
-
-| Project   | Goal               | Owner         | Timeline          |
-| --------- | ------------------ | ------------- | ----------------- |
-| [Project] | [What we're doing] | [Who owns it] | [When it matters] |
-
-## Archive (Resolved Items)
-
-Moved here for historical reference. Current team should refer to current notes above.
-
-### Resolved: [Item]
-
-- **Resolved**: [Date]
-- **Resolution**: [What was decided/done]
-- **Learnings**: [What we learned from this]
-
-## Onboarding Checklist
-
-- [ ] Review known technical debt and understand impact
-- [ ] Know what open questions exist and who's involved
-- [ ] Understand current issues and workarounds
-- [ ] Be aware of patterns and gotchas
-- [ ] Know active projects and timelines
-- [ ] Understand the team's priorities
+- **Bun, not npm** — `bun install`, `bun run`, never `npm` or `node`
+- **No dotenv** — Bun loads `.env` automatically
+- **Canvas node IDs** — `seed` (singleton), `soil-{index}`, `root-{index}`, `insight-{index}`. Services parse these strings to determine node type.
+- **Access tokens are memory-only** — Frontend auth store does NOT persist access tokens to localStorage. Only `user` object is persisted.
+- **ALL_SCHEMAS registry** — New schemas must be added to `src/schemas/index.ts` barrel export AND registered in `DatabaseModule`
+- **CSRF in production only** — CSRF protection is disabled in development
 
 ## Related Files
 
-- `decisions-log.md` - Past decisions that inform current state
-- `business-domain.md` - Business context for current priorities
-- `technical-domain.md` - Technical context for current state
-- `business-tech-bridge.md` - Context for current trade-offs
+- `decisions-log.md` — Past decisions that inform current state
+- `business-domain.md` — Business context for current priorities
+- `technical-domain.md` — Technical context for current state
+- `../../docs/rfcs/` — Full RFC documents

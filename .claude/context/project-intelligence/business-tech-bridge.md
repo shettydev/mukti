@@ -1,100 +1,66 @@
-<!-- Context: project-intelligence/bridge | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/bridge | Priority: high | Version: 2.0 | Updated: 2026-03-21 -->
 
 # Business ↔ Tech Bridge
 
-> Document how business needs translate to technical solutions. This is the critical connection point.
-
-## Quick Reference
-
-- **Purpose**: Show stakeholders technical choices serve business goals
-- **Purpose**: Show developers business constraints drive architecture
-- **Update When**: New features, refactoring, business pivot
+> How Mukti's business needs translate to technical solutions.
 
 ## Core Mapping
 
-| Business Need           | Technical Solution         | Why This Mapping | Business Value    |
-| ----------------------- | -------------------------- | ---------------- | ----------------- |
-| [Users need X]          | [Technical implementation] | [Why this maps]  | [Value delivered] |
-| [Business wants Y]      | [Technical implementation] | [Why this maps]  | [Value delivered] |
-| [Compliance requires Z] | [Technical implementation] | [Why this maps]  | [Value delivered] |
+| Business Need                           | Technical Solution                              | Why This Mapping                                                          | Business Value                                   |
+| --------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------ |
+| Socratic questioning that feels natural | BullMQ queue + SSE streaming                    | AI responses are slow — queue ensures fairness, SSE streams progressively | Users see thinking unfold in real-time           |
+| Visual problem decomposition            | XyFlow/React canvas with typed nodes            | Node graph captures Seed/Soil/Root/Insight relationships                  | Users see their thinking structure               |
+| Per-node conversations                  | NodeDialogue schema + technique auto-selection  | Each node type maps to a Socratic technique                               | Contextual questioning without manual setup      |
+| Detect when Socratic method fails       | Bayesian Knowledge Tracing (RFC-0001)           | Multi-signal detection (behavioral, linguistic, temporal)                 | Prevents frustration from unanswerable questions |
+| Never give direct answers               | 5-level scaffold system (RFC-0002)              | Graduated support that auto-fades on success                              | Users build independence, not dependency         |
+| Affordable AI access                    | BYOK (Bring Your Own Key) encryption            | Users store encrypted API keys, resolved by AiPolicyService               | Reduces infrastructure cost, user controls spend |
+| Secure authentication                   | JWT access (memory) + refresh (httpOnly cookie) | Token rotation, email verification, Google OAuth                          | Security without UX friction                     |
 
-## Feature Mapping Examples
+## Feature Mapping
 
-### Feature: [Feature Name]
-
-**Business Context**:
-
-- User need: [What users need]
-- Business goal: [Why this matters to business]
-- Priority: [Why this was prioritized]
-
-**Technical Implementation**:
-
-- Solution: [What was built]
-- Architecture: [How it fits the system]
-- Trade-offs: [What was considered and why it won]
-
-**Connection**:
-[Explain clearly how the technical solution serves the business need. What would happen without this feature? What does this feature enable for the business?]
-
-### Feature: [Feature Name]
+### Feature: Thinking Canvas
 
 **Business Context**:
 
-- User need: [What users need]
-- Business goal: [Why this matters to business]
-- Priority: [Why this was prioritized]
+- User need: Decompose complex problems visually
+- Business goal: Differentiate from text-only AI tools
+- Priority: Core product — the primary interaction surface
 
 **Technical Implementation**:
 
-- Solution: [What was built]
-- Architecture: [How it fits the system]
-- Trade-offs: [What was considered and why it won]
+- Solution: XyFlow/React v12 with custom node types (Seed, Soil, Root, Insight)
+- Architecture: Canvas state in Zustand with optimistic updates, API persistence via Mongoose
+- Trade-offs: Chose XyFlow over D3 for built-in interaction handling; chose Zustand over Redux for simpler canvas state
 
-**Connection**:
-[Explain clearly how the technical solution serves the business need.]
+**Connection**: The canvas is Mukti's visual identity. Without it, Mukti is just another chatbot. The node-based structure enforces the Socratic framework (problem → constraints → assumptions → insights).
+
+### Feature: Socratic Conversations + Node Dialogues
+
+**Business Context**:
+
+- User need: Guided thinking through questions, not answers
+- Business goal: Build thinking skills, not AI dependency
+- Priority: Core product — the primary value delivery mechanism
+
+**Technical Implementation**:
+
+- Solution: Two parallel systems — text conversations (ConversationsModule) and per-node dialogues (DialogueModule)
+- Architecture: Both use BullMQ queue → SSE streaming pattern. Technique auto-selected by node type (seed→maieutics, root→elenchus, soil→counterfactual, insight→dialectic)
+- Trade-offs: Queue-based over direct API calls — adds latency but ensures fair processing and error recovery
+
+**Connection**: The SSE streaming creates a "thinking alongside you" experience. The auto-selected technique ensures the right kind of questioning for each context without requiring users to understand Socratic methods.
 
 ## Trade-off Decisions
 
-When business and technical needs conflict, document the trade-off:
-
-| Situation  | Business Priority     | Technical Priority | Decision Made     | Rationale            |
-| ---------- | --------------------- | ------------------ | ----------------- | -------------------- |
-| [Conflict] | [What business wants] | [What tech wants]  | [What was chosen] | [Why this was right] |
-
-## Common Misalignments
-
-| Misalignment       | Warning Signs           | Resolution Approach |
-| ------------------ | ----------------------- | ------------------- |
-| [Type of mismatch] | [Symptoms to watch for] | [How to address]    |
-
-## Stakeholder Communication
-
-This file helps translate between worlds:
-
-**For Business Stakeholders**:
-
-- Shows that technical investments serve business goals
-- Provides context for why certain choices were made
-- Demonstrates ROI of technical decisions
-
-**For Technical Stakeholders**:
-
-- Provides business context for architectural decisions
-- Shows the "why" behind constraints and requirements
-- Helps prioritize technical debt with business impact
-
-## Onboarding Checklist
-
-- [ ] Understand the core business needs this project addresses
-- [ ] See how each major feature maps to business value
-- [ ] Know the key trade-offs and why decisions were made
-- [ ] Be able to explain to stakeholders why technical choices matter
-- [ ] Be able to explain to developers why business constraints exist
+| Situation         | Business Priority       | Technical Priority  | Decision Made                     | Rationale                                                             |
+| ----------------- | ----------------------- | ------------------- | --------------------------------- | --------------------------------------------------------------------- |
+| AI response speed | Fast responses          | Reliable processing | Queue + SSE (slower but reliable) | Users prefer consistent experience over occasional fast/failed        |
+| Data flexibility  | Rapid feature iteration | Schema consistency  | MongoDB + Mongoose (flexible)     | Canvas and dialogue schemas evolve rapidly during product development |
+| Auth complexity   | Simple login            | Maximum security    | JWT + OAuth + email verification  | Security is non-negotiable for a thinking tool storing personal data  |
 
 ## Related Files
 
-- `business-domain.md` - Business needs in detail
-- `technical-domain.md` - Technical implementation in detail
-- `decisions-log.md` - Decisions made with full context
-- `living-notes.md` - Current open questions and issues
+- `business-domain.md` — Business needs in detail
+- `technical-domain.md` — Technical implementation in detail
+- `decisions-log.md` — Decisions made with full context
+- `living-notes.md` — Current open questions and issues

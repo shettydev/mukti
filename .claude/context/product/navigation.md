@@ -1,20 +1,61 @@
-<!-- Context: product/navigation | Priority: critical | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: product/navigation | Priority: high | Version: 2.0 | Updated: 2026-03-21 -->
 
-# Product Context
+# Mukti — Product Context
 
-This directory contains context files for product management, strategy, and user research.
+**Purpose**: Product philosophy, user experience principles, and feature priorities.
 
-## Available Context Files
+---
 
-_No context files yet. This category is ready for product-related context._
+## Product Philosophy
 
-## Planned Context Files
+Mukti combats cognitive dependency on AI. Every product decision follows one principle: **more questions than answers**.
 
-- **product-strategy.md** - Product vision, roadmap planning, prioritization frameworks
-- **user-research-methods.md** - User interview techniques, survey design, usability testing
-- **feature-prioritization.md** - RICE, MoSCoW, Kano model frameworks
-- **metrics-analytics.md** - Key metrics, analytics frameworks, data-driven decisions
+### Core Rules
 
-## Usage
+1. **Never give direct answers** — Always guide through Socratic questioning
+2. **Scaffold, don't shortcut** — If a user is stuck, increase scaffold level (RFC-0002), don't bypass
+3. **Detect gaps, don't assume** — Use knowledge tracing (RFC-0001) to detect when questioning fails
+4. **Visual thinking first** — The Thinking Canvas is the primary surface, not chat
 
-These context files will be referenced by product-focused agents to ensure consistent product strategy, user research methodologies, and data-driven decision making.
+---
+
+## Feature Hierarchy
+
+| Priority | Feature                 | Purpose                                               |
+| -------- | ----------------------- | ----------------------------------------------------- |
+| Core     | Thinking Canvas         | Visual problem decomposition (Seed/Soil/Root/Insight) |
+| Core     | Socratic Conversations  | Text-based guided thinking (6 techniques)             |
+| Core     | Node Dialogues          | Per-node contextual questioning within canvas         |
+| Next     | Knowledge Gap Detection | Detect when Socratic method fails (RFC-0001)          |
+| Next     | Adaptive Scaffolding    | Graduated support without direct answers (RFC-0002)   |
+| Future   | Community               | Share and discuss Socratic techniques                 |
+
+---
+
+## UX Principles
+
+- **Japandi aesthetic** — Minimal, calm, warm. Custom CSS theme (`japandi.css`)
+- **Progressive disclosure** — Show complexity only when needed
+- **Responsive canvas** — Optimistic updates for instant feedback, rollback on error
+- **Streaming responses** — SSE-based AI responses that unfold progressively
+
+---
+
+## Socratic Technique Selection
+
+Users don't choose techniques manually. The system auto-selects based on context:
+
+| Context                | Technique             | Why                                                     |
+| ---------------------- | --------------------- | ------------------------------------------------------- |
+| Seed node (problem)    | Maieutics             | Draw out the user's latent understanding of the problem |
+| Root node (assumption) | Elenchus              | Cross-examine the assumption for contradictions         |
+| Soil node (constraint) | Counterfactual        | Explore "what if this constraint didn't exist?"         |
+| Insight node           | Dialectic             | Thesis-antithesis-synthesis on emerging insights        |
+| Text conversation      | User-selected or auto | Flexible for open-ended exploration                     |
+
+---
+
+## Related
+
+- **Business Domain** → `../project-intelligence/business-domain.md`
+- **Frontend Patterns** → `../project/mukti-web-patterns.md`

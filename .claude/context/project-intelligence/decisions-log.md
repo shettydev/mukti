@@ -1,148 +1,193 @@
-<!-- Context: project-intelligence/decisions | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/decisions | Priority: high | Version: 2.0 | Updated: 2026-03-21 -->
 
 # Decisions Log
 
-> Record major architectural and business decisions with full context. This prevents "why was this done?" debates.
+> Major architectural and business decisions with full context.
 
-## Quick Reference
+## Decision: Bun as Package Manager & Runtime
 
-- **Purpose**: Document decisions so future team members understand context
-- **Format**: Each decision as a separate entry
-- **Status**: Decided | Pending | Under Review | Deprecated
-
-## Decision Template
-
-```markdown
-## [Decision Title]
-
-**Date**: YYYY-MM-DD
-**Status**: [Decided/Pending/Under Review/Deprecated]
-**Owner**: [Who owns this decision]
+**Date**: 2025 (project inception)
+**Status**: Decided
 
 ### Context
 
-[What situation prompted this decision? What was the problem or opportunity?]
+Needed a fast package manager for a monorepo with two large packages (NestJS + Next.js). npm/yarn/pnpm were options.
 
 ### Decision
 
-[What was decided? Be specific about the choice made.]
+Use Bun for all package management and script execution. `bun install`, `bun run`, `bun <file>`.
 
 ### Rationale
 
-[Why this decision? What were the alternatives and why were they rejected?]
-
-### Alternatives Considered
-
-| Alternative | Pros   | Cons   | Why Rejected?    |
-| ----------- | ------ | ------ | ---------------- |
-| [Alt 1]     | [Pros] | [Cons] | [Why not chosen] |
-| [Alt 2]     | [Pros] | [Cons] | [Why not chosen] |
+- Significantly faster installs than npm/yarn/pnpm
+- Automatic `.env` file loading — no need for dotenv
+- Native TypeScript execution
+- Compatible with Node.js ecosystem
 
 ### Impact
 
-**Positive**: [What this enables or improves]
-**Negative**: [What trade-offs or limitations this creates]
-**Risk**: [What could go wrong]
-
-### Related
-
-- [Links to related decisions, PRs, issues, or documentation]
-```
+- **Positive**: Faster CI, simpler env setup, no dotenv dependency
+- **Negative**: Occasional compatibility issues with Node-specific packages
+- **Rule**: Never use `npm`, `node`, or `dotenv` — always `bun`
 
 ---
 
-## Decision: [Title]
+## Decision: Socratic Method over Direct AI Answers
 
-**Date**: YYYY-MM-DD
-**Status**: [Status]
-**Owner**: [Owner]
+**Date**: 2025 (project inception)
+**Status**: Decided
 
 ### Context
 
-[What was happening? Why did we need to decide?]
+Building an AI-powered thinking tool. Could either give direct answers (like ChatGPT) or guide through questions.
 
 ### Decision
 
-[What we decided]
+Mukti will never give direct answers. All AI interaction uses Socratic questioning techniques.
 
 ### Rationale
 
-[Why this was the right choice]
-
-### Alternatives Considered
-
-| Alternative | Pros          | Cons         | Why Rejected? |
-| ----------- | ------------- | ------------ | ------------- |
-| [Option A]  | [Good things] | [Bad things] | [Reason]      |
-| [Option B]  | [Good things] | [Bad things] | [Reason]      |
+- Direct answers create cognitive dependency
+- Socratic method builds transferable thinking skills
+- Unique market positioning vs. every other AI tool
+- Aligns with the product name: "liberation" from AI dependency
 
 ### Impact
 
-- **Positive**: [What we gain]
-- **Negative**: [What we trade off]
-- **Risk**: [What to watch for]
-
-### Related
-
-- [Link to PR #000]
-- [Link to issue #000]
-- [Link to documentation]
+- **Positive**: Clear product identity, genuine user skill development
+- **Negative**: Higher friction, steeper learning curve, harder to demo
+- **Rule**: No feature should shortcut the thinking process. If a feature gives answers, it must be wrapped in scaffolding (RFC-0002)
 
 ---
 
-## Decision: [Title]
+## Decision: BullMQ Queue + SSE over WebSockets
 
-**Date**: YYYY-MM-DD
-**Status**: [Status]
-**Owner**: [Owner]
+**Date**: 2025
+**Status**: Decided
 
 ### Context
 
-[What was happening?]
+AI responses are slow (seconds to minutes). Need a pattern for handling concurrent requests and streaming results.
 
 ### Decision
 
-[What we decided]
+POST message → 202 Accepted with `{ jobId, position }` → SSE stream for real-time response delivery.
 
 ### Rationale
 
-[Why this was right]
+- Queue ensures fair processing with priority (paid users get higher priority)
+- SSE is simpler than WebSocket for one-directional streaming
+- Built-in retry with exponential backoff (3 attempts)
+- No persistent connection management needed
 
 ### Alternatives Considered
 
-| Alternative | Pros          | Cons         | Why Rejected? |
-| ----------- | ------------- | ------------ | ------------- |
-| [Option A]  | [Good things] | [Bad things] | [Reason]      |
+| Alternative      | Pros          | Cons                                              | Why Rejected                                 |
+| ---------------- | ------------- | ------------------------------------------------- | -------------------------------------------- |
+| WebSockets       | Bidirectional | Complex connection management, reconnection logic | Overkill — only need server→client streaming |
+| Long polling     | Simple        | Wasteful, no progressive delivery                 | Poor UX for streaming AI responses           |
+| Direct API calls | Simple        | No queuing, no fair processing                    | Can't handle concurrent load                 |
 
 ### Impact
 
-- **Positive**: [What we gain]
-- **Negative**: [What we trade off]
-
-### Related
-
-- [Link]
+- **Positive**: Reliable, fair, recoverable from failures
+- **Negative**: Adds latency from queue overhead
+- **Event sequence**: `processing → message → complete | error`
 
 ---
 
-## Deprecated Decisions
+## Decision: BYOK (Bring Your Own Key)
 
-Decisions that were later overturned (for historical context):
+**Date**: 2025
+**Status**: Decided
 
-| Decision       | Date   | Replaced By    | Why      |
-| -------------- | ------ | -------------- | -------- |
-| [Old decision] | [Date] | [New decision] | [Reason] |
+### Context
 
-## Onboarding Checklist
+AI API calls are expensive. Need a sustainable cost model.
 
-- [ ] Understand the philosophy behind major architectural choices
-- [ ] Know why certain technologies were chosen over alternatives
-- [ ] Understand trade-offs that were made
-- [ ] Know where to find decision context when questions arise
-- [ ] Understand what decisions are pending and why
+### Decision
+
+Users store encrypted OpenRouter/Gemini API keys. `AiPolicyService.resolveEffectiveModel()` resolves which key/model to use. Default model: `openai/gpt-5-mini`.
+
+### Rationale
+
+- Reduces infrastructure cost dramatically
+- Users control their own AI spend
+- Supports multiple providers (OpenRouter, Gemini)
+- Encrypted storage protects keys at rest
+
+### Impact
+
+- **Positive**: Sustainable business model, user autonomy
+- **Negative**: Onboarding friction (users need API keys), support burden
+- **Risk**: Key management security is critical
+
+---
+
+## Decision: Nx Monorepo with Two Packages
+
+**Date**: 2025 (project inception)
+**Status**: Decided
+
+### Context
+
+Building a full-stack app with NestJS backend and Next.js frontend. Could use separate repos, turborepo, or Nx.
+
+### Decision
+
+Single Nx monorepo with `packages/mukti-api/` and `packages/mukti-web/`.
+
+### Rationale
+
+- Shared TypeScript types between API and Web
+- Atomic changes across both packages
+- Nx provides task orchestration, caching, affected builds
+- Single CI/CD pipeline
+
+### Alternatives Considered
+
+| Alternative    | Pros                | Cons                            | Why Rejected                   |
+| -------------- | ------------------- | ------------------------------- | ------------------------------ |
+| Separate repos | Independent deploys | No shared types, cross-repo PRs | Too much coordination overhead |
+| Turborepo      | Simpler config      | Less mature, fewer features     | Nx has better NestJS support   |
+
+### Impact
+
+- **Positive**: Faster development, consistent tooling, shared types
+- **Negative**: Larger repo, Nx learning curve
+
+---
+
+## Decision: MongoDB + Mongoose over PostgreSQL + Prisma
+
+**Date**: 2025
+**Status**: Decided
+
+### Context
+
+Canvas sessions and dialogues have flexible, nested schemas that evolve rapidly during product development.
+
+### Decision
+
+MongoDB 7 with Mongoose 8 for all data persistence.
+
+### Rationale
+
+- Document model fits canvas nodes naturally (nested objects, arrays)
+- Schema flexibility allows rapid iteration without migrations
+- Mongoose decorators integrate well with NestJS
+- Canvas sessions have variable structure (different node types, varying depth)
+
+### Impact
+
+- **Positive**: Fast iteration, natural data model for canvas/dialogue
+- **Negative**: No ACID transactions across collections, manual referential integrity
+- **Risk**: Data consistency requires careful service-layer validation
+
+---
 
 ## Related Files
 
-- `technical-domain.md` - Technical implementation affected by these decisions
-- `business-tech-bridge.md` - How decisions connect business and technical
-- `living-notes.md` - Current open questions that may become decisions
+- `technical-domain.md` — Technical implementation affected by these decisions
+- `business-tech-bridge.md` — How decisions connect business and technical
+- `living-notes.md` — Current open questions that may become decisions

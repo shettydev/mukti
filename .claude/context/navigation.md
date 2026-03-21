@@ -1,49 +1,53 @@
-<!-- Context: core/navigation | Priority: critical | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: core/navigation | Priority: critical | Version: 2.0 | Updated: 2026-03-21 -->
 
 # Context Navigation
 
-**New here?** → `openagents-repo/quick-start.md`
+**Mukti Monorepo** — NestJS 11 API + Next.js 15 Frontend
 
 ---
 
 ## Structure
 
 ```
-.opencode/context/
-├── core/                   # Universal standards & workflows
-├── openagents-repo/        # OpenAgents Control repository work
-├── development/            # Software development (all stacks)
-├── ui/                     # Visual design & UX
-├── content-creation/       # Content creation (all formats)
-├── data/                   # Data engineering & analytics
-├── product/                # Product management
-└── learning/               # Educational content
+.claude/context/
+├── CODEBASE_STANDARDS.md       # Naming, imports, TypeScript, testing, git
+├── core/                       # Universal standards & workflows
+├── development/                # Software development (all stacks)
+├── project/                    # Mukti-specific patterns
+│   ├── mukti-api-patterns.md   # NestJS API design guide
+│   └── mukti-web-patterns.md   # Next.js frontend patterns
+├── ui/                         # Visual design & UX
+├── data/                       # Data engineering
+├── product/                    # Product management
+└── project-intelligence/       # Domain knowledge
 ```
 
 ---
 
 ## Quick Routes
 
-| Task                | Path                                       |
-| ------------------- | ------------------------------------------ |
-| **Write code**      | `core/standards/code-quality.md`           |
-| **Write tests**     | `core/standards/test-coverage.md`          |
-| **Write docs**      | `core/standards/documentation.md`          |
-| **Review code**     | `core/workflows/code-review.md`            |
-| **Delegate task**   | `core/workflows/task-delegation-basics.md` |
-| **Add agent**       | `openagents-repo/guides/adding-agent.md`   |
-| **UI development**  | `development/ui-navigation.md`             |
-| **API development** | `development/backend-navigation.md`        |
+| Task                         | Path                                 |
+| ---------------------------- | ------------------------------------ |
+| **Naming & imports**         | `CODEBASE_STANDARDS.md`              |
+| **Build a NestJS module**    | `project/mukti-api-patterns.md`      |
+| **Write API endpoint**       | `project/mukti-api-patterns.md` §2-4 |
+| **Make API call (TanStack)** | `project/mukti-web-patterns.md` §1   |
+| **Create Zustand store**     | `project/mukti-web-patterns.md` §3   |
+| **Build a component**        | `project/mukti-web-patterns.md` §4   |
+| **Form with validation**     | `project/mukti-web-patterns.md` §4.2 |
+| **TDD & testing overview**   | `CODEBASE_STANDARDS.md` §6           |
+| **Backend tests (NestJS)**   | `project/mukti-api-patterns.md` §10  |
+| **Frontend tests (React)**   | `project/mukti-web-patterns.md` §7   |
+| **Code quality**             | `core/standards/code-quality.md`     |
+| **Code review**              | `core/workflows/code-review.md`      |
 
 ---
 
 ## By Category
 
-**core/** - Standards, workflows, patterns → `core/navigation.md`
-**openagents-repo/** - Repository-specific → `openagents-repo/navigation.md`
-**development/** - All development → `development/navigation.md`
-**ui/** - Design & UX → `ui/navigation.md`
-**content-creation/** - Content creation (all formats) → `content-creation/navigation.md`
-**data/** - Data engineering → `data/navigation.md`
-**product/** - Product management → `product/navigation.md`
-**learning/** - Educational → `learning/navigation.md`
+**CODEBASE_STANDARDS.md** — Naming, file structure, imports, TypeScript, error handling, testing, formatting, git
+**project/** — Mukti-specific: API patterns, frontend patterns, domain context
+**core/** — Universal standards, workflows → `core/navigation.md`
+**development/** — Cross-stack development → `development/navigation.md`
+**ui/** — Design & UX → `ui/navigation.md`
+**project-intelligence/** — Domain knowledge → `project-intelligence/navigation.md`

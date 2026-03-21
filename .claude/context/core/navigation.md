@@ -1,4 +1,4 @@
-<!-- Context: core/navigation | Priority: critical | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: core/navigation | Priority: critical | Version: 2.0 | Updated: 2026-03-21 -->
 
 # Core Context Navigation
 
@@ -37,11 +37,8 @@ core/
 ├── task-management/
 │   ├── navigation.md
 │   ├── standards/
-│   │   └── navigation.md
 │   ├── guides/
-│   │   └── navigation.md
 │   └── lookup/
-│       └── navigation.md
 │
 ├── system/
 │   └── context-guide.md
@@ -49,13 +46,9 @@ core/
 └── context-system/
     ├── navigation.md
     ├── examples/
-    │   └── navigation.md
     ├── guides/
-    │   └── navigation.md
     ├── operations/
-    │   └── navigation.md
     └── standards/
-        └── navigation.md
 ```
 
 ---
@@ -89,5 +82,8 @@ core/
 
 ## Related Context
 
+- **Mukti Codebase Standards** → `../CODEBASE_STANDARDS.md`
+- **Mukti API Patterns** → `../project/mukti-api-patterns.md`
+- **Mukti Web Patterns** → `../project/mukti-web-patterns.md`
 - **Development** → `../development/navigation.md`
-- **OpenAgents Control Repo** → `../openagents-repo/navigation.md`
+- **Project Intelligence** → `../project-intelligence/navigation.md`

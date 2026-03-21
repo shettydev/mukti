@@ -1,90 +1,77 @@
-<!-- Context: project-intelligence/business | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/business | Priority: high | Version: 2.0 | Updated: 2026-03-21 -->
 
 # Business Domain
 
-> Document the business context, problems solved, and value created.
-
-## Quick Reference
-
-- **Purpose**: Understand why this project exists
-- **Update When**: Business direction changes, new features shipped, pivot
-- **Audience**: Developers needing context, stakeholders, product team
+> Why Mukti exists, who it serves, and what value it creates.
 
 ## Project Identity
 
 ```
-Project Name: [Name]
-Tagline: [One-line description]
-Problem Statement: [What problem are we solving?]
-Solution: [How we're solving it]
+Project Name: Mukti (मुक्ति, "liberation")
+Tagline: A thinking workspace that combats cognitive dependency on AI
+Problem Statement: People increasingly rely on AI for direct answers, weakening their ability to think independently
+Solution: Socratic assistant that guides through problems with questions, not answers
+Philosophy: More questions than answers
 ```
 
 ## Target Users
 
-| User Segment | Who They Are  | What They Need | Pain Points          |
-| ------------ | ------------- | -------------- | -------------------- |
-| [Primary]    | [Description] | [Their needs]  | [Their frustrations] |
-| [Secondary]  | [Description] | [Their needs]  | [Their frustrations] |
+| User Segment        | Who They Are                           | What They Need                     | Pain Points                           |
+| ------------------- | -------------------------------------- | ---------------------------------- | ------------------------------------- |
+| Knowledge workers   | Professionals solving complex problems | Structured thinking tools          | Over-reliance on AI for quick answers |
+| Students & learners | People developing critical thinking    | Guided problem-solving practice    | Shallow understanding from AI answers |
+| Researchers         | People exploring complex topics        | Tools to expose hidden assumptions | Missing foundational knowledge gaps   |
 
 ## Value Proposition
 
 **For Users**:
 
-- [Key benefit 1]
-- [Key benefit 2]
-- [Key benefit 3]
+- Build independent thinking skills instead of AI dependency
+- Discover hidden assumptions and knowledge gaps through Socratic questioning
+- Visual problem-solving through Thinking Canvas (Seed/Soil/Root/Insight nodes)
+- Adaptive scaffolding that meets them at their level (never gives direct answers)
 
-**For Business**:
+**For the Product**:
 
-- [Key value 1]
-- [Key value 2]
+- Unique positioning: anti-answer AI tool in a market of answer-giving AI
+- Community around Socratic techniques
+- BYOK model reduces infrastructure costs
 
-## Success Metrics
+## Key Features
 
-| Metric     | Definition         | Target | Current  |
-| ---------- | ------------------ | ------ | -------- |
-| [Metric 1] | [What it measures] | [Goal] | [Actual] |
-| [Metric 2] | [What it measures] | [Goal] | [Actual] |
+| Feature                 | Purpose                                      | Status            |
+| ----------------------- | -------------------------------------------- | ----------------- |
+| Thinking Canvas         | Visual problem-solving with structured nodes | Implemented       |
+| Socratic Conversations  | Text dialogue using 6 techniques             | Implemented       |
+| Node Dialogues          | Per-node Socratic chat within canvases       | Implemented       |
+| Knowledge Gap Detection | Bayesian Knowledge Tracing for learning gaps | RFC-0001, partial |
+| Adaptive Scaffolding    | 5-level scaffold system, auto-fading         | RFC-0002, partial |
 
-## Business Model (if applicable)
+## Socratic Techniques
 
-```
-Revenue Model: [How the business makes money]
-Pricing Strategy: [If applicable]
-Unit Economics: [CAC, LTV, etc.]
-Market Position: [Where we fit in the market]
-```
-
-## Key Stakeholders
-
-| Role            | Name   | Responsibility  | Contact   |
-| --------------- | ------ | --------------- | --------- |
-| [Product Owner] | [Name] | [What they own] | [Contact] |
-| [Tech Lead]     | [Name] | [What they own] | [Contact] |
-| [Business Lead] | [Name] | [What they own] | [Contact] |
+| Technique      | Purpose                                    |
+| -------------- | ------------------------------------------ |
+| Elenchus       | Cross-examination to expose contradictions |
+| Dialectic      | Thesis-antithesis-synthesis dialogue       |
+| Maieutics      | "Midwifery" — draw out latent knowledge    |
+| Definitional   | Clarify meaning and scope                  |
+| Analogical     | Draw parallels to known domains            |
+| Counterfactual | Explore "what if" scenarios                |
 
 ## Roadmap Context
 
-**Current Focus**: [What we're working on now]
-**Next Milestone**: [Upcoming goal]
-**Long-term Vision**: [Where this is heading]
+**Current Focus**: Core product stability — Canvas, Conversations, Node Dialogues
+**Next Milestone**: Knowledge Gap Detection (RFC-0001) and Adaptive Scaffolding (RFC-0002)
+**Long-term Vision**: A thinking workspace where AI strengthens rather than replaces human cognition
 
 ## Business Constraints
 
-- [Constraint 1] - [Why it exists]
-- [Constraint 2] - [Why it exists]
-
-## Onboarding Checklist
-
-- [ ] Understand the problem statement
-- [ ] Identify target users and their needs
-- [ ] Know the key value proposition
-- [ ] Understand success metrics
-- [ ] Know who the stakeholders are
-- [ ] Understand current business constraints
+- **No direct answers** — The product must never shortcut the thinking process
+- **BYOK economics** — Users bring their own API keys, reducing AI infrastructure costs
+- **Privacy-first** — Thinking sessions are personal; minimal data collection
 
 ## Related Files
 
-- `technical-domain.md` - How this business need is solved technically
-- `business-tech-bridge.md` - Mapping between business and technical
-- `decisions-log.md` - Business decisions with context
+- `technical-domain.md` — How this is built technically
+- `business-tech-bridge.md` — How business needs map to technical solutions
+- `decisions-log.md` — Business decisions with context
