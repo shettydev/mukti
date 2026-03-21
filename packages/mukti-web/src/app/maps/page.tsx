@@ -1,6 +1,7 @@
 'use client';
 
 import { Loader2, MoreHorizontal, Network, Plus, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -9,7 +10,6 @@ import type { ThoughtMap } from '@/types/thought-map';
 
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
-import { CreateThoughtMapDialog } from '@/components/thought-map/CreateThoughtMapDialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -115,7 +115,6 @@ function ThoughtMapCard({ map, onClick, onDelete }: ThoughtMapCardProps) {
 
 function ThoughtMapsContent() {
   const router = useRouter();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{
     id: string;
     open: boolean;
@@ -144,11 +143,11 @@ function ThoughtMapsContent() {
   return (
     <DashboardLayout
       actions={
-        <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+        <Link className="gap-2" href="/maps/new">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">New Thought Map</span>
           <span className="sm:hidden">New</span>
-        </Button>
+        </Link>
       }
       title="Thought Maps"
     >
@@ -171,17 +170,9 @@ function ThoughtMapsContent() {
             ))}
           </div>
         ) : (
-          <ThoughtMapsEmptyState onCreate={() => setCreateDialogOpen(true)} />
+          <ThoughtMapsEmptyState onCreate={() => router.push('/maps/new')} />
         )}
       </div>
-
-      <CreateThoughtMapDialog
-        onOpenChange={setCreateDialogOpen}
-        onSuccess={(map) => {
-          router.push(`/maps/${map.id}`);
-        }}
-        open={createDialogOpen}
-      />
 
       <Dialog
         onOpenChange={(open) => !isDeleting && setDeleteDialog((prev) => ({ ...prev, open }))}
