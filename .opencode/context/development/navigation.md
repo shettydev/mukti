@@ -1,8 +1,8 @@
-<!-- Context: development/navigation | Priority: critical | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: development/navigation | Priority: critical | Version: 2.0 | Updated: 2026-03-21 -->
 
-# Development Navigation
+# Development Navigation — Mukti
 
-**Purpose**: Software development across all stacks
+**Purpose**: Software development across `@mukti/api` (NestJS) and `@mukti/web` (Next.js)
 
 ---
 
@@ -11,80 +11,76 @@
 ```
 development/
 ├── navigation.md
-├── ui-navigation.md           # Specialized
-├── backend-navigation.md      # Specialized
-├── fullstack-navigation.md    # Specialized
+├── ui-navigation.md           # Frontend quick reference
+├── backend-navigation.md      # Backend quick reference
+├── fullstack-navigation.md    # End-to-end workflows
 │
-├── principles/                # Universal (language-agnostic)
+├── principles/                # Universal practices
 │   ├── navigation.md
-│   ├── clean-code.md
-│   └── api-design.md
+│   ├── clean-code.md          # ✅ Complete
+│   └── api-design.md          # ✅ Complete — Mukti NestJS API conventions
 │
-├── frameworks/                # Full-stack frameworks
-│   ├── navigation.md
-│   └── tanstack-start/
+├── frameworks/                # Framework index
+│   └── navigation.md          # ✅ Updated — NestJS + Next.js
 │
-├── ai/                        # AI & Agents
-│   ├── navigation.md
-│   └── mastra-ai/
+├── ai/                        # AI provider integration
+│   └── navigation.md          # ✅ Updated — OpenRouter/Gemini (Mastra removed)
 │
-├── frontend/                  # Client-side
+├── frontend/                  # Client-side patterns
 │   ├── navigation.md
-│   ├── when-to-delegate.md    # When to use frontend-specialist
+│   ├── when-to-delegate.md    # ✅ Updated — Next.js 15 / React 19 patterns
 │   └── react/
 │       ├── navigation.md
 │       └── react-patterns.md
 │
-├── backend/                   # Server-side (future)
-│   ├── navigation.md
-│   ├── api-patterns/
-│   ├── nodejs/
-│   ├── python/
-│   └── authentication/
+├── backend/                   # Server-side patterns
+│   ├── navigation.md          # ✅ Updated
+│   ├── nestjs-patterns.md     # ✅ New — Module/controller/service/guard
+│   └── queue-sse-pattern.md   # ✅ New — BullMQ + SSE async AI processing
 │
-├── data/                      # Data layer (future)
-│   ├── navigation.md
-│   ├── sql-patterns/
-│   ├── nosql-patterns/
-│   └── orm-patterns/
+├── data/                      # Data layer
+│   ├── navigation.md          # ✅ Updated
+│   └── mongoose-patterns.md   # ✅ New — Mongoose schemas, ALL_SCHEMAS, queries
 │
-├── integration/               # Connecting systems (future)
-│   ├── navigation.md
-│   ├── package-management/
-│   ├── api-integration/
-│   └── third-party-services/
+├── integration/               # External integrations
+│   ├── navigation.md          # ✅ Updated
+│   └── openrouter-gemini.md   # ✅ New — OpenRouter + Gemini SDKs, BYOK
 │
-└── infrastructure/            # DevOps (future)
-    ├── navigation.md
-    ├── docker/
-    └── ci-cd/
+└── infrastructure/            # Monorepo + DevOps
+    ├── navigation.md          # ✅ Updated
+    ├── nx-bun.md              # ✅ New — Nx commands, Bun runtime
+    └── docker.md              # ✅ New — Docker Compose, env vars
 ```
 
 ---
 
 ## Quick Routes
 
-| Task                          | Path                           |
-| ----------------------------- | ------------------------------ |
-| **UI/Frontend**               | `ui-navigation.md`             |
-| **When to delegate frontend** | `frontend/when-to-delegate.md` |
-| **Backend/API**               | `backend-navigation.md`        |
-| **Full-stack**                | `fullstack-navigation.md`      |
-| **Clean code**                | `principles/clean-code.md`     |
-| **API design**                | `principles/api-design.md`     |
+| Task                           | Path                               |
+| ------------------------------ | ---------------------------------- |
+| **Frontend (Next.js)**         | `ui-navigation.md`                 |
+| **Backend (NestJS)**           | `backend-navigation.md`            |
+| **Full-stack workflows**       | `fullstack-navigation.md`          |
+| **NestJS module patterns**     | `backend/nestjs-patterns.md`       |
+| **BullMQ + SSE AI processing** | `backend/queue-sse-pattern.md`     |
+| **Mongoose schemas**           | `data/mongoose-patterns.md`        |
+| **OpenRouter / Gemini AI**     | `integration/openrouter-gemini.md` |
+| **Nx / Bun commands**          | `infrastructure/nx-bun.md`         |
+| **Docker services + env vars** | `infrastructure/docker.md`         |
+| **API design conventions**     | `principles/api-design.md`         |
+| **Clean code**                 | `principles/clean-code.md`         |
+| **React / Next.js patterns**   | `frontend/when-to-delegate.md`     |
 
 ---
 
 ## By Concern
 
-**Principles** → Universal development practices
-**Frameworks** → Full-stack frameworks (Tanstack Start, Next.js)
-**AI** → AI frameworks and agent runtimes (MAStra AI)
-**Frontend** → React patterns and component design
-**Backend** → APIs, Node.js, Python, auth (future)
-**Data** → SQL, NoSQL, ORMs (future)
-**Integration** → Packages, APIs, services (future)
-**Infrastructure** → Docker, CI/CD (future)
+**Principles** → Universal coding practices (clean code, API conventions)  
+**Backend** → NestJS modules, guards, BullMQ queues, SSE streaming  
+**Data** → MongoDB/Mongoose schemas, queries, ALL_SCHEMAS registry  
+**Integration** → OpenRouter/Gemini SDKs, BYOK key management  
+**Frontend** → Next.js 15 App Router, Zustand, TanStack Query, React Flow  
+**Infrastructure** → Nx workspace, Bun runtime, Docker Compose
 
 ---
 
@@ -92,3 +88,4 @@ development/
 
 - **Core Standards** → `../core/standards/navigation.md`
 - **UI Patterns** → `../ui/navigation.md`
+- **Project Intelligence** → `../project-intelligence/navigation.md`

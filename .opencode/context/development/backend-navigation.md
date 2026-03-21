@@ -1,74 +1,57 @@
-<!-- Context: development/navigation | Priority: low | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: development/navigation | Priority: low | Version: 2.0 | Updated: 2026-03-21 -->
 
-# Backend Development Navigation
+# Backend Development Navigation — Mukti API
 
-**Scope**: Server-side, APIs, databases, auth
+**Scope**: `@mukti/api` — NestJS 11, MongoDB, BullMQ, SSE, Auth
 
 ---
 
 ## Structure
 
 ```
-development/backend/           # [future]
+development/backend/
 ├── navigation.md
-│
-├── api-patterns/              # Approach-based
-│   ├── rest-design.md
-│   ├── graphql-design.md
-│   ├── grpc-patterns.md
-│   └── websocket-patterns.md
-│
-├── nodejs/                    # Tech-specific
-│   ├── express-patterns.md
-│   ├── fastify-patterns.md
-│   └── error-handling.md
-│
-├── python/
-│   ├── fastapi-patterns.md
-│   └── django-patterns.md
-│
-├── authentication/            # Functional concern
-│   ├── jwt-patterns.md
-│   ├── oauth-patterns.md
-│   └── session-management.md
-│
-└── middleware/
-    ├── logging.md
-    ├── rate-limiting.md
-    └── cors.md
+├── nestjs-patterns.md        # Module/controller/service/guard patterns
+└── queue-sse-pattern.md      # BullMQ + SSE async AI processing
 ```
 
 ---
 
 ## Quick Routes
 
-| Task                      | Path                                              |
-| ------------------------- | ------------------------------------------------- |
-| **REST API**              | `backend/api-patterns/rest-design.md` [future]    |
-| **GraphQL**               | `backend/api-patterns/graphql-design.md` [future] |
-| **API design principles** | `principles/api-design.md`                        |
-| **Node.js**               | `backend/nodejs/express-patterns.md` [future]     |
-| **Python**                | `backend/python/fastapi-patterns.md` [future]     |
-| **Auth (JWT)**            | `backend/authentication/jwt-patterns.md` [future] |
+| Task                               | Path                                                    |
+| ---------------------------------- | ------------------------------------------------------- |
+| **NestJS module structure**        | `backend/nestjs-patterns.md`                            |
+| **Controller + response envelope** | `backend/nestjs-patterns.md`                            |
+| **Guards + decorators**            | `backend/nestjs-patterns.md`                            |
+| **DTOs + class-validator**         | `backend/nestjs-patterns.md`                            |
+| **BullMQ queue + 202 pattern**     | `backend/queue-sse-pattern.md`                          |
+| **SSE streaming**                  | `backend/queue-sse-pattern.md`                          |
+| **Mongoose schemas**               | `data/mongoose-patterns.md`                             |
+| **ALL_SCHEMAS registry**           | `data/mongoose-patterns.md`                             |
+| **OpenRouter / Gemini AI**         | `integration/openrouter-gemini.md`                      |
+| **BYOK key management**            | `integration/openrouter-gemini.md`                      |
+| **API design conventions**         | `principles/api-design.md`                              |
+| **Nx / Docker commands**           | `infrastructure/nx-bun.md` + `infrastructure/docker.md` |
 
 ---
 
 ## By Approach
 
-**REST** → `backend/api-patterns/rest-design.md` [future]
-**GraphQL** → `backend/api-patterns/graphql-design.md` [future]
-**gRPC** → `backend/api-patterns/grpc-patterns.md` [future]
+**REST API** → `principles/api-design.md` (conventions) + `backend/nestjs-patterns.md` (implementation)  
+**Async AI** → `backend/queue-sse-pattern.md` (queue + SSE)
 
-## By Language
+## By Module
 
-**Node.js** → `backend/nodejs/` [future]
-**Python** → `backend/python/` [future]
+All 12 modules: `ai`, `auth`, `canvas`, `conversations`, `database`, `dialogue`, `dialogue-quality`, `health`, `knowledge-tracing`, `scaffolding`, `thought-map`, `waitlist`  
+Location: `packages/mukti-api/src/modules/`
 
 ## By Concern
 
-**Authentication** → `backend/authentication/` [future]
-**Middleware** → `backend/middleware/` [future]
-**Data layer** → `data/` [future]
+**Authentication** → JWT global guard, `@Public()`, `@CurrentUser()` — `backend/nestjs-patterns.md`  
+**Data layer** → `data/mongoose-patterns.md`  
+**AI providers** → `integration/openrouter-gemini.md`  
+**Infrastructure** → `infrastructure/nx-bun.md` + `infrastructure/docker.md`
 
 ---
 
@@ -76,4 +59,4 @@ development/backend/           # [future]
 
 - **API Design Principles** → `principles/api-design.md`
 - **Core Standards** → `../core/standards/code-quality.md`
-- **Data Patterns** → `data/navigation.md` [future]
+- **Data Patterns** → `data/mongoose-patterns.md`

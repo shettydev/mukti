@@ -1,33 +1,52 @@
-<!-- Context: development/navigation | Priority: critical | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: development/infrastructure/navigation | Priority: high | Version: 2.0 | Updated: 2026-03-21 -->
 
-# Infrastructure Navigation
+# Infrastructure Navigation — Mukti
 
-**Purpose**: DevOps and deployment patterns
-
-**Status**: 🚧 Placeholder - Content coming soon
+**Purpose**: Nx monorepo commands, Bun runtime, and Docker infrastructure for Mukti
 
 ---
 
-## Planned Structure
+## Structure
 
 ```
-infrastructure/
+development/infrastructure/
 ├── navigation.md
-│
-├── docker/
-│   ├── dockerfile-patterns.md
-│   ├── compose-patterns.md
-│   └── optimization.md
-│
-└── ci-cd/
-    ├── github-actions.md
-    ├── deployment-patterns.md
-    └── testing-pipelines.md
+├── nx-bun.md       # Nx workspace commands, Bun runtime, project targets
+└── docker.md       # Docker Compose services, env vars, startup order
+```
+
+---
+
+## Quick Routes
+
+| Task                              | Path        |
+| --------------------------------- | ----------- |
+| **Run dev servers**               | `nx-bun.md` |
+| **Nx commands (build/test/lint)** | `nx-bun.md` |
+| **Affected-only builds (CI)**     | `nx-bun.md` |
+| **Start local databases**         | `docker.md` |
+| **Environment variables**         | `docker.md` |
+| **Full stack Docker run**         | `docker.md` |
+
+---
+
+## TL;DR
+
+```bash
+# Start local infra (dev mode)
+docker compose up mongodb redis -d
+
+# Start apps
+bun nx run @mukti/api:serve
+bun nx run @mukti/web:dev
+
+# Run tests
+bun nx run @mukti/api:test
 ```
 
 ---
 
 ## Related Context
 
+- **NestJS patterns** → `../backend/nestjs-patterns.md`
 - **Core Standards** → `../../core/standards/code-quality.md`
-- **Testing** → `../../core/standards/test-coverage.md`

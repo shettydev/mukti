@@ -1,57 +1,49 @@
-<!-- Context: development/navigation | Priority: critical | Version: 1.0 | Updated: 2026-02-15 -->
+<!-- Context: development/backend/navigation | Priority: critical | Version: 2.0 | Updated: 2026-03-21 -->
 
-# Backend Development Navigation
+# Backend Development Navigation — Mukti API
 
-**Purpose**: Server-side development patterns
-
-**Status**: 🚧 Placeholder - Content coming soon
+**Purpose**: NestJS 11 backend patterns for `@mukti/api`
 
 ---
 
-## Planned Structure
+## Structure
 
 ```
-backend/
+development/backend/
 ├── navigation.md
-│
-├── api-patterns/              # Approach-based
-│   ├── rest-design.md
-│   ├── graphql-design.md
-│   ├── grpc-patterns.md
-│   └── trpc-patterns.md
-│
-├── nodejs/                    # Tech-specific
-│   ├── express-patterns.md
-│   ├── fastify-patterns.md
-│   └── nextjs-api-routes.md
-│
-├── python/
-│   ├── fastapi-patterns.md
-│   └── django-patterns.md
-│
-├── authentication/            # Functional concern
-│   ├── jwt-patterns.md
-│   ├── oauth-patterns.md
-│   └── session-management.md
-│
-└── middleware/
-    ├── logging.md
-    ├── rate-limiting.md
-    └── cors.md
+├── nestjs-patterns.md         # Module/controller/service/guard patterns
+└── queue-sse-pattern.md       # BullMQ + SSE async AI processing
 ```
 
 ---
 
-## For Now
+## Quick Routes
 
-Use specialized navigation: `../backend-navigation.md`
+| Task                                 | Path                                  |
+| ------------------------------------ | ------------------------------------- |
+| **NestJS module/controller/service** | `nestjs-patterns.md`                  |
+| **BullMQ + SSE async processing**    | `queue-sse-pattern.md`                |
+| **Mongoose schemas & queries**       | `../data/mongoose-patterns.md`        |
+| **OpenRouter + Gemini AI**           | `../integration/openrouter-gemini.md` |
+| **API design principles**            | `../principles/api-design.md`         |
 
-Also see: `../principles/api-design.md`
+---
+
+## By Concern
+
+**Module wiring** → `nestjs-patterns.md`  
+**Controller patterns** → `nestjs-patterns.md`  
+**Guards & decorators** → `nestjs-patterns.md`  
+**Async AI processing** → `queue-sse-pattern.md`  
+**SSE streaming** → `queue-sse-pattern.md`  
+**Data layer** → `../data/mongoose-patterns.md`  
+**AI integration** → `../integration/openrouter-gemini.md`
 
 ---
 
 ## Related Context
 
-- **Backend Navigation** → `../backend-navigation.md`
-- **API Design Principles** → `../principles/api-design.md`
+- **Mongoose Patterns** → `../data/mongoose-patterns.md`
+- **OpenRouter/Gemini** → `../integration/openrouter-gemini.md`
 - **Core Standards** → `../../core/standards/code-quality.md`
+- **API Design** → `../principles/api-design.md`
