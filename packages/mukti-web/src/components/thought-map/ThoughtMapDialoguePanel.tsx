@@ -84,19 +84,22 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   const activeModel = useAiStore((state) => state.activeModel);
 
   // Start/load dialogue (seeds initial question on first open)
-  const { isPending: isStarting, mutate: startDialogue } = useStartThoughtMapDialogue(
-    mapId,
-    node.nodeId
-  );
+  const {
+    isPending: isStarting,
+    isSuccess: hasStarted,
+    mutate: startDialogue,
+  } = useStartThoughtMapDialogue(mapId, node.nodeId);
 
-  // Fetch paginated messages
+  // Fetch paginated messages — gated on startDialogue completion to prevent
+  // a race condition where the query fetches the same initial message that
+  // the mutation just seeded into the cache, causing duplicates.
   const {
     data: messagesData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading: isLoadingMessages,
-  } = useThoughtMapNodeMessages(mapId, node.nodeId, true);
+  } = useThoughtMapNodeMessages(mapId, node.nodeId, hasStarted);
 
   // Send message mutation
   const { isPending: isSending, mutate: sendMessage } = useSendThoughtMapMessage(

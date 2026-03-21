@@ -37,7 +37,8 @@ import {
   type OnNodeDrag as RFOnNodeDrag,
   useNodesState,
 } from '@xyflow/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import type { GhostNode } from '@/lib/stores/thought-map-store';
 import type { ThoughtMapNode } from '@/types/thought-map';
@@ -58,8 +59,8 @@ import {
 import { cn } from '@/lib/utils';
 import { computeThoughtMapLayout, type NodePosition } from '@/lib/utils/thought-map-layout';
 
-import { CreateNodeDialog } from './CreateNodeDialog';
 import { ThoughtMapEdge } from './edges/ThoughtMapEdge';
+import { EditableBranchNode } from './nodes/EditableBranchNode';
 import { InsightNode } from './nodes/InsightNode';
 import { QuestionNode } from './nodes/QuestionNode';
 import { ThoughtNode } from './nodes/ThoughtNode';
@@ -74,6 +75,7 @@ import { ThoughtMapToolbar } from './ThoughtMapToolbar';
 // ============================================================================
 
 const nodeTypes: NodeTypes = {
+  'editable-branch-node': EditableBranchNode as unknown as NodeTypes[string],
   'insight-node': InsightNode as unknown as NodeTypes[string],
   'question-node': QuestionNode as unknown as NodeTypes[string],
   'thought-node': ThoughtNode as unknown as NodeTypes[string],
@@ -260,17 +262,25 @@ function getDisplayedNodePosition(
 
 function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   const { data, error, isLoading } = useThoughtMapQuery(mapId);
-  const { acceptGhostNode, deleteNode, removeGhostNode, setMap, setSelectedNodeId, updateNode } =
-    useThoughtMapActions();
+  const {
+    acceptGhostNode,
+    addNode,
+    deleteNode,
+    removeGhostNode,
+    setMap,
+    setSelectedNodeId,
+    updateNode,
+  } = useThoughtMapActions();
   const storeNodes = useThoughtMapNodes();
   const ghostNodes = useGhostNodes();
   const selectedNodeId = useThoughtMapStore((s) => s.selectedNodeId);
   const activeMap = useThoughtMapStore((s) => s.map);
-  // Dialog state
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogParentLabel, setDialogParentLabel] = useState<string | undefined>(undefined);
-  const [dialogParentNodeId, setDialogParentNodeId] = useState<string>('');
+  // Inline branch editing state
+  const [inlineEditParentId, setInlineEditParentId] = useState<null | string>(null);
   const [dialogueNodeId, setDialogueNodeId] = useState<null | string>(null);
+
+  // Track active drag to prevent setNodes from interrupting mid-drag
+  const isDraggingRef = useRef(false);
 
   // ---- Sync remote data into the Zustand store --------------------------------
   useEffect(() => {
@@ -302,15 +312,35 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   );
 
   // ---- "Add Branch" handler (called by node context menus / toolbar) ----------
-  const handleAddBranch = useCallback(
-    (nodeId: string) => {
-      const node = storeNodes[nodeId];
-      setDialogParentLabel(node?.label);
-      setDialogParentNodeId(nodeId);
-      setDialogOpen(true);
+  const handleAddBranch = useCallback((nodeId: string) => {
+    setInlineEditParentId(nodeId);
+  }, []);
+
+  // ---- Inline branch commit/cancel handlers ----------------------------------
+  const handleInlineCommit = useCallback(
+    async (label: string) => {
+      if (!activeMap || !inlineEditParentId) {
+        return;
+      }
+      const parentId = inlineEditParentId;
+      setInlineEditParentId(null);
+      const newNodeId = await addNode({
+        label,
+        mapId: activeMap.id,
+        parentNodeId: parentId,
+      });
+      if (newNodeId) {
+        toast.success('Branch added');
+      } else {
+        toast.error('Failed to add branch');
+      }
     },
-    [storeNodes]
+    [activeMap, addNode, inlineEditParentId]
   );
+
+  const handleInlineCancel = useCallback(() => {
+    setInlineEditParentId(null);
+  }, []);
 
   // ---- "Delete Node" handler (called by node context menus) -------------------
   const handleDeleteNode = useCallback(
@@ -348,6 +378,44 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     [domainNodesList]
   );
 
+  // ---- Inline editable branch node (temporary, not in store) ------------------
+  const inlineEditNode = useMemo((): RFNode[] => {
+    if (!inlineEditParentId) {
+      return [];
+    }
+    const parent = storeNodes[inlineEditParentId];
+    if (!parent) {
+      return [];
+    }
+    const parentPos = layoutPositions[parent.nodeId] ?? parent.position;
+    // Count existing children to stagger vertically
+    const childCount = domainNodesList.filter((n) => n.parentNodeId === inlineEditParentId).length;
+    const isRight = parentPos.x >= 0;
+    const x = parentPos.x + (isRight ? 280 : -280);
+    const y = parentPos.y + childCount * 90;
+    const side: 'left' | 'right' = isRight ? 'right' : 'left';
+
+    return [
+      {
+        data: {
+          onCancel: handleInlineCancel,
+          onCommit: handleInlineCommit,
+          side,
+        },
+        id: '__inline-edit__',
+        position: { x, y },
+        type: 'editable-branch-node',
+      },
+    ];
+  }, [
+    domainNodesList,
+    handleInlineCancel,
+    handleInlineCommit,
+    inlineEditParentId,
+    layoutPositions,
+    storeNodes,
+  ]);
+
   const flowNodes = useMemo(
     () => [
       ...toFlowNodes(
@@ -364,6 +432,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
         handleAcceptGhost,
         handleDismissGhost
       ),
+      ...inlineEditNode,
     ],
     [
       domainNodesList,
@@ -373,28 +442,63 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       handleDeleteNode,
       handleDismissGhost,
       handleSuggestBranches,
+      inlineEditNode,
       layoutPositions,
       storeNodes,
     ]
   );
 
+  // ---- Temporary edge for inline edit node -----------------------------------
+  const inlineEditEdge = useMemo((): RFEdge[] => {
+    if (!inlineEditParentId || inlineEditNode.length === 0) {
+      return [];
+    }
+    const editNode = inlineEditNode[0];
+    const isRight = editNode.position.x > 0;
+    return [
+      {
+        id: 'edge-inline-edit',
+        source: inlineEditParentId,
+        sourceHandle: isRight ? 'source-right' : 'source-left',
+        style: { opacity: 0.4, strokeDasharray: '6 4' },
+        target: '__inline-edit__',
+        targetHandle: isRight ? 'target-left' : 'target-right',
+        type: 'thought-map-edge',
+      },
+    ];
+  }, [inlineEditNode, inlineEditParentId]);
+
   const flowEdges = useMemo(
-    () => toFlowEdges(domainNodesList, layoutPositions),
-    [domainNodesList, layoutPositions]
+    () => [...toFlowEdges(domainNodesList, layoutPositions), ...inlineEditEdge],
+    [domainNodesList, inlineEditEdge, layoutPositions]
   );
 
   // React Flow useNodesState for local drag management
   const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
 
-  // Keep nodes in sync whenever store changes (e.g. after addNode)
+  // Keep nodes in sync whenever store changes (e.g. after addNode).
+  // Skip during drag to prevent setNodes from interrupting the active drag.
   useEffect(() => {
-    setNodes(flowNodes);
+    if (!isDraggingRef.current) {
+      setNodes(flowNodes);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowNodes]);
+
+  // ---- Drag start → set flag to prevent setNodes during drag ------------------
+  const handleNodeDragStart: RFOnNodeDrag = useCallback(() => {
+    isDraggingRef.current = true;
+  }, []);
 
   // ---- Drag stop → persist position to store ----------------------------------
   const handleNodeDragStop: RFOnNodeDrag = useCallback(
     (_event, node) => {
+      isDraggingRef.current = false;
+
+      // Skip inline edit node — it's not in the store
+      if (node.id === '__inline-edit__') {
+        return;
+      }
       void updateNode(node.id, { x: node.position.x, y: node.position.y });
     },
     [updateNode]
@@ -409,7 +513,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       const selectOn = changes.find(
         (c): c is Extract<RFNodeChange, { type: 'select' }> => c.type === 'select' && c.selected
       );
-      if (selectOn) {
+      if (selectOn && selectOn.id !== '__inline-edit__') {
         setSelectedNodeId(selectOn.id);
         return;
       }
@@ -427,6 +531,10 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   );
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: RFNode) => {
+    // Skip inline edit node — it's not a real node
+    if (node.id === '__inline-edit__') {
+      return;
+    }
     setDialogueNodeId(node.id);
   }, []);
 
@@ -501,6 +609,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
         nodes={nodes}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
+        onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
         onNodesChange={handleNodesChange}
         proOptions={{ hideAttribution: true }}
@@ -532,17 +641,6 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
             setDialogueNodeId(null);
             setSelectedNodeId(null);
           }}
-        />
-      )}
-
-      {/* Create node dialog */}
-      {activeMap && (
-        <CreateNodeDialog
-          mapId={activeMap.id}
-          onClose={() => setDialogOpen(false)}
-          open={dialogOpen}
-          parentLabel={dialogParentLabel}
-          parentNodeId={dialogParentNodeId}
         />
       )}
     </div>
