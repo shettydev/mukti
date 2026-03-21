@@ -4,7 +4,6 @@ build/
 .env
 .cursor
 .DS_Store
-.claude
 .vscode
 .swc
 

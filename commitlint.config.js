@@ -37,6 +37,7 @@ const scopes = [
   // ai
   'kiro',
   'opencode',
+  'claude',
 ];
 
 module.exports = {
