@@ -5,12 +5,18 @@ import userEvent from '@testing-library/user-event';
 import { CreateThoughtMapDialog } from '../CreateThoughtMapDialog';
 
 const mockMutateAsync = jest.fn();
+const mockSetThinkingIntent = jest.fn();
 
 jest.mock('@/lib/hooks/use-thought-map', () => ({
   useCreateThoughtMap: () => ({
     isPending: false,
     mutateAsync: mockMutateAsync,
   }),
+}));
+
+jest.mock('@/lib/stores/thought-map-store', () => ({
+  useThoughtMapStore: (selector: (s: any) => any) =>
+    selector({ setThinkingIntent: mockSetThinkingIntent }),
 }));
 
 function createWrapper() {
@@ -43,7 +49,7 @@ describe('CreateThoughtMapDialog', () => {
         maxSuggestionsPerNode: 4,
       },
       status: 'active',
-      title: 'How should I design my database schema?',
+      title: 'What would my ideal morning routine look like?',
       updatedAt: new Date().toISOString(),
       userId: 'user-1',
     });
@@ -55,9 +61,7 @@ describe('CreateThoughtMapDialog', () => {
     });
 
     expect(screen.getByText('New Thought Map')).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText(/how should i design my database schema/i)
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/your starting thought/i)).toBeInTheDocument();
   });
 
   it('creates a map from the entered topic', async () => {
@@ -67,12 +71,15 @@ describe('CreateThoughtMapDialog', () => {
       wrapper: createWrapper(),
     });
 
-    await user.type(screen.getByLabelText(/topic/i), 'How should I design my database schema?');
-    await user.click(screen.getByRole('button', { name: /create thought map/i }));
+    await user.type(
+      screen.getByLabelText(/your starting thought/i),
+      'What would my ideal morning routine look like?'
+    );
+    await user.click(screen.getByRole('button', { name: /begin thinking/i }));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({
-        title: 'How should I design my database schema?',
+        title: 'What would my ideal morning routine look like?',
       });
     });
 
@@ -91,8 +98,8 @@ describe('CreateThoughtMapDialog', () => {
       wrapper: createWrapper(),
     });
 
-    await user.type(screen.getByLabelText(/topic/i), 'Test topic');
-    await user.click(screen.getByRole('button', { name: /create thought map/i }));
+    await user.type(screen.getByLabelText(/your starting thought/i), 'Test topic');
+    await user.click(screen.getByRole('button', { name: /begin thinking/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Creation failed')).toBeInTheDocument();

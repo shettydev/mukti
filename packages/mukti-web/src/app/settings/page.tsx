@@ -1,15 +1,15 @@
 'use client';
 
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Key, RefreshCw, Sparkles, Trash2, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { ModelSelector } from '@/components/ai/model-selector';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAiStore } from '@/lib/stores/ai-store';
+import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
   return (
@@ -22,10 +22,7 @@ export default function SettingsPage() {
 function SettingsContent() {
   const {
     activeModel,
-    deleteGeminiKey,
     deleteOpenRouterKey,
-    geminiKeyLast4,
-    hasGeminiKey,
     hasOpenRouterKey,
     hydrate,
     isHydrated,
@@ -33,17 +30,14 @@ function SettingsContent() {
     openRouterKeyLast4,
     refreshModels,
     setActiveModel,
-    setGeminiKey,
     setOpenRouterKey,
   } = useAiStore();
 
   const [apiKey, setApiKey] = useState('');
-  const [geminiKey, setGeminiKeyInput] = useState('');
   const [savingKey, setSavingKey] = useState(false);
-  const [savingGeminiKey, setSavingGeminiKey] = useState(false);
   const [removingKey, setRemovingKey] = useState(false);
-  const [removingGeminiKey, setRemovingGeminiKey] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
+  const [refreshingModels, setRefreshingModels] = useState(false);
 
   useEffect(() => {
     if (!isHydrated) {
@@ -53,202 +47,183 @@ function SettingsContent() {
 
   return (
     <DashboardLayout title="Settings">
-      <div className="mx-auto w-full max-w-3xl space-y-8 p-4 md:p-6">
-        <section className="space-y-3 rounded-lg border p-4">
-          <h2 className="text-lg font-semibold">AI</h2>
-          <p className="text-sm text-muted-foreground">
-            Pick your active model and optionally connect your own OpenRouter key.
+      <div className="mx-auto w-full max-w-2xl px-4 py-8 md:px-6 md:py-12">
+        {/* Page header */}
+        <div className="mb-10">
+          <h1 className="text-japandi-heading text-2xl tracking-wide text-japandi-stone">
+            Configuration
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-japandi-stone/60">
+            Manage your AI model preferences and API credentials.
           </p>
+          <div className="mt-4 h-px bg-gradient-to-r from-japandi-sand via-japandi-terracotta/30 to-transparent" />
+        </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Active model</label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <ModelSelector
-                className="h-11 flex-1"
-                models={models}
-                onChange={async (modelId) => {
-                  setSavingModel(true);
-                  try {
-                    await setActiveModel(modelId);
-                    await refreshModels();
-                  } finally {
-                    setSavingModel(false);
-                  }
-                }}
-                value={activeModel}
-              />
-              <Button
-                className="h-11 shrink-0 px-4"
-                onClick={() => refreshModels()}
-                type="button"
-                variant="outline"
-              >
-                Refresh models
-              </Button>
-            </div>
-            {savingModel && <p className="text-xs text-muted-foreground">Saving model…</p>}
-          </div>
-        </section>
-
-        <section className="space-y-3 rounded-lg border p-4">
-          <h3 className="text-lg font-semibold">OpenRouter API key</h3>
-          <p className="text-sm text-muted-foreground">
-            If you add a key, Mukti will use it for all AI calls.
-          </p>
-
-          <div className="space-y-2">
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                aria-label="OpenRouter API key"
-                className="h-11 flex-1"
-                disabled={hasOpenRouterKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={
-                  hasOpenRouterKey ? 'Remove existing key to add a new one' : 'sk-or-v1-…'
-                }
-                type="password"
-                value={apiKey}
-              />
-              <Button
-                className="h-11 shrink-0 px-4"
-                disabled={savingKey || apiKey.trim().length === 0 || hasOpenRouterKey}
-                onClick={async () => {
-                  setSavingKey(true);
-                  try {
-                    await setOpenRouterKey(apiKey);
-                    setApiKey('');
-                  } finally {
-                    setSavingKey(false);
-                  }
-                }}
-                type="button"
-              >
-                Save key
-              </Button>
-            </div>
-
-            <div className="flex min-h-[44px] items-center justify-between gap-3">
+        <div className="space-y-10">
+          {/* ── Active Model ── */}
+          <section>
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-japandi-sage/15">
+                <Sparkles className="h-4 w-4 text-japandi-sage" />
+              </div>
               <div>
+                <h2 className="text-japandi-label text-japandi-stone">Active Model</h2>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-japandi-sand/60 bg-japandi-cream/40 p-5 transition-colors duration-300 hover:border-japandi-sand">
+              <p className="mb-4 text-japandi-body text-sm text-japandi-stone/70">
+                Select which model powers your Socratic sessions. Your choice applies to all new
+                conversations and canvas dialogues.
+              </p>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <ModelSelector
+                  className="h-11 flex-1 border-japandi-sand/60 bg-transparent transition-colors hover:border-japandi-terracotta/40"
+                  models={models}
+                  onChange={async (modelId) => {
+                    setSavingModel(true);
+                    try {
+                      await setActiveModel(modelId);
+                      await refreshModels();
+                    } finally {
+                      setSavingModel(false);
+                    }
+                  }}
+                  value={activeModel}
+                />
+                <Button
+                  className="h-11 shrink-0 gap-2 border-japandi-sand/60 bg-transparent px-4 text-japandi-stone/80 transition-all hover:border-japandi-sage/50 hover:bg-japandi-sage/10 hover:text-japandi-sage"
+                  disabled={refreshingModels}
+                  onClick={async () => {
+                    setRefreshingModels(true);
+                    try {
+                      await refreshModels();
+                    } finally {
+                      setRefreshingModels(false);
+                    }
+                  }}
+                  type="button"
+                  variant="outline"
+                >
+                  <RefreshCw className={cn('h-3.5 w-3.5', refreshingModels && 'animate-spin')} />
+                  Refresh
+                </Button>
+              </div>
+
+              {savingModel && (
+                <p className="mt-3 text-xs text-japandi-terracotta/80 animate-fade-in">
+                  Updating model preference&hellip;
+                </p>
+              )}
+            </div>
+          </section>
+
+          {/* ── OpenRouter API Key ── */}
+          <section>
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-japandi-terracotta/15">
+                <Key className="h-4 w-4 text-japandi-terracotta" />
+              </div>
+              <div>
+                <h2 className="text-japandi-label text-japandi-stone">OpenRouter API Key</h2>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-japandi-sand/60 bg-japandi-cream/40 p-5 transition-colors duration-300 hover:border-japandi-sand">
+              <p className="mb-4 text-japandi-body text-sm text-japandi-stone/70">
+                Connect your own OpenRouter key to unlock the full model catalog. Mukti will route
+                all AI calls through your account.
+              </p>
+
+              {/* Status indicator */}
+              <div
+                className={cn(
+                  'mb-5 flex items-center gap-3 rounded-lg px-4 py-3 transition-colors duration-300',
+                  hasOpenRouterKey
+                    ? 'border border-japandi-sage/30 bg-japandi-sage/8'
+                    : 'border border-japandi-sand/40 bg-japandi-light-stone/50'
+                )}
+              >
                 {hasOpenRouterKey ? (
-                  <Badge
-                    className="h-9 gap-1.5 border-green-500/50 bg-green-500/10 px-3 py-1.5 text-sm text-green-500"
-                    variant="outline"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Connected (…{openRouterKeyLast4 ?? '????'})
-                  </Badge>
+                  <>
+                    <div className="relative flex h-2.5 w-2.5 items-center justify-center">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-japandi-sage opacity-40" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-japandi-sage" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-japandi-sage">Connected</span>
+                      <span className="ml-2 font-mono text-xs text-japandi-stone/50">
+                        &bull;&bull;&bull;&bull; {openRouterKeyLast4 ?? '????'}
+                      </span>
+                    </div>
+                    <Button
+                      className="h-8 gap-1.5 border-none bg-transparent px-3 text-xs text-japandi-stone/50 shadow-none transition-colors hover:bg-japandi-terracotta/10 hover:text-japandi-terracotta"
+                      disabled={removingKey}
+                      onClick={async () => {
+                        setRemovingKey(true);
+                        try {
+                          await deleteOpenRouterKey();
+                        } finally {
+                          setRemovingKey(false);
+                        }
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {removingKey ? 'Removing…' : 'Remove'}
+                    </Button>
+                  </>
                 ) : (
-                  <Badge
-                    className="h-9 gap-1.5 px-3 py-1.5 text-sm text-muted-foreground"
-                    variant="secondary"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    Not connected
-                  </Badge>
+                  <>
+                    <div className="h-2 w-2 rounded-full bg-japandi-sand" />
+                    <span className="text-sm text-japandi-stone/50">No key connected</span>
+                  </>
                 )}
               </div>
-              {hasOpenRouterKey && (
-                <Button
-                  className="h-9 px-4 hover:bg-red-900/20 hover:text-red-400"
-                  disabled={removingKey}
-                  onClick={async () => {
-                    setRemovingKey(true);
-                    try {
-                      await deleteOpenRouterKey();
-                    } finally {
-                      setRemovingKey(false);
-                    }
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <span className="text-red-400">Remove key</span>
-                </Button>
+
+              {/* Key input */}
+              {!hasOpenRouterKey && (
+                <div className="animate-fade-in space-y-3">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      aria-label="OpenRouter API key"
+                      className="h-11 flex-1 border-japandi-sand/60 bg-transparent font-mono text-sm placeholder:font-sans placeholder:text-japandi-stone/30 focus-visible:border-japandi-terracotta/40 focus-visible:ring-japandi-terracotta/20"
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="sk-or-v1-…"
+                      type="password"
+                      value={apiKey}
+                    />
+                    <Button
+                      className="h-11 shrink-0 gap-2 bg-japandi-terracotta px-5 text-white shadow-none transition-all hover:bg-japandi-terracotta/90 disabled:bg-japandi-sand disabled:text-japandi-stone/40"
+                      disabled={savingKey || apiKey.trim().length === 0}
+                      onClick={async () => {
+                        setSavingKey(true);
+                        try {
+                          await setOpenRouterKey(apiKey);
+                          setApiKey('');
+                        } finally {
+                          setSavingKey(false);
+                        }
+                      }}
+                      type="button"
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      {savingKey ? 'Connecting…' : 'Connect'}
+                    </Button>
+                  </div>
+
+                  <p className="flex items-start gap-1.5 text-xs leading-relaxed text-japandi-stone/40">
+                    <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0" />
+                    Your key is encrypted at rest and never logged.
+                  </p>
+                </div>
               )}
             </div>
-
-            {savingKey && <p className="text-xs text-muted-foreground">Saving key…</p>}
-          </div>
-        </section>
-
-        <section className="space-y-3 rounded-lg border p-4">
-          <h3 className="text-lg font-semibold">Gemini API key</h3>
-          <p className="text-sm text-muted-foreground">Connect your Google Gemini API key.</p>
-
-          <div className="space-y-2">
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                aria-label="Gemini API key"
-                className="h-11 flex-1"
-                disabled={hasGeminiKey}
-                onChange={(e) => setGeminiKeyInput(e.target.value)}
-                placeholder={hasGeminiKey ? 'Remove existing key to add a new one' : 'AIzaSy…'}
-                type="password"
-                value={geminiKey}
-              />
-              <Button
-                className="h-11 shrink-0 px-4"
-                disabled={savingGeminiKey || geminiKey.trim().length === 0 || hasGeminiKey}
-                onClick={async () => {
-                  setSavingGeminiKey(true);
-                  try {
-                    await setGeminiKey(geminiKey);
-                    setGeminiKeyInput('');
-                  } finally {
-                    setSavingGeminiKey(false);
-                  }
-                }}
-                type="button"
-              >
-                Save key
-              </Button>
-            </div>
-
-            <div className="flex min-h-[44px] items-center justify-between gap-3">
-              <div>
-                {hasGeminiKey ? (
-                  <Badge
-                    className="h-9 gap-1.5 border-green-500/50 bg-green-500/10 px-3 py-1.5 text-sm text-green-500"
-                    variant="outline"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Connected (…{geminiKeyLast4 ?? '????'})
-                  </Badge>
-                ) : (
-                  <Badge
-                    className="h-9 gap-1.5 px-3 py-1.5 text-sm text-muted-foreground"
-                    variant="secondary"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    Not connected
-                  </Badge>
-                )}
-              </div>
-              {hasGeminiKey && (
-                <Button
-                  className="h-9 px-4 hover:bg-red-900/20 hover:text-red-400"
-                  disabled={removingGeminiKey}
-                  onClick={async () => {
-                    setRemovingGeminiKey(true);
-                    try {
-                      await deleteGeminiKey();
-                    } finally {
-                      setRemovingGeminiKey(false);
-                    }
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <span className="text-red-400">Remove key</span>
-                </Button>
-              )}
-            </div>
-
-            {savingGeminiKey && <p className="text-xs text-muted-foreground">Saving key…</p>}
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </DashboardLayout>
   );
