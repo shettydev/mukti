@@ -169,14 +169,15 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
 
         {/* Back to Sign In */}
         <div className="text-center">
-          <button
-            className="text-xs sm:text-sm text-white/70 hover:text-white transition-colors inline-flex items-center gap-1 touch-manipulation"
+          <Button
+            className="h-auto p-0 text-xs text-white/70 hover:text-white transition-colors inline-flex items-center gap-1 touch-manipulation sm:text-sm"
             onClick={onBack}
             type="button"
+            variant="link"
           >
             <ArrowLeft className="h-3 w-3" />
             Back to Sign In
-          </button>
+          </Button>
         </div>
       </form>
     </Form>

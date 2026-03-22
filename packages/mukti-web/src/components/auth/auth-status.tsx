@@ -5,6 +5,7 @@
 
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useAuthStore, useIsAuthenticated, useUser } from '@/lib/stores/auth-store';
 
 export function AuthStatus() {
@@ -24,13 +25,14 @@ export function AuthStatus() {
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-medium">Authenticated</h3>
-        <button
-          className="text-xs text-destructive hover:underline"
+        <Button
+          className="h-auto p-0 text-xs text-destructive"
           onClick={clearAuth}
           type="button"
+          variant="link"
         >
           Logout
-        </button>
+        </Button>
       </div>
       <div className="space-y-1 text-sm">
         <p>

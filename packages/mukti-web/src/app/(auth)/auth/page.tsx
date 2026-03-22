@@ -1,11 +1,13 @@
 'use client';
 
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
 import { GradientBackground } from '@/components/auth/gradient-background';
 import { SignInForm } from '@/components/auth/sign-in-form';
 import { SignUpForm } from '@/components/auth/sign-up-form';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type AuthTab = 'signin' | 'signup';
@@ -102,71 +104,69 @@ function AuthContent() {
             className="mb-6 flex gap-2 rounded-xl border border-japandi-sand/80 bg-japandi-light-stone/55 p-1 sm:mb-8"
             suppressHydrationWarning
           >
-            <button
+            <Button
               className={cn(
                 'min-h-11 flex-1 rounded-lg px-4 py-2.5 text-sm font-medium sm:text-base',
                 'transition-all duration-200 ease-out touch-manipulation',
                 'focus-visible:ring-2 focus-visible:ring-japandi-sage/60 focus-visible:outline-none',
                 activeTab === 'signin'
-                  ? 'bg-japandi-cream text-japandi-stone shadow-sm'
+                  ? 'bg-japandi-cream text-japandi-stone shadow-sm hover:bg-japandi-cream'
                   : 'text-japandi-stone/70 hover:text-japandi-timber hover:bg-japandi-cream/55'
               )}
               onClick={() => handleTabChange('signin')}
               type="button"
+              variant="ghost"
             >
               Sign In
-            </button>
-            <button
+            </Button>
+            <Button
               className={cn(
                 'min-h-11 flex-1 rounded-lg px-4 py-2.5 text-sm font-medium sm:text-base',
                 'transition-all duration-200 ease-out touch-manipulation',
                 'focus-visible:ring-2 focus-visible:ring-japandi-sage/60 focus-visible:outline-none',
                 activeTab === 'signup'
-                  ? 'bg-japandi-cream text-japandi-stone shadow-sm'
+                  ? 'bg-japandi-cream text-japandi-stone shadow-sm hover:bg-japandi-cream'
                   : 'text-japandi-stone/70 hover:text-japandi-timber hover:bg-japandi-cream/55'
               )}
               onClick={() => handleTabChange('signup')}
               type="button"
+              variant="ghost"
             >
               Sign Up
-            </button>
+            </Button>
           </div>
 
           {/* Form Content with smooth transition */}
-          <div className="relative" suppressHydrationWarning>
-            {/* Sign In Form */}
-            <div
-              className={cn(
-                'transition-all duration-300 ease-in-out',
-                activeTab === 'signin'
-                  ? 'relative translate-x-0 opacity-100'
-                  : 'pointer-events-none absolute inset-0 -translate-x-4 opacity-0'
+          <div className="relative overflow-hidden" suppressHydrationWarning>
+            <AnimatePresence initial={false} mode="wait">
+              {activeTab === 'signin' ? (
+                <motion.div
+                  animate={{ filter: 'blur(0px)', opacity: 1, x: 0 }}
+                  exit={{ filter: 'blur(4px)', opacity: 0, x: -20 }}
+                  initial={{ filter: 'blur(4px)', opacity: 0, x: -20 }}
+                  key="signin"
+                  transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+                >
+                  <SignInForm
+                    onSuccess={handleAuthSuccess}
+                    onSwitchToSignUp={() => handleTabChange('signup')}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  animate={{ filter: 'blur(0px)', opacity: 1, x: 0 }}
+                  exit={{ filter: 'blur(4px)', opacity: 0, x: 20 }}
+                  initial={{ filter: 'blur(4px)', opacity: 0, x: 20 }}
+                  key="signup"
+                  transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+                >
+                  <SignUpForm
+                    onSuccess={handleAuthSuccess}
+                    onSwitchToSignIn={() => handleTabChange('signin')}
+                  />
+                </motion.div>
               )}
-            >
-              {activeTab === 'signin' && (
-                <SignInForm
-                  onSuccess={handleAuthSuccess}
-                  onSwitchToSignUp={() => handleTabChange('signup')}
-                />
-              )}
-            </div>
-
-            {/* Sign Up Form */}
-            <div
-              className={cn(
-                'transition-all duration-300 ease-in-out',
-                activeTab === 'signup'
-                  ? 'relative translate-x-0 opacity-100'
-                  : 'pointer-events-none absolute inset-0 translate-x-4 opacity-0'
-              )}
-            >
-              {activeTab === 'signup' && (
-                <SignUpForm
-                  onSuccess={handleAuthSuccess}
-                  onSwitchToSignIn={() => handleTabChange('signin')}
-                />
-              )}
-            </div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

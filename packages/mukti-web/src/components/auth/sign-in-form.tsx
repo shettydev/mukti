@@ -143,15 +143,16 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                     type={showPassword ? 'text' : 'password'}
                   />
                 </FormControl>
-                <button
+                <Button
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 min-h-[44px] min-w-[44px] -translate-y-1/2 text-japandi-timber/65 transition-colors hover:text-japandi-timber focus-visible:outline-none disabled:opacity-50"
+                  className="absolute right-3 top-1/2 min-h-[44px] min-w-[44px] -translate-y-1/2 text-japandi-timber/65 transition-colors hover:text-japandi-timber hover:bg-transparent focus-visible:outline-none disabled:opacity-50"
                   disabled={isLoading}
                   onClick={() => setShowPassword(!showPassword)}
                   type="button"
+                  variant="ghost"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                </Button>
               </div>
               <FormMessage className="text-xs text-red-600 dark:text-red-300" />
             </FormItem>
@@ -168,7 +169,7 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
                 <FormControl>
                   <Checkbox
                     checked={field.value}
-                    className="h-4 w-4 border-japandi-sand/90 bg-japandi-cream/70 data-[state=checked]:border-japandi-sage data-[state=checked]:bg-japandi-sage data-[state=checked]:text-white touch-manipulation disabled:opacity-50"
+                    className="h-4 w-4 border-japandi-sand/90 bg-japandi-cream/70 data-[state=checked]:border-japandi-sage data-[state=checked]:bg-japandi-sage data-[state=checked]:text-white touch-manipulation disabled:opacity-50 cursor-pointer"
                     disabled={isLoading}
                     onCheckedChange={field.onChange}
                   />
@@ -180,8 +181,8 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
             )}
           />
 
-          <button
-            className="text-xs text-japandi-timber/80 transition-colors hover:text-japandi-timber hover:underline touch-manipulation disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+          <Button
+            className="h-auto p-0 text-xs text-japandi-timber/80 transition-colors hover:text-japandi-timber touch-manipulation disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
             disabled={isLoading}
             onClick={() => {
               if (onForgotPassword) {
@@ -191,9 +192,10 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
               }
             }}
             type="button"
+            variant="link"
           >
             Forgot password?
-          </button>
+          </Button>
         </div>
 
         {/* API Error Message */}
@@ -235,14 +237,15 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
         <div className="text-center">
           <p className="text-xs text-japandi-stone/70 sm:text-sm">
             Don&apos;t have an account?{' '}
-            <button
-              className="font-medium text-japandi-timber underline-offset-4 hover:underline touch-manipulation disabled:cursor-not-allowed disabled:opacity-50"
+            <Button
+              className="h-auto p-0 text-xs font-medium text-japandi-timber underline-offset-4 hover:underline touch-manipulation disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
               disabled={isLoading}
               onClick={onSwitchToSignUp}
               type="button"
+              variant="link"
             >
               Sign up
-            </button>
+            </Button>
           </p>
         </div>
       </form>

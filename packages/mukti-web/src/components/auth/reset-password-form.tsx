@@ -113,14 +113,15 @@ export function ResetPasswordForm({ onSuccess, token }: ResetPasswordFormProps) 
                     placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
                   />
-                  <button
+                  <Button
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 hover:bg-transparent transition-colors touch-manipulation"
                     onClick={() => setShowPassword(!showPassword)}
                     type="button"
+                    variant="ghost"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                  </Button>
                 </div>
               </FormControl>
               <FormMessage className="text-red-300 text-xs" />
@@ -148,18 +149,19 @@ export function ResetPasswordForm({ onSuccess, token }: ResetPasswordFormProps) 
                     placeholder="••••••••"
                     type={showConfirmPassword ? 'text' : 'password'}
                   />
-                  <button
+                  <Button
                     aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors touch-manipulation"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 hover:bg-transparent transition-colors touch-manipulation"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     type="button"
+                    variant="ghost"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
                     )}
-                  </button>
+                  </Button>
                 </div>
               </FormControl>
               <FormMessage className="text-red-300 text-xs" />

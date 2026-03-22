@@ -224,14 +224,15 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
                     type={showPassword ? 'text' : 'password'}
                   />
                 </FormControl>
-                <button
+                <Button
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 min-h-[44px] min-w-[44px] -translate-y-1/2 text-japandi-timber/65 transition-colors hover:text-japandi-timber focus-visible:outline-none touch-manipulation"
+                  className="absolute right-3 top-1/2 min-h-[44px] min-w-[44px] -translate-y-1/2 text-japandi-timber/65 transition-colors hover:text-japandi-timber hover:bg-transparent focus-visible:outline-none touch-manipulation"
                   onClick={() => setShowPassword(!showPassword)}
                   type="button"
+                  variant="ghost"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                </Button>
               </div>
               <FormMessage className="text-xs text-red-600 dark:text-red-300" />
               <PasswordStrengthIndicator password={password} />
@@ -280,13 +281,14 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
         <div className="text-center">
           <p className="text-xs text-japandi-stone/70 sm:text-sm">
             Already have an account?{' '}
-            <button
-              className="font-medium text-japandi-timber underline-offset-4 hover:underline touch-manipulation"
+            <Button
+              className="h-auto p-0 text-xs font-medium text-japandi-timber underline-offset-4 hover:underline touch-manipulation sm:text-sm"
               onClick={onSwitchToSignIn}
               type="button"
+              variant="link"
             >
               Sign in
-            </button>
+            </Button>
           </p>
         </div>
 
