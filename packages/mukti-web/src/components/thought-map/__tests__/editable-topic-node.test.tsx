@@ -14,7 +14,7 @@ jest.mock('@xyflow/react', () => ({
 }));
 
 jest.mock('framer-motion', () => ({
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
   motion: {
     p: ({ children, ...props }: any) => <p {...props}>{children}</p>,
   },
