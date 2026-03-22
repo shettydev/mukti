@@ -1,6 +1,5 @@
 'use client';
 
-import { Leaf, ShieldCheck, Sparkles } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
@@ -167,34 +166,6 @@ function AuthContent() {
                   onSwitchToSignIn={() => handleTabChange('signin')}
                 />
               )}
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-2 border-t border-japandi-sand/70 pt-5 text-left xs:grid-cols-3">
-            <div className="rounded-lg border border-japandi-sand/60 bg-japandi-light-stone/45 px-3 py-2">
-              <div className="mb-1 flex items-center gap-2 text-japandi-timber">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span className="text-japandi-label">Private</span>
-              </div>
-              <p className="text-xs text-japandi-stone/70">Session-backed secure authentication.</p>
-            </div>
-            <div className="rounded-lg border border-japandi-sand/60 bg-japandi-light-stone/45 px-3 py-2">
-              <div className="mb-1 flex items-center gap-2 text-japandi-timber">
-                <Leaf className="h-3.5 w-3.5" />
-                <span className="text-japandi-label">Calm</span>
-              </div>
-              <p className="text-xs text-japandi-stone/70">
-                Focused space designed for deep inquiry.
-              </p>
-            </div>
-            <div className="rounded-lg border border-japandi-sand/60 bg-japandi-light-stone/45 px-3 py-2">
-              <div className="mb-1 flex items-center gap-2 text-japandi-timber">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span className="text-japandi-label">Guided</span>
-              </div>
-              <p className="text-xs text-japandi-stone/70">
-                Socratic prompts instead of instant answers.
-              </p>
             </div>
           </div>
         </div>
