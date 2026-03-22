@@ -41,7 +41,7 @@ export function ThinkingIntentSelector({
           <button
             className={cn(
               'flex items-center justify-center gap-1 rounded-lg border font-medium transition-colors',
-              isFloating ? 'px-1.5 py-1 text-[10px]' : 'px-2 py-1.5 text-xs',
+              isFloating ? 'px-2 py-1 text-[10px]' : 'px-2 py-1.5 text-xs',
               isSelected
                 ? 'border-stone-400 bg-stone-100 text-stone-900 dark:border-stone-500 dark:bg-stone-800 dark:text-stone-100'
                 : 'border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700 dark:border-stone-700 dark:text-stone-400 dark:hover:border-stone-600 dark:hover:text-stone-300'
