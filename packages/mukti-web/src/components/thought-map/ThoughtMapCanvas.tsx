@@ -282,7 +282,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   // Track active drag to prevent setNodes from interrupting mid-drag
   const isDraggingRef = useRef(false);
   // Capture inline edit node position so the committed node appears in the same spot
-  const inlineEditPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const inlineEditPositionRef = useRef<null | { x: number; y: number }>(null);
 
   // ---- Sync remote data into the Zustand store --------------------------------
   useEffect(() => {
