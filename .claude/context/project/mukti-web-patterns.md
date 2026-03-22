@@ -306,6 +306,129 @@ export function CreateDialog({ open, onOpenChange, onSuccess }: CreateDialogProp
 }
 ```
 
+### 4.4 Always Prefer shadcn/ui Over Raw HTML Elements
+
+**Rule**: Never use raw HTML elements when a shadcn/ui equivalent exists in `@/components/ui/`. shadcn components provide consistent styling, accessibility (focus rings, ARIA), `cursor-pointer`, disabled states, and Japandi theme integration out of the box.
+
+```typescript
+// All imports from @/components/ui/
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+// ... etc.
+```
+
+**HTML → shadcn mapping:**
+
+| HTML Element                 | shadcn Component                    | Import                          | Notes                                                   |
+| ---------------------------- | ----------------------------------- | ------------------------------- | ------------------------------------------------------- |
+| `<button>`                   | `Button`                            | `@/components/ui/button`        | Includes `cursor-pointer`, focus rings, disabled states |
+| `<input>`                    | `Input`                             | `@/components/ui/input`         | Consistent border, focus, and placeholder styling       |
+| `<textarea>`                 | `Textarea`                          | `@/components/ui/textarea`      | Auto-resize support                                     |
+| `<label>`                    | `Label`                             | `@/components/ui/label`         | Or `FormLabel` inside forms                             |
+| `<input type="checkbox">`    | `Checkbox`                          | `@/components/ui/checkbox`      | Radix-based, accessible                                 |
+| `<select>` / custom dropdown | `DropdownMenu`                      | `@/components/ui/dropdown-menu` | Full keyboard navigation                                |
+| `<dialog>` / modal           | `Dialog`                            | `@/components/ui/dialog`        | Portal-based, focus trap                                |
+| `<div role="tablist">`       | `Tabs` / `TabsList` / `TabsTrigger` | `@/components/ui/tabs`          | Accessible tab panels                                   |
+| `<div class="tooltip">`      | `Tooltip`                           | `@/components/ui/tooltip`       | Radix tooltip with positioning                          |
+| `<div class="popover">`      | `Popover`                           | `@/components/ui/popover`       | Anchored floating content                               |
+| `<div class="card">`         | `Card`                              | `@/components/ui/card`          | With `CardHeader`, `CardContent`, `CardFooter`          |
+| `<span class="badge">`       | `Badge`                             | `@/components/ui/badge`         | Variant-based status indicators                         |
+| `<div class="skeleton">`     | `Skeleton`                          | `@/components/ui/skeleton`      | Loading placeholder                                     |
+| `<details>` / `<summary>`    | `Accordion`                         | `@/components/ui/accordion`     | Animated expand/collapse                                |
+| Right-click menu             | `ContextMenu`                       | `@/components/ui/context-menu`  | Radix context menu                                      |
+
+**Available components** (full list in `src/components/ui/`):
+
+`Accordion`, `Badge`, `Button`, `Card`, `Checkbox`, `ContextMenu`, `Dialog`, `DropdownMenu`, `Form` (+ `FormField`, `FormItem`, `FormLabel`, `FormControl`, `FormMessage`), `Input`, `Label`, `Markdown`, `Popover`, `Skeleton`, `Tabs`, `Textarea`, `Toaster` (Sonner), `Tooltip`
+
+**Button variant selection:**
+
+| Use Case                                         | Variant                  | Extra Classes                                         |
+| ------------------------------------------------ | ------------------------ | ----------------------------------------------------- |
+| Primary action (submit, CTA)                     | `default`                | Custom bg/text as needed                              |
+| Tab toggle / icon button                         | `ghost`                  | `hover:bg-transparent` for icon toggles inside inputs |
+| Inline text link ("Sign up", "Forgot password?") | `link`                   | `h-auto p-0` to reset sizing for inline flow          |
+| Destructive action                               | `destructive`            | —                                                     |
+| Secondary action                                 | `outline` or `secondary` | —                                                     |
+
+**Password toggle pattern** (inside input fields):
+
+```typescript
+<Button
+  aria-label={showPassword ? 'Hide password' : 'Show password'}
+  className="absolute right-3 top-1/2 -translate-y-1/2 text-japandi-timber/65 hover:text-japandi-timber hover:bg-transparent"
+  onClick={() => setShowPassword(!showPassword)}
+  type="button"
+  variant="ghost"
+>
+  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+</Button>
+```
+
+**Inline text link pattern** ("Sign up", "Forgot password?"):
+
+```typescript
+<Button
+  className="h-auto p-0 text-xs font-medium text-japandi-timber underline-offset-4 hover:underline sm:text-sm"
+  onClick={onSwitchToSignUp}
+  type="button"
+  variant="link"
+>
+  Sign up
+</Button>
+```
+
+**When raw HTML is acceptable:**
+
+- `<a>` for external links or Next.js `<Link>` — these are navigation, not actions
+- `<div>`, `<span>`, `<p>`, `<h1>`–`<h6>` — structural/text elements with no shadcn equivalent
+- `<form>` — always raw, wrapped with shadcn `<Form>` for React Hook Form integration
+- `<img>` — use Next.js `<Image>` instead, no shadcn equivalent
+
+### 4.5 View Transitions — Framer Motion AnimatePresence
+
+For tab switching and view transitions (e.g., sign-in/sign-up forms), use Framer Motion `AnimatePresence` with `mode="wait"` instead of CSS translate/opacity transitions:
+
+```typescript
+import { AnimatePresence, motion } from 'framer-motion';
+
+<div className="relative overflow-hidden">
+  <AnimatePresence mode="wait" initial={false}>
+    {activeTab === 'signin' ? (
+      <motion.div
+        key="signin"
+        initial={{ opacity: 0, x: -20, filter: 'blur(4px)' }}
+        animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+        exit={{ opacity: 0, x: -20, filter: 'blur(4px)' }}
+        transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+      >
+        <SignInForm />
+      </motion.div>
+    ) : (
+      <motion.div
+        key="signup"
+        initial={{ opacity: 0, x: 20, filter: 'blur(4px)' }}
+        animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+        exit={{ opacity: 0, x: 20, filter: 'blur(4px)' }}
+        transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+      >
+        <SignUpForm />
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
+```
+
+**Pattern rules:**
+
+- `mode="wait"` — exit completes before enter starts (no overlap)
+- `initial={false}` — skip animation on first render
+- Directional slide: outgoing view slides in its direction, incoming slides from opposite
+- Subtle blur (4px) adds depth to transitions
+- 250ms duration with custom cubic-bezier easing for smooth feel
+- Wrap container with `overflow-hidden` to prevent layout shift
+
 ---
 
 ## 5. Styling — Tailwind + Japandi Theme
