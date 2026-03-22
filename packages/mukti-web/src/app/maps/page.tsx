@@ -143,7 +143,10 @@ function ThoughtMapsContent() {
   return (
     <DashboardLayout
       actions={
-        <Link className="gap-2" href="/maps/new">
+        <Link
+          className="inline-flex items-center gap-2 rounded-xl border border-japandi-sand/70 bg-japandi-cream/60 px-4 py-2 text-sm font-medium text-japandi-stone transition-all duration-200 ease-out hover:border-japandi-sage/60 hover:bg-japandi-cream/80 hover:shadow-sm"
+          href="/maps/new"
+        >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">New Thought Map</span>
           <span className="sm:hidden">New</span>
