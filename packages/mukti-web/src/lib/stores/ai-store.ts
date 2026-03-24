@@ -25,7 +25,7 @@ interface AiStoreState {
 }
 
 export const useAiStore = create<AiStoreState>((set, get) => ({
-  activeModel: 'openai/gpt-5-mini',
+  activeModel: 'anthropic/claude-sonnet-4-6',
   deleteOpenRouterKey: async () => {
     await aiApi.deleteOpenRouterKey();
     await get().hydrate();
@@ -36,7 +36,7 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
       const settings = (await aiApi.getSettings()) as AiSettings;
 
       set({
-        activeModel: settings.activeModel ?? 'openai/gpt-5-mini',
+        activeModel: settings.activeModel ?? 'anthropic/claude-sonnet-4-6',
         hasOpenRouterKey: settings.hasOpenRouterKey,
         isHydrated: true,
         openRouterKeyLast4: settings.openRouterKeyLast4,
