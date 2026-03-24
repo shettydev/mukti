@@ -10,10 +10,10 @@ export interface AllowedModel {
   label: string;
 }
 
-const DEFAULT_MODEL = 'openai/gpt-5-mini';
+const DEFAULT_MODEL = 'anthropic/claude-sonnet-4-6';
 
 const CURATED_MODELS: AllowedModel[] = [
-  { id: 'openai/gpt-5-mini', label: 'GPT-5 Mini' },
+  { id: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
 ];
 
 @Injectable()
