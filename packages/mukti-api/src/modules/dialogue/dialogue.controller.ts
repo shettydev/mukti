@@ -6,6 +6,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
+  Logger,
   MessageEvent,
   NotFoundException,
   Param,
@@ -21,11 +23,15 @@ import { Model } from 'mongoose';
 import { Observable } from 'rxjs';
 
 import type { NodeType } from '../../schemas/node-dialogue.schema';
-import type { Subscription } from '../../schemas/subscription.schema';
 
+import {
+  Subscription,
+  type SubscriptionDocument,
+} from '../../schemas/subscription.schema';
 import { User, type UserDocument } from '../../schemas/user.schema';
 import { AiPolicyService } from '../ai/services/ai-policy.service';
 import { AiSecretsService } from '../ai/services/ai-secrets.service';
+import { FreeQuotaService } from '../ai/services/free-quota.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -57,12 +63,17 @@ import { generateInitialQuestion } from './utils/prompt-builder';
 @Controller('canvas')
 @UseGuards(JwtAuthGuard)
 export class DialogueController {
+  private readonly logger = new Logger(DialogueController.name);
+
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(Subscription.name)
+    private readonly subscriptionModel: Model<SubscriptionDocument>,
     private readonly configService: ConfigService,
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiSecretsService: AiSecretsService,
+    private readonly freeQuotaService: FreeQuotaService,
     private readonly dialogueQueueService: DialogueQueueService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
@@ -83,12 +94,12 @@ export class DialogueController {
   async getMessages(
     @Param('sessionId') sessionId: string,
     @Param('nodeId') nodeId: string,
+    @CurrentUser() user: User,
     @Query('limit') limit?: number,
     @Query('page') page?: number,
-    @CurrentUser() user?: User,
   ) {
     // Validate session ownership
-    await this.dialogueService.validateSessionOwnership(sessionId, user!._id);
+    await this.dialogueService.validateSessionOwnership(sessionId, user._id);
 
     // Get messages (returns null if no dialogue exists)
     const result = await this.dialogueService.getMessagesByNode(
@@ -166,26 +177,36 @@ export class DialogueController {
       session.problemStructure,
     );
 
-    // Get subscription tier from user
-    const userWithSubscription = user as User & { subscription?: Subscription };
-    const subscriptionTier: 'free' | 'paid' =
-      userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
-
     const userRecord = await this.userModel
       .findById(user._id)
       .select('+openRouterApiKeyEncrypted preferences')
       .lean();
 
     if (!userRecord) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
+    const subscription = await this.subscriptionModel
+      .findOne({ userId: user._id })
+      .lean();
+    const subscriptionTier: 'free' | 'paid' =
+      subscription?.tier === 'paid' ? 'paid' : 'free';
+
     const usedByok = !!userRecord.openRouterApiKeyEncrypted;
+
+    // Enforce daily free message quota for non-BYOK users
+    if (!usedByok) {
+      await this.freeQuotaService.checkAndConsume(user._id);
+    }
+
     const serverApiKey =
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
 
     if (!usedByok && !serverApiKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
+      this.logger.error('OPENROUTER_API_KEY is not configured');
+      throw new InternalServerErrorException(
+        'AI service is temporarily unavailable',
+      );
     }
 
     const validationApiKey = usedByok
@@ -426,9 +447,9 @@ export class DialogueController {
     }
 
     if (nodeId.startsWith('insight-')) {
-      // For insight nodes, we need to look up the label from the dialogue
-      // For now, use a placeholder - this will be enhanced when insight nodes are created
-      return { nodeLabel: 'Insight', nodeType: 'insight' };
+      throw new BadRequestException(
+        'Insight node dialogue is not yet supported',
+      );
     }
 
     throw new BadRequestException(`Unknown node ID format: ${nodeId}`);

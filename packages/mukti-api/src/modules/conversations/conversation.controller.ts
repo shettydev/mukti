@@ -6,6 +6,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
+  Logger,
   MessageEvent,
   NotFoundException,
   Param,
@@ -21,11 +23,14 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { Observable } from 'rxjs';
 
-import type { Subscription } from '../../schemas/subscription.schema';
-
+import {
+  Subscription,
+  type SubscriptionDocument,
+} from '../../schemas/subscription.schema';
 import { User, type UserDocument } from '../../schemas/user.schema';
 import { AiPolicyService } from '../ai/services/ai-policy.service';
 import { AiSecretsService } from '../ai/services/ai-secrets.service';
+import { FreeQuotaService } from '../ai/services/free-quota.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -58,12 +63,17 @@ import { StreamService } from './services/stream.service';
 @Controller('conversations')
 @UseGuards(JwtAuthGuard)
 export class ConversationController {
+  private readonly logger = new Logger(ConversationController.name);
+
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(Subscription.name)
+    private readonly subscriptionModel: Model<SubscriptionDocument>,
     private readonly configService: ConfigService,
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiSecretsService: AiSecretsService,
+    private readonly freeQuotaService: FreeQuotaService,
     private readonly conversationService: ConversationService,
     private readonly messageService: MessageService,
     private readonly queueService: QueueService,
@@ -277,48 +287,36 @@ export class ConversationController {
       user._id,
     );
 
-    // TODO: Check rate limits via RateLimitService
-    // const rateLimitStatus = await this.rateLimitService.checkRateLimit(userId);
-    // if (!rateLimitStatus.allowed) {
-    //   throw new HttpException(
-    //     {
-    //       success: false,
-    //       error: {
-    //         code: 'RATE_LIMIT_EXCEEDED',
-    //         message: rateLimitStatus.message,
-    //         retryAfter: rateLimitStatus.retryAfter,
-    //       },
-    //       meta: {
-    //         timestamp: new Date().toISOString(),
-    //       },
-    //     },
-    //     HttpStatus.TOO_MANY_REQUESTS,
-    //   );
-    // }
-
-    // Enqueue request for processing
-    // Get subscription tier from user's subscription
-    // Note: subscription is a virtual field that may not be populated
-    // Default to 'free' if not available
-    const userWithSubscription = user as User & { subscription?: Subscription };
-    const subscriptionTier: 'free' | 'paid' =
-      userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
-
     const userRecord = await this.userModel
       .findById(user._id)
       .select('+openRouterApiKeyEncrypted preferences')
       .lean();
 
     if (!userRecord) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
+    const subscription = await this.subscriptionModel
+      .findOne({ userId: user._id })
+      .lean();
+    const subscriptionTier: 'free' | 'paid' =
+      subscription?.tier === 'paid' ? 'paid' : 'free';
+
     const usedByok = !!userRecord.openRouterApiKeyEncrypted;
+
+    // Enforce daily free message quota for non-BYOK users
+    if (!usedByok) {
+      await this.freeQuotaService.checkAndConsume(user._id);
+    }
+
     const serverApiKey =
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
 
     if (!usedByok && !serverApiKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
+      this.logger.error('OPENROUTER_API_KEY is not configured');
+      throw new InternalServerErrorException(
+        'AI service is temporarily unavailable',
+      );
     }
 
     const validationApiKey = usedByok
