@@ -142,6 +142,23 @@ export class DialogueAIService {
       const latencyMs = Date.now() - startTime;
       return this.parseResponse(response, effectiveModel, latencyMs);
     } catch (error) {
+      // If the SDK's strict Zod validation failed but we got a raw response,
+      // try our more lenient parser before falling back
+      if (this.isResponseValidationError(error)) {
+        this.logger.warn(
+          `OpenRouter SDK response validation failed for model ${model}, attempting lenient parse`,
+        );
+        try {
+          return this.parseResponse(
+            error.rawValue,
+            model.trim(),
+            Date.now() - startTime,
+          );
+        } catch {
+          // Lenient parse also failed — fall through to fallback
+        }
+      }
+
       this.logger.error(
         `Failed to generate AI response: ${this.getErrorMessage(error)}`,
         this.getErrorStack(error),
@@ -230,6 +247,21 @@ export class DialogueAIService {
       const latencyMs = Date.now() - startTime;
       return this.parseResponse(response, effectiveModel, latencyMs);
     } catch (error) {
+      if (this.isResponseValidationError(error)) {
+        this.logger.warn(
+          `OpenRouter SDK response validation failed for model ${model}, attempting lenient parse`,
+        );
+        try {
+          return this.parseResponse(
+            error.rawValue,
+            model.trim(),
+            Date.now() - startTime,
+          );
+        } catch {
+          // Lenient parse also failed — fall through to fallback
+        }
+      }
+
       this.logger.error(
         `Failed to generate scaffolded AI response: ${this.getErrorMessage(error)}`,
         this.getErrorStack(error),
@@ -307,6 +339,21 @@ export class DialogueAIService {
       const latencyMs = Date.now() - startTime;
       return this.parseResponse(response, effectiveModel, latencyMs);
     } catch (error) {
+      if (this.isResponseValidationError(error)) {
+        this.logger.warn(
+          `OpenRouter SDK response validation failed for model ${model}, attempting lenient parse`,
+        );
+        try {
+          return this.parseResponse(
+            error.rawValue,
+            model.trim(),
+            Date.now() - startTime,
+          );
+        } catch {
+          // Lenient parse also failed — fall through to fallback
+        }
+      }
+
       this.logger.error(
         `Failed to generate ThoughtMap AI response: ${this.getErrorMessage(error)}`,
         this.getErrorStack(error),
@@ -511,6 +558,16 @@ export class DialogueAIService {
 
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
+  }
+
+  private isResponseValidationError(
+    error: unknown,
+  ): error is { rawValue: unknown } {
+    if (!this.isRecord(error)) {
+      return false;
+    }
+
+    return error.name === 'ResponseValidationError' && 'rawValue' in error;
   }
 
   /**
