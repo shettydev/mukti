@@ -52,9 +52,11 @@ export class JwtTokenService {
       this.configService.get<string>('JWT_EXPIRES_IN') ?? '15m';
     this.refreshTokenExpiration =
       this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
-    this.refreshTokenSecret =
-      this.configService.get<string>('JWT_REFRESH_SECRET') ??
-      'development-refresh-secret';
+    const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET');
+    if (!refreshSecret) {
+      throw new Error('JWT_REFRESH_SECRET environment variable is required');
+    }
+    this.refreshTokenSecret = refreshSecret;
   }
 
   /**

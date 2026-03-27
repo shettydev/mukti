@@ -49,15 +49,15 @@ async function bootstrap() {
 
     helmet({
       contentSecurityPolicy: isProduction
-        ? undefined
-        : {
+        ? {
             directives: {
               defaultSrc: ["'self'"],
-              imgSrc: ["'self'", 'data:', 'https:'],
-              scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-              styleSrc: ["'self'", "'unsafe-inline'"],
+              imgSrc: ["'self'", 'data:'],
+              scriptSrc: ["'self'"],
+              styleSrc: ["'self'"],
             },
-          },
+          }
+        : false, // Disable CSP in development for hot-reload tooling
       crossOriginEmbedderPolicy: !isProduction,
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     })(req, res, next);
@@ -72,12 +72,12 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      forbidNonWhitelisted: false,
+      forbidNonWhitelisted: true,
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,
       },
-      whitelist: false, // Don't strip properties - let decorators handle it
+      whitelist: true,
     }),
   );
 
@@ -160,9 +160,6 @@ async function bootstrap() {
       }),
     );
   }
-
-  // Ensure CORS middleware is registered before csurf
-  await app.init();
 
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);

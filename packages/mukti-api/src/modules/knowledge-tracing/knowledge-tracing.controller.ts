@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Logger,
   NotFoundException,
@@ -16,7 +17,6 @@ import { Model } from 'mongoose';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Concept, ConceptDocument } from '../../schemas/concept.schema';
 import { User } from '../../schemas/user.schema';
@@ -40,7 +40,6 @@ import { KnowledgeStateTrackerService } from './services/knowledge-state-tracker
  * - DELETE /knowledge-tracing/state/:userId/:conceptId/reset - Reset knowledge state
  */
 @Controller('knowledge-tracing')
-@SkipEnvelope()
 export class KnowledgeTracingController {
   private readonly logger = new Logger(KnowledgeTracingController.name);
 
@@ -164,7 +163,11 @@ export class KnowledgeTracingController {
    * GET /knowledge-tracing/user/:userId
    */
   @Get('user/:userId')
-  async getUserKnowledgeStates(@Param('userId') userId: string) {
+  async getUserKnowledgeStates(
+    @Param('userId') userId: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    this.enforceOwnership(currentUser, userId);
     this.logger.debug(`Get all knowledge states for user=${userId}`);
 
     const states =
@@ -186,7 +189,9 @@ export class KnowledgeTracingController {
   async getKnowledgeState(
     @Param('userId') userId: string,
     @Param('conceptId') conceptId: string,
+    @CurrentUser() currentUser: User,
   ) {
+    this.enforceOwnership(currentUser, userId);
     this.logger.debug(
       `Get knowledge state: user=${userId}, concept=${conceptId}`,
     );
@@ -208,7 +213,9 @@ export class KnowledgeTracingController {
   async resetKnowledgeState(
     @Param('userId') userId: string,
     @Param('conceptId') conceptId: string,
+    @CurrentUser() currentUser: User,
   ) {
+    this.enforceOwnership(currentUser, userId);
     this.logger.log(
       `Reset knowledge state: user=${userId}, concept=${conceptId}`,
     );
@@ -230,6 +237,8 @@ export class KnowledgeTracingController {
    * POST /knowledge-tracing/concepts
    */
   @Post('concepts')
+  @Roles('admin')
+  @UseGuards(RolesGuard)
   async createConcept(@Body() dto: CreateConceptDto) {
     this.logger.log(`Create concept: ${dto.conceptId}`);
 
@@ -300,6 +309,8 @@ export class KnowledgeTracingController {
    * PATCH /knowledge-tracing/concepts/:conceptId
    */
   @Patch('concepts/:conceptId')
+  @Roles('admin')
+  @UseGuards(RolesGuard)
   async updateConcept(
     @Param('conceptId') conceptId: string,
     @Body() dto: UpdateConceptDto,
@@ -325,6 +336,8 @@ export class KnowledgeTracingController {
    * DELETE /knowledge-tracing/concepts/:conceptId
    */
   @Delete('concepts/:conceptId')
+  @Roles('admin')
+  @UseGuards(RolesGuard)
   async deleteConcept(@Param('conceptId') conceptId: string) {
     this.logger.log(`Delete concept: ${conceptId}`);
 
@@ -339,5 +352,20 @@ export class KnowledgeTracingController {
     }
 
     return { conceptId, message: 'Concept deactivated successfully' };
+  }
+
+  /**
+   * Ensures the authenticated user can only access their own knowledge state,
+   * unless they are an admin.
+   */
+  private enforceOwnership(currentUser: User, targetUserId: string): void {
+    if (
+      currentUser._id.toString() !== targetUserId &&
+      currentUser.role !== 'admin'
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to access this resource',
+      );
+    }
   }
 }

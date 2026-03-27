@@ -1,3 +1,5 @@
+import type { StringValue } from 'ms';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
@@ -77,13 +79,19 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService): JwtModuleOptions => ({
-        secret:
-          configService.get<string>('JWT_SECRET') ?? 'development-secret-key',
-        signOptions: {
-          expiresIn: configService.get<number>('JWT_EXPIRES_IN') ?? '15m',
-        },
-      }),
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('JWT_SECRET environment variable is required');
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ??
+              '15m') as StringValue,
+          },
+        };
+      },
     }),
 
     // Mongoose models
