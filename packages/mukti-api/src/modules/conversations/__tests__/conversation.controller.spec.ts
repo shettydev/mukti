@@ -179,10 +179,7 @@ describe('ConversationController', () => {
       const result = await controller.create(createDto, mockUser as any);
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockConversation);
-      expect(result.meta).toHaveProperty('timestamp');
-      expect(result.meta).toHaveProperty('requestId');
+      expect(result).toEqual(mockConversation);
       expect(conversationService.createConversation).toHaveBeenCalledWith(
         mockUser._id,
         createDto.title,
@@ -222,7 +219,7 @@ describe('ConversationController', () => {
       const result = await controller.create(createDto, mockUser as any);
 
       // Assert
-      expect(result.success).toBe(true);
+      expect(result).toEqual(mockConversation);
       expect(conversationService.createConversation).toHaveBeenCalledWith(
         mockUser._id,
         createDto.title,
@@ -268,7 +265,6 @@ describe('ConversationController', () => {
       const result = await controller.findAll(mockUser as any);
 
       // Assert
-      expect(result.success).toBe(true);
       expect(result.data).toEqual(mockConversations);
       expect(result.meta).toEqual(mockResult.meta);
       expect(conversationService.findUserConversations).toHaveBeenCalledWith(
@@ -391,10 +387,7 @@ describe('ConversationController', () => {
       );
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockConversation);
-      expect(result.meta).toHaveProperty('timestamp');
-      expect(result.meta).toHaveProperty('requestId');
+      expect(result).toEqual(mockConversation);
       expect(conversationService.findConversationById).toHaveBeenCalledWith(
         conversationId.toString(),
         mockUser._id,
@@ -446,10 +439,7 @@ describe('ConversationController', () => {
       );
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockMessages);
-      expect(result.meta).toHaveProperty('timestamp');
-      expect(result.meta).toHaveProperty('requestId');
+      expect(result).toEqual(mockMessages);
       expect(messageService.getArchivedMessages).toHaveBeenCalledWith(
         conversationId.toString(),
         {
@@ -544,10 +534,7 @@ describe('ConversationController', () => {
       );
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockQueueResult);
-      expect(result.meta).toHaveProperty('timestamp');
-      expect(result.meta).toHaveProperty('requestId');
+      expect(result).toEqual(mockQueueResult);
       expect(queueService.enqueueRequest).toHaveBeenCalledWith(
         mockUser._id,
         conversationId.toString(),
@@ -590,10 +577,7 @@ describe('ConversationController', () => {
       );
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockUpdatedConversation);
-      expect(result.meta).toHaveProperty('timestamp');
-      expect(result.meta).toHaveProperty('requestId');
+      expect(result).toEqual(mockUpdatedConversation);
       expect(conversationService.updateConversation).toHaveBeenCalledWith(
         conversationId.toString(),
         mockUser._id,
@@ -630,7 +614,7 @@ describe('ConversationController', () => {
       );
 
       // Assert
-      expect(result.success).toBe(true);
+      expect(result).toEqual(mockUpdatedConversation);
       expect(conversationService.updateConversation).toHaveBeenCalledWith(
         conversationId.toString(),
         mockUser._id,
