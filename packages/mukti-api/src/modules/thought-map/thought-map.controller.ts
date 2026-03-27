@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   MessageEvent,
   NotFoundException,
   Param,
@@ -713,14 +714,16 @@ export class ThoughtMapController {
       .select('+openRouterApiKeyEncrypted preferences')
       .lean();
     if (!userRecord) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const usedByok = !!userRecord.openRouterApiKeyEncrypted;
     const serverApiKey =
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
     if (!usedByok && !serverApiKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
+      throw new InternalServerErrorException(
+        'OPENROUTER_API_KEY not configured',
+      );
     }
 
     const validationApiKey = usedByok
