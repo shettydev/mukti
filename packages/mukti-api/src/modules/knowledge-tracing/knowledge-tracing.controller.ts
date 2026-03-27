@@ -196,7 +196,7 @@ export class KnowledgeTracingController {
       conceptId,
     );
 
-    return state || { message: 'Knowledge state not found' };
+    return state ?? { message: 'Knowledge state not found' };
   }
 
   /**

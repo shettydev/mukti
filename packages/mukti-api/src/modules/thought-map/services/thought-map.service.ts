@@ -226,7 +226,7 @@ export class ThoughtMapService {
     }
 
     const { roots, seed, soil } = session.problemStructure;
-    const title = (titleOverride?.trim() || seed).slice(0, 500);
+    const title = (titleOverride?.trim() ?? seed).slice(0, 500);
     const rootNodeId = 'topic-0';
 
     // Create the ThoughtMap

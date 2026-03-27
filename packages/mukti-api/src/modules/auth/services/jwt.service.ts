@@ -1,3 +1,5 @@
+import type { StringValue } from 'ms';
+
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
@@ -131,8 +133,8 @@ export class JwtTokenService {
           sub: payload.sub,
         },
         {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          expiresIn: this.accessTokenExpiration as any,
+          // Config values (e.g. '15m', '7d') are valid ms StringValue strings at runtime
+          expiresIn: this.accessTokenExpiration as StringValue,
           issuer: this.issuer,
         },
       );
@@ -183,8 +185,8 @@ export class JwtTokenService {
           sub: payload.sub,
         },
         {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          expiresIn: this.refreshTokenExpiration as any,
+          // Config values (e.g. '15m', '7d') are valid ms StringValue strings at runtime
+          expiresIn: this.refreshTokenExpiration as StringValue,
           issuer: this.issuer,
           secret: this.refreshTokenSecret,
         },

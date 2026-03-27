@@ -319,10 +319,14 @@ export class AiController {
     };
   }
 
-  private getValidationApiKey(params: { hasByok: boolean; user: any }): string {
+  private getValidationApiKey(params: {
+    hasByok: boolean;
+    user: Pick<User, 'openRouterApiKeyEncrypted'>;
+  }): string {
     if (params.hasByok) {
+      // hasByok guarantees openRouterApiKeyEncrypted is present
       return this.aiSecretsService.decryptString(
-        params.user.openRouterApiKeyEncrypted,
+        params.user.openRouterApiKeyEncrypted!,
       );
     }
 

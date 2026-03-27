@@ -65,6 +65,8 @@ export class RegisterDto {
   @IsPhoneNumber(undefined, {
     message: 'Phone number must be a valid phone number',
   })
-  @Transform(({ value }) => (value === '' ? undefined : value))
+  @Transform(({ value }: { value: unknown }): string | undefined =>
+    value === '' ? undefined : (value as string),
+  )
   phone?: string;
 }

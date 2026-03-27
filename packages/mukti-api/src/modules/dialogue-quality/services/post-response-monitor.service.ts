@@ -11,7 +11,7 @@ export class PostResponseMonitorService {
     const withoutQuotes = responseText
       .replace(/"[^"]*"/g, '')
       .replace(/'[^']*'/g, '');
-    const questionCount = (withoutQuotes.match(/\?/g) || []).length;
+    const questionCount = (withoutQuotes.match(/\?/g) ?? []).length;
     const violations: string[] = [];
 
     if (questionCount > 1) {
