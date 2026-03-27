@@ -2,14 +2,14 @@
 
 <!-- HEADER BLOCK: Identifies the RFC and its current lifecycle state at a glance. -->
 
-| Field            | Value                                                              |
-| ---------------- | ------------------------------------------------------------------ |
-| **RFC Number**   | 0006                                                               |
-| **Title**        | Mukti API Architecture Restructure                                 |
-| **Status**       | ![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow) |
-| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                     |
-| **Created**      | 2026-03-26                                                         |
-| **Last Updated** | 2026-03-26                                                         |
+| Field            | Value                                                                  |
+| ---------------- | ---------------------------------------------------------------------- |
+| **RFC Number**   | 0006                                                                   |
+| **Title**        | Mukti API Architecture Restructure                                     |
+| **Status**       | ![Status: Accepted](https://img.shields.io/badge/Status-Accepted-blue) |
+| **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                         |
+| **Created**      | 2026-03-26                                                             |
+| **Last Updated** | 2026-03-27                                                             |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Implemented` | `Rejected` | `Superseded`
 
@@ -54,7 +54,7 @@ The `@mukti/api` codebase has grown organically from an initial 4-module structu
 ### Goals
 
 - [ ] Co-locate schemas with their owning domain module, eliminating the flat `src/schemas/` directory
-- [ ] Extract cross-cutting concerns (guards, decorators, filters, interceptors) into `src/common/`
+- [x] Extract cross-cutting concerns (guards, decorators, filters, interceptors) into `src/common/`
 - [ ] Centralize BullMQ/Redis configuration into a shared `QueueModule` — configure once, import everywhere
 - [ ] Introduce a `ResponseInterceptor` that automatically wraps controller return values in the standard envelope
 - [ ] Define and enforce a canonical internal module layout (controller, services, dto, interfaces, tests)
@@ -666,14 +666,14 @@ No new observability requirements. Existing logging patterns are preserved:
 
 ### Phases
 
-| Phase | Description                                     | Entry Criteria   | Exit Criteria                                                                                       |
-| ----- | ----------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
-| 1     | Extract cross-cutting concerns to `common/`     | RFC accepted     | All guards/decorators moved; all imports updated; tests pass                                        |
-| 2     | Create `CoreModule` with `QueueModule`          | Phase 1 complete | BullMQ config centralized; 3 duplicate configs removed; tests pass                                  |
-| 3     | Introduce `ResponseInterceptor`                 | Phase 2 complete | Interceptor active globally; manual envelope removed from all controllers; tests pass               |
-| 4     | Co-locate schemas into domain modules           | Phase 3 complete | `src/schemas/` deleted; all schemas in domain `schemas/` dirs; `ALL_SCHEMAS` eliminated; tests pass |
-| 5     | Standardize module internals and test placement | Phase 4 complete | All modules follow canonical layout; all tests in `__tests__/`; linter rules enforced               |
-| 6     | Explicit module registration and cleanup        | Phase 5 complete | All 12 modules in `app.module.ts`; `common/seeds/` relocated; `seed.ts` cleaned up                  |
+| Phase | Description                                     | Status          | Entry Criteria   | Exit Criteria                                                                                       |
+| ----- | ----------------------------------------------- | --------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
+| 1     | Extract cross-cutting concerns to `common/`     | ✅ **Complete** | RFC accepted     | All guards/decorators moved; all imports updated; tests pass                                        |
+| 2     | Create `CoreModule` with `QueueModule`          | ⬜ Not started  | Phase 1 complete | BullMQ config centralized; 3 duplicate configs removed; tests pass                                  |
+| 3     | Introduce `ResponseInterceptor`                 | ⬜ Not started  | Phase 2 complete | Interceptor active globally; manual envelope removed from all controllers; tests pass               |
+| 4     | Co-locate schemas into domain modules           | ⬜ Not started  | Phase 3 complete | `src/schemas/` deleted; all schemas in domain `schemas/` dirs; `ALL_SCHEMAS` eliminated; tests pass |
+| 5     | Standardize module internals and test placement | ⬜ Not started  | Phase 4 complete | All modules follow canonical layout; all tests in `__tests__/`; linter rules enforced               |
+| 6     | Explicit module registration and cleanup        | ⬜ Not started  | Phase 5 complete | All 12 modules in `app.module.ts`; `common/seeds/` relocated; `seed.ts` cleaned up                  |
 
 ### Phase Details
 
@@ -696,6 +696,16 @@ No new observability requirements. Existing logging patterns are preserved:
 - `guards/password-reset-rate-limit.guard.ts` (auth-specific)
 
 **Validation**: All existing tests pass. Import paths updated via IDE refactoring.
+
+> **✅ Completed: 2026-03-27**
+>
+> - `git mv` used throughout to preserve git blame/history
+> - `common/guards/` created: `jwt-auth.guard.ts`, `roles.guard.ts`, `email-verified.guard.ts` + barrel `index.ts`
+> - `common/decorators/` created: `public.decorator.ts`, `current-user.decorator.ts`, `roles.decorator.ts` + barrel `index.ts`
+> - `modules/auth/guards/index.ts` updated to export only auth-specific guards (`login-rate-limit`, `password-reset-rate-limit`)
+> - `modules/auth/decorators/` directory removed (all files moved; barrel deleted)
+> - Import paths updated across 14 files: `app.module.ts`, `auth.module.ts`, `auth.controller.ts`, all 9 domain controllers, and 2 property test specs
+> - Build (`bun nx run @mukti/api:build`) and tests (`bun nx run @mukti/api:test`) pass with zero regressions
 
 #### Phase 2: Create CoreModule with QueueModule
 
@@ -760,9 +770,10 @@ Each phase is an independent, merge-ready PR. Rollback = revert the PR.
 
 ## 14. Decision Log
 
-| Date       | Decision             | Rationale                                             | Decided By     |
-| ---------- | -------------------- | ----------------------------------------------------- | -------------- |
-| 2026-03-26 | RFC created as Draft | Address accumulated structural debt across 12 modules | Prathik Shetty |
+| Date       | Decision                       | Rationale                                                                                         | Decided By     |
+| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------- | -------------- |
+| 2026-03-26 | RFC created as Draft           | Address accumulated structural debt across 12 modules                                             | Prathik Shetty |
+| 2026-03-27 | RFC accepted; Phase 1 complete | Implementation validated: build passes, all guard/decorator imports migrated, no test regressions | Prathik Shetty |
 
 ---
 
