@@ -1,5 +1,3 @@
-import type { Request } from 'express';
-
 import {
   CallHandler,
   ExecutionContext,
@@ -93,14 +91,16 @@ export class ResponseInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const response = context.switchToHttp().getResponse();
+    const response = context
+      .switchToHttp()
+      .getResponse<{ statusCode: number }>();
     const statusCode: number = response.statusCode;
 
     return next.handle().pipe(
       map((value) => {
         // 204 No Content — pass through as-is (NestJS sends empty body)
-        if (statusCode === HttpStatus.NO_CONTENT) {
-          return value;
+        if (statusCode === (HttpStatus.NO_CONTENT as number)) {
+          return value as unknown;
         }
 
         const baseMeta = {

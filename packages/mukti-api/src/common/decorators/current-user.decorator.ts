@@ -1,6 +1,6 @@
 import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
 
-import type { User } from '../../schemas/user.schema';
+import type { User, UserDocument } from '../../schemas/user.schema';
 
 /**
  * Parameter decorator that extracts the authenticated user from the request.
@@ -45,8 +45,11 @@ import type { User } from '../../schemas/user.schema';
  * ```
  */
 export const CurrentUser = createParamDecorator(
-  (data: keyof User | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
+  (
+    data: keyof User | undefined,
+    ctx: ExecutionContext,
+  ): undefined | UserDocument | UserDocument[keyof User] => {
+    const request = ctx.switchToHttp().getRequest<{ user: UserDocument }>();
     const user = request.user;
 
     // If specific property requested, return that property

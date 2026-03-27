@@ -11,6 +11,28 @@ import {
 import { v7 as uuidv7 } from 'uuid';
 
 /**
+ * Express `Request` augmented with the optional `user` property attached by
+ * `JwtAuthGuard` after successful authentication.
+ */
+interface AuthenticatedRequest extends Request {
+  user?: { id?: string };
+}
+
+/**
+ * Shape of the structured object returned by `HttpException.getResponse()` when the
+ * response is not a plain string. Covers both NestJS built-in formats and the custom
+ * error envelope used by guards/services in this project.
+ */
+interface ExceptionResponseBody {
+  /** Either a plain NestJS error label (string) or a structured error object. */
+  error?: string | { code?: string; details?: unknown; message?: string };
+  /** Validation messages (array) or a single human-readable message (string). */
+  message?: string | string[];
+  /** HTTP status code echo — present in NestJS default responses. */
+  statusCode?: number;
+}
+
+/**
  * Global exception filter that catches all HTTP exceptions and formats them consistently.
  * Provides structured error responses with request IDs for tracking and debugging.
  *
@@ -40,7 +62,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest<AuthenticatedRequest>();
 
     // Generate unique request ID for tracking
     const requestId = uuidv7();
@@ -104,7 +126,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     isHttpException: boolean,
   ): {
     code: string;
-    details?: any;
+    details?: unknown;
     message: string;
   } {
     if (isHttpException) {
@@ -113,7 +135,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       // Handle structured error responses
       if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        const responseObj = exceptionResponse as any;
+        const responseObj = exceptionResponse as ExceptionResponseBody;
 
         // Handle validation errors from class-validator (check this first)
         if (Array.isArray(responseObj.message)) {
@@ -131,20 +153,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
         if (
           responseObj.error &&
           typeof responseObj.error === 'object' &&
-          (responseObj.error.code || responseObj.error.message)
+          (responseObj.error.code ?? responseObj.error.message)
         ) {
           return {
-            code: responseObj.error.code || this.getErrorCode(httpException),
+            code: responseObj.error.code ?? this.getErrorCode(httpException),
             details: responseObj.error.details,
-            message: responseObj.error.message || httpException.message,
+            message: responseObj.error.message ?? httpException.message,
           };
         }
 
         // Handle standard NestJS error format
         return {
           code: this.getErrorCode(httpException),
-          details: responseObj.error,
-          message: responseObj.message || httpException.message,
+          // When `error` is a plain string label (e.g. "Bad Request") pass it
+          // through as details; when it is an object we already handled it above.
+          details:
+            typeof responseObj.error === 'string'
+              ? responseObj.error
+              : undefined,
+          message:
+            typeof responseObj.message === 'string'
+              ? (responseObj.message ?? httpException.message)
+              : httpException.message,
         };
       }
 
@@ -171,7 +201,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message:
         process.env.NODE_ENV === 'production'
           ? 'An unexpected error occurred'
-          : error.message || 'Internal server error',
+          : (error.message ?? 'Internal server error'),
     };
   }
 
@@ -185,12 +215,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
    */
   private logError(
     exception: unknown,
-    request: Request,
+    request: AuthenticatedRequest,
     requestId: string,
     status: number,
   ): void {
     const error = exception as Error;
-    const message = error.message || 'Unknown error';
+    const message = error.message ?? 'Unknown error';
 
     // Build context object for logging
     const context = {
@@ -200,7 +230,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status,
       url: request.url,
       userAgent: request.get('user-agent'),
-      userId: (request as any).user?.id, // If user is authenticated
+      userId: request.user?.id, // Populated by JwtAuthGuard when authenticated
     };
 
     // Log based on severity
