@@ -233,7 +233,7 @@ describe('ThoughtMapController', () => {
   });
 
   it('treats other cascade values as false', async () => {
-    const result = await controller.deleteNode(
+    const _result = await controller.deleteNode(
       'map-1',
       'node-1',
       'false',

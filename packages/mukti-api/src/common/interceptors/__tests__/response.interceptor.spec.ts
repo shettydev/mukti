@@ -30,7 +30,9 @@ describe('ResponseInterceptor', () => {
       getArgByIndex: jest.fn(),
       getArgs: jest.fn(),
       getClass: jest.fn().mockReturnValue(class TestController {}),
-      getHandler: jest.fn().mockReturnValue(() => {}),
+      getHandler: jest.fn().mockReturnValue(() => {
+        // noop — stub handler reference used only for reflector metadata lookup
+      }),
       getType: jest.fn(),
       switchToHttp: jest.fn().mockReturnValue({
         getRequest: jest.fn(),
