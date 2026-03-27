@@ -3,11 +3,11 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { CoreModule } from './core/core.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CanvasModule } from './modules/canvas/canvas.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
-import { DatabaseModule } from './modules/database/database.module';
 import { DialogueModule } from './modules/dialogue/dialogue.module';
 import { HealthModule } from './modules/health/health.module';
 import { KnowledgeTracingModule } from './modules/knowledge-tracing/knowledge-tracing.module';
@@ -20,7 +20,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
       envFilePath: '.env',
       isGlobal: true,
     }),
-    DatabaseModule,
+    CoreModule,
     AuthModule,
     AiModule,
     CanvasModule,
