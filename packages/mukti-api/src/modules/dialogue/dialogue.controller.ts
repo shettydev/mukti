@@ -24,6 +24,8 @@ import { Observable } from 'rxjs';
 
 import type { NodeType } from '../../schemas/node-dialogue.schema';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
   Subscription,
   type SubscriptionDocument,
@@ -32,8 +34,6 @@ import { User, type UserDocument } from '../../schemas/user.schema';
 import { AiPolicyService } from '../ai/services/ai-policy.service';
 import { AiSecretsService } from '../ai/services/ai-secrets.service';
 import { FreeQuotaService } from '../ai/services/free-quota.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   DialogueMessageResponseDto,
   NodeDialogueResponseDto,

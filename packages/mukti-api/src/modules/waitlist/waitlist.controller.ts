@@ -13,7 +13,7 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { JoinWaitlistDto } from './dto';
 import { WaitlistService } from './waitlist.service';
 

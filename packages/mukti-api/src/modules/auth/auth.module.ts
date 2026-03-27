@@ -4,6 +4,9 @@ import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 
+import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { RateLimit, RateLimitSchema } from '../../schemas/rate-limit.schema';
 import {
   RefreshToken,
@@ -13,11 +16,8 @@ import { Session, SessionSchema } from '../../schemas/session.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { WaitlistModule } from '../waitlist/waitlist.module';
 import { AuthController } from './auth.controller';
-import { EmailVerifiedGuard } from './guards/email-verified.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { PasswordResetRateLimitGuard } from './guards/password-reset-rate-limit.guard';
-import { RolesGuard } from './guards/roles.guard';
 import { AuthService } from './services/auth.service';
 import { EmailService } from './services/email.service';
 import { JwtTokenService } from './services/jwt.service';

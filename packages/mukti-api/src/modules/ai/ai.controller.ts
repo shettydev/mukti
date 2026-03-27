@@ -14,8 +14,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User, UserDocument } from '../../schemas/user.schema';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
 import { SetGeminiKeyDto } from './dto/gemini-key.dto';
 import { SetOpenRouterKeyDto } from './dto/openrouter-key.dto';

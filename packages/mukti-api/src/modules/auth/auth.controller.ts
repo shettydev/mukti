@@ -34,9 +34,9 @@ import type {
   VerifyEmailDto,
 } from './dto';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { WaitlistService } from '../waitlist/waitlist.service';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { Public } from './decorators/public.decorator';
 import {
   ApiChangePassword,
   ApiForgotPassword,

@@ -23,12 +23,12 @@ import { Observable } from 'rxjs';
 
 import type { Subscription } from '../../schemas/subscription.schema';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { User, type UserDocument } from '../../schemas/user.schema';
 import { AiPolicyService } from '../ai/services/ai-policy.service';
 import { AiSecretsService } from '../ai/services/ai-secrets.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Public } from '../auth/decorators/public.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ConvertCanvasDto } from './dto/convert-canvas.dto';
 import { CreateShareLinkDto } from './dto/create-share-link.dto';
 import { CreateThoughtMapDto } from './dto/create-thought-map.dto';

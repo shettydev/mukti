@@ -1,3 +1,2 @@
-export * from './email-verified.guard';
-export * from './jwt-auth.guard';
-export * from './roles.guard';
+export * from './login-rate-limit.guard';
+export * from './password-reset-rate-limit.guard';

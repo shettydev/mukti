@@ -14,8 +14,8 @@ import { ApiTags } from '@nestjs/swagger';
 
 import type { User } from '../../schemas/user.schema';
 
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CanvasService } from './canvas.service';
 import {
   AddAssumptionDto,
