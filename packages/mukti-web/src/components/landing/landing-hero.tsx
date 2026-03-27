@@ -65,11 +65,11 @@ export default function LandingHero() {
           transition={{ delay: 0.8, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
           <Link
-            className="group flex items-center gap-2 text-japandi-terracotta text-base xs:text-lg tracking-widest hover:text-japandi-stone transition-colors duration-500"
-            href="#philosophy"
+            className="group flex items-center gap-2 text-japandi-stone/60 text-sm tracking-widest hover:text-japandi-terracotta transition-colors duration-500"
+            href="#demo"
           >
-            <span>Learn the method</span>
-            <ArrowRight className="w-4 h-4 transition-transform duration-500 group-hover:translate-x-1" />
+            <span>See it in action</span>
+            <ArrowRight className="w-3 h-3 transition-transform duration-500 group-hover:translate-x-1" />
           </Link>
         </motion.div>
       </div>
@@ -81,7 +81,7 @@ export default function LandingHero() {
         transition={{ delay: 1.2, duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
       >
         <motion.div style={{ opacity }}>
-          <Link aria-label="Scroll to content" href="#philosophy">
+          <Link aria-label="Scroll to content" href="#demo">
             <motion.div
               animate={{ y: [0, 8, 0] }}
               transition={{ duration: 1.5, ease: 'easeInOut', repeat: Infinity }}

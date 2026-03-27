@@ -1,7 +1,8 @@
 'use client';
 
-import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Loader2, Star } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { apiClient, ApiClientError } from '@/lib/api/client';
@@ -60,12 +61,11 @@ export default function LandingCTA() {
           <span className="text-japandi-sage text-japandi-label tracking-[0.2em] block mb-6">
             Early Access
           </span>
-          <h2 className="text-japandi-stone text-4xl md:text-5xl lg:text-6xl font-light tracking-wide leading-tight mb-6">
+          <h2 className="text-japandi-stone text-4xl md:text-5xl lg:text-6xl font-light tracking-wide leading-tight mb-4">
             Be the first to use Mukti
           </h2>
-          <p className="text-japandi-stone/80 text-lg md:text-xl font-light leading-relaxed max-w-2xl mx-auto mb-12">
-            Join the waitlist for early access. No spoon-feeding included. Just pure cognitive
-            liberation.
+          <p className="text-japandi-terracotta/80 text-sm md:text-base font-medium tracking-wide mb-4">
+            First 100 users get founding member status
           </p>
         </motion.div>
 
@@ -187,6 +187,24 @@ export default function LandingCTA() {
             We respect your attention. No spam, ever.
           </motion.p>
         )}
+
+        {/* Secondary CTA — GitHub */}
+        <motion.div
+          className="mt-10 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          transition={{ delay: 0.6, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
+          viewport={{ once: true }}
+          whileInView={{ opacity: 1 }}
+        >
+          <Link
+            className="group flex items-center gap-2 rounded-sm border border-japandi-stone/10 bg-japandi-cream px-5 py-2.5 text-sm tracking-widest text-japandi-stone/60 transition-colors duration-300 hover:border-japandi-stone/30 hover:text-japandi-stone"
+            href="https://github.com/shettydev/mukti"
+            target="_blank"
+          >
+            <Star className="h-4 w-4 transition-colors duration-300 group-hover:text-yellow-400" />
+            <span>Star on GitHub</span>
+          </Link>
+        </motion.div>
       </div>
     </section>
   );
