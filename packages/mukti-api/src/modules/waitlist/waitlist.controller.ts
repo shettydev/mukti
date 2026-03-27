@@ -47,10 +47,7 @@ export class WaitlistController {
 
     const result = await this.waitlistService.join(dto, ip, userAgent);
 
-    return {
-      data: result,
-      success: true,
-    };
+    return result;
   }
 
   @ApiOperation({ summary: 'Check if email is in waitlist' })
@@ -69,9 +66,6 @@ export class WaitlistController {
 
     const result = await this.waitlistService.checkEmail(email);
 
-    return {
-      data: result,
-      success: true,
-    };
+    return result;
   }
 }

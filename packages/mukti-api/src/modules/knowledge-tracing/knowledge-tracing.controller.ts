@@ -16,6 +16,7 @@ import { Model } from 'mongoose';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Concept, ConceptDocument } from '../../schemas/concept.schema';
 import { User } from '../../schemas/user.schema';
@@ -39,6 +40,7 @@ import { KnowledgeStateTrackerService } from './services/knowledge-state-tracker
  * - DELETE /knowledge-tracing/state/:userId/:conceptId/reset - Reset knowledge state
  */
 @Controller('knowledge-tracing')
+@SkipEnvelope()
 export class KnowledgeTracingController {
   private readonly logger = new Logger(KnowledgeTracingController.name);
 

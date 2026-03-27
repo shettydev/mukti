@@ -36,6 +36,7 @@ import type {
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { WaitlistService } from '../waitlist/waitlist.service';
 import {
   ApiChangePassword,
@@ -72,6 +73,7 @@ import { SessionService } from './services/session.service';
  */
 @ApiTags('Authentication')
 @Controller('auth')
+@SkipEnvelope()
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
   private readonly cookieDomain: string;

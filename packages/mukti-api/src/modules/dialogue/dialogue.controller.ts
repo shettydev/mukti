@@ -25,6 +25,7 @@ import { Observable } from 'rxjs';
 import type { NodeType } from '../../schemas/node-dialogue.schema';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
   Subscription,
@@ -111,38 +112,24 @@ export class DialogueController {
     if (!result) {
       // No dialogue exists yet - return empty result
       return {
-        data: {
-          dialogue: null,
-          messages: [],
-          pagination: {
-            hasMore: false,
-            limit: limit ?? 20,
-            page: 1,
-            total: 0,
-            totalPages: 0,
-          },
+        dialogue: null,
+        messages: [],
+        pagination: {
+          hasMore: false,
+          limit: limit ?? 20,
+          page: 1,
+          total: 0,
+          totalPages: 0,
         },
-        meta: {
-          requestId: this.generateRequestId(),
-          timestamp: new Date().toISOString(),
-        },
-        success: true,
       };
     }
 
     return {
-      data: {
-        dialogue: NodeDialogueResponseDto.fromDocument(result.dialogue),
-        messages: result.messages.map((msg) =>
-          DialogueMessageResponseDto.fromDocument(msg),
-        ),
-        pagination: result.pagination,
-      },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
+      dialogue: NodeDialogueResponseDto.fromDocument(result.dialogue),
+      messages: result.messages.map((msg) =>
+        DialogueMessageResponseDto.fromDocument(msg),
+      ),
+      pagination: result.pagination,
     };
   }
 
@@ -247,15 +234,8 @@ export class DialogueController {
     );
 
     return {
-      data: {
-        jobId: result.jobId,
-        position: result.position,
-      },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
+      jobId: result.jobId,
+      position: result.position,
     };
   }
 
@@ -304,17 +284,10 @@ export class DialogueController {
     if (existingMessages.pagination.total > 0) {
       // Return existing dialogue info
       return {
-        data: {
-          dialogue: NodeDialogueResponseDto.fromDocument(dialogue),
-          initialQuestion: DialogueMessageResponseDto.fromDocument(
-            existingMessages.messages[0],
-          ),
-        },
-        meta: {
-          requestId: this.generateRequestId(),
-          timestamp: new Date().toISOString(),
-        },
-        success: true,
+        dialogue: NodeDialogueResponseDto.fromDocument(dialogue),
+        initialQuestion: DialogueMessageResponseDto.fromDocument(
+          existingMessages.messages[0],
+        ),
       };
     }
 
@@ -337,16 +310,8 @@ export class DialogueController {
     );
 
     return {
-      data: {
-        dialogue: NodeDialogueResponseDto.fromDocument(updatedDialogue!),
-        initialQuestion:
-          DialogueMessageResponseDto.fromDocument(initialQuestion),
-      },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
+      dialogue: NodeDialogueResponseDto.fromDocument(updatedDialogue!),
+      initialQuestion: DialogueMessageResponseDto.fromDocument(initialQuestion),
     };
   }
 
@@ -360,6 +325,7 @@ export class DialogueController {
    * @returns Observable stream of SSE MessageEvents
    */
   @ApiStreamNodeDialogue()
+  @SkipEnvelope()
   @Sse(':sessionId/nodes/:nodeId/stream')
   async streamDialogue(
     @Param('sessionId') sessionId: string,
@@ -410,13 +376,6 @@ export class DialogueController {
         );
       };
     });
-  }
-
-  /**
-   * Generates a unique request ID for tracking.
-   */
-  private generateRequestId(): string {
-    return `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
   /**
