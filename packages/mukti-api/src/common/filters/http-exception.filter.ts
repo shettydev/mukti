@@ -15,7 +15,7 @@ import { v7 as uuidv7 } from 'uuid';
  * `JwtAuthGuard` after successful authentication.
  */
 interface AuthenticatedRequest extends Request {
-  user?: { id?: string };
+  user?: { _id?: unknown };
 }
 
 /**
@@ -230,7 +230,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status,
       url: request.url,
       userAgent: request.get('user-agent'),
-      userId: request.user?.id, // Populated by JwtAuthGuard when authenticated
+      userId: request.user?._id ? String(request.user._id) : undefined,
     };
 
     // Log based on severity
