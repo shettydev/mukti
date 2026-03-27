@@ -117,9 +117,9 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
    * token before establishing the connection.
    */
   describe('Authentication Validation', () => {
-    it('should reject SSE connections without valid authentication', async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it('should reject SSE connections without valid authentication', () => {
+      fc.assert(
+        fc.property(
           fc.record({
             conversationId: fc
               .string({ maxLength: 24, minLength: 24 })
@@ -141,7 +141,7 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
 
             // Guard's handleRequest should throw UnauthorizedException when no user
             try {
-              guard.handleRequest(null, null, null, mockContext);
+              guard.handleRequest(null, null, undefined, mockContext);
               // Should not reach here
               expect(true).toBe(false);
             } catch (error) {
@@ -205,9 +205,9 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
       );
     });
 
-    it('should reject expired authentication tokens', async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it('should reject expired authentication tokens', () => {
+      fc.assert(
+        fc.property(
           fc.record({
             conversationId: fc
               .string({ maxLength: 24, minLength: 24 })
@@ -250,9 +250,9 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
       );
     });
 
-    it('should reject invalid authentication tokens', async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it('should reject invalid authentication tokens', () => {
+      fc.assert(
+        fc.property(
           fc.record({
             conversationId: fc
               .string({ maxLength: 24, minLength: 24 })
@@ -355,7 +355,7 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
               } as unknown as ExecutionContext;
 
               try {
-                guard.handleRequest(null, null, null, mockContext);
+                guard.handleRequest(null, null, undefined, mockContext);
                 expect(true).toBe(false);
               } catch (error) {
                 expect(error).toBeInstanceOf(UnauthorizedException);
@@ -373,9 +373,9 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
       );
     });
 
-    it('should handle various authentication error scenarios consistently', async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it('should handle various authentication error scenarios consistently', () => {
+      fc.assert(
+        fc.property(
           fc.record({
             conversationId: fc
               .string({ maxLength: 24, minLength: 24 })
