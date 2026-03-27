@@ -230,7 +230,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status,
       url: request.url,
       userAgent: request.get('user-agent'),
-      userId: request.user?._id ? String(request.user._id) : undefined,
+      userId:
+        request.user?._id !== null && request.user?._id !== undefined
+          ? (request.user._id as { toString(): string }).toString()
+          : undefined,
     };
 
     // Log based on severity
