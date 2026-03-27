@@ -16,7 +16,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Archive, ArrowLeft, MoreVertical, Star, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 import { ModelSelector } from '@/components/ai/model-selector';
 import { ExtractionReviewPanel } from '@/components/thought-map/ExtractionReviewPanel';
@@ -51,8 +53,11 @@ interface ConversationDetailProps {
   conversationId: string;
 }
 
+const FREE_MESSAGE_LIMIT = 10;
+
 export function ConversationDetail({ conversationId }: ConversationDetailProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { data: conversation, error, isLoading } = useConversation(conversationId);
   const { mutate: updateConversation } = useUpdateConversation(conversationId);
   const { isPending: isDeleting, mutate: deleteConversation } = useDeleteConversation();
@@ -60,6 +65,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   const {
     activeModel,
+    hasOpenRouterKey,
     hydrate: hydrateAi,
     isHydrated: aiHydrated,
     models,
@@ -171,6 +177,24 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   // Handle sending messages
   const handleSendMessage = useCallback(
     async (content: string) => {
+      // Check free message limit for users without BYOK key
+      if (aiHydrated && !hasOpenRouterKey && conversation) {
+        const userMessageCount = conversation.recentMessages.filter(
+          (m) => m.role === 'user'
+        ).length;
+        if (userMessageCount >= FREE_MESSAGE_LIMIT) {
+          toast.error('Free message limit reached', {
+            action: {
+              label: 'Add API Key',
+              onClick: () => router.push('/settings'),
+            },
+            description: 'Connect your OpenRouter API key to continue the conversation.',
+            duration: 8000,
+          });
+          return;
+        }
+      }
+
       try {
         await sendMessage({ content, model: activeModel ?? undefined });
       } catch (err) {
@@ -182,7 +206,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         throw err; // Re-throw to let MessageInput handle the error state
       }
     },
-    [activeModel, sendMessage]
+    [activeModel, sendMessage, aiHydrated, hasOpenRouterKey, conversation, router]
   );
 
   // Handle rate limit banner dismiss

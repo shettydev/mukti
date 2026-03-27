@@ -15,6 +15,10 @@ import {
   NodeDialogue,
   NodeDialogueSchema,
 } from '../../schemas/node-dialogue.schema';
+import {
+  Subscription,
+  SubscriptionSchema,
+} from '../../schemas/subscription.schema';
 import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { AiModule } from '../ai/ai.module';
@@ -54,6 +58,7 @@ import { DialogueService } from './services/dialogue.service';
       { name: CanvasSession.name, schema: CanvasSessionSchema },
       { name: DialogueMessage.name, schema: DialogueMessageSchema },
       { name: NodeDialogue.name, schema: NodeDialogueSchema },
+      { name: Subscription.name, schema: SubscriptionSchema },
       { name: UsageEvent.name, schema: UsageEventSchema },
       { name: User.name, schema: UserSchema },
     ]),

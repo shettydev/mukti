@@ -15,6 +15,8 @@ export interface SubscriptionLimits {
 
 export interface SubscriptionUsage {
   conversationsToday: number;
+  freeApiLastResetAt: Date;
+  freeApiMessagesUsed: number;
   lastHourResetAt: Date;
   lastResetAt: Date;
   questionsThisHour: number;
@@ -81,6 +83,8 @@ export class Subscription {
   @Prop({
     default: {
       conversationsToday: 0,
+      freeApiLastResetAt: new Date(0),
+      freeApiMessagesUsed: 0,
       lastHourResetAt: new Date(),
       lastResetAt: new Date(),
       questionsThisHour: 0,
@@ -133,9 +137,9 @@ SubscriptionSchema.methods.needsDailyReset = function (): boolean {
   const now = new Date();
   const lastReset = this.usage.lastResetAt;
   return (
-    now.getDate() !== lastReset.getDate() ||
-    now.getMonth() !== lastReset.getMonth() ||
-    now.getFullYear() !== lastReset.getFullYear()
+    now.getUTCDate() !== lastReset.getUTCDate() ||
+    now.getUTCMonth() !== lastReset.getUTCMonth() ||
+    now.getUTCFullYear() !== lastReset.getUTCFullYear()
   );
 };
 

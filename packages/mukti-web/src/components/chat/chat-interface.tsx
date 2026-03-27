@@ -34,9 +34,12 @@ import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
 import { SSEError, useConversationStream } from '@/lib/hooks/use-conversation-stream';
 import { useConversation, useSendMessage } from '@/lib/hooks/use-conversations';
 import { conversationKeys } from '@/lib/query-keys';
+import { useAiStore } from '@/lib/stores/ai-store';
 
 import { ChatHeader } from './chat-header';
 import { EmptyState } from './empty-state';
+
+const FREE_MESSAGE_LIMIT = 10;
 
 interface ChatInterfaceProps {
   conversationId: null | string;
@@ -85,6 +88,7 @@ export function ChatInterface({
   const [rateLimitInfo, setRateLimitInfo] = useState<null | { retryAfter: number }>(null);
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { hasOpenRouterKey, isHydrated: aiStoreHydrated } = useAiStore();
 
   // Fetch conversation data if we have an ID
   const {
@@ -333,6 +337,24 @@ export function ChatInterface({
         return;
       }
 
+      // Check free message limit for users without BYOK key
+      if (aiStoreHydrated && !hasOpenRouterKey && conversation) {
+        const userMessageCount = conversation.recentMessages.filter(
+          (m) => m.role === 'user'
+        ).length;
+        if (userMessageCount >= FREE_MESSAGE_LIMIT) {
+          toast.error('Free message limit reached', {
+            action: {
+              label: 'Add API Key',
+              onClick: () => router.push('/settings'),
+            },
+            description: 'Connect your OpenRouter API key to continue the conversation.',
+            duration: 8000,
+          });
+          return;
+        }
+      }
+
       try {
         // Clear any previous errors
         resetSendMutation();
@@ -355,7 +377,16 @@ export function ChatInterface({
         throw error; // Re-throw so MessageInput can handle it
       }
     },
-    [conversationId, sendMessage, resetSendMutation, scheduleSseFallbackRefetch]
+    [
+      conversationId,
+      sendMessage,
+      resetSendMutation,
+      scheduleSseFallbackRefetch,
+      aiStoreHydrated,
+      hasOpenRouterKey,
+      conversation,
+      router,
+    ]
   );
 
   /**
