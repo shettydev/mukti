@@ -5,6 +5,9 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
+import { Request } from 'express';
+
+import type { User } from '../../schemas/user.schema';
 
 /**
  * Guard that ensures user has verified their email address.
@@ -56,7 +59,9 @@ export class EmailVerifiedGuard implements CanActivate {
    * 4. Provides helpful error message directing user to verify email
    */
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: User }>();
     const user = request.user;
 
     if (!user) {
@@ -66,7 +71,7 @@ export class EmailVerifiedGuard implements CanActivate {
 
     if (!user.emailVerified) {
       this.logger.warn(
-        `User ${user._id} attempted to access email-verified route without verification`,
+        `User ${String(user._id)} attempted to access email-verified route without verification`,
       );
       throw new ForbiddenException(
         'Email verification required. Please verify your email address to access this feature.',
@@ -74,7 +79,7 @@ export class EmailVerifiedGuard implements CanActivate {
     }
 
     this.logger.debug(
-      `User ${user._id} email verification confirmed, allowing access`,
+      `User ${String(user._id)} email verification confirmed, allowing access`,
     );
 
     return true;

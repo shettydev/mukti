@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 
-import { RolesGuard } from '../../roles.guard';
+import { RolesGuard } from '../../../../../common/guards/roles.guard';
 
 /**
  * Property-Based Tests for Authorization

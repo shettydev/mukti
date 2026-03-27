@@ -14,8 +14,8 @@ import { ApiTags } from '@nestjs/swagger';
 
 import type { User } from '../../schemas/user.schema';
 
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CanvasService } from './canvas.service';
 import {
   AddAssumptionDto,
@@ -71,14 +71,7 @@ export class CanvasController {
     @CurrentUser() user: User,
   ) {
     const result = await this.canvasService.addAssumption(id, user._id, dto);
-    return {
-      data: CanvasSessionResponseDto.fromDocument(result.session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return CanvasSessionResponseDto.fromDocument(result.session);
   }
 
   /**
@@ -93,14 +86,7 @@ export class CanvasController {
     @CurrentUser() user: User,
   ) {
     const result = await this.canvasService.addContext(id, user._id, dto);
-    return {
-      data: CanvasSessionResponseDto.fromDocument(result.session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return CanvasSessionResponseDto.fromDocument(result.session);
   }
 
   /**
@@ -159,14 +145,7 @@ export class CanvasController {
       user._id,
       dto,
     );
-    return {
-      data: CanvasSessionResponseDto.fromDocument(result.session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return CanvasSessionResponseDto.fromDocument(result.session);
   }
 
   /**
@@ -188,14 +167,7 @@ export class CanvasController {
       createCanvasSessionDto,
     );
 
-    return {
-      data: CanvasSessionResponseDto.fromDocument(session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return CanvasSessionResponseDto.fromDocument(session);
   }
 
   /**
@@ -210,13 +182,6 @@ export class CanvasController {
   @HttpCode(HttpStatus.OK)
   async deleteSession(@Param('id') id: string, @CurrentUser() user: User) {
     await this.canvasService.deleteSession(id, user._id);
-    return {
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
   }
 
   // ============================================
@@ -239,14 +204,7 @@ export class CanvasController {
       index,
       user._id,
     );
-    return {
-      data: CanvasSessionResponseDto.fromDocument(session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return CanvasSessionResponseDto.fromDocument(session);
   }
 
   /**
@@ -261,14 +219,7 @@ export class CanvasController {
     @CurrentUser() user: User,
   ) {
     const session = await this.canvasService.deleteContext(id, index, user._id);
-    return {
-      data: CanvasSessionResponseDto.fromDocument(session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return CanvasSessionResponseDto.fromDocument(session);
   }
 
   /**
@@ -283,13 +234,6 @@ export class CanvasController {
     @CurrentUser() user: User,
   ) {
     await this.canvasService.deleteInsightNode(id, nodeId, user._id);
-    return {
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
   }
 
   /**
@@ -308,14 +252,7 @@ export class CanvasController {
       relationshipId,
       user._id,
     );
-    return {
-      data: CanvasSessionResponseDto.fromDocument(session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return CanvasSessionResponseDto.fromDocument(session);
   }
 
   // ============================================
@@ -333,16 +270,9 @@ export class CanvasController {
   async findAll(@CurrentUser() user: User) {
     const sessions = await this.canvasService.findAllByUser(user._id);
 
-    return {
-      data: sessions.map((session) =>
-        CanvasSessionResponseDto.fromDocument(session),
-      ),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return sessions.map((session) =>
+      CanvasSessionResponseDto.fromDocument(session),
+    );
   }
 
   /**
@@ -357,14 +287,7 @@ export class CanvasController {
   async findOne(@Param('id') id: string, @CurrentUser() user: User) {
     const session = await this.canvasService.findSessionById(id, user._id);
 
-    return {
-      data: CanvasSessionResponseDto.fromDocument(session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return CanvasSessionResponseDto.fromDocument(session);
   }
 
   /**
@@ -406,20 +329,6 @@ export class CanvasController {
       updateCanvasSessionDto,
     );
 
-    return {
-      data: CanvasSessionResponseDto.fromDocument(session),
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
-  }
-
-  /**
-   * Generates a unique request ID for tracking.
-   */
-  private generateRequestId(): string {
-    return `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    return CanvasSessionResponseDto.fromDocument(session);
   }
 }

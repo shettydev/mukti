@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   MessageEvent,
   NotFoundException,
   Param,
@@ -23,12 +24,13 @@ import { Observable } from 'rxjs';
 
 import type { Subscription } from '../../schemas/subscription.schema';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { User, type UserDocument } from '../../schemas/user.schema';
 import { AiPolicyService } from '../ai/services/ai-policy.service';
 import { AiSecretsService } from '../ai/services/ai-secrets.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Public } from '../auth/decorators/public.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ConvertCanvasDto } from './dto/convert-canvas.dto';
 import { CreateShareLinkDto } from './dto/create-share-link.dto';
 import { CreateThoughtMapDto } from './dto/create-thought-map.dto';
@@ -93,14 +95,7 @@ export class ThoughtMapController {
   @Post()
   async createMap(@Body() dto: CreateThoughtMapDto, @CurrentUser() user: User) {
     const result = await this.thoughtMapService.createMap(user._id, dto);
-    return {
-      data: result,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return result;
   }
 
   /**
@@ -110,14 +105,7 @@ export class ThoughtMapController {
   @Get()
   async listMaps(@CurrentUser() user: User) {
     const maps = await this.thoughtMapService.listMaps(user._id);
-    return {
-      data: maps,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return maps;
   }
 
   /**
@@ -127,14 +115,7 @@ export class ThoughtMapController {
   @Get(':id')
   async getMap(@Param('id') id: string, @CurrentUser() user: User) {
     const result = await this.thoughtMapService.getMap(id, user._id);
-    return {
-      data: result,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return result;
   }
 
   /**
@@ -149,14 +130,7 @@ export class ThoughtMapController {
     @CurrentUser() user: User,
   ) {
     const node = await this.thoughtMapService.addNode(id, user._id, dto);
-    return {
-      data: node,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return node;
   }
 
   /**
@@ -177,14 +151,7 @@ export class ThoughtMapController {
       user._id,
       dto,
     );
-    return {
-      data: node,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return node;
   }
 
   /**
@@ -207,13 +174,6 @@ export class ThoughtMapController {
       user._id,
       shouldCascade,
     );
-    return {
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
   }
 
   /**
@@ -224,13 +184,6 @@ export class ThoughtMapController {
   @HttpCode(HttpStatus.OK)
   async deleteMap(@Param('id') id: string, @CurrentUser() user: User) {
     await this.thoughtMapService.deleteMap(id, user._id);
-    return {
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
   }
 
   /**
@@ -260,14 +213,7 @@ export class ThoughtMapController {
       usedByok,
     );
 
-    return {
-      data: { jobId: result.jobId, position: result.position },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return { jobId: result.jobId, position: result.position };
   }
 
   @Get(':id/suggest/jobs/:jobId')
@@ -295,14 +241,7 @@ export class ThoughtMapController {
       );
     }
 
-    return {
-      data: status,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return status;
   }
 
   /**
@@ -310,6 +249,7 @@ export class ThoughtMapController {
    * Polls the BullMQ job by jobId so delivery works across API and worker processes.
    */
   @ApiStreamBranchSuggestions()
+  @SkipEnvelope()
   @Sse(':id/suggest/stream')
   async streamSuggestions(
     @Param('id') id: string,
@@ -515,14 +455,7 @@ export class ThoughtMapController {
       subscriptionTier,
     );
 
-    return {
-      data: { jobId: result.jobId, position: result.position },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return { jobId: result.jobId, position: result.position };
   }
 
   /**
@@ -530,6 +463,7 @@ export class ThoughtMapController {
    * Events: processing → preview (full draft map + nodes) → complete | error.
    */
   @ApiStreamExtraction()
+  @SkipEnvelope()
   @Sse('extract/:jobId/stream')
   async streamExtraction(
     @Param('jobId') jobId: string,
@@ -658,14 +592,7 @@ export class ThoughtMapController {
   @Patch(':id/confirm')
   async confirmMap(@Param('id') id: string, @CurrentUser() user: User) {
     const map = await this.thoughtMapService.confirmMap(id, user._id);
-    return {
-      data: map,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return map;
   }
 
   // ---------------------------------------------------------------------------
@@ -689,14 +616,7 @@ export class ThoughtMapController {
       user._id,
       dto.title,
     );
-    return {
-      data: result,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return result;
   }
 
   /**
@@ -711,14 +631,7 @@ export class ThoughtMapController {
     @CurrentUser() user: User,
   ) {
     const map = await this.thoughtMapService.updateSettings(id, user._id, dto);
-    return {
-      data: map,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return map;
   }
 
   /**
@@ -740,14 +653,7 @@ export class ThoughtMapController {
       user._id,
       dto,
     );
-    return {
-      data: link,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return link;
   }
 
   /**
@@ -760,14 +666,7 @@ export class ThoughtMapController {
     await this.thoughtMapService.findMapById(id, user._id);
 
     const link = await this.thoughtMapShareService.getActiveShareLink(id);
-    return {
-      data: link,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return link;
   }
 
   /**
@@ -781,13 +680,6 @@ export class ThoughtMapController {
     await this.thoughtMapService.findMapById(id, user._id);
 
     await this.thoughtMapShareService.revokeShareLink(id);
-    return {
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
   }
 
   /**
@@ -802,21 +694,7 @@ export class ThoughtMapController {
     const mapId = link.thoughtMapId.toString();
 
     const nodes = await this.thoughtMapService.getPublicMap(mapId);
-    return {
-      data: nodes,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
-  }
-
-  /**
-   * Generates a unique request ID for response envelope tracing.
-   */
-  private generateRequestId(): string {
-    return `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    return nodes;
   }
 
   private async resolveAiExecutionContext(
@@ -836,14 +714,16 @@ export class ThoughtMapController {
       .select('+openRouterApiKeyEncrypted preferences')
       .lean();
     if (!userRecord) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const usedByok = !!userRecord.openRouterApiKeyEncrypted;
     const serverApiKey =
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
     if (!usedByok && !serverApiKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
+      throw new InternalServerErrorException(
+        'OPENROUTER_API_KEY not configured',
+      );
     }
 
     const validationApiKey = usedByok

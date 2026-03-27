@@ -23,6 +23,9 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { Observable } from 'rxjs';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
   Subscription,
   type SubscriptionDocument,
@@ -31,8 +34,6 @@ import { User, type UserDocument } from '../../schemas/user.schema';
 import { AiPolicyService } from '../ai/services/ai-policy.service';
 import { AiSecretsService } from '../ai/services/ai-secrets.service';
 import { FreeQuotaService } from '../ai/services/free-quota.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   ApiCreateConversation,
   ApiDeleteConversation,
@@ -101,14 +102,7 @@ export class ConversationController {
       createConversationDto.tags,
     );
 
-    return {
-      data: conversation,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return conversation;
   }
 
   /**
@@ -174,11 +168,7 @@ export class ConversationController {
       limitNumber,
     );
 
-    return {
-      data: result.data,
-      meta: result.meta,
-      success: true,
-    };
+    return result;
   }
 
   /**
@@ -196,14 +186,7 @@ export class ConversationController {
       user._id,
     );
 
-    return {
-      data: conversation,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return conversation;
   }
 
   /**
@@ -237,14 +220,7 @@ export class ConversationController {
       limit: limitNumber,
     });
 
-    return {
-      data: messages,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return messages;
   }
 
   /**
@@ -257,6 +233,7 @@ export class ConversationController {
   @ApiDeleteConversation()
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @SkipEnvelope()
   async remove(@Param('id') id: string, @CurrentUser() user: User) {
     await this.conversationService.deleteConversation(id, user._id);
 
@@ -354,15 +331,8 @@ export class ConversationController {
     );
 
     return {
-      data: {
-        jobId: result.jobId,
-        position: result.position,
-      },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
+      jobId: result.jobId,
+      position: result.position,
     };
   }
 
@@ -398,6 +368,7 @@ export class ConversationController {
    * ```
    */
   @ApiStreamConversation()
+  @SkipEnvelope()
   @Sse(':id/stream')
   async streamConversation(
     @Param('id') id: string,
@@ -469,20 +440,6 @@ export class ConversationController {
       updateConversationDto,
     );
 
-    return {
-      data: conversation,
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
-  }
-
-  /**
-   * Generates a unique request ID for tracking.
-   */
-  private generateRequestId(): string {
-    return `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    return conversation;
   }
 }

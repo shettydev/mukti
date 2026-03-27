@@ -6,7 +6,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 import { RateLimitService } from '../services/rate-limit.service';
 
@@ -27,7 +27,9 @@ export class PasswordResetRateLimitGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const email = request.body?.email;
+    // body is typed as `any` by Express; narrow to a typed record before use
+    const body = request.body as Record<string, unknown> | undefined;
+    const email = typeof body?.email === 'string' ? body.email : undefined;
 
     if (!email) {
       // If no email in body, let the request through
@@ -40,7 +42,7 @@ export class PasswordResetRateLimitGuard implements CanActivate {
         await this.rateLimitService.checkPasswordResetRateLimit(email);
 
       // Add rate limit headers to response
-      const response = context.switchToHttp().getResponse();
+      const response = context.switchToHttp().getResponse<Response>();
       response.setHeader('X-RateLimit-Limit', '3');
       response.setHeader('X-RateLimit-Remaining', remaining.toString());
       response.setHeader('X-RateLimit-Reset', resetAt.toISOString());
@@ -71,9 +73,10 @@ export class PasswordResetRateLimitGuard implements CanActivate {
         throw error;
       }
 
+      const err = error as Error;
       this.logger.error(
-        `Error in PasswordResetRateLimitGuard: ${error.message}`,
-        error.stack,
+        `Error in PasswordResetRateLimitGuard: ${err.message}`,
+        err.stack,
       );
       // On error, allow the request (fail open)
       return true;

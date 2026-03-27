@@ -152,7 +152,7 @@ export class KnowledgeGapDetectorService {
 
     this.logger.debug(
       `Gap Detection: score=${gapScore.toFixed(3)}, level=${scaffoldLevel}, ` +
-        `P(L)=${knowledgeProbability.toFixed(3)}, rootGap=${rootGap || 'none'}`,
+        `P(L)=${knowledgeProbability.toFixed(3)}, rootGap=${rootGap ?? 'none'}`,
     );
 
     return result;
@@ -177,23 +177,21 @@ export class KnowledgeGapDetectorService {
       userId: userObjectId,
     });
 
-    if (!state) {
-      // Create new state with default parameters
-      state = await this.knowledgeStateModel.create({
-        attempts: 0,
-        conceptId,
-        correctAttempts: 0,
-        currentProbability: 0.3,
-        lastAssessed: new Date(),
-        parameters: {
-          pGuess: 0.25,
-          pInit: 0.3,
-          pLearn: 0.15,
-          pSlip: 0.1,
-        },
-        userId: userObjectId,
-      });
-    }
+    // Create new state with default parameters if none exists
+    state ??= await this.knowledgeStateModel.create({
+      attempts: 0,
+      conceptId,
+      correctAttempts: 0,
+      currentProbability: 0.3,
+      lastAssessed: new Date(),
+      parameters: {
+        pGuess: 0.25,
+        pInit: 0.3,
+        pLearn: 0.15,
+        pSlip: 0.1,
+      },
+      userId: userObjectId,
+    });
 
     // Use BKT service to update
     const result = this.bktService.updateKnowledgeState(
@@ -421,7 +419,7 @@ export class KnowledgeGapDetectorService {
   private checkConceptCreationRateLimit(userId: string): boolean {
     const now = Date.now();
     const oneHourAgo = now - 3600000;
-    const timestamps = this.conceptCreationLog.get(userId) || [];
+    const timestamps = this.conceptCreationLog.get(userId) ?? [];
     const recentTimestamps = timestamps.filter((t) => t > oneHourAgo);
     this.conceptCreationLog.set(userId, recentTimestamps);
     return recentTimestamps.length < CONCEPT_CREATION_RATE_LIMIT;
@@ -513,7 +511,7 @@ export class KnowledgeGapDetectorService {
 
     // Phase B: LLM-based concept extraction
     const apiKey =
-      aiApiKey || this.configService.get<string>('OPENROUTER_API_KEY');
+      aiApiKey ?? this.configService.get<string>('OPENROUTER_API_KEY');
     if (!apiKey) {
       this.logger.warn('No API key available for LLM concept extraction');
       return keywordConcepts;
@@ -667,7 +665,7 @@ export class KnowledgeGapDetectorService {
     apiKey: string,
     model?: string,
   ): Promise<ExtractedConcept[]> {
-    const effectiveModel = model || 'openai/gpt-4.1-mini';
+    const effectiveModel = model ?? 'openai/gpt-4.1-mini';
     const client = this.openRouterClientFactory.create(apiKey);
 
     const response = await client.chat.send(
@@ -886,7 +884,7 @@ export class KnowledgeGapDetectorService {
    * Record a concept creation event for rate limiting.
    */
   private recordConceptCreation(userId: string): void {
-    const timestamps = this.conceptCreationLog.get(userId) || [];
+    const timestamps = this.conceptCreationLog.get(userId) ?? [];
     timestamps.push(Date.now());
     this.conceptCreationLog.set(userId, timestamps);
   }

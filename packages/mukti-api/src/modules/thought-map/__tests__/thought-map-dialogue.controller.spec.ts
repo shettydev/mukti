@@ -131,16 +131,6 @@ describe('ThoughtMapDialogueController', () => {
     lean: jest.fn().mockResolvedValue(value),
   });
 
-  const expectEnvelope = (result: any) => {
-    expect(result.success).toBe(true);
-    expect(result.meta).toEqual(
-      expect.objectContaining({
-        requestId: expect.any(String),
-        timestamp: expect.any(String),
-      }),
-    );
-  };
-
   it('returns the existing first message when dialogue history already exists', async () => {
     const mapId = new Types.ObjectId().toString();
     const dialogue = {
@@ -181,8 +171,7 @@ describe('ThoughtMapDialogueController', () => {
     );
 
     expect(mockDialogueService.addMessage).not.toHaveBeenCalled();
-    expect(result.data.initialQuestion.content).toBe('Existing question');
-    expectEnvelope(result);
+    expect(result.initialQuestion.content).toBe('Existing question');
   });
 
   it('creates the initial question when the dialogue is empty', async () => {
@@ -236,9 +225,8 @@ describe('ThoughtMapDialogueController', () => {
       createdMessage.content,
       { model: 'system' },
     );
-    expect(result.data.dialogue.messageCount).toBe(1);
-    expect(result.data.initialQuestion.content).toBe(createdMessage.content);
-    expectEnvelope(result);
+    expect(result.dialogue.messageCount).toBe(1);
+    expect(result.initialQuestion.content).toBe(createdMessage.content);
   });
 
   it('returns empty pagination when no dialogue exists yet', async () => {
@@ -253,7 +241,7 @@ describe('ThoughtMapDialogueController', () => {
       mockUser as any,
     );
 
-    expect(result.data).toEqual({
+    expect(result).toEqual({
       dialogue: null,
       messages: [],
       pagination: {
@@ -264,7 +252,6 @@ describe('ThoughtMapDialogueController', () => {
         totalPages: 0,
       },
     });
-    expectEnvelope(result);
   });
 
   it('returns existing dialogue messages when found', async () => {
@@ -309,9 +296,8 @@ describe('ThoughtMapDialogueController', () => {
       mockUser as any,
     );
 
-    expect(result.data.messages[0].content).toBe('A message');
-    expect(result.data.dialogue?.nodeId).toBe('thought-0');
-    expectEnvelope(result);
+    expect(result.messages[0].content).toBe('A message');
+    expect(result.dialogue?.nodeId).toBe('thought-0');
   });
 
   it('sends a message using the server API key context and persists a model when needed', async () => {
@@ -371,8 +357,7 @@ describe('ThoughtMapDialogueController', () => {
       'resolved-model',
       false,
     );
-    expect(result.data).toEqual({ jobId: 'job-1', position: 2 });
-    expectEnvelope(result);
+    expect(result).toEqual({ jobId: 'job-1', position: 2 });
   });
 
   it('uses BYOK without persisting when an active model already exists and no override is requested', async () => {

@@ -10,6 +10,7 @@ import type { MisconceptionResult } from '../../dialogue-quality/interfaces/qual
 import {
   Conversation,
   ConversationDocument,
+  RecentMessage,
 } from '../../../schemas/conversation.schema';
 import {
   Technique,
@@ -477,7 +478,12 @@ export class QueueService extends WorkerHost {
       const conversationHistory = conversation.recentMessages.map((m) => ({
         content: m.content,
         role: m.role as 'assistant' | 'user',
-        timestamp: (m as any).createdAt ?? (m as any).timestamp ?? new Date(),
+        // RecentMessage.timestamp is the canonical field; createdAt may exist
+        // at runtime if the sub-document is returned by Mongoose with timestamps.
+        timestamp:
+          (m as RecentMessage & { createdAt?: Date }).createdAt ??
+          m.timestamp ??
+          new Date(),
       }));
 
       const previousResponseLengths = conversation.recentMessages

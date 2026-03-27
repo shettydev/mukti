@@ -1,7 +1,7 @@
-import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { QueueModule } from '../../core/queue/queue.module';
 import {
   CanvasSession,
   CanvasSessionSchema,
@@ -70,56 +70,18 @@ import { ThoughtMapController } from './thought-map.controller';
       { name: CanvasSession.name, schema: CanvasSessionSchema },
       { name: ThoughtMapShareLink.name, schema: ThoughtMapShareLinkSchema },
     ]),
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          delay: 1000,
-          type: 'exponential',
-        },
-        removeOnComplete: {
-          age: 24 * 3600,
-          count: 1000,
-        },
-        removeOnFail: {
-          age: 7 * 24 * 3600,
-        },
-      },
-      name: 'thought-map-dialogue-requests',
+    // Register thought-map queues (Redis connection provided by CoreModule)
+    QueueModule.registerQueue('thought-map-dialogue-requests'),
+    QueueModule.registerQueue('thought-map-suggestion-requests', {
+      attempts: 2,
+      backoff: { delay: 500, type: 'exponential' },
+      removeOnComplete: { age: 6 * 3600, count: 500 },
+      removeOnFail: { age: 24 * 3600 },
     }),
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 2,
-        backoff: {
-          delay: 500,
-          type: 'exponential',
-        },
-        removeOnComplete: {
-          age: 6 * 3600,
-          count: 500,
-        },
-        removeOnFail: {
-          age: 24 * 3600,
-        },
-      },
-      name: 'thought-map-suggestion-requests',
-    }),
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 2,
-        backoff: {
-          delay: 1000,
-          type: 'exponential',
-        },
-        removeOnComplete: {
-          age: 6 * 3600,
-          count: 500,
-        },
-        removeOnFail: {
-          age: 48 * 3600,
-        },
-      },
-      name: 'thought-map-extraction-requests',
+    QueueModule.registerQueue('thought-map-extraction-requests', {
+      attempts: 2,
+      removeOnComplete: { age: 6 * 3600, count: 500 },
+      removeOnFail: { age: 48 * 3600 },
     }),
   ],
   providers: [

@@ -1,9 +1,14 @@
+import type { StringValue } from 'ms';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 
+import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { RateLimit, RateLimitSchema } from '../../schemas/rate-limit.schema';
 import {
   RefreshToken,
@@ -13,11 +18,8 @@ import { Session, SessionSchema } from '../../schemas/session.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { WaitlistModule } from '../waitlist/waitlist.module';
 import { AuthController } from './auth.controller';
-import { EmailVerifiedGuard } from './guards/email-verified.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { PasswordResetRateLimitGuard } from './guards/password-reset-rate-limit.guard';
-import { RolesGuard } from './guards/roles.guard';
 import { AuthService } from './services/auth.service';
 import { EmailService } from './services/email.service';
 import { JwtTokenService } from './services/jwt.service';
@@ -77,13 +79,19 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService): JwtModuleOptions => ({
-        secret:
-          configService.get<string>('JWT_SECRET') ?? 'development-secret-key',
-        signOptions: {
-          expiresIn: configService.get<number>('JWT_EXPIRES_IN') ?? '15m',
-        },
-      }),
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('JWT_SECRET environment variable is required');
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ??
+              '15m') as StringValue,
+          },
+        };
+      },
     }),
 
     // Mongoose models

@@ -269,7 +269,7 @@ export class ResponseEvaluatorService {
         response,
         APPLICATION_PATTERNS,
       ),
-      questionCount: (response.match(/\?/g) || []).length,
+      questionCount: (response.match(/\?/g) ?? []).length,
       responseLength: words.length,
     };
   }

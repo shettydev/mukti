@@ -68,7 +68,7 @@ describe('Security Configuration (e2e)', () => {
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       origin: corsOrigins
         ? corsOrigins.split(',').map((origin) => origin.trim())
-        : frontendUrl || 'http://localhost:3001',
+        : (frontendUrl ?? 'http://localhost:3001'),
     });
 
     await app.init();
@@ -105,7 +105,7 @@ describe('Security Configuration (e2e)', () => {
   describe('CORS Configuration', () => {
     it('should allow requests from configured origin', async () => {
       const frontendUrl =
-        configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+        configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
 
       const response = await request(app.getHttpServer())
         .get('/')
@@ -117,7 +117,7 @@ describe('Security Configuration (e2e)', () => {
 
     it('should expose X-CSRF-Token header', async () => {
       const frontendUrl =
-        configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+        configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
 
       const response = await request(app.getHttpServer())
         .options('/')
@@ -130,7 +130,7 @@ describe('Security Configuration (e2e)', () => {
 
     it('should allow required headers', async () => {
       const frontendUrl =
-        configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+        configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
 
       const response = await request(app.getHttpServer())
         .options('/')

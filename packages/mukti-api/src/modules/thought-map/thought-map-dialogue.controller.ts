@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   MessageEvent,
   NotFoundException,
   Param,
@@ -22,6 +23,9 @@ import { Observable } from 'rxjs';
 import type { NodeType } from '../../schemas/node-dialogue.schema';
 import type { Subscription } from '../../schemas/subscription.schema';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
   ThoughtNode,
   ThoughtNodeDocument,
@@ -29,8 +33,6 @@ import {
 import { User, type UserDocument } from '../../schemas/user.schema';
 import { AiPolicyService } from '../ai/services/ai-policy.service';
 import { AiSecretsService } from '../ai/services/ai-secrets.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   DialogueMessageResponseDto,
   NodeDialogueResponseDto,
@@ -113,17 +115,10 @@ export class ThoughtMapDialogueController {
 
     if (existingMessages.pagination.total > 0) {
       return {
-        data: {
-          dialogue: NodeDialogueResponseDto.fromDocument(dialogue),
-          initialQuestion: DialogueMessageResponseDto.fromDocument(
-            existingMessages.messages[0],
-          ),
-        },
-        meta: {
-          requestId: this.generateRequestId(),
-          timestamp: new Date().toISOString(),
-        },
-        success: true,
+        dialogue: NodeDialogueResponseDto.fromDocument(dialogue),
+        initialQuestion: DialogueMessageResponseDto.fromDocument(
+          existingMessages.messages[0],
+        ),
       };
     }
 
@@ -149,16 +144,8 @@ export class ThoughtMapDialogueController {
       );
 
     return {
-      data: {
-        dialogue: NodeDialogueResponseDto.fromDocument(updatedDialogue),
-        initialQuestion:
-          DialogueMessageResponseDto.fromDocument(initialQuestion),
-      },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
+      dialogue: NodeDialogueResponseDto.fromDocument(updatedDialogue),
+      initialQuestion: DialogueMessageResponseDto.fromDocument(initialQuestion),
     };
   }
 
@@ -188,38 +175,24 @@ export class ThoughtMapDialogueController {
 
     if (!result) {
       return {
-        data: {
-          dialogue: null,
-          messages: [],
-          pagination: {
-            hasMore: false,
-            limit: limit ?? 20,
-            page: 1,
-            total: 0,
-            totalPages: 0,
-          },
+        dialogue: null,
+        messages: [],
+        pagination: {
+          hasMore: false,
+          limit: limit ?? 20,
+          page: 1,
+          total: 0,
+          totalPages: 0,
         },
-        meta: {
-          requestId: this.generateRequestId(),
-          timestamp: new Date().toISOString(),
-        },
-        success: true,
       };
     }
 
     return {
-      data: {
-        dialogue: NodeDialogueResponseDto.fromDocument(result.dialogue),
-        messages: result.messages.map((msg) =>
-          DialogueMessageResponseDto.fromDocument(msg),
-        ),
-        pagination: result.pagination,
-      },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
+      dialogue: NodeDialogueResponseDto.fromDocument(result.dialogue),
+      messages: result.messages.map((msg) =>
+        DialogueMessageResponseDto.fromDocument(msg),
+      ),
+      pagination: result.pagination,
     };
   }
 
@@ -250,14 +223,16 @@ export class ThoughtMapDialogueController {
       .select('+openRouterApiKeyEncrypted preferences')
       .lean();
     if (!userRecord) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const usedByok = !!userRecord.openRouterApiKeyEncrypted;
     const serverApiKey =
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
     if (!usedByok && !serverApiKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
+      throw new InternalServerErrorException(
+        'OPENROUTER_API_KEY not configured',
+      );
     }
 
     const validationApiKey = usedByok
@@ -299,20 +274,14 @@ export class ThoughtMapDialogueController {
         usedByok,
       );
 
-    return {
-      data: { jobId: result.jobId, position: result.position },
-      meta: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
-    };
+    return { jobId: result.jobId, position: result.position };
   }
 
   /**
    * Establishes an SSE stream for real-time Thought Map node dialogue events.
    */
   @ApiStreamThoughtMapNodeDialogue()
+  @SkipEnvelope()
   @Sse(':mapId/nodes/:nodeId/stream')
   async streamDialogue(
     @Param('mapId') mapId: string,
@@ -355,10 +324,6 @@ export class ThoughtMapDialogueController {
         );
       };
     });
-  }
-
-  private generateRequestId(): string {
-    return `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
   /**

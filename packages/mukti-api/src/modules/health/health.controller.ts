@@ -6,7 +6,8 @@ import {
   MongooseHealthIndicator,
 } from '@nestjs/terminus';
 
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import {
   ApiHealthCheck,
   ApiLivenessProbe,
@@ -20,6 +21,7 @@ import {
 @ApiTags('Health')
 @Controller('health')
 @Public()
+@SkipEnvelope()
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,

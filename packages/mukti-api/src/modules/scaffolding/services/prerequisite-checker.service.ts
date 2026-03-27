@@ -282,7 +282,7 @@ export class PrerequisiteCheckerService {
     // Log results
     this.logger.debug(
       `Prerequisite check for ${conceptId}: ` +
-        `rootGap=${rootGap || 'none'}, ` +
+        `rootGap=${rootGap ?? 'none'}, ` +
         `missing=${missingPrereqs.length}, ` +
         `maxDepthReached=${maxDepthReached}`,
     );

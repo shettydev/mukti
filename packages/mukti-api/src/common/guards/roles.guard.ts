@@ -6,6 +6,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Request } from 'express';
+
+import type { User } from '../../schemas/user.schema';
 
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
@@ -89,7 +92,9 @@ export class RolesGuard implements CanActivate {
     }
 
     // Get user from request (set by JwtAuthGuard)
-    const request = context.switchToHttp().getRequest();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: User }>();
     const user = request.user;
 
     if (!user) {
@@ -108,7 +113,7 @@ export class RolesGuard implements CanActivate {
 
     if (!hasRequiredRole) {
       this.logger.warn(
-        `User ${user._id} with role '${user.role}' attempted to access route requiring roles: ${requiredRoles.join(', ')}`,
+        `User ${String(user._id)} with role '${user.role}' attempted to access route requiring roles: ${requiredRoles.join(', ')}`,
       );
       throw new ForbiddenException(
         'Insufficient permissions to access this resource',
@@ -116,7 +121,7 @@ export class RolesGuard implements CanActivate {
     }
 
     this.logger.debug(
-      `User ${user._id} with role '${user.role}' authorized for route requiring: ${requiredRoles.join(', ')}`,
+      `User ${String(user._id)} with role '${user.role}' authorized for route requiring: ${requiredRoles.join(', ')}`,
     );
 
     return true;
