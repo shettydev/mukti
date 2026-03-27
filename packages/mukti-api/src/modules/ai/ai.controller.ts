@@ -6,6 +6,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
+  NotFoundException,
   Patch,
   Put,
 } from '@nestjs/common';
@@ -45,18 +47,15 @@ export class AiController {
       .lean();
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     return {
-      data: {
-        activeModel: user.preferences?.activeModel,
-        geminiKeyLast4: user.geminiApiKeyLast4 ?? null,
-        hasGeminiKey: !!user.geminiApiKeyUpdatedAt,
-        hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,
-        openRouterKeyLast4: user.openRouterApiKeyLast4 ?? null,
-      },
-      success: true,
+      activeModel: user.preferences?.activeModel,
+      geminiKeyLast4: user.geminiApiKeyLast4 ?? null,
+      hasGeminiKey: !!user.geminiApiKeyUpdatedAt,
+      hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,
+      openRouterKeyLast4: user.openRouterApiKeyLast4 ?? null,
     };
   }
 
@@ -66,10 +65,7 @@ export class AiController {
     @Body() dto: UpdateAiSettingsDto,
   ) {
     if (!dto.activeModel) {
-      return {
-        data: { activeModel: null },
-        success: true,
-      };
+      return { activeModel: null };
     }
 
     const user = await this.userModel
@@ -78,7 +74,7 @@ export class AiController {
       .lean();
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
@@ -97,10 +93,7 @@ export class AiController {
       { $set: { 'preferences.activeModel': effectiveModel } },
     );
 
-    return {
-      data: { activeModel: effectiveModel },
-      success: true,
-    };
+    return { activeModel: effectiveModel };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -147,11 +140,8 @@ export class AiController {
     );
 
     return {
-      data: {
-        hasOpenRouterKey: true,
-        openRouterKeyLast4: last4,
-      },
-      success: true,
+      hasOpenRouterKey: true,
+      openRouterKeyLast4: last4,
     };
   }
 
@@ -191,11 +181,8 @@ export class AiController {
     }
 
     return {
-      data: {
-        hasOpenRouterKey: false,
-        openRouterKeyLast4: null,
-      },
-      success: true,
+      hasOpenRouterKey: false,
+      openRouterKeyLast4: null,
     };
   }
 
@@ -234,11 +221,8 @@ export class AiController {
     );
 
     return {
-      data: {
-        geminiKeyLast4: last4,
-        hasGeminiKey: true,
-      },
-      success: true,
+      geminiKeyLast4: last4,
+      hasGeminiKey: true,
     };
   }
 
@@ -257,11 +241,8 @@ export class AiController {
     );
 
     return {
-      data: {
-        geminiKeyLast4: null,
-        hasGeminiKey: false,
-      },
-      success: true,
+      geminiKeyLast4: null,
+      hasGeminiKey: false,
     };
   }
 
@@ -273,7 +254,7 @@ export class AiController {
       .lean();
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
@@ -294,11 +275,8 @@ export class AiController {
       }
 
       return {
-        data: {
-          mode: 'curated',
-          models: this.aiPolicyService.getCuratedModels(),
-        },
-        success: true,
+        mode: 'curated',
+        models: this.aiPolicyService.getCuratedModels(),
       };
     }
 
@@ -308,14 +286,11 @@ export class AiController {
     const models = await this.openRouterModelsService.listModels(byokKey);
 
     return {
-      data: {
-        mode: 'openrouter',
-        models: models.map((m) => ({
-          id: m.id,
-          name: m.name,
-        })),
-      },
-      success: true,
+      mode: 'openrouter',
+      models: models.map((m) => ({
+        id: m.id,
+        name: m.name,
+      })),
     };
   }
 
@@ -334,7 +309,9 @@ export class AiController {
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
 
     if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
+      throw new InternalServerErrorException(
+        'OPENROUTER_API_KEY not configured',
+      );
     }
 
     return serverKey;

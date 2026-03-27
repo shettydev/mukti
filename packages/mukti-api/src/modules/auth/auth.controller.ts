@@ -16,6 +16,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -78,7 +79,6 @@ interface CsrfRequest extends Request {
  */
 @ApiTags('Authentication')
 @Controller('auth')
-@SkipEnvelope()
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
   private readonly cookieDomain: string;
@@ -174,7 +174,7 @@ export class AuthController {
     const user = await this.authService.userModel.findById(userId).lean();
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     return {
@@ -205,10 +205,7 @@ export class AuthController {
     const sessions = await this.sessionService.getUserSessions(
       userId.toString(),
     );
-    return {
-      data: sessions,
-      success: true,
-    };
+    return sessions;
   }
 
   /**
@@ -248,7 +245,7 @@ export class AuthController {
     const profile = req.user as OAuthProfile;
 
     if (!profile) {
-      throw new Error('User profile not found in request');
+      throw new UnauthorizedException('User profile not found in request');
     }
 
     // Get device info
@@ -342,6 +339,7 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Post('logout')
   @Public()
+  @SkipEnvelope()
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -371,6 +369,7 @@ export class AuthController {
   @ApiLogoutAll()
   @HttpCode(HttpStatus.NO_CONTENT)
   @Post('logout-all')
+  @SkipEnvelope()
   async logoutAll(
     @CurrentUser('_id') userId: string,
     @Req() req: Request,
@@ -411,7 +410,7 @@ export class AuthController {
       ?.refreshToken;
 
     if (!refreshToken) {
-      throw new Error('Refresh token not found');
+      throw new UnauthorizedException('Refresh token not found');
     }
 
     // Update session last activity
@@ -527,6 +526,7 @@ export class AuthController {
   @ApiRevokeAllSessions()
   @Delete('sessions/all')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @SkipEnvelope()
   async revokeAllSessionsEndpoint(
     @CurrentUser('_id') userId: string,
     @Req() req: Request,
@@ -554,6 +554,7 @@ export class AuthController {
   @ApiRevokeSession()
   @Delete('sessions/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @SkipEnvelope()
   async revokeSession(
     @CurrentUser('_id') userId: string,
     @Param('id') sessionId: string,

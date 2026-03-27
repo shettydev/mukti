@@ -112,7 +112,7 @@ export class ResponseInterceptor implements NestInterceptor {
         if (isPaginatedResult(value)) {
           return {
             data: value.data,
-            meta: { ...baseMeta, ...value.meta },
+            meta: { ...value.meta, ...baseMeta },
             success: true,
           } satisfies ApiEnvelope;
         }
