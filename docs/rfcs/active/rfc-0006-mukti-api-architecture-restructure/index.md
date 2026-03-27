@@ -9,7 +9,7 @@
 | **Status**       | ![Status: Accepted](https://img.shields.io/badge/Status-Accepted-blue) |
 | **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                         |
 | **Created**      | 2026-03-26                                                             |
-| **Last Updated** | 2026-03-27                                                             |
+| **Last Updated** | 2026-03-28                                                             |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Implemented` | `Rejected` | `Superseded`
 
@@ -17,7 +17,7 @@
 
 ## 1. Abstract
 
-This RFC proposes a comprehensive architectural restructure of `@mukti/api` to address ten systemic structural issues that have accumulated as the codebase grew from 4 modules to 12. The core problems: all 24 Mongoose schemas live in a flat global `src/schemas/` directory divorced from their domain modules; cross-cutting concerns (guards, decorators, interceptors) are buried inside `modules/auth/`; BullMQ Redis configuration is duplicated across three modules; every controller manually constructs the response envelope; and test file placement follows no consistent convention. This RFC introduces a layered architecture with three tiers — **Core** (shared infrastructure), **Common** (cross-cutting concerns), and **Domain** (feature modules with co-located schemas) — along with standardized internal module layouts and a phased migration strategy that maintains backwards compatibility at every step.
+This RFC proposes a comprehensive architectural restructure of `@mukti/api` to address ten systemic structural issues that have accumulated as the codebase grew from 4 modules to 12. The core problems: all 24 Mongoose schemas live in a flat global `src/schemas/` directory with no domain grouping; cross-cutting concerns (guards, decorators, interceptors) are buried inside `modules/auth/`; BullMQ Redis configuration is duplicated across three modules; every controller manually constructs the response envelope; and test file placement follows no consistent convention. This RFC introduces a layered architecture with three tiers — **Core** (shared infrastructure), **Common** (cross-cutting concerns), and **Domain** (feature modules) — with schemas reorganized into domain-grouped subdirectories under `src/schemas/`, along with standardized internal module layouts and a phased migration strategy that maintains backwards compatibility at every step.
 
 ---
 
@@ -53,7 +53,7 @@ The `@mukti/api` codebase has grown organically from an initial 4-module structu
 
 ### Goals
 
-- [ ] Co-locate schemas with their owning domain module, eliminating the flat `src/schemas/` directory
+- [ ] Reorganize schemas into domain-grouped subdirectories under `src/schemas/`, eliminating the flat 24-file layout and the monolithic `ALL_SCHEMAS` array
 - [x] Extract cross-cutting concerns (guards, decorators, filters, interceptors) into `src/common/`
 - [x] Centralize BullMQ/Redis configuration into a shared `QueueModule` — configure once, import everywhere
 - [x] Introduce a `ResponseInterceptor` that automatically wraps controller return values in the standard envelope
@@ -134,7 +134,7 @@ graph TB
 
 ### Overview
 
-The restructure introduces a three-tier layered architecture that separates infrastructure, cross-cutting concerns, and domain logic into distinct directories. Schemas move from the global `src/schemas/` directory into their owning domain modules. A new `CoreModule` centralizes BullMQ/Redis configuration. Cross-cutting guards, decorators, and interceptors move from `modules/auth/` to `src/common/`. A `ResponseInterceptor` replaces 40+ manual envelope constructions. Every domain module adopts a canonical internal layout. The migration is phased: each phase produces a working, tested codebase.
+The restructure introduces a three-tier layered architecture that separates infrastructure, cross-cutting concerns, and domain logic into distinct directories. Schemas are reorganized from a flat 24-file `src/schemas/` directory into domain-grouped subdirectories (e.g., `src/schemas/auth/`, `src/schemas/canvas/`), providing clear ownership signals while keeping schemas as a shared data layer accessible to all modules without false inter-module dependencies. A new `CoreModule` centralizes BullMQ/Redis configuration. Cross-cutting guards, decorators, and interceptors move from `modules/auth/` to `src/common/`. A `ResponseInterceptor` replaces 40+ manual envelope constructions. Every domain module adopts a canonical internal layout. The migration is phased: each phase produces a working, tested codebase.
 
 ### Architecture Diagram
 
@@ -149,6 +149,17 @@ graph TB
             DB_MOD[core/<br/>DatabaseModule]
         end
 
+        subgraph "Shared Data Layer: Domain-Grouped Schemas"
+            SCHEMAS_AUTH[schemas/auth/]
+            SCHEMAS_CANVAS[schemas/canvas/]
+            SCHEMAS_CONV[schemas/conversation/]
+            SCHEMAS_DLG[schemas/dialogue/]
+            SCHEMAS_TM[schemas/thought-map/]
+            SCHEMAS_KT[schemas/knowledge/]
+            SCHEMAS_AI[schemas/ai/]
+            SCHEMAS_SHARED[schemas/shared/]
+        end
+
         subgraph "Layer 2: Common Cross-Cutting"
             GUARDS[common/guards/]
             DECORATORS[common/decorators/]
@@ -159,17 +170,17 @@ graph TB
         end
 
         subgraph "Layer 3: Domain Modules"
-            AUTH_D[modules/auth/<br/>+ co-located schemas]
-            AI_D[modules/ai/<br/>+ co-located schemas]
-            CANVAS_D[modules/canvas/<br/>+ co-located schemas]
-            CONV_D[modules/conversations/<br/>+ co-located schemas]
-            DLG_D[modules/dialogue/<br/>+ co-located schemas]
-            TM_D[modules/thought-map/<br/>+ co-located schemas]
-            KT_D[modules/knowledge-tracing/<br/>+ co-located schemas]
+            AUTH_D[modules/auth/]
+            AI_D[modules/ai/]
+            CANVAS_D[modules/canvas/]
+            CONV_D[modules/conversations/]
+            DLG_D[modules/dialogue/]
+            TM_D[modules/thought-map/]
+            KT_D[modules/knowledge-tracing/]
             SCAF_D[modules/scaffolding/]
             DQ_D[modules/dialogue-quality/]
             HEALTH_D[modules/health/]
-            WAIT_D[modules/waitlist/<br/>+ co-located schemas]
+            WAIT_D[modules/waitlist/]
         end
     end
 
@@ -186,12 +197,25 @@ graph TB
     DLG_D --> GUARDS
     TM_D --> GUARDS
 
+    AUTH_D -.->|imports| SCHEMAS_AUTH
+    CANVAS_D -.->|imports| SCHEMAS_CANVAS
+    CONV_D -.->|imports| SCHEMAS_CONV
+    CONV_D -.->|imports| SCHEMAS_AUTH
+
     style CORE_MOD fill:#8f8,stroke:#333
     style QUEUE_MOD fill:#8f8,stroke:#333
     style DB_MOD fill:#8f8,stroke:#333
     style GUARDS fill:#8bf,stroke:#333
     style DECORATORS fill:#8bf,stroke:#333
     style INTERCEPTORS fill:#8bf,stroke:#333
+    style SCHEMAS_AUTH fill:#f9f,stroke:#333
+    style SCHEMAS_CANVAS fill:#f9f,stroke:#333
+    style SCHEMAS_CONV fill:#f9f,stroke:#333
+    style SCHEMAS_DLG fill:#f9f,stroke:#333
+    style SCHEMAS_TM fill:#f9f,stroke:#333
+    style SCHEMAS_KT fill:#f9f,stroke:#333
+    style SCHEMAS_AI fill:#f9f,stroke:#333
+    style SCHEMAS_SHARED fill:#f9f,stroke:#333
 ```
 
 ### Detailed Design
@@ -205,7 +229,12 @@ graph LR
     subgraph "Import Rules"
         L3[Layer 3: Domain Modules] -->|can import| L2[Layer 2: Common]
         L3 -->|can import| L1[Layer 1: Core]
+        L3 -->|can import| LS[Schemas: Shared Data Layer]
         L2 -->|can import| L1
+        L1 -->|can import| LS
+        LS -.->|never imports| L1
+        LS -.->|never imports| L2
+        LS -.->|never imports| L3
         L1 -.->|never imports| L2
         L1 -.->|never imports| L3
         L2 -.->|never imports| L3
@@ -214,6 +243,7 @@ graph LR
     style L1 fill:#8f8,stroke:#333
     style L2 fill:#8bf,stroke:#333
     style L3 fill:#ff9,stroke:#333
+    style LS fill:#f9f,stroke:#333
 ```
 
 **Layer 1 — Core Infrastructure** (`src/core/`):
@@ -265,12 +295,6 @@ classDiagram
         +index.ts
     }
 
-    class SchemaLayer {
-        +feature.schema.ts
-        +feature-related.schema.ts
-        +index.ts
-    }
-
     class InterfaceLayer {
         +feature.interface.ts
     }
@@ -286,11 +310,12 @@ classDiagram
 
     CanonicalModule --> DTOLayer : dto/
     CanonicalModule --> ServiceLayer : services/
-    CanonicalModule --> SchemaLayer : schemas/
     CanonicalModule --> InterfaceLayer : interfaces/
     CanonicalModule --> TestLayer : __tests__/
     TestLayer --> PropertyTestLayer : properties/
 ```
+
+> **Note:** Schemas are _not_ co-located inside domain modules. They live in `src/schemas/` organized by domain subdirectory (see §5.3). Modules import schemas from `src/schemas/<domain>/` — this keeps schema definitions as a shared data layer accessible to all modules without creating false inter-module dependencies.
 
 **Rules**:
 
@@ -300,61 +325,71 @@ classDiagram
 | `feature.controller.ts`     | HTTP routing only — delegates to services                              |
 | `services/`                 | Always a subdirectory (even for single-service modules like `canvas/`) |
 | `dto/`                      | DTOs, swagger decorators, barrel `index.ts`                            |
-| `schemas/`                  | Co-located Mongoose schemas owned by this module                       |
 | `interfaces/`               | Module-specific TypeScript interfaces                                  |
 | `__tests__/`                | All test files at module root level                                    |
 | `__tests__/properties/`     | Property-based tests using fast-check                                  |
+| No `schemas/` in modules    | Schemas live in `src/schemas/<domain>/` (see §5.3)                     |
 | No `examples/`              | Remove runtime example files (move to documentation)                   |
 | No `utils/` at module level | Utility functions belong in `services/` or `common/`                   |
 
-#### 5.3 Schema Co-location Strategy
+#### 5.3 Schema Organization — Domain-Grouped Directory
 
-Schemas move from `src/schemas/` into their owning domain module's `schemas/` subdirectory.
+Schemas are reorganized from the flat `src/schemas/` directory into domain-grouped subdirectories within `src/schemas/`. Schemas remain a **shared data layer** — they are not moved into domain modules. This avoids false inter-module coupling (e.g., `CanvasModule` should not need to import `AuthModule` just to access `UserSchema`) and eliminates circular dependency risks between modules that share schemas bidirectionally (e.g., `dialogue/` ↔ `canvas/`).
 
 ```mermaid
 graph LR
-    subgraph "Before: Global Schemas"
-        GS["src/schemas/<br/>user.schema.ts<br/>conversation.schema.ts<br/>canvas-session.schema.ts<br/>thought-map.schema.ts<br/>... (24 files)"]
+    subgraph "Before: Flat Schemas"
+        GS["src/schemas/<br/>user.schema.ts<br/>conversation.schema.ts<br/>canvas-session.schema.ts<br/>thought-map.schema.ts<br/>... (24 flat files + ALL_SCHEMAS)"]
     end
 
-    subgraph "After: Co-located Schemas"
-        AUTH_S["modules/auth/schemas/<br/>user.schema.ts<br/>refresh-token.schema.ts<br/>session.schema.ts<br/>rate-limit.schema.ts"]
-        CONV_S["modules/conversations/schemas/<br/>conversation.schema.ts<br/>archived-message.schema.ts<br/>request-queue.schema.ts"]
-        CANVAS_S["modules/canvas/schemas/<br/>canvas-session.schema.ts<br/>insight-node.schema.ts<br/>shared-link.schema.ts"]
-        DLG_S["modules/dialogue/schemas/<br/>node-dialogue.schema.ts<br/>dialogue-message.schema.ts"]
-        TM_S["modules/thought-map/schemas/<br/>thought-map.schema.ts<br/>thought-node.schema.ts<br/>thought-map-share-link.schema.ts"]
-        KT_S["modules/knowledge-tracing/schemas/<br/>knowledge-state.schema.ts<br/>concept.schema.ts"]
-        AI_S["modules/ai/schemas/<br/>subscription.schema.ts<br/>usage-event.schema.ts<br/>daily-usage-aggregate.schema.ts"]
-        WAIT_S["modules/waitlist/schemas/<br/>waitlist.schema.ts"]
-        SHARED_S["common/schemas/<br/>technique.schema.ts<br/>resource.schema.ts<br/>vote.schema.ts"]
+    subgraph "After: Domain-Grouped Schemas"
+        AUTH_S["schemas/auth/<br/>user.schema.ts<br/>refresh-token.schema.ts<br/>session.schema.ts<br/>rate-limit.schema.ts<br/>index.ts"]
+        CONV_S["schemas/conversation/<br/>conversation.schema.ts<br/>archived-message.schema.ts<br/>request-queue.schema.ts<br/>index.ts"]
+        CANVAS_S["schemas/canvas/<br/>canvas-session.schema.ts<br/>insight-node.schema.ts<br/>shared-link.schema.ts<br/>index.ts"]
+        DLG_S["schemas/dialogue/<br/>node-dialogue.schema.ts<br/>dialogue-message.schema.ts<br/>index.ts"]
+        TM_S["schemas/thought-map/<br/>thought-map.schema.ts<br/>thought-node.schema.ts<br/>thought-map-share-link.schema.ts<br/>index.ts"]
+        KT_S["schemas/knowledge/<br/>knowledge-state.schema.ts<br/>concept.schema.ts<br/>index.ts"]
+        AI_S["schemas/ai/<br/>subscription.schema.ts<br/>usage-event.schema.ts<br/>daily-usage-aggregate.schema.ts<br/>index.ts"]
+        SHARED_S["schemas/shared/<br/>technique.schema.ts<br/>resource.schema.ts<br/>vote.schema.ts<br/>waitlist.schema.ts<br/>index.ts"]
     end
 
-    GS -->|migrate| AUTH_S
-    GS -->|migrate| CONV_S
-    GS -->|migrate| CANVAS_S
-    GS -->|migrate| DLG_S
-    GS -->|migrate| TM_S
-    GS -->|migrate| KT_S
-    GS -->|migrate| AI_S
-    GS -->|migrate| WAIT_S
-    GS -->|migrate| SHARED_S
+    GS -->|reorganize| AUTH_S
+    GS -->|reorganize| CONV_S
+    GS -->|reorganize| CANVAS_S
+    GS -->|reorganize| DLG_S
+    GS -->|reorganize| TM_S
+    GS -->|reorganize| KT_S
+    GS -->|reorganize| AI_S
+    GS -->|reorganize| SHARED_S
 ```
 
-**Schema ownership rules**:
+**Schema domain grouping**:
 
-| Schema                                              | Owner Module         | Rationale                    |
-| --------------------------------------------------- | -------------------- | ---------------------------- |
-| `User`, `RefreshToken`, `Session`, `RateLimit`      | `auth/`              | Auth domain entities         |
-| `Conversation`, `ArchivedMessage`, `RequestQueue`   | `conversations/`     | Conversation domain entities |
-| `CanvasSession`, `InsightNode`, `SharedLink`        | `canvas/`            | Canvas domain entities       |
-| `NodeDialogue`, `DialogueMessage`                   | `dialogue/`          | Dialogue domain entities     |
-| `ThoughtMap`, `ThoughtNode`, `ThoughtMapShareLink`  | `thought-map/`       | Thought map domain entities  |
-| `KnowledgeState`, `Concept`                         | `knowledge-tracing/` | Knowledge domain entities    |
-| `Subscription`, `UsageEvent`, `DailyUsageAggregate` | `ai/`                | AI/billing domain entities   |
-| `Waitlist`                                          | `waitlist/`          | Waitlist domain entity       |
-| `Technique`, `Resource`, `Vote`                     | `common/schemas/`    | Shared cross-domain entities |
+| Schema                                              | Domain Directory        | Rationale                                          |
+| --------------------------------------------------- | ----------------------- | -------------------------------------------------- |
+| `User`, `RefreshToken`, `Session`, `RateLimit`      | `schemas/auth/`         | Auth domain entities                               |
+| `Conversation`, `ArchivedMessage`, `RequestQueue`   | `schemas/conversation/` | Conversation domain entities                       |
+| `CanvasSession`, `InsightNode`, `SharedLink`        | `schemas/canvas/`       | Canvas domain entities                             |
+| `NodeDialogue`, `DialogueMessage`                   | `schemas/dialogue/`     | Dialogue domain entities                           |
+| `ThoughtMap`, `ThoughtNode`, `ThoughtMapShareLink`  | `schemas/thought-map/`  | Thought map domain entities                        |
+| `KnowledgeState`, `Concept`                         | `schemas/knowledge/`    | Knowledge domain entities                          |
+| `Subscription`, `UsageEvent`, `DailyUsageAggregate` | `schemas/ai/`           | AI/billing domain entities                         |
+| `Technique`, `Resource`, `Vote`, `Waitlist`         | `schemas/shared/`       | Cross-domain entities with no single owning module |
 
-**Cross-module schema access**: When Module B needs a schema owned by Module A, Module A exports its schema registration via `MongooseModule.forFeature()` in its `exports` array. Module B imports Module A. This makes schema dependencies explicit in the NestJS dependency graph.
+**Domain barrel files**: Each subdirectory has an `index.ts` barrel that exports:
+
+1. All schema classes and types (re-exports from individual files)
+2. A `DOMAIN_SCHEMAS` constant array for Mongoose registration (e.g., `AUTH_SCHEMAS`, `CANVAS_SCHEMAS`)
+
+**Root barrel** (`src/schemas/index.ts`): Re-exports all domain barrels. Provides a single `ALL_SCHEMAS` aggregation from the domain arrays (e.g., `[...AUTH_SCHEMAS, ...CANVAS_SCHEMAS, ...]`) for `DatabaseModule` global registration.
+
+**Cross-module schema access**: Any module can import any schema from any domain directory via `src/schemas/<domain>/`. No NestJS module imports required — schemas are pure data definitions, not providers. Each module continues to declare the schemas it needs in its own `MongooseModule.forFeature()`, importing directly from the schemas directory. This preserves NestJS's explicit dependency principle without coupling unrelated modules.
+
+**Why not co-locate schemas in modules?** Three problems with moving schemas into `modules/<name>/schemas/`:
+
+1. **False coupling**: `User` is consumed by 8 modules — all 7 non-auth modules would need to import from `modules/auth/schemas/` or import `AuthModule`, creating a dependency that doesn't reflect business relationships.
+2. **Circular dependencies**: `DialogueModule` needs `CanvasSession` (canvas-owned) and `CanvasModule` needs `NodeDialogue` + `DialogueMessage` (dialogue-owned) — bidirectional module imports require `forwardRef()` and indicate a design smell.
+3. **Schemas are data, not features**: Schema files define MongoDB document shapes. They are closer to database table definitions than to business logic, and belong in a shared data layer.
 
 #### 5.4 CoreModule — Centralized Infrastructure
 
@@ -598,19 +633,32 @@ Extract shared code (`common/`, `core/`) into separate Nx libraries within the m
 
 **Reason for rejection:** Over-engineering for a single-consumer scenario. The layered directory structure achieves the same organizational goals without Nx library overhead. Can revisit if a second backend service is introduced.
 
-### Alternative B: Keep Global Schemas, Fix Everything Else
+### Alternative B: Co-locate Schemas Inside Domain Modules
 
-Leave `src/schemas/` as-is and only address the other 9 issues.
+Move each schema file into its owning module's `schemas/` subdirectory (e.g., `modules/auth/schemas/user.schema.ts`). When Module B needs a schema owned by Module A, Module A exports its schema registration and Module B imports Module A.
+
+| Pros                                               | Cons                                                                            |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Maximum co-location — schema lives with its module | `User` consumed by 8 modules — all must import `AuthModule` for it              |
+| Module becomes fully self-contained                | Creates false NestJS module dependencies (e.g., Canvas → Auth)                  |
+| Follows NestJS official guidance                   | Bidirectional schema use (Dialogue ↔ Canvas) causes circular imports           |
+|                                                    | Ambiguous ownership for schemas used by multiple domains (e.g., `Subscription`) |
+
+**Reason for rejection:** Schemas are shared data definitions, not feature code. Moving them into modules creates coupling between modules that have no business relationship. The `User` schema alone would force 7 modules to depend on `AuthModule`. Bidirectional schema usage between `DialogueModule` and `CanvasModule` would require `forwardRef()` — a design smell. Domain-grouped subdirectories under `src/schemas/` provide the same ownership signal without these coupling problems.
+
+### Alternative C: Keep Flat Global Schemas, Fix Everything Else
+
+Leave `src/schemas/` as a flat 24-file directory and only address the other 9 issues.
 
 | Pros                               | Cons                                           |
 | ---------------------------------- | ---------------------------------------------- |
 | Smaller migration scope            | Schema ownership remains ambiguous             |
 | No risk of breaking schema imports | `ALL_SCHEMAS` array continues growing linearly |
-| Familiar to current developers     | No domain encapsulation for data layer         |
+| Familiar to current developers     | No domain grouping for data layer              |
 
-**Reason for rejection:** Schema co-location is the single highest-impact change. It establishes domain ownership, reduces import path depth, and makes each module self-contained. Skipping it would leave the most impactful problem unsolved.
+**Reason for rejection:** Schema organization is a high-impact improvement. While co-location into modules was rejected (see Alternative B), the flat 24-file directory still lacks any domain signal. Domain-grouped subdirectories solve the ownership ambiguity without the coupling downsides of full co-location.
 
-### Alternative C: NestJS Global Module for All Schemas
+### Alternative D: NestJS Global Module for All Schemas
 
 Make `DatabaseModule` a `@Global()` module that registers all schemas, then remove per-module `MongooseModule.forFeature()` calls entirely.
 
@@ -666,14 +714,14 @@ No new observability requirements. Existing logging patterns are preserved:
 
 ### Phases
 
-| Phase | Description                                     | Status          | Entry Criteria   | Exit Criteria                                                                                       |
-| ----- | ----------------------------------------------- | --------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
-| 1     | Extract cross-cutting concerns to `common/`     | ✅ **Complete** | RFC accepted     | All guards/decorators moved; all imports updated; tests pass                                        |
-| 2     | Create `CoreModule` with `QueueModule`          | ✅ **Complete** | Phase 1 complete | BullMQ config centralized; 2 duplicate configs removed; tests pass                                  |
-| 3     | Introduce `ResponseInterceptor`                 | ✅ **Complete** | Phase 2 complete | Interceptor active globally; manual envelope removed from all controllers; tests pass               |
-| 4     | Co-locate schemas into domain modules           | ⬜ Not started  | Phase 3 complete | `src/schemas/` deleted; all schemas in domain `schemas/` dirs; `ALL_SCHEMAS` eliminated; tests pass |
-| 5     | Standardize module internals and test placement | ⬜ Not started  | Phase 4 complete | All modules follow canonical layout; all tests in `__tests__/`; linter rules enforced               |
-| 6     | Explicit module registration and cleanup        | ⬜ Not started  | Phase 5 complete | All 12 modules in `app.module.ts`; `common/seeds/` relocated; `seed.ts` cleaned up                  |
+| Phase | Description                                     | Status          | Entry Criteria   | Exit Criteria                                                                                                                                                        |
+| ----- | ----------------------------------------------- | --------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Extract cross-cutting concerns to `common/`     | ✅ **Complete** | RFC accepted     | All guards/decorators moved; all imports updated; tests pass                                                                                                         |
+| 2     | Create `CoreModule` with `QueueModule`          | ✅ **Complete** | Phase 1 complete | BullMQ config centralized; 2 duplicate configs removed; tests pass                                                                                                   |
+| 3     | Introduce `ResponseInterceptor`                 | ✅ **Complete** | Phase 2 complete | Interceptor active globally; manual envelope removed from all controllers; tests pass                                                                                |
+| 4     | Reorganize schemas into domain-grouped dirs     | ⬜ Not started  | Phase 3 complete | Flat `src/schemas/` files reorganized into domain subdirs; domain barrel files created; `ALL_SCHEMAS` refactored from domain arrays; all imports updated; tests pass |
+| 5     | Standardize module internals and test placement | ⬜ Not started  | Phase 4 complete | All modules follow canonical layout; all tests in `__tests__/`; linter rules enforced                                                                                |
+| 6     | Explicit module registration and cleanup        | ⬜ Not started  | Phase 5 complete | All 12 modules in `app.module.ts`; `common/seeds/` relocated; `seed.ts` cleaned up                                                                                   |
 
 ### Phase Details
 
@@ -764,11 +812,19 @@ No new observability requirements. Existing logging patterns are preserved:
 > - Build (`bun nx run @mukti/api:build`) passes
 > - Tests: 583 pass, 23 fail (3 pre-existing test failures due to missing `SubscriptionModel` mock — unrelated to Phase 3)
 
-#### Phase 4: Co-locate Schemas
+#### Phase 4: Reorganize Schemas into Domain-Grouped Directories
 
-**Scope**: Move each schema file to its owning module's `schemas/` subdirectory. Update all import paths. Remove `src/schemas/index.ts` and `ALL_SCHEMAS` array. Each module registers its own schemas via `MongooseModule.forFeature()` (which most already do — the global registration is simply removed).
+**Scope**: Create domain subdirectories under `src/schemas/` (`auth/`, `conversation/`, `canvas/`, `dialogue/`, `thought-map/`, `knowledge/`, `ai/`, `shared/`). Move each schema file into its domain subdirectory via `git mv`. Create barrel `index.ts` in each subdirectory that exports all types and a `DOMAIN_SCHEMAS` registration array. Refactor root `src/schemas/index.ts` to re-export from domain barrels and compose `ALL_SCHEMAS` from the domain arrays. Update all import paths across modules and tests.
 
-**Validation**: Application boots. All schema-dependent tests pass. No `../../schemas/` imports remain.
+**Key changes**:
+
+- 24 flat schema files → 8 domain subdirectories
+- Each barrel exports a typed `DOMAIN_SCHEMAS` array (e.g., `AUTH_SCHEMAS = [{ name: User.name, schema: UserSchema }, ...]`)
+- Root `index.ts` aggregates: `export const ALL_SCHEMAS = [...AUTH_SCHEMAS, ...CANVAS_SCHEMAS, ...]`
+- Module `MongooseModule.forFeature()` imports update from `../../schemas/X` to `../../schemas/<domain>/X` (or from the domain barrel)
+- `DatabaseModule` continues to register `ALL_SCHEMAS` globally — no change to runtime registration behavior
+
+**Validation**: Application boots. All schema-dependent tests pass. No flat-file imports from `src/schemas/` root remain (all imports go through domain subdirectory barrels).
 
 #### Phase 5: Standardize Module Internals
 
@@ -795,28 +851,29 @@ Each phase is an independent, merge-ready PR. Rollback = revert the PR.
 
 ## 13. Open Questions
 
-1. **Should `Subscription` schema live in `auth/` or `ai/`?** — Currently used by both `AuthModule` (user linking) and `AiModule` (quota enforcement). The "primary owner" is debatable. Recommendation: `ai/` since subscription primarily governs AI usage limits, but this needs team input.
+1. ~~**Should `Subscription` schema live in `auth/` or `ai/`?**~~ — **Resolved.** With domain-grouped schemas under `src/schemas/`, `Subscription` goes in `schemas/ai/` since it primarily governs AI usage limits. Both `AuthModule` and `AiModule` import it freely — no module coupling required.
 
-2. **Should `User` schema exports be centralized?** — `User` is imported by 8 modules. After co-location in `auth/`, all 7 other modules must import `AuthModule` to access `User` schema. This is semantically correct (user data is owned by auth), but creates a wide dependency surface. Alternative: keep `User` in `common/schemas/`.
+2. ~~**Should `User` schema exports be centralized?**~~ — **Resolved.** With domain-grouped schemas, `User` lives in `schemas/auth/` but any module imports it directly from that path. No `AuthModule` import needed — the 8-module dependency surface problem disappears entirely.
 
-3. **Should we introduce ESLint rules to enforce the canonical layout?** — An `eslint-plugin-import` rule could enforce import layering (domain never imports from another domain module's internals). This adds CI enforcement but increases linter config complexity.
+3. **Should we introduce ESLint rules to enforce the canonical layout?** — An `eslint-plugin-import` rule could enforce import layering (domain never imports from another domain module's internals, schemas only import from `src/schemas/`). This adds CI enforcement but increases linter config complexity.
 
-4. **How should `Technique`, `Resource`, and `Vote` schemas be organized?** — These are community/social features with no dedicated module. Options: (a) `common/schemas/`, (b) new `CommunityModule`, (c) keep in `conversations/` since techniques are primarily used there.
+4. ~~**How should `Technique`, `Resource`, and `Vote` schemas be organized?**~~ — **Resolved.** These cross-domain schemas go in `schemas/shared/` along with `Waitlist`. No dedicated module needed — `schemas/shared/` is the catch-all for schemas with no single owning domain.
 
-5. **Should the `ResponseInterceptor` be opt-in or opt-out?** — Opt-out (global with `@SkipEnvelope()`) is proposed. Alternative: opt-in via `@UseInterceptors(ResponseInterceptor)` on each controller. Opt-out is recommended since the envelope is the default expectation.
+5. ~~**Should the `ResponseInterceptor` be opt-in or opt-out?**~~ — **Resolved in Phase 3.** Opt-out (global with `@SkipEnvelope()`) was implemented. Controllers that need non-standard response shapes use class-level `@SkipEnvelope()`.
 
-> **Reviewers:** Please reference open questions by number (e.g., "Regarding OQ-2, ...") in your comments.
+> **Reviewers:** Please reference open questions by number (e.g., "Regarding OQ-3, ...") in your comments.
 
 ---
 
 ## 14. Decision Log
 
-| Date       | Decision                       | Rationale                                                                                                                                                                                                            | Decided By     |
-| ---------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 2026-03-26 | RFC created as Draft           | Address accumulated structural debt across 12 modules                                                                                                                                                                | Prathik Shetty |
-| 2026-03-27 | RFC accepted; Phase 1 complete | Implementation validated: build passes, all guard/decorator imports migrated, no test regressions                                                                                                                    | Prathik Shetty |
-| 2026-03-27 | Phase 2 complete               | CoreModule + QueueModule created; 2 duplicate BullModule.forRootAsync() removed; 5 queues migrated to QueueModule.registerQueue(); build + tests pass                                                                | Prathik Shetty |
-| 2026-03-27 | Phase 3 complete               | ResponseInterceptor globally registered; 45+ manual envelope constructions removed from 6 controllers; @SkipEnvelope() on SSE/204 endpoints and 3 opt-out controllers; 17 interceptor unit tests; build + tests pass | Prathik Shetty |
+| Date       | Decision                                                              | Rationale                                                                                                                                                                                                                                                                                                 | Decided By     |
+| ---------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 2026-03-26 | RFC created as Draft                                                  | Address accumulated structural debt across 12 modules                                                                                                                                                                                                                                                     | Prathik Shetty |
+| 2026-03-27 | RFC accepted; Phase 1 complete                                        | Implementation validated: build passes, all guard/decorator imports migrated, no test regressions                                                                                                                                                                                                         | Prathik Shetty |
+| 2026-03-27 | Phase 2 complete                                                      | CoreModule + QueueModule created; 2 duplicate BullModule.forRootAsync() removed; 5 queues migrated to QueueModule.registerQueue(); build + tests pass                                                                                                                                                     | Prathik Shetty |
+| 2026-03-27 | Phase 3 complete                                                      | ResponseInterceptor globally registered; 45+ manual envelope constructions removed from 6 controllers; @SkipEnvelope() on SSE/204 endpoints and 3 opt-out controllers; 17 interceptor unit tests; build + tests pass                                                                                      | Prathik Shetty |
+| 2026-03-28 | Phase 4 revised: domain-grouped schemas instead of module co-location | Co-locating schemas inside modules creates false coupling (User consumed by 8 modules), circular dependencies (Dialogue ↔ Canvas), and ambiguous ownership. Domain-grouped subdirectories under `src/schemas/` provide ownership signals without inter-module coupling. OQ-1, OQ-2, OQ-4, OQ-5 resolved. | Prathik Shetty |
 
 ---
 
@@ -836,6 +893,4 @@ Each phase is an independent, merge-ready PR. Rollback = revert the PR.
 
 > **Reviewer Notes:**
 >
-> This RFC is purely structural — no business logic, API contracts, or data models change. Each phase is independently deployable and reversible. The primary risk is import path breakage during schema co-location (Phase 4), mitigated by IDE refactoring tools and comprehensive test coverage.
->
-> WARNING: Phase 4 (schema co-location) touches the most files and has the highest risk of merge conflicts with concurrent feature work. Recommend scheduling it during a low-activity window.
+> This RFC is purely structural — no business logic, API contracts, or data models change. Each phase is independently deployable and reversible. Phase 4 (schema reorganization) involves `git mv` within `src/schemas/` and import path updates — lower risk than the originally proposed module co-location approach since schemas remain a shared data layer with no module coupling changes.
