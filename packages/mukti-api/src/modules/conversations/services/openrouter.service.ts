@@ -281,6 +281,19 @@ export class OpenRouterService {
 
       return this.parseResponse(response, model);
     } catch (error) {
+      // If the SDK's strict Zod validation failed but we got a raw response,
+      // try our more lenient parser before giving up
+      if (this.isResponseValidationError(error)) {
+        this.logger.warn(
+          `OpenRouter SDK response validation failed for model ${model}, attempting lenient parse`,
+        );
+        try {
+          return this.parseResponse(error.rawValue, model);
+        } catch {
+          // Lenient parse also failed — fall through to original error handling
+        }
+      }
+
       const errorDetails = this.handleError(error);
       this.logger.error(
         `OpenRouter API error: ${errorDetails.message}`,
@@ -358,5 +371,15 @@ export class OpenRouterService {
 
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
+  }
+
+  private isResponseValidationError(
+    error: unknown,
+  ): error is { rawValue: unknown } {
+    if (!this.isRecord(error)) {
+      return false;
+    }
+
+    return error.name === 'ResponseValidationError' && 'rawValue' in error;
   }
 }
