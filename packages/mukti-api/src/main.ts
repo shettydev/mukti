@@ -1,3 +1,5 @@
+import type { Application, NextFunction, Request, Response } from 'express';
+
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -18,7 +20,7 @@ async function bootstrap() {
 
   // Trust proxy is required when running behind a reverse proxy (e.g. Nginx, Cloudflare)
   // This ensures that secure cookies and IP rate limiting work correctly
-  const expressApp = app.getHttpAdapter().getInstance();
+  const expressApp = app.getHttpAdapter().getInstance() as Application;
   expressApp.set('trust proxy', true);
 
   const logger = new Logger('Bootstrap');
@@ -35,7 +37,7 @@ async function bootstrap() {
   const prefixedDocsRoute = `/${apiPrefix}/${docsRoute}`;
   const prefixedReferenceRoute = `/${apiPrefix}/${referenceRoute}`;
 
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     // Skip Helmet CSP for documentation endpoints
     if (
       req.path.startsWith('/reference') ||
