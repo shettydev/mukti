@@ -8,7 +8,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Observable, map } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { v7 as uuidv7 } from 'uuid';
 
 import { SKIP_ENVELOPE_KEY } from '../decorators/skip-envelope.decorator';
@@ -19,9 +19,9 @@ import { SKIP_ENVELOPE_KEY } from '../decorators/skip-envelope.decorator';
 interface ApiEnvelope<T = unknown> {
   data?: T;
   meta: {
+    [key: string]: unknown;
     requestId: string;
     timestamp: string;
-    [key: string]: unknown;
   };
   success: true;
 }
