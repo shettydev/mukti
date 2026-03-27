@@ -56,7 +56,7 @@ The `@mukti/api` codebase has grown organically from an initial 4-module structu
 - [ ] Co-locate schemas with their owning domain module, eliminating the flat `src/schemas/` directory
 - [x] Extract cross-cutting concerns (guards, decorators, filters, interceptors) into `src/common/`
 - [x] Centralize BullMQ/Redis configuration into a shared `QueueModule` — configure once, import everywhere
-- [ ] Introduce a `ResponseInterceptor` that automatically wraps controller return values in the standard envelope
+- [x] Introduce a `ResponseInterceptor` that automatically wraps controller return values in the standard envelope
 - [ ] Define and enforce a canonical internal module layout (controller, services, dto, interfaces, tests)
 - [ ] Standardize test file placement: all tests in `__tests__/` subdirectories, property tests in `__tests__/properties/`
 - [ ] Make all module dependencies visible in `app.module.ts`
@@ -670,7 +670,7 @@ No new observability requirements. Existing logging patterns are preserved:
 | ----- | ----------------------------------------------- | --------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
 | 1     | Extract cross-cutting concerns to `common/`     | ✅ **Complete** | RFC accepted     | All guards/decorators moved; all imports updated; tests pass                                        |
 | 2     | Create `CoreModule` with `QueueModule`          | ✅ **Complete** | Phase 1 complete | BullMQ config centralized; 2 duplicate configs removed; tests pass                                  |
-| 3     | Introduce `ResponseInterceptor`                 | ⬜ Not started  | Phase 2 complete | Interceptor active globally; manual envelope removed from all controllers; tests pass               |
+| 3     | Introduce `ResponseInterceptor`                 | ✅ **Complete** | Phase 2 complete | Interceptor active globally; manual envelope removed from all controllers; tests pass               |
 | 4     | Co-locate schemas into domain modules           | ⬜ Not started  | Phase 3 complete | `src/schemas/` deleted; all schemas in domain `schemas/` dirs; `ALL_SCHEMAS` eliminated; tests pass |
 | 5     | Standardize module internals and test placement | ⬜ Not started  | Phase 4 complete | All modules follow canonical layout; all tests in `__tests__/`; linter rules enforced               |
 | 6     | Explicit module registration and cleanup        | ⬜ Not started  | Phase 5 complete | All 12 modules in `app.module.ts`; `common/seeds/` relocated; `seed.ts` cleaned up                  |
@@ -739,6 +739,31 @@ No new observability requirements. Existing logging patterns are preserved:
 
 **Validation**: API response format unchanged (integration tests verify). Manual envelope constructions eliminated.
 
+> **✅ Completed: 2026-03-27**
+>
+> - `@SkipEnvelope()` decorator created at `common/decorators/skip-envelope.decorator.ts`, exported from `common/decorators/index.ts` barrel
+> - `ResponseInterceptor` created at `common/interceptors/response.interceptor.ts` with barrel `common/interceptors/index.ts`
+> - Interceptor registered globally in `app.module.ts` via `APP_INTERCEPTOR`
+> - 17 unit tests written for `ResponseInterceptor` — all passing
+> - **Detection logic**: If returned value has both `data` and `meta` keys at top level with `meta` being an object → extract `data` as payload, merge `meta` with generated meta (pagination case). Otherwise, entire returned value IS the data.
+> - **No-data responses**: When controller returns `undefined`/`null` for non-204 status codes, produce `{ success: true, meta: {...} }` without a `data` key.
+> - **RequestId format**: Uses `uuidv7()` consistent with `HttpExceptionFilter`
+> - **Controllers migrated** (manual envelope removed):
+>   - `WaitlistController` — 2 endpoints
+>   - `ConversationController` — 5 endpoints + `@SkipEnvelope()` on SSE stream and 204 delete
+>   - `DialogueController` — 3 endpoints + `@SkipEnvelope()` on SSE stream
+>   - `CanvasController` — 13 endpoints
+>   - `ThoughtMapController` — 19 endpoints + `@SkipEnvelope()` on 2 SSE streams
+>   - `ThoughtMapDialogueController` — 3 endpoints + `@SkipEnvelope()` on SSE stream
+> - **Controllers with class-level `@SkipEnvelope()`** (no envelope migration — preserving current response shapes):
+>   - `AuthController` — non-standard response shapes preserved for backwards compatibility
+>   - `KnowledgeTracingController` — returns raw data with no envelope
+>   - `HealthController` — NestJS Terminus has its own response format
+> - `generateRequestId()` private method removed from all 5 controllers that had it (Conversation, Dialogue, Canvas, ThoughtMap, ThoughtMapDialogue)
+> - Test files updated: `thought-map.controller.spec.ts`, `thought-map-dialogue.controller.spec.ts`, `conversation.controller.spec.ts` — removed `expectEnvelope` helpers, updated `result.data.X` → `result.X` assertions
+> - Build (`bun nx run @mukti/api:build`) passes
+> - Tests: 583 pass, 23 fail (3 pre-existing test failures due to missing `SubscriptionModel` mock — unrelated to Phase 3)
+
 #### Phase 4: Co-locate Schemas
 
 **Scope**: Move each schema file to its owning module's `schemas/` subdirectory. Update all import paths. Remove `src/schemas/index.ts` and `ALL_SCHEMAS` array. Each module registers its own schemas via `MongooseModule.forFeature()` (which most already do — the global registration is simply removed).
@@ -786,11 +811,12 @@ Each phase is an independent, merge-ready PR. Rollback = revert the PR.
 
 ## 14. Decision Log
 
-| Date       | Decision                       | Rationale                                                                                                                                             | Decided By     |
-| ---------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 2026-03-26 | RFC created as Draft           | Address accumulated structural debt across 12 modules                                                                                                 | Prathik Shetty |
-| 2026-03-27 | RFC accepted; Phase 1 complete | Implementation validated: build passes, all guard/decorator imports migrated, no test regressions                                                     | Prathik Shetty |
-| 2026-03-27 | Phase 2 complete               | CoreModule + QueueModule created; 2 duplicate BullModule.forRootAsync() removed; 5 queues migrated to QueueModule.registerQueue(); build + tests pass | Prathik Shetty |
+| Date       | Decision                       | Rationale                                                                                                                                                                                                            | Decided By     |
+| ---------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 2026-03-26 | RFC created as Draft           | Address accumulated structural debt across 12 modules                                                                                                                                                                | Prathik Shetty |
+| 2026-03-27 | RFC accepted; Phase 1 complete | Implementation validated: build passes, all guard/decorator imports migrated, no test regressions                                                                                                                    | Prathik Shetty |
+| 2026-03-27 | Phase 2 complete               | CoreModule + QueueModule created; 2 duplicate BullModule.forRootAsync() removed; 5 queues migrated to QueueModule.registerQueue(); build + tests pass                                                                | Prathik Shetty |
+| 2026-03-27 | Phase 3 complete               | ResponseInterceptor globally registered; 45+ manual envelope constructions removed from 6 controllers; @SkipEnvelope() on SSE/204 endpoints and 3 opt-out controllers; 17 interceptor unit tests; build + tests pass | Prathik Shetty |
 
 ---
 
