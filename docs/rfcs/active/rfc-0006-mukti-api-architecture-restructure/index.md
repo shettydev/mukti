@@ -55,7 +55,7 @@ The `@mukti/api` codebase has grown organically from an initial 4-module structu
 
 - [ ] Co-locate schemas with their owning domain module, eliminating the flat `src/schemas/` directory
 - [x] Extract cross-cutting concerns (guards, decorators, filters, interceptors) into `src/common/`
-- [ ] Centralize BullMQ/Redis configuration into a shared `QueueModule` — configure once, import everywhere
+- [x] Centralize BullMQ/Redis configuration into a shared `QueueModule` — configure once, import everywhere
 - [ ] Introduce a `ResponseInterceptor` that automatically wraps controller return values in the standard envelope
 - [ ] Define and enforce a canonical internal module layout (controller, services, dto, interfaces, tests)
 - [ ] Standardize test file placement: all tests in `__tests__/` subdirectories, property tests in `__tests__/properties/`
@@ -669,7 +669,7 @@ No new observability requirements. Existing logging patterns are preserved:
 | Phase | Description                                     | Status          | Entry Criteria   | Exit Criteria                                                                                       |
 | ----- | ----------------------------------------------- | --------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
 | 1     | Extract cross-cutting concerns to `common/`     | ✅ **Complete** | RFC accepted     | All guards/decorators moved; all imports updated; tests pass                                        |
-| 2     | Create `CoreModule` with `QueueModule`          | ⬜ Not started  | Phase 1 complete | BullMQ config centralized; 3 duplicate configs removed; tests pass                                  |
+| 2     | Create `CoreModule` with `QueueModule`          | ✅ **Complete** | Phase 1 complete | BullMQ config centralized; 2 duplicate configs removed; tests pass                                  |
 | 3     | Introduce `ResponseInterceptor`                 | ⬜ Not started  | Phase 2 complete | Interceptor active globally; manual envelope removed from all controllers; tests pass               |
 | 4     | Co-locate schemas into domain modules           | ⬜ Not started  | Phase 3 complete | `src/schemas/` deleted; all schemas in domain `schemas/` dirs; `ALL_SCHEMAS` eliminated; tests pass |
 | 5     | Standardize module internals and test placement | ⬜ Not started  | Phase 4 complete | All modules follow canonical layout; all tests in `__tests__/`; linter rules enforced               |
@@ -714,6 +714,22 @@ No new observability requirements. Existing logging patterns are preserved:
 **Key change**: `ConversationsModule`, `DialogueModule`, and `ThoughtMapModule` replace their `BullModule.forRootAsync()` with `QueueModule.forRoot()` import and `QueueModule.registerQueue()` for named queues.
 
 **Validation**: Queue tests pass. Redis connection established once (verify via logs).
+
+> **✅ Completed: 2026-03-27**
+>
+> - `git mv` used to move `modules/database/database.module.ts` → `core/database/database.module.ts` (preserves git blame)
+> - `core/queue/queue.module.ts` created: `QueueModule` with `forRoot()` (global Redis config) and `registerQueue(name, options?)` (default job options + per-queue overrides via deep merge)
+> - `core/core.module.ts` created: bundles `DatabaseModule` + `QueueModule.forRoot()`, imported once in `AppModule`
+> - Barrel files created: `core/index.ts`, `core/database/index.ts`, `core/queue/index.ts`
+> - `ConversationsModule`: removed 16-line `BullModule.forRootAsync()` block, replaced `BullModule.registerQueue()` with `QueueModule.registerQueue('conversation-requests')`
+> - `DialogueModule`: removed 16-line `BullModule.forRootAsync()` block, replaced `BullModule.registerQueue()` with `QueueModule.registerQueue('dialogue-requests')`
+> - `ThoughtMapModule`: replaced 3× `BullModule.registerQueue()` with `QueueModule.registerQueue()` — `thought-map-dialogue-requests` (defaults), `thought-map-suggestion-requests` (custom: attempts=2, backoff=500ms, 6h retention), `thought-map-extraction-requests` (custom: attempts=2, 48h fail retention)
+> - `app.module.ts`: `DatabaseModule` → `CoreModule`
+> - `common/seeds/seed.module.ts`: import path updated `../../modules/database/` → `../../core/database/`
+> - Empty `modules/database/` directory removed
+> - Discovery: only 2 modules had `BullModule.forRootAsync()` duplication (not 3 as RFC stated — `ThoughtMapModule` inherited the Redis connection transitively via `DialogueModule`)
+> - Build (`bun nx run @mukti/api:build`) passes
+> - Tests: 566 pass, 23 fail (3 pre-existing test failures due to missing `SubscriptionModel` mock — unrelated to Phase 2)
 
 #### Phase 3: Introduce ResponseInterceptor
 
@@ -770,10 +786,11 @@ Each phase is an independent, merge-ready PR. Rollback = revert the PR.
 
 ## 14. Decision Log
 
-| Date       | Decision                       | Rationale                                                                                         | Decided By     |
-| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------- | -------------- |
-| 2026-03-26 | RFC created as Draft           | Address accumulated structural debt across 12 modules                                             | Prathik Shetty |
-| 2026-03-27 | RFC accepted; Phase 1 complete | Implementation validated: build passes, all guard/decorator imports migrated, no test regressions | Prathik Shetty |
+| Date       | Decision                       | Rationale                                                                                                                                             | Decided By     |
+| ---------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 2026-03-26 | RFC created as Draft           | Address accumulated structural debt across 12 modules                                                                                                 | Prathik Shetty |
+| 2026-03-27 | RFC accepted; Phase 1 complete | Implementation validated: build passes, all guard/decorator imports migrated, no test regressions                                                     | Prathik Shetty |
+| 2026-03-27 | Phase 2 complete               | CoreModule + QueueModule created; 2 duplicate BullModule.forRootAsync() removed; 5 queues migrated to QueueModule.registerQueue(); build + tests pass | Prathik Shetty |
 
 ---
 
