@@ -12,9 +12,11 @@ jest.mock('@openrouter/sdk', () => ({
 }));
 
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import { Subscription } from '../../../../schemas/subscription.schema';
 import { User } from '../../../../schemas/user.schema';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
+import { FreeQuotaService } from '../../../ai/services/free-quota.service';
 import { ConversationController } from '../../conversation.controller';
 import { ConversationService } from '../../services/conversation.service';
 import { MessageService } from '../../services/message.service';
@@ -78,6 +80,14 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
             findById: jest.fn(),
             updateOne: jest.fn(),
           },
+        },
+        {
+          provide: getModelToken(Subscription.name),
+          useValue: {},
+        },
+        {
+          provide: FreeQuotaService,
+          useValue: { checkAndConsume: jest.fn() },
         },
         {
           provide: ConfigService,

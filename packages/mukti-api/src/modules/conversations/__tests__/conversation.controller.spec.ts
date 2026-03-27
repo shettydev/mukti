@@ -3,9 +3,11 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
+import { Subscription } from '../../../schemas/subscription.schema';
 import { User } from '../../../schemas/user.schema';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import { FreeQuotaService } from '../../ai/services/free-quota.service';
 import { ConversationController } from '../conversation.controller';
 import { ConversationService } from '../services/conversation.service';
 import { MessageService } from '../services/message.service';
@@ -97,6 +99,18 @@ describe('ConversationController', () => {
         {
           provide: getModelToken(User.name),
           useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Subscription.name),
+          useValue: {
+            findOne: jest.fn().mockReturnValue({
+              lean: jest.fn().mockResolvedValue(null),
+            }),
+          },
+        },
+        {
+          provide: FreeQuotaService,
+          useValue: { checkAndConsume: jest.fn() },
         },
         {
           provide: ConfigService,
