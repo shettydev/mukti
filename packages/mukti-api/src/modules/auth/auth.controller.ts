@@ -152,6 +152,7 @@ export class AuthController {
   @Get('csrf-token')
   @HttpCode(HttpStatus.OK)
   @Public()
+  @SkipEnvelope()
   getCsrfToken(@Req() req: Request): { csrfToken: string } {
     // csrfToken() is injected by the csurf middleware at runtime;
     // cast to CsrfRequest so TypeScript knows about it without using `any`.

@@ -366,8 +366,9 @@ class ApiClient {
       }
 
       const data = await response.json();
-      this.csrfToken = data.csrfToken;
-      return this.csrfToken as string;
+      // Support both raw { csrfToken } and envelope-wrapped { data: { csrfToken } } formats
+      this.csrfToken = data.csrfToken ?? data.data?.csrfToken ?? '';
+      return this.csrfToken;
     } catch (error) {
       console.error('Error fetching CSRF token:', error);
       return '';
@@ -385,11 +386,17 @@ class ApiClient {
         throw new Error('Not authenticated');
       }
 
+      const csrfToken = await this.fetchCsrfToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         credentials: 'include', // Include httpOnly cookie
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         method: 'POST',
       });
 

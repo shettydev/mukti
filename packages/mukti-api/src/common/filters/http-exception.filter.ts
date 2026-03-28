@@ -71,7 +71,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const isHttpException = exception instanceof HttpException;
     const status = isHttpException
       ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+      : this.resolveNonHttpExceptionStatus(exception);
 
     // Extract error details
     const errorResponse = this.getErrorResponse(exception, isHttpException);
@@ -188,10 +188,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
       };
     }
 
-    // Handle unexpected errors
-    const error = exception as Error;
+    // Handle errors with status codes (e.g., http-errors like csurf ForbiddenError)
+    const error = exception as Error & { code?: string; status?: number };
+    const isKnownHttpError =
+      typeof error.status === 'number' &&
+      error.status >= 400 &&
+      error.status < 600;
+
     return {
-      code: 'INTERNAL_SERVER_ERROR',
+      code:
+        error.code === 'EBADCSRFTOKEN'
+          ? 'INVALID_CSRF_TOKEN'
+          : isKnownHttpError
+            ? 'FORBIDDEN'
+            : 'INTERNAL_SERVER_ERROR',
       details:
         process.env.NODE_ENV === 'production'
           ? undefined
@@ -199,7 +209,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
               stack: error.stack,
             },
       message:
-        process.env.NODE_ENV === 'production'
+        process.env.NODE_ENV === 'production' && !isKnownHttpError
           ? 'An unexpected error occurred'
           : (error.message ?? 'Internal server error'),
     };
@@ -247,5 +257,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
       // Other errors - log as info
       this.logger.log(`${message} | ${JSON.stringify(context)}`);
     }
+  }
+
+  /**
+   * Resolves the HTTP status code from a non-HttpException error.
+   * Supports errors created by `http-errors` (used by Express middleware like csurf)
+   * which carry a `status` property.
+   */
+  private resolveNonHttpExceptionStatus(exception: unknown): number {
+    if (
+      typeof exception === 'object' &&
+      exception !== null &&
+      'status' in exception
+    ) {
+      const status = (exception as { status: unknown }).status;
+      if (typeof status === 'number' && status >= 400 && status < 600) {
+        return status;
+      }
+    }
+    return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 }
