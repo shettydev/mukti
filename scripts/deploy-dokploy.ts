@@ -1,10 +1,11 @@
 #!/usr/bin/env bun
 /**
- * Script to trigger a Dokploy deployment and poll for its status,
- * updating GitHub Deployment status along the way.
+ * Script to track a Dokploy deployment status and update GitHub Deployments.
+ * Dokploy's GitHub App handles the actual deploy trigger — this script only
+ * creates a GitHub Deployment record and polls Dokploy until it completes.
  *
  * Usage:
- *   bun scripts/deploy-dokploy.ts <application-id>
+ *   bun scripts/deploy-dokploy.ts <application-id> <project-name>
  *
  * Environment Variables required:
  *   DOKPLOY_API_URL
@@ -51,7 +52,6 @@ async function githubRequest(method: string, path: string, body?: any) {
   if (!response.ok) {
     console.error(`GitHub API Error: ${response.status} ${response.statusText}`);
     console.error(await response.text());
-    // Don't throw, just log, so deployment can continue even if status update fails
     return null;
   }
   return response.json();
@@ -62,7 +62,7 @@ async function createGitHubDeployment() {
   return githubRequest('POST', '/deployments', {
     ref: SHA,
     environment: `production-${PROJECT_NAME}`,
-    required_contexts: [], // Bypass status checks for the deployment itself
+    required_contexts: [],
     auto_merge: false,
     description: `Deploying ${PROJECT_NAME} via Dokploy`,
   });
@@ -77,22 +77,8 @@ async function updateGitHubDeploymentStatus(
   await githubRequest('POST', `/deployments/${deploymentId}/statuses`, {
     state,
     description,
-    log_url: `${DOKPLOY_API_URL}/dashboard/project/Fsjgd78Aon0BuPPLekZli/environment/3czL15atv-6N2IUcAYctA/services/application/${APP_ID}`, // Link to Dokploy dashboard
+    log_url: `${DOKPLOY_API_URL}/dashboard/project/Fsjgd78Aon0BuPPLekZli/environment/3czL15atv-6N2IUcAYctA/services/application/${APP_ID}`,
   });
-}
-
-async function triggerDokployDeployment() {
-  console.log('Triggering Dokploy deployment...');
-  const res = await fetch(`${DOKPLOY_API_URL}/api/application.deploy`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ applicationId: APP_ID }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to trigger deployment: ${res.status} ${await res.text()}`);
-  }
-  console.log('Deployment triggered successfully.');
 }
 
 async function getLatestDeployment() {
@@ -106,20 +92,18 @@ async function getLatestDeployment() {
   }
 
   const deployments: any[] = await res.json();
-  // Sort by createdAt descending
   return deployments.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )[0];
 }
 
 async function pollDeploymentStatus(ghDeploymentId: number) {
-  console.log('Waiting for deployment to appear in list...');
-  // Give it a moment to appear
-  await new Promise((r) => setTimeout(r, 5000));
+  console.log('Waiting for Dokploy deployment to start...');
+  await new Promise((r) => setTimeout(r, 10000));
 
   let deployment = await getLatestDeployment();
   if (!deployment) {
-    throw new Error('No deployment found after triggering.');
+    throw new Error('No deployment found in Dokploy.');
   }
 
   console.log(`Tracking deployment ID: ${deployment.deploymentId}`);
@@ -151,7 +135,6 @@ async function pollDeploymentStatus(ghDeploymentId: number) {
       throw new Error('Deployment failed.');
     }
 
-    // Wait 10 seconds
     await new Promise((r) => setTimeout(r, 10000));
     retries++;
   }
@@ -169,7 +152,6 @@ async function main() {
       process.exit(1);
     }
 
-    await triggerDokployDeployment();
     await pollDeploymentStatus(ghDeployment.id);
   } catch (error) {
     console.error(error);
