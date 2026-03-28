@@ -66,7 +66,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun ../../scripts/deploy-dokploy.ts 64e6zw6n2HSGyRtTi3qp- web",
+        "command": "bun ../../scripts/deploy-dokploy.ts TShBBdZgJLZHFN6Bd2I93 web",
         "cwd": "packages/mukti-web"
       }
     },

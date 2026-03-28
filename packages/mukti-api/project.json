@@ -101,7 +101,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun ../../scripts/deploy-dokploy.ts P61XR8uMoGZ6x2sohbIJg api",
+        "command": "bun ../../scripts/deploy-dokploy.ts 4kvYq-tUDa6SeMJTKEsJj api",
         "cwd": "packages/mukti-api"
       }
     },
