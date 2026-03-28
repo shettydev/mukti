@@ -77,7 +77,7 @@ async function updateGitHubDeploymentStatus(
   await githubRequest('POST', `/deployments/${deploymentId}/statuses`, {
     state,
     description,
-    log_url: `${DOKPLOY_API_URL}/dashboard/project/application/${APP_ID}/deployments`, // Link to Dokploy dashboard if possible
+    log_url: `${DOKPLOY_API_URL}/dashboard/project/Fsjgd78Aon0BuPPLekZli/environment/3czL15atv-6N2IUcAYctA/services/application/${APP_ID}`, // Link to Dokploy dashboard
   });
 }
 
@@ -129,7 +129,7 @@ async function pollDeploymentStatus(ghDeploymentId: number) {
     'Deployment started in Dokploy'
   );
 
-  const maxRetries = 60; // 5 minutes approx (60 * 5s)
+  const maxRetries = 60; // 10 minutes (60 * 10s)
   let retries = 0;
 
   while (retries < maxRetries) {
@@ -151,8 +151,8 @@ async function pollDeploymentStatus(ghDeploymentId: number) {
       throw new Error('Deployment failed.');
     }
 
-    // Wait 5 seconds
-    await new Promise((r) => setTimeout(r, 5000));
+    // Wait 10 seconds
+    await new Promise((r) => setTimeout(r, 10000));
     retries++;
   }
 
