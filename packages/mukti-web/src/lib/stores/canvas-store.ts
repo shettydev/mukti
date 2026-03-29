@@ -25,6 +25,7 @@ import type { CanvasSession, InsightNode, RelationshipEdge } from '@/types/canva
 import { canvasApi } from '@/lib/api/canvas';
 import {
   calculateInsightPosition,
+  calculateNextColumnY,
   generateLayout,
   getInsightNodeId,
   getNextInsightIndex,
@@ -186,17 +187,11 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
     const newIndex = nodes.filter((n) => n.type === 'root').length;
     const tempNodeId = getRootNodeId(newIndex);
 
-    // Calculate position using layout algorithm
-    const rootAngleStep =
-      newIndex === 0 ? 0 : (DEFAULT_LAYOUT.rootEndAngle - DEFAULT_LAYOUT.rootStartAngle) / newIndex;
-    const angle =
-      newIndex === 0
-        ? (DEFAULT_LAYOUT.rootStartAngle + DEFAULT_LAYOUT.rootEndAngle) / 2
-        : DEFAULT_LAYOUT.rootStartAngle + newIndex * rootAngleStep;
-
+    // Calculate position using column layout — place below last root node
+    const existingRoots = nodes.filter((n) => n.type === 'root');
     const position: Position = {
-      x: DEFAULT_LAYOUT.centerX + Math.cos(angle) * DEFAULT_LAYOUT.rootRadius,
-      y: DEFAULT_LAYOUT.centerY + Math.sin(angle) * DEFAULT_LAYOUT.rootRadius,
+      x: DEFAULT_LAYOUT.centerX + DEFAULT_LAYOUT.rootColumnX,
+      y: calculateNextColumnY(existingRoots, DEFAULT_LAYOUT),
     };
 
     // Create temporary node for optimistic update
@@ -264,17 +259,11 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
     const newIndex = nodes.filter((n) => n.type === 'soil').length;
     const tempNodeId = getSoilNodeId(newIndex);
 
-    // Calculate position using layout algorithm
-    const soilAngleStep =
-      newIndex === 0 ? 0 : (DEFAULT_LAYOUT.soilEndAngle - DEFAULT_LAYOUT.soilStartAngle) / newIndex;
-    const angle =
-      newIndex === 0
-        ? (DEFAULT_LAYOUT.soilStartAngle + DEFAULT_LAYOUT.soilEndAngle) / 2
-        : DEFAULT_LAYOUT.soilStartAngle + newIndex * soilAngleStep;
-
+    // Calculate position using column layout — place below last soil node
+    const existingSoils = nodes.filter((n) => n.type === 'soil');
     const position: Position = {
-      x: DEFAULT_LAYOUT.centerX + Math.cos(angle) * DEFAULT_LAYOUT.soilRadius,
-      y: DEFAULT_LAYOUT.centerY + Math.sin(angle) * DEFAULT_LAYOUT.soilRadius,
+      x: DEFAULT_LAYOUT.centerX + DEFAULT_LAYOUT.soilColumnX,
+      y: calculateNextColumnY(existingSoils, DEFAULT_LAYOUT),
     };
 
     // Create temporary node for optimistic update
