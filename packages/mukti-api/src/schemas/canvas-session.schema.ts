@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 export type CanvasSessionDocument = CanvasSession & Document;
 
@@ -76,11 +76,14 @@ export class CanvasSession {
   @Prop({
     default: [],
     type: [
-      {
-        nodeId: { required: true, type: String },
-        x: { required: true, type: Number },
-        y: { required: true, type: Number },
-      },
+      new MongooseSchema(
+        {
+          nodeId: { required: true, type: String },
+          x: { required: true, type: Number },
+          y: { required: true, type: Number },
+        },
+        { _id: false },
+      ),
     ],
   })
   nodePositions: NodePosition[];
@@ -102,11 +105,14 @@ export class CanvasSession {
   @Prop({
     default: [],
     type: [
-      {
-        id: { required: true, type: String },
-        sourceNodeId: { required: true, type: String },
-        targetNodeId: { required: true, type: String },
-      },
+      new MongooseSchema(
+        {
+          id: { required: true, type: String },
+          sourceNodeId: { required: true, type: String },
+          targetNodeId: { required: true, type: String },
+        },
+        { _id: false },
+      ),
     ],
   })
   relationshipEdges: RelationshipEdge[];
