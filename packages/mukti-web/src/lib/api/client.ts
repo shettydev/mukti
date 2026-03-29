@@ -367,8 +367,9 @@ class ApiClient {
 
       const data = await response.json();
       // Support both raw { csrfToken } and envelope-wrapped { data: { csrfToken } } formats
-      this.csrfToken = data.csrfToken ?? data.data?.csrfToken ?? '';
-      return this.csrfToken;
+      const token = data.csrfToken ?? data.data?.csrfToken ?? '';
+      this.csrfToken = token;
+      return token;
     } catch (error) {
       console.error('Error fetching CSRF token:', error);
       return '';
