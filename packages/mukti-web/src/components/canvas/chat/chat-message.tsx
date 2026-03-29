@@ -9,7 +9,9 @@
  * @requirements 4.2 - Dialogue history display with timestamps
  */
 
-import { Bot, User } from 'lucide-react';
+import { User } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import Image from 'next/image';
 
 import type { DialogueMessage } from '@/types/dialogue.types';
 
@@ -57,6 +59,11 @@ export interface ChatMessageProps {
  */
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const { resolvedTheme } = useTheme();
+  const logoSrc =
+    resolvedTheme === 'dark'
+      ? '/mukti-enso/mukti-inverted-enso-no-bg.png'
+      : '/mukti-enso-inverted/mukti-enso-no-bg.png';
 
   return (
     <div className={cn('flex w-full gap-3 py-3', isUser ? 'flex-row-reverse' : 'flex-row')}>
@@ -67,7 +74,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
           isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
         )}
       >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+        {isUser ? (
+          <User className="h-4 w-4" />
+        ) : (
+          <Image alt="Mukti" className="object-contain" height={18} src={logoSrc} width={18} />
+        )}
       </div>
 
       {/* Message content */}
