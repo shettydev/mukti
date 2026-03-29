@@ -30,7 +30,7 @@ export function ThinkingIntentSelector({
   return (
     <div
       className={cn(
-        isFloating ? 'grid grid-cols-4 gap-1' : 'grid grid-cols-2 gap-1.5 sm:grid-cols-4'
+        isFloating ? 'flex flex-wrap gap-1' : 'grid grid-cols-2 gap-1.5 sm:grid-cols-4'
       )}
     >
       {THINKING_INTENTS.map((intent) => {
@@ -48,6 +48,7 @@ export function ThinkingIntentSelector({
             )}
             key={intent.value}
             onClick={() => onChange(intent.value)}
+            onMouseDown={(e) => e.preventDefault()}
             type="button"
           >
             <Icon className={cn('shrink-0', isFloating ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
