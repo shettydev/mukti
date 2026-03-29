@@ -23,7 +23,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
 
-import type {
+import {
   AuthResponseDto,
   ChangePasswordDto,
   ForgotPasswordDto,
