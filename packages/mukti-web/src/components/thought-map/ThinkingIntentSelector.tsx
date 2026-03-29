@@ -31,7 +31,7 @@ export function ThinkingIntentSelector({
   return (
     <div
       className={cn(
-        isFloating ? 'flex flex-wrap gap-1' : 'grid grid-cols-2 gap-1.5 sm:grid-cols-4'
+        isFloating ? 'grid grid-cols-4 gap-1' : 'grid grid-cols-2 gap-1.5 sm:grid-cols-4'
       )}
     >
       {THINKING_INTENTS.map((intent) => {
@@ -41,8 +41,8 @@ export function ThinkingIntentSelector({
         return (
           <Button
             className={cn(
-              'h-auto gap-1 rounded-lg shadow-none',
-              isFloating ? 'px-2 py-1 text-[10px]' : 'px-2 py-1.5 text-xs',
+              'h-auto min-w-0 gap-1 rounded-lg shadow-none',
+              isFloating ? 'px-1.5 py-1 text-[10px]' : 'px-2 py-1.5 text-xs',
               isSelected
                 ? 'border-stone-400 bg-stone-100 text-stone-900 dark:border-stone-500 dark:bg-stone-800 dark:text-stone-100'
                 : 'border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700 dark:border-stone-700 dark:text-stone-400 dark:hover:border-stone-600 dark:hover:text-stone-300'
