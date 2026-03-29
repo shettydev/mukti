@@ -117,7 +117,7 @@ export function EditableTopicNode({ data, selected }: EditableTopicNodeProps) {
     <div
       className={cn(
         // Base — matches TopicNode sizing
-        'relative min-w-[260px] max-w-[360px] cursor-default rounded-2xl border-2 p-5',
+        'relative min-w-[260px] max-w-[420px] cursor-default rounded-2xl border-2 p-5',
         // Japandi primary: warm dark tone gradient
         'bg-gradient-to-br from-stone-800 to-stone-900',
         'transition-all duration-200',
