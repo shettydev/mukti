@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 /**
  * DTO for converting a CanvasSession into a new ThoughtMap.
@@ -21,6 +21,7 @@ export class ConvertCanvasDto {
     maxLength: 500,
     required: false,
   })
+  @IsOptional()
   @IsNotEmpty()
   @IsString()
   title?: string;
