@@ -3,6 +3,8 @@
 import { Play } from 'lucide-react';
 import { motion } from 'motion/react';
 
+import VideoJsPlayer from './video-js-player';
+
 const demos = [
   {
     description:
@@ -77,14 +79,7 @@ export default function LandingDemo() {
                   className={`relative w-full overflow-hidden rounded-sm border border-japandi-sand/40 bg-japandi-cream ${demo.video ? '' : 'aspect-[16/10]'}`}
                 >
                   {demo.video ? (
-                    <video
-                      autoPlay
-                      className="block w-full"
-                      loop
-                      muted
-                      playsInline
-                      src={demo.video}
-                    />
+                    <VideoJsPlayer src={demo.video} />
                   ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-japandi-light-stone/30">
                       <div className="flex h-14 w-14 items-center justify-center rounded-full border border-japandi-stone/15 bg-japandi-cream/80">
