@@ -13,10 +13,20 @@ interface VideoJsPlayerProps {
 
 export default function VideoJsPlayer({ className, src }: VideoJsPlayerProps) {
   return (
-    <Player.Provider>
-      <VideoSkin className={className}>
-        <Video autoPlay loop muted playsInline src={src} />
-      </VideoSkin>
-    </Player.Provider>
+    <div
+      className={className}
+      style={
+        {
+          '--media-border-color': 'transparent',
+          '--media-border-radius': '0',
+        } as React.CSSProperties
+      }
+    >
+      <Player.Provider>
+        <VideoSkin>
+          <Video autoPlay loop muted playsInline src={src} />
+        </VideoSkin>
+      </Player.Provider>
+    </div>
   );
 }
