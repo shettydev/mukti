@@ -2,6 +2,7 @@
 
 import type { ThinkingIntent } from '@/types/thought-map';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 import { THINKING_INTENTS } from './thought-map-constants';
@@ -38,9 +39,9 @@ export function ThinkingIntentSelector({
         const isSelected = value === intent.value;
 
         return (
-          <button
+          <Button
             className={cn(
-              'flex items-center justify-center gap-1 rounded-lg border font-medium transition-colors',
+              'h-auto gap-1 rounded-lg shadow-none',
               isFloating ? 'px-2 py-1 text-[10px]' : 'px-2 py-1.5 text-xs',
               isSelected
                 ? 'border-stone-400 bg-stone-100 text-stone-900 dark:border-stone-500 dark:bg-stone-800 dark:text-stone-100'
@@ -50,10 +51,11 @@ export function ThinkingIntentSelector({
             onClick={() => onChange(intent.value)}
             onMouseDown={(e) => e.preventDefault()}
             type="button"
+            variant="outline"
           >
             <Icon className={cn('shrink-0', isFloating ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
             {intent.label}
-          </button>
+          </Button>
         );
       })}
     </div>
