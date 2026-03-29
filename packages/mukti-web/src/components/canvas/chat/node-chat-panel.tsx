@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { CanvasNode } from '@/types/canvas-visualization.types';
 
 import { Button } from '@/components/ui/button';
+import { LoadingMessage } from '@/components/conversations/loading-message';
 import { useDialogueStream, useNodeMessages, useSendNodeMessage } from '@/lib/hooks/use-dialogue';
 import { useAiStore } from '@/lib/stores/ai-store';
 import {
@@ -326,12 +327,7 @@ export function NodeChatPanel({
         ))}
 
         {/* Processing indicator */}
-        {isProcessing && (
-          <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>{processingStatus || 'Processing...'}</span>
-          </div>
-        )}
+        {isProcessing && <LoadingMessage status={processingStatus || 'Mukti is thinking...'} />}
 
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />

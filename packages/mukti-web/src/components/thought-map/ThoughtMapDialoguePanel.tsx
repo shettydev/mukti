@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { ThoughtMapNode } from '@/types/thought-map';
 
 import { Button } from '@/components/ui/button';
+import { LoadingMessage } from '@/components/conversations/loading-message';
 import {
   useSendThoughtMapMessage,
   useStartThoughtMapDialogue,
@@ -274,12 +275,7 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         ))}
 
         {/* Processing indicator */}
-        {isProcessing && (
-          <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>{processingStatus ?? 'Processing…'}</span>
-          </div>
-        )}
+        {isProcessing && <LoadingMessage status={processingStatus ?? 'Mukti is thinking...'} />}
 
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />
