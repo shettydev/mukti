@@ -11,10 +11,12 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: class {},
 }));
 
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import { Subscription } from '../../../../schemas/subscription.schema';
 import { User } from '../../../../schemas/user.schema';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
 import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
-import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { FreeQuotaService } from '../../../ai/services/free-quota.service';
 import { ConversationController } from '../../conversation.controller';
 import { ConversationService } from '../../services/conversation.service';
 import { MessageService } from '../../services/message.service';
@@ -80,6 +82,14 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
           },
         },
         {
+          provide: getModelToken(Subscription.name),
+          useValue: {},
+        },
+        {
+          provide: FreeQuotaService,
+          useValue: { checkAndConsume: jest.fn() },
+        },
+        {
           provide: ConfigService,
           useValue: {
             get: jest.fn(),
@@ -117,15 +127,15 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
    * token before establishing the connection.
    */
   describe('Authentication Validation', () => {
-    it('should reject SSE connections without valid authentication', async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it('should reject SSE connections without valid authentication', () => {
+      fc.assert(
+        fc.property(
           fc.record({
             conversationId: fc
               .string({ maxLength: 24, minLength: 24 })
               .map(() => new Types.ObjectId().toString()),
           }),
-          async ({ conversationId }) => {
+          ({ conversationId }) => {
             // Create mock execution context without authenticated user
             const mockContext = {
               getClass: jest.fn().mockReturnValue(ConversationController),
@@ -141,7 +151,7 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
 
             // Guard's handleRequest should throw UnauthorizedException when no user
             try {
-              await guard.handleRequest(null, null, null, mockContext);
+              guard.handleRequest(null, null, undefined, mockContext);
               // Should not reach here
               expect(true).toBe(false);
             } catch (error) {
@@ -205,15 +215,15 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
       );
     });
 
-    it('should reject expired authentication tokens', async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it('should reject expired authentication tokens', () => {
+      fc.assert(
+        fc.property(
           fc.record({
             conversationId: fc
               .string({ maxLength: 24, minLength: 24 })
               .map(() => new Types.ObjectId().toString()),
           }),
-          async ({ conversationId }) => {
+          ({ conversationId }) => {
             // Create mock execution context
             const mockContext = {
               getClass: jest.fn().mockReturnValue(ConversationController),
@@ -231,12 +241,7 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
             const tokenExpiredInfo = { name: 'TokenExpiredError' };
 
             try {
-              await guard.handleRequest(
-                null,
-                null,
-                tokenExpiredInfo,
-                mockContext,
-              );
+              guard.handleRequest(null, null, tokenExpiredInfo, mockContext);
               // Should not reach here
               expect(true).toBe(false);
             } catch (error) {
@@ -255,15 +260,15 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
       );
     });
 
-    it('should reject invalid authentication tokens', async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it('should reject invalid authentication tokens', () => {
+      fc.assert(
+        fc.property(
           fc.record({
             conversationId: fc
               .string({ maxLength: 24, minLength: 24 })
               .map(() => new Types.ObjectId().toString()),
           }),
-          async ({ conversationId }) => {
+          ({ conversationId }) => {
             // Create mock execution context
             const mockContext = {
               getClass: jest.fn().mockReturnValue(ConversationController),
@@ -281,12 +286,7 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
             const invalidTokenInfo = { name: 'JsonWebTokenError' };
 
             try {
-              await guard.handleRequest(
-                null,
-                null,
-                invalidTokenInfo,
-                mockContext,
-              );
+              guard.handleRequest(null, null, invalidTokenInfo, mockContext);
               // Should not reach here
               expect(true).toBe(false);
             } catch (error) {
@@ -365,7 +365,7 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
               } as unknown as ExecutionContext;
 
               try {
-                guard.handleRequest(null, null, null, mockContext);
+                guard.handleRequest(null, null, undefined, mockContext);
                 expect(true).toBe(false);
               } catch (error) {
                 expect(error).toBeInstanceOf(UnauthorizedException);
@@ -383,9 +383,9 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
       );
     });
 
-    it('should handle various authentication error scenarios consistently', async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it('should handle various authentication error scenarios consistently', () => {
+      fc.assert(
+        fc.property(
           fc.record({
             conversationId: fc
               .string({ maxLength: 24, minLength: 24 })
@@ -396,7 +396,7 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
               'NoAuthToken',
             ),
           }),
-          async ({ conversationId, errorType }) => {
+          ({ conversationId, errorType }) => {
             const mockContext = {
               getClass: jest.fn().mockReturnValue(ConversationController),
               getHandler: jest.fn(),
@@ -418,7 +418,7 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
                 : { name: errorType };
 
             try {
-              await guard.handleRequest(null, null, errorInfo, mockContext);
+              guard.handleRequest(null, null, errorInfo, mockContext);
               expect(true).toBe(false);
             } catch (error) {
               // All authentication errors should result in UnauthorizedException

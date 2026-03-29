@@ -6,9 +6,16 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 import { Observable } from 'rxjs';
 
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+
+/** Shape of the info object provided by passport-jwt on authentication failure. */
+interface JwtAuthInfo {
+  message?: string;
+  name?: string;
+}
 
 /**
  * Guard that protects routes requiring JWT authentication.
@@ -79,7 +86,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     // Log authentication attempt
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<Request>();
     this.logger.debug(
       `Authenticating request to ${request.method} ${request.url}`,
     );
@@ -104,15 +111,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * - Expired token
    * - Other authentication errors
    */
-  handleRequest<TUser = any>(
-    err: any,
-    user: any,
-    info: any,
+  handleRequest<TUser>(
+    err: Error | null,
+    user: false | TUser,
+    info: JwtAuthInfo | undefined,
     context: ExecutionContext,
   ): TUser {
     // Log authentication failure
-    if (err || !user) {
-      const request = context.switchToHttp().getRequest();
+    if (err ?? !user) {
+      const request = context.switchToHttp().getRequest<Request>();
       this.logger.warn(
         `Authentication failed for ${request.method} ${request.url}: ${info?.message ?? 'Unknown error'}`,
       );
@@ -131,11 +138,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new UnauthorizedException('No authentication token provided');
     }
 
-    if (err || !user) {
-      throw err || new UnauthorizedException('Authentication failed');
+    if (err ?? !user) {
+      throw err ?? new UnauthorizedException('Authentication failed');
     }
 
-    this.logger.debug(`User authenticated successfully: ${user._id}`);
-    return user;
+    // user is narrowed to TUser here; cast to access _id for logging only
+    const authenticatedUser = user as TUser & { _id: unknown };
+    this.logger.debug(
+      `User authenticated successfully: ${String(authenticatedUser._id)}`,
+    );
+    return user as TUser;
   }
 }

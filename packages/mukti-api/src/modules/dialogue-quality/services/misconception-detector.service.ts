@@ -65,7 +65,11 @@ export class MisconceptionDetectorService {
       const cached = await this.redis.get(cacheKey);
       if (cached) {
         this.logger.debug(`Misconception cache hit for key ${cacheKey}`);
-        return { ...JSON.parse(cached), fromCache: true };
+        const parsedCache = JSON.parse(cached) as Omit<
+          MisconceptionResult,
+          'fromCache'
+        >;
+        return { ...parsedCache, fromCache: true };
       }
     } catch (error) {
       this.logger.warn(
@@ -120,7 +124,12 @@ export class MisconceptionDetectorService {
       clearTimeout(timer!);
 
       const content = this.extractContent(response);
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as {
+        conceptName?: null | string;
+        correctDirection?: null | string;
+        detectedBelief?: null | string;
+        hasMisconception?: boolean;
+      };
 
       const result: MisconceptionResult = {
         conceptName: parsed.conceptName ?? undefined,
@@ -154,9 +163,11 @@ export class MisconceptionDetectorService {
       typeof response === 'object' &&
       response !== null &&
       'choices' in response &&
-      Array.isArray((response as any).choices)
+      Array.isArray((response as { choices: unknown[] }).choices)
     ) {
-      const choice = (response as any).choices[0];
+      const choice = (
+        response as { choices: { message?: { content?: unknown } }[] }
+      ).choices[0];
       const content = choice?.message?.content;
       if (typeof content === 'string') {
         return content;

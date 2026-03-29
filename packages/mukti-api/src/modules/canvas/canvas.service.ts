@@ -945,16 +945,9 @@ export class CanvasService {
     // Validate session ownership
     await this.findSessionById(sessionId, userId);
 
-    const updateData: any = {};
-    if (dto.label !== undefined) {
-      updateData.label = dto.label;
-    }
-    if (dto.isExplored !== undefined) {
-      updateData.isExplored = dto.isExplored;
-    }
-
-    // Construct the $set object for mongo update
-    const setOp: any = {};
+    // Construct the $set object for mongo update using string-keyed record
+    // to support dot-notation paths like 'position.x' required by MongoDB
+    const setOp: Record<string, boolean | number | string> = {};
     if (dto.label !== undefined) {
       setOp.label = dto.label;
     }

@@ -1,8 +1,8 @@
-import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { QueueModule } from '../../core/queue/queue.module';
 import {
   ArchivedMessage,
   ArchivedMessageSchema,
@@ -64,41 +64,8 @@ import { StreamService } from './services/stream.service';
       { name: Subscription.name, schema: SubscriptionSchema },
       { name: UsageEvent.name, schema: UsageEventSchema },
     ]),
-    // Configure BullMQ queue for conversation requests
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const password = configService.get<string>('REDIS_PASSWORD')?.trim();
-
-        return {
-          connection: {
-            db: configService.get<number>('REDIS_DB', 0),
-            host: configService.get<string>('REDIS_HOST', 'localhost'),
-            port: configService.get<number>('REDIS_PORT', 6379),
-            ...(password ? { password } : {}),
-          },
-        };
-      },
-    }),
-    // Register conversation-requests queue
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          delay: 1000,
-          type: 'exponential',
-        },
-        removeOnComplete: {
-          age: 24 * 3600, // 24 hours
-          count: 1000,
-        },
-        removeOnFail: {
-          age: 7 * 24 * 3600, // 7 days
-        },
-      },
-      name: 'conversation-requests',
-    }),
+    // Register conversation-requests queue (Redis connection provided by CoreModule)
+    QueueModule.registerQueue('conversation-requests'),
   ],
   providers: [
     ConversationService,

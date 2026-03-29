@@ -226,6 +226,8 @@ export class ThoughtMapService {
     }
 
     const { roots, seed, soil } = session.problemStructure;
+    // Intentional || — empty/whitespace-only titleOverride must fall back to seed
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const title = (titleOverride?.trim() || seed).slice(0, 500);
     const rootNodeId = 'topic-0';
 

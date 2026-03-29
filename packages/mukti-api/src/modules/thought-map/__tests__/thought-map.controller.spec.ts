@@ -136,17 +136,7 @@ describe('ThoughtMapController', () => {
     });
   };
 
-  const expectEnvelope = (result: any) => {
-    expect(result.success).toBe(true);
-    expect(result.meta).toEqual(
-      expect.objectContaining({
-        requestId: expect.any(String),
-        timestamp: expect.any(String),
-      }),
-    );
-  };
-
-  it('creates a thought map with the standard response envelope', async () => {
+  it('creates a thought map and returns the raw data', async () => {
     const created = { map: { _id: new Types.ObjectId() }, rootNode: {} };
     mockThoughtMapService.createMap.mockResolvedValue(created);
 
@@ -158,22 +148,20 @@ describe('ThoughtMapController', () => {
     expect(mockThoughtMapService.createMap).toHaveBeenCalledWith(mockUser._id, {
       title: 'Systems thinking',
     });
-    expect(result.data).toBe(created);
-    expectEnvelope(result);
+    expect(result).toBe(created);
   });
 
-  it('lists maps with the standard response envelope', async () => {
+  it('lists maps and returns the raw data', async () => {
     const maps = [{ _id: new Types.ObjectId() }];
     mockThoughtMapService.listMaps.mockResolvedValue(maps);
 
     const result = await controller.listMaps(mockUser as any);
 
     expect(mockThoughtMapService.listMaps).toHaveBeenCalledWith(mockUser._id);
-    expect(result.data).toBe(maps);
-    expectEnvelope(result);
+    expect(result).toBe(maps);
   });
 
-  it('retrieves a map with the standard response envelope', async () => {
+  it('retrieves a map and returns the raw data', async () => {
     const payload = { map: { _id: new Types.ObjectId() }, nodes: [] };
     mockThoughtMapService.getMap.mockResolvedValue(payload);
 
@@ -183,11 +171,10 @@ describe('ThoughtMapController', () => {
       'map-1',
       mockUser._id,
     );
-    expect(result.data).toBe(payload);
-    expectEnvelope(result);
+    expect(result).toBe(payload);
   });
 
-  it('adds a node with the standard response envelope', async () => {
+  it('adds a node and returns the raw data', async () => {
     const node = { nodeId: 'thought-1' };
     mockThoughtMapService.addNode.mockResolvedValue(node);
 
@@ -202,11 +189,10 @@ describe('ThoughtMapController', () => {
       mockUser._id,
       { label: 'Branch', parentId: 'topic-0' },
     );
-    expect(result.data).toBe(node);
-    expectEnvelope(result);
+    expect(result).toBe(node);
   });
 
-  it('updates a node with the standard response envelope', async () => {
+  it('updates a node and returns the raw data', async () => {
     const node = { nodeId: 'thought-1' };
     mockThoughtMapService.updateNode.mockResolvedValue(node);
 
@@ -223,8 +209,7 @@ describe('ThoughtMapController', () => {
       mockUser._id,
       { label: 'Updated' },
     );
-    expect(result.data).toBe(node);
-    expectEnvelope(result);
+    expect(result).toBe(node);
   });
 
   it('parses cascade=true and cascade=1 as true', async () => {
@@ -248,7 +233,7 @@ describe('ThoughtMapController', () => {
   });
 
   it('treats other cascade values as false', async () => {
-    const result = await controller.deleteNode(
+    const _result = await controller.deleteNode(
       'map-1',
       'node-1',
       'false',
@@ -261,10 +246,9 @@ describe('ThoughtMapController', () => {
       mockUser._id,
       false,
     );
-    expectEnvelope(result);
   });
 
-  it('deletes a map with the standard response envelope', async () => {
+  it('deletes a map and returns void', async () => {
     mockThoughtMapService.deleteMap.mockResolvedValue(undefined);
 
     const result = await controller.deleteMap('map-1', mockUser as any);
@@ -273,7 +257,7 @@ describe('ThoughtMapController', () => {
       'map-1',
       mockUser._id,
     );
-    expectEnvelope(result);
+    expect(result).toBeUndefined();
   });
 
   it('uses the BYOK execution context for branch suggestions', async () => {
@@ -314,8 +298,7 @@ describe('ThoughtMapController', () => {
       'resolved-model',
       true,
     );
-    expect(result.data).toEqual({ jobId: 'job-1', position: 2 });
-    expectEnvelope(result);
+    expect(result).toEqual({ jobId: 'job-1', position: 2 });
   });
 
   it('uses the server API key for extraction and persists a new active model', async () => {
@@ -353,8 +336,7 @@ describe('ThoughtMapController', () => {
       false,
       'free',
     );
-    expect(result.data).toEqual({ jobId: 'job-2', position: 1 });
-    expectEnvelope(result);
+    expect(result).toEqual({ jobId: 'job-2', position: 1 });
   });
 
   it('throws when the AI execution context user record is missing', async () => {
@@ -403,11 +385,10 @@ describe('ThoughtMapController', () => {
       mockUser as any,
     );
 
-    expect(result.data).toEqual({
+    expect(result).toEqual({
       result: { mapId: 'map-1' },
       state: 'completed',
     });
-    expectEnvelope(result);
   });
 
   it('rejects suggestion job status when the result belongs to another map', async () => {
@@ -612,8 +593,7 @@ describe('ThoughtMapController', () => {
       mockUser as any,
     );
 
-    expect(result.data).toEqual({ jobId: 'extract-1', position: 3 });
-    expectEnvelope(result);
+    expect(result).toEqual({ jobId: 'extract-1', position: 3 });
   });
 
   it('registers extraction stream connections and runs cleanup on unsubscribe', async () => {
@@ -734,7 +714,7 @@ describe('ThoughtMapController', () => {
     ]);
   });
 
-  it('confirms a draft map with the standard response envelope', async () => {
+  it('confirms a draft map and returns the raw data', async () => {
     const map = { _id: new Types.ObjectId(), status: 'active' };
     mockThoughtMapService.confirmMap.mockResolvedValue(map);
 
@@ -744,11 +724,10 @@ describe('ThoughtMapController', () => {
       'map-1',
       mockUser._id,
     );
-    expect(result.data).toBe(map);
-    expectEnvelope(result);
+    expect(result).toBe(map);
   });
 
-  it('converts a canvas session with the standard response envelope', async () => {
+  it('converts a canvas session and returns the raw data', async () => {
     const converted = { map: { _id: new Types.ObjectId() }, nodes: [] };
     mockThoughtMapService.convertFromCanvas.mockResolvedValue(converted);
 
@@ -763,11 +742,10 @@ describe('ThoughtMapController', () => {
       mockUser._id,
       'Override title',
     );
-    expect(result.data).toBe(converted);
-    expectEnvelope(result);
+    expect(result).toBe(converted);
   });
 
-  it('updates settings with the standard response envelope', async () => {
+  it('updates settings and returns the raw data', async () => {
     const map = { _id: new Types.ObjectId() };
     mockThoughtMapService.updateSettings.mockResolvedValue(map);
 
@@ -782,8 +760,7 @@ describe('ThoughtMapController', () => {
       mockUser._id,
       { autoSuggestEnabled: false },
     );
-    expect(result.data).toBe(map);
-    expectEnvelope(result);
+    expect(result).toBe(map);
   });
 
   it('creates and returns share links for owned maps', async () => {
@@ -802,8 +779,7 @@ describe('ThoughtMapController', () => {
       mockUser._id,
       { expiresAt: '2027-01-01T00:00:00.000Z' },
     );
-    expect(result.data).toBe(link);
-    expectEnvelope(result);
+    expect(result).toBe(link);
   });
 
   it('returns the active share link for an owned map', async () => {
@@ -813,11 +789,10 @@ describe('ThoughtMapController', () => {
 
     const result = await controller.getShareLink('map-1', mockUser as any);
 
-    expect(result.data).toBe(link);
-    expectEnvelope(result);
+    expect(result).toBe(link);
   });
 
-  it('revokes a share link with the standard response envelope', async () => {
+  it('revokes a share link and returns void', async () => {
     mockThoughtMapService.findMapById.mockResolvedValue({ _id: 'map-1' });
 
     const result = await controller.revokeShareLink('map-1', mockUser as any);
@@ -825,7 +800,7 @@ describe('ThoughtMapController', () => {
     expect(mockThoughtMapShareService.revokeShareLink).toHaveBeenCalledWith(
       'map-1',
     );
-    expectEnvelope(result);
+    expect(result).toBeUndefined();
   });
 
   it('returns a public shared map without ownership checks', async () => {
@@ -839,8 +814,7 @@ describe('ThoughtMapController', () => {
     expect(mockThoughtMapService.getPublicMap).toHaveBeenCalledWith(
       link.thoughtMapId.toString(),
     );
-    expect(result.data).toBe(shared);
-    expectEnvelope(result);
+    expect(result).toBe(shared);
   });
 
   it('propagates map ownership errors before opening a suggestion stream', async () => {
