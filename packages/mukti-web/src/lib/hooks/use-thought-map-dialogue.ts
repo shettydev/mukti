@@ -29,8 +29,9 @@ import {
   type ThoughtMapSendMessageResponse,
 } from '@/lib/api/thought-map-dialogue';
 import { config } from '@/lib/config';
-import { thoughtMapDialogueKeys } from '@/lib/query-keys';
+import { thoughtMapDialogueKeys, thoughtMapKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useThoughtMapStore } from '@/lib/stores/thought-map-store';
 
 // ============================================================================
 // Types
@@ -156,18 +157,49 @@ export function useStartThoughtMapDialogue(mapId: string, nodeId: string) {
     onSuccess: (response) => {
       const queryKey = thoughtMapDialogueKeys.messages(mapId, nodeId);
 
-      // Reload case: dialogue already has more than the initial question.
-      // Seeding the cache with only one message would render it as the sole
-      // visible message while the count badge correctly shows the true total.
-      // Invalidate so useThoughtMapNodeMessages fetches the full paginated list.
+      // Optimistically mark the node as explored in the Zustand store.
+      // The backend already persists isExplored=true in the start endpoint,
+      // so this is a local-only UI update — no API call needed.
+      const { nodes } = useThoughtMapStore.getState();
+      const existingNode = nodes[nodeId];
+      if (existingNode && !existingNode.isExplored) {
+        useThoughtMapStore.setState({
+          nodes: { ...nodes, [nodeId]: { ...existingNode, isExplored: true } },
+        });
+      }
+
+      // Async path: AI is generating the initial question via the queue.
+      // Seed cache with the dialogue but no messages — the SSE stream
+      // will deliver the AI message when it's ready.
+      if ('jobId' in response) {
+        const seedPage: ThoughtMapPaginatedMessagesResponse = {
+          dialogue: response.dialogue,
+          messages: [],
+          pagination: {
+            hasMore: false,
+            limit: config.pagination.defaultPageSize,
+            page: 1,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+
+        queryClient.setQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(queryKey, {
+          pageParams: [1],
+          pages: [seedPage],
+        });
+        return;
+      }
+
+      // Sync path: dialogue already has messages (re-open case).
+      // Invalidate if more than the initial question exists so the
+      // infinite query fetches the full paginated list.
       if (response.dialogue.messageCount > 1) {
         queryClient.invalidateQueries({ queryKey });
         return;
       }
 
-      // First-open case: only the initial question exists.
-      // Seed the cache so the infinite query shows it immediately
-      // without a redundant network round-trip.
+      // Sync path with single message: seed the cache directly.
       const existing =
         queryClient.getQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(queryKey);
 
@@ -289,6 +321,11 @@ export function useThoughtMapDialogueStream(
           setState((prev) => ({ ...prev, isProcessing: false, processingStatus: null }));
           queryClient.invalidateQueries({
             queryKey: thoughtMapDialogueKeys.node(currentMapId, currentNodeId),
+          });
+          // Also invalidate the map detail cache so isExplored and other
+          // node-level changes (set by the queue worker) are reflected.
+          queryClient.invalidateQueries({
+            queryKey: thoughtMapKeys.detail(currentMapId),
           });
           break;
 

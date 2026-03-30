@@ -91,7 +91,9 @@ interface BackendSendMessageResponse {
 
 interface BackendStartDialogueResponse {
   dialogue: BackendThoughtMapDialogue;
-  initialQuestion: BackendThoughtMapDialogueMessage;
+  initialQuestion?: BackendThoughtMapDialogueMessage;
+  jobId?: string;
+  position?: number;
 }
 
 interface BackendThoughtMapDialogue {
@@ -226,10 +228,15 @@ export const thoughtMapDialogueApi = {
       `/thought-maps/${mapId}/nodes/${nodeId}/start`
     );
 
-    return {
-      dialogue: transformDialogue(response.dialogue),
-      initialQuestion: transformMessage(response.initialQuestion),
-    };
+    const dialogue = transformDialogue(response.dialogue);
+
+    // Async path: new dialogue, AI generating initial question via queue
+    if (response.jobId) {
+      return { dialogue, jobId: response.jobId, position: response.position! };
+    }
+
+    // Sync path: existing dialogue, return first message
+    return { dialogue, initialQuestion: transformMessage(response.initialQuestion!) };
   },
 
   /**
