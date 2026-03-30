@@ -84,7 +84,7 @@ function ThoughtMapCard({ map, onClick, onDelete }: ThoughtMapCardProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                className="text-destructive focus:bg-red-500/10 focus:text-destructive"
+                className="cursor-pointer text-destructive transition-all duration-200 focus:bg-red-500/10 focus:text-destructive"
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenuOpen(false);
