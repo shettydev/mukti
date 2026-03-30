@@ -16,7 +16,14 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "next dev",
+        "command": "next dev -p 3001",
+        "cwd": "packages/mukti-web"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "next dev -p 3001",
         "cwd": "packages/mukti-web"
       }
     },
