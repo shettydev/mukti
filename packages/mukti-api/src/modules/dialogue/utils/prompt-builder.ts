@@ -248,6 +248,9 @@ export function generateInitialQuestion(
  * @param nodeType - The ThoughtMap node type
  * @param nodeLabel - The node's content/label
  * @returns An initial question tailored to the node type
+ *
+ * @deprecated Use `buildThoughtMapInitialQuestionPrompt` + AI generation instead.
+ * Kept as a fallback for when the AI service is unavailable.
  */
 export function generateThoughtMapInitialQuestion(
   nodeType: NodeType,
@@ -269,6 +272,51 @@ export function generateThoughtMapInitialQuestion(
     default:
       return `Tell me more about "${nodeLabel}". What aspects would you like to explore first?`;
   }
+}
+
+/**
+ * Builds a system prompt for generating the AI-powered initial Socratic question
+ * for a ThoughtMap node dialogue.
+ *
+ * Extends the base ThoughtMap system prompt with:
+ * - Sibling node context (labels of nodes sharing the same parent)
+ * - Explicit instruction to produce a single opening question
+ *
+ * @param node - The node context being discussed
+ * @param mapTitle - The Thought Map's root topic/title
+ * @param technique - The Socratic technique to apply
+ * @param siblingLabels - Labels of sibling nodes (same parent) for branch context
+ * @returns The constructed system prompt for initial question generation
+ */
+export function buildThoughtMapInitialQuestionPrompt(
+  node: NodeContext,
+  mapTitle: string,
+  technique: SocraticTechnique,
+  siblingLabels: string[],
+): string {
+  const basePrompt = buildThoughtMapSystemPrompt(node, mapTitle, technique);
+
+  const siblingContext =
+    siblingLabels.length > 0
+      ? `\nOther nodes at this level: ${siblingLabels.map((l) => `"${l}"`).join(', ')}\n`
+      : '';
+
+  return `${basePrompt}
+${siblingContext}
+---
+TASK: Generate an opening Socratic question for this node.
+---
+
+This is the very first message in the dialogue — there is no prior conversation.
+
+Your question should:
+- Be tailored to the node's type (${node.nodeType}) and its position in the thinking map
+- Consider the broader topic context ("${mapTitle}")
+- Invite the user to begin exploring this node's subject matter
+- Be warm and engaging while intellectually challenging
+- Follow the ${technique} technique guidelines above
+
+Respond with ONLY the opening question — no preamble, no meta-commentary.`;
 }
 
 /**
