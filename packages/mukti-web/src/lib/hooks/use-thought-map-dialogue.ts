@@ -154,8 +154,20 @@ export function useStartThoughtMapDialogue(mapId: string, nodeId: string) {
     mutationFn: () => thoughtMapDialogueApi.startDialogue(mapId, nodeId),
 
     onSuccess: (response) => {
-      // Prime the messages cache with the initial question
       const queryKey = thoughtMapDialogueKeys.messages(mapId, nodeId);
+
+      // Reload case: dialogue already has more than the initial question.
+      // Seeding the cache with only one message would render it as the sole
+      // visible message while the count badge correctly shows the true total.
+      // Invalidate so useThoughtMapNodeMessages fetches the full paginated list.
+      if (response.dialogue.messageCount > 1) {
+        queryClient.invalidateQueries({ queryKey });
+        return;
+      }
+
+      // First-open case: only the initial question exists.
+      // Seed the cache so the infinite query shows it immediately
+      // without a redundant network round-trip.
       const existing =
         queryClient.getQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(queryKey);
 
