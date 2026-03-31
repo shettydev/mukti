@@ -21,8 +21,8 @@ export class ConvertCanvasDto {
     maxLength: 500,
     required: false,
   })
-  @IsOptional()
   @IsNotEmpty()
+  @IsOptional()
   @IsString()
   title?: string;
 }

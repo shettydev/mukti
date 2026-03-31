@@ -139,7 +139,10 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   // Flatten pages
   const messages = messagesData?.pages.flatMap((page) => page.messages) ?? [];
   const messageCount = messagesData?.pages[0]?.dialogue?.messageCount ?? 0;
+  const hasDialogue = messagesData?.pages[0]?.dialogue !== null;
   const hasHistory = messages.length > 0;
+  const isGeneratingInitialQuestion = hasDialogue && !hasHistory;
+  const showProcessingLoader = isProcessing && hasHistory;
   const nodeConfig = NODE_TYPE_CONFIG[node.type] ?? NODE_TYPE_CONFIG.topic;
   const NodeIcon = nodeConfig.icon;
 
@@ -254,19 +257,27 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
             <p className="text-sm leading-relaxed">{node.label}</p>
           </div>
 
-          {/* Start dialogue button — shown when no history exists */}
-          {!hasHistory && !isStarting && !isLoadingMessages && (
+          {/* Start dialogue button — shown when no dialogue exists */}
+          {!hasDialogue && !isStarting && !isLoadingMessages && (
             <Button className="w-full gap-2" onClick={() => startDialogue()} variant="default">
               <Play className="h-4 w-4" />
               Start Dialogue
             </Button>
           )}
 
-          {/* Loading state for start */}
+          {/* Loading state for start mutation in-flight */}
           {isStarting && (
             <div className="flex items-center justify-center py-2">
               <Loader2 className="mr-2 h-4 w-4 animate-spin text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Starting dialogue…</span>
+            </div>
+          )}
+
+          {/* Generating state — dialogue created, AI producing initial question */}
+          {!isStarting && isGeneratingInitialQuestion && (
+            <div className="flex items-center justify-center py-2">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Generating initial question…</span>
             </div>
           )}
 
@@ -322,7 +333,9 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         ))}
 
         {/* Processing indicator */}
-        {isProcessing && <LoadingMessage status={processingStatus ?? 'Mukti is thinking...'} />}
+        {showProcessingLoader && (
+          <LoadingMessage status={processingStatus ?? 'Mukti is thinking...'} />
+        )}
 
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />

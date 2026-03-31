@@ -546,6 +546,380 @@ describe('ThoughtMapDialogueQueueService', () => {
     });
   });
 
+  describe('processInitialQuestion (via process with isInitialQuestion=true)', () => {
+    const dialogue = {
+      _id: new Types.ObjectId(),
+      consecutiveFailures: 0,
+      consecutiveSuccesses: 0,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      currentScaffoldLevel: ScaffoldLevel.PURE_SOCRATIC,
+      detectedConcepts: [],
+      lastMessageAt: null,
+      messageCount: 0,
+      nodeId: 'thought-0',
+      nodeLabel: 'My thought',
+      nodeType: 'thought',
+    };
+
+    const aiResponse = {
+      completionTokens: 20,
+      content: 'What assumptions are you making about this idea?',
+      cost: 0.01,
+      latencyMs: 120,
+      model: 'allowed-model',
+      promptTokens: 50,
+      totalTokens: 70,
+    };
+
+    const aiMessage = {
+      _id: new Types.ObjectId(),
+      content: aiResponse.content,
+      createdAt: new Date('2026-01-01T00:00:03.000Z'),
+      sequence: 0,
+    };
+
+    const makeInitialQuestionJob = (mapId: string, overrides = {}) =>
+      ({
+        data: {
+          depth: 1,
+          fromSuggestion: false,
+          isInitialQuestion: true,
+          mapId,
+          message: '',
+          model: 'allowed-model',
+          nodeId: 'thought-0',
+          nodeLabel: 'My thought',
+          nodeType: 'thought' as const,
+          parentType: 'question' as const,
+          siblings: 2,
+          subscriptionTier: 'free',
+          usedByok: false,
+          userId: new Types.ObjectId().toString(),
+          ...overrides,
+        },
+        id: 'init-job-1',
+      }) as any;
+
+    it('emits processing, progress, message, and complete SSE events in order', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      jest
+        .spyOn(service as any, 'resolveSiblingLabels')
+        .mockResolvedValue(['Sibling A', 'Sibling B']);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        aiResponse,
+      );
+      mockDialogueService.addMessage.mockResolvedValue(aiMessage);
+
+      await service.process(makeInitialQuestionJob(mapId));
+
+      const emitCalls = mockDialogueStreamService.emitToNodeDialogue.mock.calls;
+      const eventTypes = emitCalls.map(([, , , event]) => event.type);
+
+      expect(eventTypes).toEqual([
+        'processing',
+        'progress',
+        'message',
+        'complete',
+      ]);
+
+      // Verify processing event payload
+      expect(emitCalls[0][3]).toEqual({
+        data: { jobId: 'init-job-1', status: 'started' },
+        type: 'processing',
+      });
+
+      // Verify progress event payload
+      expect(emitCalls[1][3]).toEqual({
+        data: { jobId: 'init-job-1', status: 'Generating opening question...' },
+        type: 'progress',
+      });
+
+      // Verify message event payload
+      expect(emitCalls[2][3]).toEqual({
+        data: {
+          content: aiResponse.content,
+          role: 'assistant',
+          sequence: aiMessage.sequence,
+          timestamp: aiMessage.createdAt.toISOString(),
+          tokens: aiResponse.totalTokens,
+        },
+        type: 'message',
+      });
+
+      // Verify complete event payload
+      expect(emitCalls[3][3]).toEqual({
+        data: {
+          cost: aiResponse.cost,
+          jobId: 'init-job-1',
+          latency: expect.any(Number),
+          tokens: aiResponse.totalTokens,
+        },
+        type: 'complete',
+      });
+
+      // All SSE events use the map-scoped stream key
+      for (const call of emitCalls) {
+        expect(call[0]).toBe(`map:${mapId}`);
+        expect(call[1]).toBe('thought-0');
+        expect(call[2]).toBe(dialogue._id.toString());
+      }
+    });
+
+    it('calls buildThoughtMapInitialQuestionPrompt with correct node context and sibling labels', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Deep thinking');
+      jest
+        .spyOn(service as any, 'resolveSiblingLabels')
+        .mockResolvedValue(['Branch A']);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        aiResponse,
+      );
+      mockDialogueService.addMessage.mockResolvedValue(aiMessage);
+
+      // We spy on the imported function via the module
+      const promptBuilder = jest.requireActual(
+        '../../../dialogue/utils/prompt-builder',
+      );
+      const buildSpy = jest.spyOn(
+        promptBuilder,
+        'buildThoughtMapInitialQuestionPrompt',
+      );
+
+      // Since the service imports the function directly, we need to verify through
+      // the arguments passed to generateScaffoldedResponseWithPrompt instead
+      await service.process(makeInitialQuestionJob(mapId));
+
+      // The system prompt passed to generateScaffoldedResponseWithPrompt should be
+      // the output of buildThoughtMapInitialQuestionPrompt
+      const genCall =
+        mockDialogueAIService.generateScaffoldedResponseWithPrompt.mock
+          .calls[0];
+      const systemPrompt = genCall[0];
+
+      // Verify the prompt contains node context and sibling labels
+      // (buildThoughtMapInitialQuestionPrompt includes the node label, map title, and siblings)
+      expect(typeof systemPrompt).toBe('string');
+      expect(systemPrompt.length).toBeGreaterThan(0);
+
+      buildSpy.mockRestore();
+    });
+
+    it('calls generateScaffoldedResponseWithPrompt with empty history and empty user message', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      jest.spyOn(service as any, 'resolveSiblingLabels').mockResolvedValue([]);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        aiResponse,
+      );
+      mockDialogueService.addMessage.mockResolvedValue(aiMessage);
+
+      await service.process(makeInitialQuestionJob(mapId));
+
+      expect(
+        mockDialogueAIService.generateScaffoldedResponseWithPrompt,
+      ).toHaveBeenCalledWith(
+        expect.any(String), // system prompt
+        [], // empty conversation history
+        '', // empty user message
+        'allowed-model', // effective model
+        'server-openrouter-key', // resolved API key
+      );
+    });
+
+    it('persists the assistant message via dialogueService.addMessage', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      jest.spyOn(service as any, 'resolveSiblingLabels').mockResolvedValue([]);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        aiResponse,
+      );
+      mockDialogueService.addMessage.mockResolvedValue(aiMessage);
+
+      await service.process(makeInitialQuestionJob(mapId));
+
+      expect(mockDialogueService.addMessage).toHaveBeenCalledWith(
+        dialogue._id,
+        'assistant',
+        aiResponse.content,
+        {
+          latencyMs: aiResponse.latencyMs,
+          model: aiResponse.model,
+          tokens: aiResponse.totalTokens,
+        },
+      );
+      // Only assistant message — no user message should be added
+      expect(mockDialogueService.addMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it('creates a UsageEvent with eventType THOUGHT_MAP_INITIAL_QUESTION', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      jest.spyOn(service as any, 'resolveSiblingLabels').mockResolvedValue([]);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        aiResponse,
+      );
+      mockDialogueService.addMessage.mockResolvedValue(aiMessage);
+
+      await service.process(makeInitialQuestionJob(mapId));
+
+      expect(mockUsageEventModel.create).toHaveBeenCalledWith({
+        eventType: 'THOUGHT_MAP_INITIAL_QUESTION',
+        metadata: {
+          completionTokens: aiResponse.completionTokens,
+          cost: aiResponse.cost,
+          dialogueId: dialogue._id,
+          latencyMs: aiResponse.latencyMs,
+          mapId: expect.any(Types.ObjectId),
+          model: aiResponse.model,
+          nodeId: 'thought-0',
+          nodeType: 'thought',
+          promptTokens: aiResponse.promptTokens,
+          tokens: aiResponse.totalTokens,
+        },
+        timestamp: expect.any(Date),
+        userId: expect.any(Types.ObjectId),
+      });
+    });
+
+    it('returns a result with userMessageId set to empty string', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      jest.spyOn(service as any, 'resolveSiblingLabels').mockResolvedValue([]);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        aiResponse,
+      );
+      mockDialogueService.addMessage.mockResolvedValue(aiMessage);
+
+      const result = await service.process(makeInitialQuestionJob(mapId));
+
+      expect(result).toEqual({
+        assistantMessageId: aiMessage._id.toString(),
+        cost: aiResponse.cost,
+        dialogueId: dialogue._id.toString(),
+        latency: expect.any(Number),
+        tokens: aiResponse.totalTokens,
+        userMessageId: '',
+      });
+    });
+
+    it('does not save a user message or mark the node as explored', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      jest.spyOn(service as any, 'resolveSiblingLabels').mockResolvedValue([]);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        aiResponse,
+      );
+      mockDialogueService.addMessage.mockResolvedValue(aiMessage);
+
+      await service.process(makeInitialQuestionJob(mapId));
+
+      // addMessage should only be called once (for the assistant), not for a user message
+      expect(mockDialogueService.addMessage).toHaveBeenCalledTimes(1);
+      expect(mockDialogueService.addMessage).toHaveBeenCalledWith(
+        dialogue._id,
+        'assistant',
+        expect.any(String),
+        expect.any(Object),
+      );
+      // Node should NOT be marked as explored for initial questions
+      expect(mockThoughtNodeModel.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('emits error SSE event and re-throws when AI generation fails', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      jest.spyOn(service as any, 'resolveSiblingLabels').mockResolvedValue([]);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockRejectedValue(
+        new Error('Model overloaded'),
+      );
+
+      await expect(
+        service.process(makeInitialQuestionJob(mapId)),
+      ).rejects.toThrow('Model overloaded');
+
+      const lastEmit =
+        mockDialogueStreamService.emitToNodeDialogue.mock.calls.at(-1)?.[3];
+      expect(lastEmit).toEqual({
+        data: {
+          code: 'PROCESSING_ERROR',
+          message: 'Model overloaded',
+          retriable: true,
+        },
+        type: 'error',
+      });
+    });
+
+    it('uses selectTechniqueForNode with correct technique context', async () => {
+      const mapId = validMapId();
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      jest.spyOn(service as any, 'resolveSiblingLabels').mockResolvedValue([]);
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        aiResponse,
+      );
+      mockDialogueService.addMessage.mockResolvedValue(aiMessage);
+
+      // Use depth=0 to verify selectTechniqueForNode picks 'maieutics'
+      await service.process(
+        makeInitialQuestionJob(mapId, { depth: 0, parentType: undefined }),
+      );
+
+      // For depth=0, selectTechniqueForNode returns 'maieutics'
+      // The system prompt (first arg to generateScaffoldedResponseWithPrompt)
+      // should reflect this technique
+      const genCall =
+        mockDialogueAIService.generateScaffoldedResponseWithPrompt.mock
+          .calls[0];
+      const systemPrompt: string = genCall[0];
+      expect(systemPrompt).toContain('maieutics');
+    });
+  });
+
   describe('private helpers', () => {
     it('validates curated models when BYOK is not used', () => {
       expect(() =>

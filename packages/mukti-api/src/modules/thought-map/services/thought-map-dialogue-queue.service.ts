@@ -30,6 +30,7 @@ import { DialogueAIService } from '../../dialogue/services/dialogue-ai.service';
 import { DialogueStreamService } from '../../dialogue/services/dialogue-stream.service';
 import { DialogueService } from '../../dialogue/services/dialogue.service';
 import {
+  buildThoughtMapInitialQuestionPrompt,
   buildThoughtMapSystemPrompt,
   selectTechniqueForNode,
   type ThoughtMapNodeTechniqueContext,
@@ -51,6 +52,8 @@ export interface ThoughtMapDialogueJobData {
   depth: number;
   /** Whether the node was created from an AI suggestion */
   fromSuggestion: boolean;
+  /** Whether this is a system-initiated initial question (no user message) */
+  isInitialQuestion?: boolean;
   mapId: string;
   message: string;
   model: string;
@@ -159,6 +162,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     subscriptionTier: string,
     model: string,
     usedByok: boolean,
+    isInitialQuestion?: boolean,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = userId.toString();
     this.logger.log(
@@ -170,6 +174,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     const jobData: ThoughtMapDialogueJobData = {
       depth,
       fromSuggestion,
+      isInitialQuestion,
       mapId,
       message,
       model,
@@ -275,6 +280,10 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
   async process(
     job: Job<ThoughtMapDialogueJobData, ThoughtMapDialogueJobResult>,
   ): Promise<ThoughtMapDialogueJobResult> {
+    if (job.data.isInitialQuestion) {
+      return this.processInitialQuestion(job);
+    }
+
     const startTime = Date.now();
     const {
       depth,
@@ -602,6 +611,205 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     return error instanceof Error ? error.stack : undefined;
   }
 
+  /**
+   * Processes an initial-question job: generates the AI-powered opening Socratic
+   * question for a node that has no prior dialogue history.
+   *
+   * Unlike a regular dialogue turn, this:
+   * - Does NOT save a user message (there is none)
+   * - Builds a prompt specifically for initial question generation
+   * - Includes sibling node labels for branch context
+   */
+  private async processInitialQuestion(
+    job: Job<ThoughtMapDialogueJobData, ThoughtMapDialogueJobResult>,
+  ): Promise<ThoughtMapDialogueJobResult> {
+    const startTime = Date.now();
+    const {
+      depth,
+      fromSuggestion,
+      mapId,
+      model,
+      nodeId,
+      nodeLabel,
+      nodeType,
+      parentType,
+      siblings,
+      usedByok,
+      userId,
+    } = job.data;
+
+    this.logger.log(
+      `Processing initial question job ${job.id}: user=${userId}, map=${mapId}, node=${nodeId}`,
+    );
+
+    const streamKey = mapStreamKey(mapId);
+    const dialogue = await this.getOrCreateMapDialogue(
+      mapId,
+      nodeId,
+      nodeType,
+      nodeLabel,
+    );
+    const dialogueId = dialogue._id.toString();
+
+    try {
+      // Emit processing started
+      this.dialogueStreamService.emitToNodeDialogue(
+        streamKey,
+        nodeId,
+        dialogueId,
+        {
+          data: { jobId: job.id!, status: 'started' },
+          type: 'processing',
+        },
+      );
+
+      this.dialogueStreamService.emitToNodeDialogue(
+        streamKey,
+        nodeId,
+        dialogueId,
+        {
+          data: { jobId: job.id!, status: 'Generating opening question...' },
+          type: 'progress',
+        },
+      );
+
+      const effectiveModel = this.validateEffectiveModel(model, usedByok);
+      const apiKey = await this.resolveApiKey(userId, usedByok);
+
+      // Select technique via RFC §5.1.1 algorithm
+      const techniqueCtx: ThoughtMapNodeTechniqueContext = {
+        depth,
+        fromSuggestion,
+        parentType,
+        siblings,
+        type: nodeType,
+      };
+      const technique = selectTechniqueForNode(techniqueCtx);
+
+      // Resolve map title and sibling labels for prompt context
+      const [mapTitle, siblingLabels] = await Promise.all([
+        this.resolveMapTitle(mapId, nodeId),
+        this.resolveSiblingLabels(mapId, nodeId),
+      ]);
+
+      // Build the initial question prompt with branch context
+      const systemPrompt = buildThoughtMapInitialQuestionPrompt(
+        { nodeId, nodeLabel, nodeType },
+        mapTitle,
+        technique,
+        siblingLabels,
+      );
+
+      // Generate AI response — no conversation history, no user message
+      const aiResponse =
+        await this.dialogueAIService.generateScaffoldedResponseWithPrompt(
+          systemPrompt,
+          [], // No conversation history
+          '', // No user message
+          effectiveModel,
+          apiKey,
+        );
+
+      const aiMessage = await this.dialogueService.addMessage(
+        dialogue._id,
+        'assistant',
+        aiResponse.content,
+        {
+          latencyMs: aiResponse.latencyMs,
+          model: aiResponse.model,
+          tokens: aiResponse.totalTokens,
+        },
+      );
+
+      // Emit the AI-generated initial question via SSE
+      this.dialogueStreamService.emitToNodeDialogue(
+        streamKey,
+        nodeId,
+        dialogueId,
+        {
+          data: {
+            content: aiResponse.content,
+            role: 'assistant',
+            sequence: aiMessage.sequence,
+            timestamp: aiMessage.createdAt.toISOString(),
+            tokens: aiResponse.totalTokens,
+          },
+          type: 'message',
+        },
+      );
+
+      // Log usage event
+      await this.usageEventModel.create({
+        eventType: 'THOUGHT_MAP_INITIAL_QUESTION',
+        metadata: {
+          completionTokens: aiResponse.completionTokens,
+          cost: aiResponse.cost,
+          dialogueId: dialogue._id,
+          latencyMs: aiResponse.latencyMs,
+          mapId: new Types.ObjectId(mapId),
+          model: aiResponse.model,
+          nodeId,
+          nodeType,
+          promptTokens: aiResponse.promptTokens,
+          tokens: aiResponse.totalTokens,
+        },
+        timestamp: new Date(),
+        userId: new Types.ObjectId(userId),
+      });
+
+      const latency = Date.now() - startTime;
+
+      this.dialogueStreamService.emitToNodeDialogue(
+        streamKey,
+        nodeId,
+        dialogueId,
+        {
+          data: {
+            cost: aiResponse.cost,
+            jobId: job.id!,
+            latency,
+            tokens: aiResponse.totalTokens,
+          },
+          type: 'complete',
+        },
+      );
+
+      this.logger.log(
+        `Initial question job ${job.id} completed in ${latency}ms`,
+      );
+
+      return {
+        assistantMessageId: aiMessage._id.toString(),
+        cost: aiResponse.cost,
+        dialogueId,
+        latency,
+        tokens: aiResponse.totalTokens,
+        userMessageId: '',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Initial question job ${job.id} failed: ${this.getErrorMessage(error)}`,
+        this.getErrorStack(error),
+      );
+
+      this.dialogueStreamService.emitToNodeDialogue(
+        streamKey,
+        nodeId,
+        dialogueId,
+        {
+          data: {
+            code: 'PROCESSING_ERROR',
+            message: this.getErrorMessage(error),
+            retriable: true,
+          },
+          type: 'error',
+        },
+      );
+
+      throw error;
+    }
+  }
+
   private async resolveApiKey(
     userId: string,
     usedByok: boolean,
@@ -639,6 +847,35 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
       .findOne({ depth: 0, mapId: new Types.ObjectId(mapId), type: 'topic' })
       .lean();
     return rootNode?.label ?? 'Unknown topic';
+  }
+
+  /**
+   * Resolves the labels of sibling nodes (same parent) for branch context.
+   * Excludes the current node from the results.
+   */
+  private async resolveSiblingLabels(
+    mapId: string,
+    nodeId: string,
+  ): Promise<string[]> {
+    const mapObjectId = new Types.ObjectId(mapId);
+    const currentNode = await this.thoughtNodeModel
+      .findOne({ mapId: mapObjectId, nodeId })
+      .lean();
+
+    if (!currentNode?.parentId) {
+      return [];
+    }
+
+    const siblings = await this.thoughtNodeModel
+      .find({
+        mapId: mapObjectId,
+        nodeId: { $ne: nodeId },
+        parentId: currentNode.parentId,
+      })
+      .select('label')
+      .lean();
+
+    return siblings.map((s) => s.label);
   }
 
   private validateEffectiveModel(model: string, usedByok: boolean): string {

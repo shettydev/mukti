@@ -40,7 +40,6 @@ import {
 import { DialogueSendMessageDto } from '../dialogue/dto/send-message.dto';
 import { DialogueStreamService } from '../dialogue/services/dialogue-stream.service';
 import { DialogueService } from '../dialogue/services/dialogue.service';
-import { generateThoughtMapInitialQuestion } from '../dialogue/utils/prompt-builder';
 import {
   ApiGetThoughtMapNodeMessages,
   ApiSendThoughtMapNodeMessage,
@@ -78,11 +77,17 @@ export class ThoughtMapDialogueController {
   ) {}
 
   /**
-   * Starts dialogue on a Thought Map node with an initial Socratic question.
-   * Creates the NodeDialogue document if it doesn't already exist.
+   * Starts dialogue on a Thought Map node.
+   *
+   * - If dialogue already has messages → returns existing dialogue + first message (sync).
+   * - If dialogue is empty (first open) → enqueues an AI job to generate the
+   *   initial Socratic question, returns `{ dialogue, jobId, position }` (async, 202).
+   *   The AI-generated question arrives via the SSE stream.
+   *
+   * Marks the node as explored immediately in both cases.
    */
   @ApiStartThoughtMapNodeDialogue()
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.ACCEPTED)
   @Post(':mapId/nodes/:nodeId/start')
   async startDialogue(
     @Param('mapId') mapId: string,
@@ -92,8 +97,9 @@ export class ThoughtMapDialogueController {
     // Validate map ownership
     await this.thoughtMapService.findMapById(mapId, user._id);
 
-    // Resolve node info
-    const { nodeLabel, nodeType } = await this.resolveNodeInfo(mapId, nodeId);
+    // Resolve full node context (type, label, depth, siblings, parentType)
+    const { depth, fromSuggestion, nodeLabel, nodeType, parentType, siblings } =
+      await this.resolveNodeContext(mapId, nodeId);
 
     // Get or create dialogue (scoped to mapId+nodeId)
     const dialogue =
@@ -104,7 +110,13 @@ export class ThoughtMapDialogueController {
         nodeLabel,
       );
 
-    // If dialogue already has messages, return existing
+    // Mark the node as explored immediately (idempotent $set)
+    await this.thoughtNodeModel.updateOne(
+      { mapId: new Types.ObjectId(mapId), nodeId },
+      { $set: { isExplored: true } },
+    );
+
+    // If dialogue already has messages, return existing first message
     const existingMessages = await this.dialogueService.getMessages(
       dialogue._id,
       {
@@ -122,30 +134,63 @@ export class ThoughtMapDialogueController {
       };
     }
 
-    // Generate initial question based on ThoughtMap node type
-    const initialQuestionContent = generateThoughtMapInitialQuestion(
-      nodeType,
-      nodeLabel,
-    );
-    const initialQuestion = await this.dialogueService.addMessage(
-      dialogue._id,
-      'assistant',
-      initialQuestionContent,
-      { model: 'system' },
-    );
+    // First open: enqueue an AI job to generate the initial Socratic question.
+    // The user will see this response — use BYOK if available, fall back to server key.
+    const userRecord = await this.userModel
+      .findById(user._id)
+      .select('+openRouterApiKeyEncrypted preferences')
+      .lean();
+    if (!userRecord) {
+      throw new NotFoundException('User not found');
+    }
 
-    // Fetch updated dialogue (message count has changed)
-    const updatedDialogue =
-      await this.thoughtMapDialogueQueueService.getOrCreateMapDialogue(
+    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
+    const serverApiKey =
+      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
+    if (!usedByok && !serverApiKey) {
+      throw new InternalServerErrorException(
+        'OPENROUTER_API_KEY not configured',
+      );
+    }
+
+    const validationApiKey = usedByok
+      ? this.aiSecretsService.decryptString(
+          userRecord.openRouterApiKeyEncrypted!,
+        )
+      : serverApiKey;
+
+    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
+      hasByok: usedByok,
+      userActiveModel: userRecord.preferences?.activeModel,
+      validationApiKey,
+    });
+
+    const userWithSubscription = user as User & { subscription?: Subscription };
+    const subscriptionTier: 'free' | 'paid' =
+      userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
+
+    const result =
+      await this.thoughtMapDialogueQueueService.enqueueMapNodeRequest(
+        user._id,
         mapId,
         nodeId,
         nodeType,
         nodeLabel,
+        depth,
+        fromSuggestion,
+        siblings,
+        parentType,
+        '', // No user message for initial question
+        subscriptionTier,
+        effectiveModel,
+        usedByok,
+        true, // isInitialQuestion flag
       );
 
     return {
-      dialogue: NodeDialogueResponseDto.fromDocument(updatedDialogue),
-      initialQuestion: DialogueMessageResponseDto.fromDocument(initialQuestion),
+      dialogue: NodeDialogueResponseDto.fromDocument(dialogue),
+      jobId: result.jobId,
+      position: result.position,
     };
   }
 
