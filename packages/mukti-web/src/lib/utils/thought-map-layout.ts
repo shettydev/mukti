@@ -34,6 +34,14 @@ export const VERTICAL_SPACING = 120;
  */
 export const GHOST_VERTICAL_SPACING = 150;
 
+/**
+ * Horizontal offset from parent for ghost (suggestion) nodes.
+ * Larger than HORIZONTAL_SPACING to clear the widest parent node (TopicNode
+ * at max-w-[320px]). React Flow positions are top-left anchored, so an offset
+ * of 360px provides ~40px clearance from a fully-expanded topic node.
+ */
+export const GHOST_HORIZONTAL_OFFSET = 360;
+
 // ============================================================================
 // Types
 // ============================================================================

@@ -60,8 +60,8 @@ import { cn } from '@/lib/utils';
 import {
   centredYPositions,
   computeThoughtMapLayout,
+  GHOST_HORIZONTAL_OFFSET,
   GHOST_VERTICAL_SPACING,
-  HORIZONTAL_SPACING,
   type NodePosition,
 } from '@/lib/utils/thought-map-layout';
 
@@ -221,8 +221,9 @@ export function toGhostFlowNodes(
     const parent = storeNodes[parentId]!;
     const parentPosition = getDisplayedNodePosition(parent, layoutPositions);
 
-    // Extend outward from parent (hemisphere-aware)
-    const xOffset = parentPosition.x < 0 ? -HORIZONTAL_SPACING : HORIZONTAL_SPACING;
+    // Extend outward from parent (hemisphere-aware), using wider offset to
+    // clear the parent node's rendered width (especially the wide TopicNode).
+    const xOffset = parentPosition.x < 0 ? -GHOST_HORIZONTAL_OFFSET : GHOST_HORIZONTAL_OFFSET;
     const baseX = parentPosition.x + xOffset;
 
     // Compute evenly centred Y positions for the sibling group
