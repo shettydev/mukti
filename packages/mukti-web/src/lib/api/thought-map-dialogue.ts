@@ -232,11 +232,21 @@ export const thoughtMapDialogueApi = {
 
     // Async path: new dialogue, AI generating initial question via queue
     if (response.jobId) {
-      return { dialogue, jobId: response.jobId, position: response.position! };
+      if (response.position === null || response.position === undefined) {
+        throw new Error(
+          'startDialogue async path: response.position is missing when jobId is present'
+        );
+      }
+      return { dialogue, jobId: response.jobId, position: response.position };
     }
 
     // Sync path: existing dialogue, return first message
-    return { dialogue, initialQuestion: transformMessage(response.initialQuestion!) };
+    if (!response.initialQuestion) {
+      throw new Error(
+        'startDialogue sync path: response.initialQuestion is missing when no jobId is present'
+      );
+    }
+    return { dialogue, initialQuestion: transformMessage(response.initialQuestion) };
   },
 
   /**

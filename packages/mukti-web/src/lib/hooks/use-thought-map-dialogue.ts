@@ -160,13 +160,18 @@ export function useStartThoughtMapDialogue(mapId: string, nodeId: string) {
       // Optimistically mark the node as explored in the Zustand store.
       // The backend already persists isExplored=true in the start endpoint,
       // so this is a local-only UI update — no API call needed.
-      const { nodes } = useThoughtMapStore.getState();
-      const existingNode = nodes[nodeId];
-      if (existingNode && !existingNode.isExplored) {
-        useThoughtMapStore.setState({
-          nodes: { ...nodes, [nodeId]: { ...existingNode, isExplored: true } },
-        });
-      }
+      useThoughtMapStore.setState((state) => {
+        const existingNode = state.nodes[nodeId];
+        if (!existingNode || existingNode.isExplored) {
+          return state;
+        }
+        return {
+          nodes: {
+            ...state.nodes,
+            [nodeId]: { ...existingNode, isExplored: true },
+          },
+        };
+      });
 
       // Async path: AI is generating the initial question via the queue.
       // Seed cache with the dialogue but no messages — the SSE stream

@@ -341,8 +341,10 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
       y: position?.y,
     });
 
-    // Remove the ghost regardless of success
-    get().removeGhostNode(ghostId);
+    // Only remove the ghost if the node was created successfully
+    if (nodeId) {
+      get().removeGhostNode(ghostId);
+    }
 
     return nodeId;
   },
@@ -590,10 +592,10 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
     } catch (err) {
       // Rollback
       console.error('Failed to delete thought node:', err);
-      set({
-        ghostNodes: { ...get().ghostNodes, ...ghostNodes },
-        nodes: { ...get().nodes, ...snapshotNodes },
-      });
+      set((state) => ({
+        ghostNodes: { ...state.ghostNodes, ...ghostNodes },
+        nodes: { ...state.nodes, ...snapshotNodes },
+      }));
       return false;
     }
   },
