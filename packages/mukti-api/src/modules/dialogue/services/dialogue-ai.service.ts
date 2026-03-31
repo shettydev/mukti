@@ -391,6 +391,8 @@ export class DialogueAIService {
 
   /**
    * Builds the messages array for the OpenRouter API.
+   * Skips the user message when empty (e.g. initial question generation
+   * where the system prompt already contains all instructions).
    */
   private buildMessages(
     systemPrompt: string,
@@ -416,11 +418,13 @@ export class DialogueAIService {
       });
     }
 
-    // Add current user message
-    messages.push({
-      content: userMessage,
-      role: 'user',
-    });
+    // Add current user message (skip when empty — e.g. initial question generation)
+    if (userMessage) {
+      messages.push({
+        content: userMessage,
+        role: 'user',
+      });
+    }
 
     return messages;
   }
