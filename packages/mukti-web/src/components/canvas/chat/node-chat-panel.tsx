@@ -19,8 +19,8 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import type { CanvasNode } from '@/types/canvas-visualization.types';
 
-import { Button } from '@/components/ui/button';
 import { LoadingMessage } from '@/components/conversations/loading-message';
+import { Button } from '@/components/ui/button';
 import { useDialogueStream, useNodeMessages, useSendNodeMessage } from '@/lib/hooks/use-dialogue';
 import { useAiStore } from '@/lib/stores/ai-store';
 import {

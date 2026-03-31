@@ -139,7 +139,7 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   // Flatten pages
   const messages = messagesData?.pages.flatMap((page) => page.messages) ?? [];
   const messageCount = messagesData?.pages[0]?.dialogue?.messageCount ?? 0;
-  const hasDialogue = messagesData?.pages[0]?.dialogue != null;
+  const hasDialogue = messagesData?.pages[0]?.dialogue !== null;
   const hasHistory = messages.length > 0;
   const isGeneratingInitialQuestion = hasDialogue && !hasHistory;
   const showProcessingLoader = isProcessing && hasHistory;

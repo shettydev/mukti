@@ -23,6 +23,10 @@ import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
+import { WaitlistService } from '../waitlist/waitlist.service';
 import {
   AuthResponseDto,
   ChangePasswordDto,
@@ -34,11 +38,6 @@ import {
   UserResponseDto,
   VerifyEmailDto,
 } from './dto';
-
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Public } from '../../common/decorators/public.decorator';
-import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
-import { WaitlistService } from '../waitlist/waitlist.service';
 import {
   ApiChangePassword,
   ApiForgotPassword,

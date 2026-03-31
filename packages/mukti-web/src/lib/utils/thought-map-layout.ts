@@ -57,6 +57,36 @@ export interface NodePosition {
 // ============================================================================
 
 /**
+ * Compute vertical positions for a group of siblings, centred around a given y value.
+ *
+ * @param count - Number of siblings
+ * @param centreY - The y-coordinate to centre the group around
+ * @param spacing - Vertical spacing between siblings (defaults to VERTICAL_SPACING)
+ * @returns Array of y-values for each sibling
+ */
+export function centredYPositions(
+  count: number,
+  centreY: number,
+  spacing: number = VERTICAL_SPACING
+): number[] {
+  if (count === 0) {
+    return [];
+  }
+  if (count === 1) {
+    return [centreY];
+  }
+
+  const totalHeight = (count - 1) * spacing;
+  const startY = centreY - totalHeight / 2;
+
+  return Array.from({ length: count }, (_, i) => startY + i * spacing);
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
  * Compute layout positions for all unpositioned nodes in a Thought Map.
  *
  * The topic node is always at (0, 0) and is never included in the output
@@ -157,36 +187,6 @@ export function computeThoughtMapLayout(nodes: ThoughtMapNode[]): Record<string,
   }
 
   return result;
-}
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-/**
- * Compute vertical positions for a group of siblings, centred around a given y value.
- *
- * @param count - Number of siblings
- * @param centreY - The y-coordinate to centre the group around
- * @param spacing - Vertical spacing between siblings (defaults to VERTICAL_SPACING)
- * @returns Array of y-values for each sibling
- */
-export function centredYPositions(
-  count: number,
-  centreY: number,
-  spacing: number = VERTICAL_SPACING
-): number[] {
-  if (count === 0) {
-    return [];
-  }
-  if (count === 1) {
-    return [centreY];
-  }
-
-  const totalHeight = (count - 1) * spacing;
-  const startY = centreY - totalHeight / 2;
-
-  return Array.from({ length: count }, (_, i) => startY + i * spacing);
 }
 
 /**

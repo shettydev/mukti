@@ -209,7 +209,9 @@ export function toGhostFlowNodes(
   // Group ghosts by parent so we can compute centred vertical positions per group
   const ghostsByParent = new Map<string, GhostNode[]>();
   for (const ghost of ghostNodes) {
-    if (!storeNodes[ghost.parentId]) continue;
+    if (!storeNodes[ghost.parentId]) {
+      continue;
+    }
     const siblings = ghostsByParent.get(ghost.parentId) ?? [];
     siblings.push(ghost);
     ghostsByParent.set(ghost.parentId, siblings);

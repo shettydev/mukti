@@ -267,15 +267,6 @@ export interface ThoughtMapStartDialogueAsyncResponse {
 }
 
 /**
- * Sync response when a Thought Map node dialogue already has messages.
- * Returns the first message directly (no queue job needed).
- */
-export interface ThoughtMapStartDialogueSyncResponse {
-  dialogue: ThoughtMapDialogue;
-  initialQuestion: ThoughtMapDialogueMessage;
-}
-
-/**
  * Union response from starting a Thought Map node dialogue.
  * - Async (has `jobId`): new dialogue, AI generating initial question via queue
  * - Sync (has `initialQuestion`): existing dialogue, returns first message
@@ -283,6 +274,15 @@ export interface ThoughtMapStartDialogueSyncResponse {
 export type ThoughtMapStartDialogueResponse =
   | ThoughtMapStartDialogueAsyncResponse
   | ThoughtMapStartDialogueSyncResponse;
+
+/**
+ * Sync response when a Thought Map node dialogue already has messages.
+ * Returns the first message directly (no queue job needed).
+ */
+export interface ThoughtMapStartDialogueSyncResponse {
+  dialogue: ThoughtMapDialogue;
+  initialQuestion: ThoughtMapDialogueMessage;
+}
 
 /**
  * Status lifecycle of a Thought Map
