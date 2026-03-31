@@ -135,16 +135,36 @@ export class ThoughtMapDialogueController {
     }
 
     // First open: enqueue an AI job to generate the initial Socratic question.
-    // Use server API key + default model (system-initiated, not user-requested).
+    // The user will see this response — use BYOK if available, fall back to server key.
+    const userRecord = await this.userModel
+      .findById(user._id)
+      .select('+openRouterApiKeyEncrypted preferences')
+      .lean();
+    if (!userRecord) {
+      throw new NotFoundException('User not found');
+    }
+
+    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
     const serverApiKey =
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-    if (!serverApiKey) {
+    if (!usedByok && !serverApiKey) {
       throw new InternalServerErrorException(
         'OPENROUTER_API_KEY not configured',
       );
     }
 
-    const defaultModel = this.aiPolicyService.getDefaultModel();
+    const validationApiKey = usedByok
+      ? this.aiSecretsService.decryptString(
+          userRecord.openRouterApiKeyEncrypted!,
+        )
+      : serverApiKey;
+
+    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
+      hasByok: usedByok,
+      userActiveModel: userRecord.preferences?.activeModel,
+      validationApiKey,
+    });
+
     const userWithSubscription = user as User & { subscription?: Subscription };
     const subscriptionTier: 'free' | 'paid' =
       userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
@@ -162,8 +182,8 @@ export class ThoughtMapDialogueController {
         parentType,
         '', // No user message for initial question
         subscriptionTier,
-        defaultModel,
-        false, // Server key, not BYOK
+        effectiveModel,
+        usedByok,
         true, // isInitialQuestion flag
       );
 
