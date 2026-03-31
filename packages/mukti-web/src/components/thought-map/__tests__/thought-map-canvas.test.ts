@@ -3,8 +3,8 @@ import type { ThoughtMapNode } from '@/types/thought-map';
 
 import {
   computeThoughtMapLayout,
+  GHOST_HORIZONTAL_OFFSET,
   GHOST_VERTICAL_SPACING,
-  HORIZONTAL_SPACING,
 } from '@/lib/utils/thought-map-layout';
 
 import { toFlowNodes, toGhostFlowNodes } from '../ThoughtMapCanvas';
@@ -88,7 +88,9 @@ describe('ThoughtMapCanvas helpers', () => {
     );
 
     expect(ghostNodes[0]?.position).toEqual({
-      x: displayedParent.x + (displayedParent.x < 0 ? -HORIZONTAL_SPACING : HORIZONTAL_SPACING),
+      x:
+        displayedParent.x +
+        (displayedParent.x < 0 ? -GHOST_HORIZONTAL_OFFSET : GHOST_HORIZONTAL_OFFSET),
       y: displayedParent.y,
     });
     expect(ghostNodes[0]?.data).toMatchObject({ isGhost: true });
