@@ -324,7 +324,9 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   // ---- Ghost node callbacks ---------------------------------------------------
   const handleAcceptGhost = useCallback(
     (ghostId: string) => {
-      void acceptGhostNode(ghostId);
+      const flowId = `ghost-${ghostId}`;
+      const position = ghostPositionsRef.current[flowId];
+      void acceptGhostNode(ghostId, position);
     },
     [acceptGhostNode]
   );
