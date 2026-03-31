@@ -22,6 +22,7 @@ const demos = [
     label: 'Thinking Canvas',
     placeholder: '/demos/thinking-canvas.mp4',
     title: 'Map the problem before you solve it',
+    video: '/demo/demo-02.mp4',
   },
   {
     description:
