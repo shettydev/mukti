@@ -141,6 +141,8 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   const messageCount = messagesData?.pages[0]?.dialogue?.messageCount ?? 0;
   const hasDialogue = messagesData?.pages[0]?.dialogue != null;
   const hasHistory = messages.length > 0;
+  const isGeneratingInitialQuestion = hasDialogue && !hasHistory;
+  const showProcessingLoader = isProcessing && hasHistory;
   const nodeConfig = NODE_TYPE_CONFIG[node.type] ?? NODE_TYPE_CONFIG.topic;
   const NodeIcon = nodeConfig.icon;
 
@@ -272,7 +274,7 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
           )}
 
           {/* Generating state — dialogue created, AI producing initial question */}
-          {!isStarting && hasDialogue && !hasHistory && (
+          {!isStarting && isGeneratingInitialQuestion && (
             <div className="flex items-center justify-center py-2">
               <Loader2 className="mr-2 h-4 w-4 animate-spin text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Generating initial question…</span>
@@ -331,7 +333,9 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         ))}
 
         {/* Processing indicator */}
-        {isProcessing && <LoadingMessage status={processingStatus ?? 'Mukti is thinking...'} />}
+        {showProcessingLoader && (
+          <LoadingMessage status={processingStatus ?? 'Mukti is thinking...'} />
+        )}
 
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />
