@@ -57,7 +57,13 @@ import {
   useThoughtMapStore,
 } from '@/lib/stores/thought-map-store';
 import { cn } from '@/lib/utils';
-import { computeThoughtMapLayout, type NodePosition } from '@/lib/utils/thought-map-layout';
+import {
+  centredYPositions,
+  computeThoughtMapLayout,
+  GHOST_VERTICAL_SPACING,
+  HORIZONTAL_SPACING,
+  type NodePosition,
+} from '@/lib/utils/thought-map-layout';
 
 import { ThoughtMapEdge } from './edges/ThoughtMapEdge';
 import { EditableBranchNode } from './nodes/EditableBranchNode';
@@ -185,7 +191,10 @@ export function toFlowNodes(
  * The ghost's ghostId is used as nodeId so onAccept/onDismiss callbacks
  * (which receive `node.nodeId`) correctly identify which ghost to act on.
  *
- * Position: offset 280px outward (hemisphere-aware) and staggered 90px vertically.
+ * Position priority:
+ *  1. `existingPositions[flowNodeId]` — preserves user-dragged or previously computed position
+ *  2. Freshly computed via `centredYPositions` using GHOST_VERTICAL_SPACING (150px)
+ *
  * Ghosts whose parent is not in the store are skipped — they will be cleaned up
  * by useGhostNodeAutoDismiss on the next render cycle.
  */
@@ -194,50 +203,57 @@ export function toGhostFlowNodes(
   storeNodes: Record<string, ThoughtMapNode>,
   layoutPositions: Record<string, NodePosition>,
   onAccept: (ghostId: string) => void,
-  onDismiss: (ghostId: string) => void
+  onDismiss: (ghostId: string) => void,
+  existingPositions: Record<string, NodePosition> = {}
 ): RFNode[] {
-  const ghostIndexByParent = new Map<string, number>();
+  // Group ghosts by parent so we can compute centred vertical positions per group
+  const ghostsByParent = new Map<string, GhostNode[]>();
+  for (const ghost of ghostNodes) {
+    if (!storeNodes[ghost.parentId]) continue;
+    const siblings = ghostsByParent.get(ghost.parentId) ?? [];
+    siblings.push(ghost);
+    ghostsByParent.set(ghost.parentId, siblings);
+  }
 
-  return ghostNodes.flatMap((ghost) => {
-    const parent = storeNodes[ghost.parentId];
+  const result: RFNode[] = [];
 
-    // Skip ghosts whose parent isn't in the store — they have no valid anchor.
-    if (!parent) {
-      return [];
-    }
-
-    const parentIndex = ghostIndexByParent.get(ghost.parentId) ?? 0;
-    ghostIndexByParent.set(ghost.parentId, parentIndex + 1);
-
+  for (const [parentId, siblings] of ghostsByParent) {
+    const parent = storeNodes[parentId]!;
     const parentPosition = getDisplayedNodePosition(parent, layoutPositions);
 
-    // Mirror the X-offset based on which hemisphere the parent sits in so
-    // ghosts extend outward rather than toward the canvas centre.
-    const xOffset = parentPosition.x < 0 ? -280 : 280;
+    // Extend outward from parent (hemisphere-aware)
+    const xOffset = parentPosition.x < 0 ? -HORIZONTAL_SPACING : HORIZONTAL_SPACING;
     const baseX = parentPosition.x + xOffset;
-    const baseY = parentPosition.y + parentIndex * 90 - 45;
 
-    // Synthetic ThoughtMapNode for QuestionNode rendering
-    const now = new Date().toISOString();
-    const syntheticNode: ThoughtMapNode = {
-      createdAt: now,
-      depth: parent.depth + 1,
-      fromSuggestion: true,
-      id: ghost.ghostId,
-      isCollapsed: false,
-      isExplored: false,
-      label: ghost.label,
-      mapId: parent.mapId,
-      messageCount: 0,
-      nodeId: ghost.ghostId,
-      parentNodeId: ghost.parentId,
-      position: { x: baseX, y: baseY },
-      type: 'question',
-      updatedAt: now,
-    };
+    // Compute evenly centred Y positions for the sibling group
+    const yPositions = centredYPositions(siblings.length, parentPosition.y, GHOST_VERTICAL_SPACING);
 
-    return [
-      {
+    for (let i = 0; i < siblings.length; i++) {
+      const ghost = siblings[i];
+      const flowId = ghostNodeToFlowNodeId(ghost);
+
+      // Use existing (persisted/dragged) position if available, otherwise compute fresh
+      const position: NodePosition = existingPositions[flowId] ?? { x: baseX, y: yPositions[i] };
+
+      const now = new Date().toISOString();
+      const syntheticNode: ThoughtMapNode = {
+        createdAt: now,
+        depth: parent.depth + 1,
+        fromSuggestion: true,
+        id: ghost.ghostId,
+        isCollapsed: false,
+        isExplored: false,
+        label: ghost.label,
+        mapId: parent.mapId,
+        messageCount: 0,
+        nodeId: ghost.ghostId,
+        parentNodeId: ghost.parentId,
+        position: { x: position.x, y: position.y },
+        type: 'question',
+        updatedAt: now,
+      };
+
+      result.push({
         data: {
           ghostCreatedAt: ghost.createdAt,
           isGhost: true,
@@ -245,12 +261,14 @@ export function toGhostFlowNodes(
           onAccept,
           onDismiss,
         },
-        id: ghostNodeToFlowNodeId(ghost),
-        position: { x: baseX, y: baseY },
+        id: flowId,
+        position: { x: position.x, y: position.y },
         type: 'question-node',
-      } satisfies RFNode,
-    ];
-  });
+      } satisfies RFNode);
+    }
+  }
+
+  return result;
 }
 
 function getDisplayedNodePosition(
@@ -283,6 +301,8 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   const isDraggingRef = useRef(false);
   // Capture inline edit node position so the committed node appears in the same spot
   const inlineEditPositionRef = useRef<null | { x: number; y: number }>(null);
+  // Persist ghost node positions across re-renders so they survive accept/dismiss of siblings
+  const ghostPositionsRef = useRef<Record<string, NodePosition>>({});
 
   // ---- Sync remote data into the Zustand store --------------------------------
   useEffect(() => {
@@ -425,37 +445,44 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     storeNodes,
   ]);
 
-  const flowNodes = useMemo(
-    () => [
-      ...toFlowNodes(
-        domainNodesList,
-        layoutPositions,
-        handleAddBranch,
-        handleSuggestBranches,
-        handleDeleteNode
-      ),
-      ...toGhostFlowNodes(
-        ghostNodes,
-        storeNodes,
-        layoutPositions,
-        handleAcceptGhost,
-        handleDismissGhost
-      ),
-      ...inlineEditNode,
-    ],
-    [
+  const flowNodes = useMemo(() => {
+    const realNodes = toFlowNodes(
       domainNodesList,
-      ghostNodes,
-      handleAcceptGhost,
-      handleAddBranch,
-      handleDeleteNode,
-      handleDismissGhost,
-      handleSuggestBranches,
-      inlineEditNode,
       layoutPositions,
+      handleAddBranch,
+      handleSuggestBranches,
+      handleDeleteNode
+    );
+    const ghostFlowNodes = toGhostFlowNodes(
+      ghostNodes,
       storeNodes,
-    ]
-  );
+      layoutPositions,
+      handleAcceptGhost,
+      handleDismissGhost,
+      ghostPositionsRef.current
+    );
+
+    // Sync newly computed ghost positions back into the ref so they persist
+    // across re-renders (e.g. when a sibling ghost is accepted/dismissed).
+    const nextPositions: Record<string, NodePosition> = {};
+    for (const gfn of ghostFlowNodes) {
+      nextPositions[gfn.id] = { x: gfn.position.x, y: gfn.position.y };
+    }
+    ghostPositionsRef.current = nextPositions;
+
+    return [...realNodes, ...ghostFlowNodes, ...inlineEditNode];
+  }, [
+    domainNodesList,
+    ghostNodes,
+    handleAcceptGhost,
+    handleAddBranch,
+    handleDeleteNode,
+    handleDismissGhost,
+    handleSuggestBranches,
+    inlineEditNode,
+    layoutPositions,
+    storeNodes,
+  ]);
 
   // ---- Temporary edge for inline edit node -----------------------------------
   const inlineEditEdge = useMemo((): RFEdge[] => {
@@ -499,7 +526,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     isDraggingRef.current = true;
   }, []);
 
-  // ---- Drag stop → persist position to store ----------------------------------
+  // ---- Drag stop → persist position to store or ghost ref -----------------------
   const handleNodeDragStop: RFOnNodeDrag = useCallback(
     (_event, node) => {
       isDraggingRef.current = false;
@@ -508,6 +535,16 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
       if (node.id === '__inline-edit__') {
         return;
       }
+
+      // Ghost nodes: persist to ref instead of calling updateNode (no backend)
+      if (node.id.startsWith('ghost-')) {
+        ghostPositionsRef.current = {
+          ...ghostPositionsRef.current,
+          [node.id]: { x: node.position.x, y: node.position.y },
+        };
+        return;
+      }
+
       void updateNode(node.id, { x: node.position.x, y: node.position.y });
     },
     [updateNode]

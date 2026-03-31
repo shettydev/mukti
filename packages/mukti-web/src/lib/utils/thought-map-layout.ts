@@ -26,6 +26,14 @@ export const HORIZONTAL_SPACING = 250;
 /** Vertical distance between sibling nodes at the same depth */
 export const VERTICAL_SPACING = 120;
 
+/**
+ * Vertical distance between ghost (suggestion) nodes sharing the same parent.
+ * Ghost nodes are taller than real nodes (~130–150px with SUGGESTION header,
+ * label, and Accept/Dismiss buttons), so they need more breathing room than
+ * the standard VERTICAL_SPACING (120px).
+ */
+export const GHOST_VERTICAL_SPACING = 150;
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -152,9 +160,14 @@ export function computeThoughtMapLayout(nodes: ThoughtMapNode[]): Record<string,
  *
  * @param count - Number of siblings
  * @param centreY - The y-coordinate to centre the group around
+ * @param spacing - Vertical spacing between siblings (defaults to VERTICAL_SPACING)
  * @returns Array of y-values for each sibling
  */
-function centredYPositions(count: number, centreY: number): number[] {
+export function centredYPositions(
+  count: number,
+  centreY: number,
+  spacing: number = VERTICAL_SPACING
+): number[] {
   if (count === 0) {
     return [];
   }
@@ -162,10 +175,10 @@ function centredYPositions(count: number, centreY: number): number[] {
     return [centreY];
   }
 
-  const totalHeight = (count - 1) * VERTICAL_SPACING;
+  const totalHeight = (count - 1) * spacing;
   const startY = centreY - totalHeight / 2;
 
-  return Array.from({ length: count }, (_, i) => startY + i * VERTICAL_SPACING);
+  return Array.from({ length: count }, (_, i) => startY + i * spacing);
 }
 
 /**
