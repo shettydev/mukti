@@ -10,6 +10,8 @@ import { MobileMenuButton, Sidebar } from '@/components/dashboard/sidebar';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { cn } from '@/lib/utils';
 
+const SIDEBAR_COLLAPSED_KEY = 'mukti-sidebar-collapsed';
+
 /**
  * Layout context value
  * @property {LayoutState} state - Current layout state
@@ -22,6 +24,13 @@ interface LayoutContextValue {
   toggleMobileMenu: () => void;
   toggleSidebar: () => void;
   updateState: (updates: Partial<LayoutState>) => void;
+}
+
+function getInitialSidebarCollapsed(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
 }
 
 /**
@@ -64,7 +73,7 @@ export function DashboardLayout({
   const [state, setState] = useState<LayoutState>({
     mobileMenuOpen: false,
     pageTitle: title || '',
-    sidebarCollapsed: false,
+    sidebarCollapsed: getInitialSidebarCollapsed(),
   });
 
   // Dialog state
@@ -77,7 +86,11 @@ export function DashboardLayout({
 
   // State management functions
   const toggleSidebar = () => {
-    setState((prev) => ({ ...prev, sidebarCollapsed: !prev.sidebarCollapsed }));
+    setState((prev) => {
+      const next = !prev.sidebarCollapsed;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      return { ...prev, sidebarCollapsed: next };
+    });
   };
 
   const toggleMobileMenu = () => {
@@ -85,6 +98,9 @@ export function DashboardLayout({
   };
 
   const updateState = (updates: Partial<LayoutState>) => {
+    if (updates.sidebarCollapsed !== undefined) {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(updates.sidebarCollapsed));
+    }
     setState((prev) => ({ ...prev, ...updates }));
   };
 
