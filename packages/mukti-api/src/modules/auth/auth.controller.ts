@@ -25,6 +25,10 @@ import { ApiTags } from '@nestjs/swagger';
 
 import type { AuthResponseDto, TokenResponseDto, UserResponseDto } from './dto';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
+import { WaitlistService } from '../waitlist/waitlist.service';
 import {
   ChangePasswordDto,
   ForgotPasswordDto,
@@ -33,11 +37,6 @@ import {
   ResetPasswordDto,
   VerifyEmailDto,
 } from './dto';
-
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Public } from '../../common/decorators/public.decorator';
-import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
-import { WaitlistService } from '../waitlist/waitlist.service';
 import {
   ApiChangePassword,
   ApiForgotPassword,
