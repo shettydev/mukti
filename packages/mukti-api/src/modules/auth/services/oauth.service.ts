@@ -120,10 +120,16 @@ export class OAuthService {
         this.logger.log(
           `Creating new user from Google profile: ${profile.email}`,
         );
+
+        // Grant founding member status to the first 100 users
+        const userCount = await this.userModel.countDocuments();
+        const isFoundingMember = userCount < 100;
+
         user = await this.userModel.create({
           email: profile.email,
           emailVerified: true, // Google verifies emails
           firstName: profile.firstName,
+          foundingMember: isFoundingMember,
           googleId: profile.googleId,
           isActive: true,
           lastLoginAt: new Date(),
@@ -181,6 +187,7 @@ export class OAuthService {
         email: user.email,
         emailVerified: user.emailVerified,
         firstName: user.firstName,
+        foundingMember: user.foundingMember,
         id: user._id.toString(),
         isActive: user.isActive,
         lastName: user.lastName,

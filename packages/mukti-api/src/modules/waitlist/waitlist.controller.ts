@@ -17,6 +17,11 @@ import { Public } from '../../common/decorators/public.decorator';
 import { JoinWaitlistDto } from './dto';
 import { WaitlistService } from './waitlist.service';
 
+/**
+ * @deprecated Waitlist functionality is deprecated. Registration is now open — users
+ * should sign up directly via the auth flow. These endpoints are preserved for
+ * backward compatibility and existing data access only.
+ */
 @ApiTags('Waitlist')
 @Controller('waitlist')
 export class WaitlistController {
@@ -24,7 +29,13 @@ export class WaitlistController {
 
   constructor(private readonly waitlistService: WaitlistService) {}
 
-  @ApiOperation({ summary: 'Join the waitlist' })
+  /**
+   * @deprecated Use the auth sign-up flow instead.
+   */
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Join the waitlist (deprecated — registration is now open)',
+  })
   @ApiResponse({
     description: 'Successfully joined waitlist',
     status: 201,
@@ -41,7 +52,9 @@ export class WaitlistController {
     @Ip() ip: string,
     @Req() req: Request,
   ) {
-    this.logger.log(`Waitlist join attempt from IP ${ip}`);
+    this.logger.warn(
+      `Deprecated waitlist join attempt from IP ${ip} — registration is now open`,
+    );
 
     const userAgent = req.headers['user-agent'] ?? 'Unknown';
 
@@ -50,7 +63,14 @@ export class WaitlistController {
     return result;
   }
 
-  @ApiOperation({ summary: 'Check if email is in waitlist' })
+  /**
+   * @deprecated Use the auth sign-up flow instead.
+   */
+  @ApiOperation({
+    deprecated: true,
+    summary:
+      'Check if email is in waitlist (deprecated — registration is now open)',
+  })
   @ApiResponse({
     description: 'Email exists in waitlist',
     status: 200,
@@ -62,7 +82,9 @@ export class WaitlistController {
   @Get('check')
   @Public()
   async check(@Query('email') email: string) {
-    this.logger.log(`Checking waitlist for email: ${email}`);
+    this.logger.warn(
+      `Deprecated waitlist check for email: ${email} — registration is now open`,
+    );
 
     const result = await this.waitlistService.checkEmail(email);
 

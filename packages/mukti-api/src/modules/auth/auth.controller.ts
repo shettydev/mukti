@@ -4,7 +4,6 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -28,7 +27,6 @@ import type { AuthResponseDto, TokenResponseDto, UserResponseDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
-import { WaitlistService } from '../waitlist/waitlist.service';
 import {
   ChangePasswordDto,
   ForgotPasswordDto,
@@ -87,7 +85,6 @@ export class AuthController {
     private readonly sessionService: SessionService,
     private readonly oauthService: OAuthService,
     private readonly configService: ConfigService,
-    private readonly waitlistService: WaitlistService,
   ) {
     this.cookieDomain = this.getCookieDomainFromConfig();
   }
@@ -181,6 +178,7 @@ export class AuthController {
       email: user.email,
       emailVerified: user.emailVerified,
       firstName: user.firstName,
+      foundingMember: user.foundingMember,
       id: user._id.toString(),
       isActive: user.isActive,
       lastLoginAt: user.lastLoginAt,
@@ -441,18 +439,6 @@ export class AuthController {
 
     const normalizedEmail = dto.email.trim().toLowerCase();
     dto.email = normalizedEmail;
-
-    // Signups are restricted to emails already present in waitlist.
-    try {
-      await this.waitlistService.checkEmail(normalizedEmail);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new ForbiddenException(
-          'Sign up is currently limited to waitlisted emails. Join the waitlist first.',
-        );
-      }
-      throw error;
-    }
 
     // Register user
     const result = await this.authService.register(dto);
