@@ -25,9 +25,9 @@ export default function LandingFooter() {
           </Link>
           <Link
             className="text-japandi-stone/60 hover:text-japandi-terracotta text-sm tracking-widest uppercase transition-colors duration-300"
-            href="#join"
+            href="/auth"
           >
-            Waitlist
+            Sign Up
           </Link>
           <Link
             className="text-japandi-stone/60 hover:text-japandi-terracotta text-sm tracking-widest uppercase transition-colors duration-300"

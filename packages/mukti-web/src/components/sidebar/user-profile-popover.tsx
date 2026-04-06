@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, LogOut, Monitor, Moon, Settings, Sun } from 'lucide-react';
+import { Check, LogOut, Monitor, Moon, Settings, Sparkles, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -79,9 +79,20 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
             {/* User Info - Hidden when collapsed */}
             {!collapsed && (
               <div className="flex flex-col items-start text-sm truncate overflow-hidden">
-                <span className="w-full truncate text-left font-medium text-japandi-stone">
-                  {user?.firstName} {user?.lastName}
-                </span>
+                <div className="flex items-center gap-1.5 w-full">
+                  <span className="truncate text-left font-medium text-japandi-stone">
+                    {user?.firstName} {user?.lastName}
+                  </span>
+                  {user?.foundingMember && (
+                    <span
+                      className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-japandi-terracotta/15 px-1.5 py-0.5 text-[10px] font-medium text-japandi-terracotta"
+                      title="Founding Member"
+                    >
+                      <Sparkles className="h-2.5 w-2.5" />
+                      <span className="hidden sm:inline">Founder</span>
+                    </span>
+                  )}
+                </div>
                 <span className="w-full truncate text-left text-xs text-japandi-stone/65">
                   {user?.email}
                 </span>

@@ -89,14 +89,9 @@ function AuthContent() {
             </h1>
             <p className="text-japandi-body text-sm text-japandi-stone/75">
               {activeTab === 'signup'
-                ? 'Create your account with a waitlisted email to enter Mukti.'
+                ? 'Create your account to begin your liberation.'
                 : 'Sign in to continue your inquiry journey.'}
             </p>
-            {activeTab === 'signup' && (
-              <p className="text-xs text-japandi-timber/85">
-                Sign up is invite-gated through the waitlist.
-              </p>
-            )}
           </div>
 
           {/* Tab Navigation */}

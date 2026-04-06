@@ -61,15 +61,16 @@ export default function LandingHero() {
 
         <motion.div
           animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col xs:flex-row items-center gap-4 xs:gap-6"
           initial={{ opacity: 0, y: 20 }}
           transition={{ delay: 0.8, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
           <Link
-            className="group flex items-center gap-2 text-japandi-stone/60 text-sm tracking-widest hover:text-japandi-terracotta transition-colors duration-500"
-            href="#demo"
+            className="group flex items-center gap-2 px-6 py-3 bg-japandi-terracotta text-japandi-cream text-sm font-medium tracking-widest rounded-sm hover:bg-japandi-timber transition-colors duration-300"
+            href="/auth"
           >
-            <span>See it in action</span>
-            <ArrowRight className="w-3 h-3 transition-transform duration-500 group-hover:translate-x-1" />
+            <span>Get Started</span>
+            <ArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </motion.div>
       </div>

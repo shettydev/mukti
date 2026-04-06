@@ -115,9 +115,9 @@ export default function LandingNav() {
               'text-xs xs:text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
               "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
             )}
-            href="#join"
+            href="/auth"
           >
-            Join Waitlist
+            Get Started
           </Link>
         </motion.div>
 
