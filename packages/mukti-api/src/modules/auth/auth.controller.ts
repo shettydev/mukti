@@ -23,15 +23,14 @@ import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
 
-import type {
-  AuthResponseDto,
+import type { AuthResponseDto, TokenResponseDto, UserResponseDto } from './dto';
+
+import {
   ChangePasswordDto,
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
   ResetPasswordDto,
-  TokenResponseDto,
-  UserResponseDto,
   VerifyEmailDto,
 } from './dto';
 
