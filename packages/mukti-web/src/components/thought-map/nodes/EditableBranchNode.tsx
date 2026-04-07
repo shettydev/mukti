@@ -7,14 +7,24 @@
  * visually but renders an auto-focused <input> instead of a static label.
  * Uses a dashed border to distinguish it as a draft.
  *
- * Commit: Enter with non-empty text, or blur with non-empty text.
- * Cancel: Escape, or blur with empty text.
+ * The node persists until explicitly confirmed or deleted — clicking outside
+ * does NOT remove it, maintaining consistency with other node types.
+ *
+ * Confirm: Enter with non-empty text, click the Add button, or right-click → "Confirm & Add".
+ * Delete: Escape, or right-click → "Delete".
  */
 
 import { Handle, Position } from '@xyflow/react';
-import { GitBranch } from 'lucide-react';
+import { Check, GitBranch, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -47,6 +57,8 @@ export function EditableBranchNode({ data, selected }: EditableBranchNodeProps) 
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
+  const [isConfirming, setIsConfirming] = useState(false);
+  const isCommittedRef = useRef(false);
 
   // Auto-focus on mount
   useEffect(() => {
@@ -54,21 +66,27 @@ export function EditableBranchNode({ data, selected }: EditableBranchNodeProps) 
     return () => window.clearTimeout(timer);
   }, []);
 
-  const nodeRef = useRef<HTMLDivElement>(null);
-  const isCommittedRef = useRef(false);
-
   const doCommit = useCallback(() => {
     if (isCommittedRef.current) {
       return;
     }
-    isCommittedRef.current = true;
     const trimmed = text.trim();
-    if (trimmed) {
-      onCommit(trimmed);
-    } else {
-      onCancel();
+    if (!trimmed) {
+      return;
     }
-  }, [text, onCancel, onCommit]);
+    isCommittedRef.current = true;
+    setIsConfirming(true);
+    // Brief animation before the real node replaces this one
+    setTimeout(() => onCommit(trimmed), 200);
+  }, [text, onCommit]);
+
+  const doCancel = useCallback(() => {
+    if (isCommittedRef.current) {
+      return;
+    }
+    isCommittedRef.current = true;
+    onCancel();
+  }, [onCancel]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -77,32 +95,10 @@ export function EditableBranchNode({ data, selected }: EditableBranchNodeProps) 
         doCommit();
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        isCommittedRef.current = true;
-        onCancel();
+        doCancel();
       }
     },
-    [doCommit, onCancel]
-  );
-
-  // On blur, check if the new focus target is still within this node.
-  // If so, re-focus the input. Otherwise, commit/cancel.
-  const handleBlur = useCallback(
-    (e: React.FocusEvent<HTMLInputElement>) => {
-      const related = e.relatedTarget as Node | null;
-      if (related && nodeRef.current?.contains(related)) {
-        // Focus moved within the node — re-focus the input
-        inputRef.current?.focus();
-        return;
-      }
-      // Use a timeout to let React Flow finish its event cycle
-      setTimeout(() => {
-        if (isCommittedRef.current) {
-          return;
-        }
-        doCommit();
-      }, 150);
-    },
-    [doCommit]
+    [doCommit, doCancel]
   );
 
   // Prevent mousedown on the node container from stealing focus from the input
@@ -113,92 +109,142 @@ export function EditableBranchNode({ data, selected }: EditableBranchNodeProps) 
     }
   }, []);
 
+  const hasText = text.trim().length > 0;
+
   return (
-    <div
-      className={cn(
-        // Base — matches ThoughtNode sizing
-        'relative min-w-[160px] max-w-[260px] cursor-default rounded-xl border p-4',
-        // Draft styling: dashed border
-        'border-dashed',
-        'bg-stone-50 dark:bg-stone-800',
-        'transition-all duration-200',
-        'border-stone-300 dark:border-stone-600',
-        'shadow-md shadow-stone-200/60 dark:shadow-stone-900/40',
-        // Selected ring
-        selected && [
-          'border-stone-400 dark:border-stone-500',
-          'ring-2 ring-stone-400/30 ring-offset-2 ring-offset-background',
-        ]
-      )}
-      onMouseDown={handleMouseDown}
-      ref={nodeRef}
-    >
-      {/* Type badge */}
-      <div className="mb-2 flex items-center gap-1.5">
-        <GitBranch className="h-3 w-3 text-stone-400 dark:text-stone-500" />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-400 dark:text-stone-500">
-          New Branch
-        </span>
-      </div>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          className={cn(
+            // Base — matches ThoughtNode sizing
+            'relative min-w-[160px] max-w-[260px] cursor-default rounded-xl border p-4',
+            // Draft styling: dashed border
+            'border-dashed',
+            'bg-stone-50 dark:bg-stone-800',
+            'transition-all duration-200',
+            'border-stone-300 dark:border-stone-600',
+            'shadow-md shadow-stone-200/60 dark:shadow-stone-900/40',
+            // Confirming animation: scale up + solidify border
+            isConfirming && [
+              'scale-105 border-solid border-stone-400 dark:border-stone-500',
+              'shadow-lg shadow-stone-300/60 dark:shadow-stone-800/60',
+            ],
+            // Selected ring (skip when confirming)
+            selected &&
+              !isConfirming && [
+                'border-stone-400 dark:border-stone-500',
+                'ring-2 ring-stone-400/30 ring-offset-2 ring-offset-background',
+              ]
+          )}
+          onMouseDown={handleMouseDown}
+        >
+          {/* Type badge */}
+          <div className="mb-2 flex items-center gap-1.5">
+            <GitBranch className="h-3 w-3 text-stone-400 dark:text-stone-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-400 dark:text-stone-500">
+              New Branch
+            </span>
+          </div>
 
-      {/* Editable input */}
-      <input
-        className={cn(
-          'noDrag nowheel',
-          'w-full bg-transparent text-sm font-medium leading-snug',
-          'text-stone-700 dark:text-stone-200',
-          'placeholder:text-stone-400 dark:placeholder:text-stone-500',
-          'border-none outline-none focus:ring-0'
-        )}
-        maxLength={MAX_LABEL_LENGTH}
-        onBlur={handleBlur}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Type a thought..."
-        ref={inputRef}
-        type="text"
-        value={text}
-      />
+          {/* Editable input */}
+          <input
+            className={cn(
+              'noDrag nowheel',
+              'w-full bg-transparent text-sm font-medium leading-snug',
+              'text-stone-700 dark:text-stone-200',
+              'placeholder:text-stone-400 dark:placeholder:text-stone-500',
+              'border-none outline-none focus:ring-0'
+            )}
+            disabled={isConfirming}
+            maxLength={MAX_LABEL_LENGTH}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a thought..."
+            ref={inputRef}
+            type="text"
+            value={text}
+          />
 
-      {/* Character counter */}
-      <div className="mt-1.5">
-        <span className="text-[10px] text-stone-400 dark:text-stone-500">
-          {text.length}/{MAX_LABEL_LENGTH}
-        </span>
-      </div>
+          {/* Bottom row: character counter + confirm button */}
+          <div className="mt-1.5 flex items-center justify-between">
+            <span className="text-[10px] text-stone-400 dark:text-stone-500">
+              {text.length}/{MAX_LABEL_LENGTH}
+            </span>
+            <button
+              aria-label="Confirm and add branch"
+              className={cn(
+                'noDrag flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium',
+                'transition-all duration-150',
+                hasText && !isConfirming
+                  ? [
+                      'border-emerald-200 bg-emerald-50 text-emerald-600',
+                      'hover:bg-emerald-100',
+                      'dark:border-emerald-700/50 dark:bg-emerald-900/20 dark:text-emerald-400',
+                      'cursor-pointer',
+                    ]
+                  : [
+                      'border-stone-200 bg-stone-100 text-stone-400',
+                      'dark:border-stone-700 dark:bg-stone-800 dark:text-stone-500',
+                      'cursor-not-allowed opacity-50',
+                    ]
+              )}
+              disabled={!hasText || isConfirming}
+              onClick={(e) => {
+                e.stopPropagation();
+                doCommit();
+              }}
+            >
+              <Check className="h-3 w-3" />
+              Add
+            </button>
+          </div>
 
-      {/* React Flow handles: side-aware (matches ThoughtNode) */}
-      {side === 'left' ? (
-        <>
-          <Handle
-            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-            id="target-right"
-            position={Position.Right}
-            type="target"
-          />
-          <Handle
-            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-            id="source-left"
-            position={Position.Left}
-            type="source"
-          />
-        </>
-      ) : (
-        <>
-          <Handle
-            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-            id="target-left"
-            position={Position.Left}
-            type="target"
-          />
-          <Handle
-            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-            id="source-right"
-            position={Position.Right}
-            type="source"
-          />
-        </>
-      )}
-    </div>
+          {/* React Flow handles: side-aware (matches ThoughtNode) */}
+          {side === 'left' ? (
+            <>
+              <Handle
+                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+                id="target-right"
+                position={Position.Right}
+                type="target"
+              />
+              <Handle
+                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+                id="source-left"
+                position={Position.Left}
+                type="source"
+              />
+            </>
+          ) : (
+            <>
+              <Handle
+                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+                id="target-left"
+                position={Position.Left}
+                type="target"
+              />
+              <Handle
+                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+                id="source-right"
+                position={Position.Right}
+                type="source"
+              />
+            </>
+          )}
+        </div>
+      </ContextMenuTrigger>
+
+      <ContextMenuContent className="min-w-[180px]">
+        <ContextMenuItem disabled={!hasText || isConfirming} inset={false} onClick={doCommit}>
+          <Check className="h-4 w-4 text-emerald-500" />
+          Confirm & Add Branch
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem inset={false} onClick={doCancel}>
+          <Trash2 className="h-4 w-4 text-red-500" />
+          <span className="text-red-600 dark:text-red-400">Delete</span>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
