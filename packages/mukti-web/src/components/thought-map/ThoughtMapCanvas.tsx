@@ -283,6 +283,8 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   const isDraggingRef = useRef(false);
   // Capture inline edit node position so the committed node appears in the same spot
   const inlineEditPositionRef = useRef<null | { x: number; y: number }>(null);
+  // Reactive position for the inline edit node — drives edge handle re-routing on drag
+  const [inlineEditDragPos, setInlineEditDragPos] = useState<null | { x: number; y: number }>(null);
 
   // ---- Sync remote data into the Zustand store --------------------------------
   useEffect(() => {
@@ -316,6 +318,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
   // ---- "Add Branch" handler (called by node context menus / toolbar) ----------
   const handleAddBranch = useCallback((nodeId: string) => {
     setInlineEditParentId(nodeId);
+    setInlineEditDragPos(null);
   }, []);
 
   // ---- Inline branch commit/cancel handlers ----------------------------------
@@ -462,8 +465,9 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     if (!inlineEditParentId || inlineEditNode.length === 0) {
       return [];
     }
-    const editNode = inlineEditNode[0];
-    const isRight = editNode.position.x > 0;
+    // Use dragged position if available, otherwise fall back to spawn position
+    const currentPos = inlineEditDragPos ?? inlineEditNode[0].position;
+    const isRight = currentPos.x > 0;
     return [
       {
         id: 'edge-inline-edit',
@@ -475,7 +479,7 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
         type: 'thought-map-edge',
       },
     ];
-  }, [inlineEditNode, inlineEditParentId]);
+  }, [inlineEditDragPos, inlineEditNode, inlineEditParentId]);
 
   const flowEdges = useMemo(
     () => [...toFlowEdges(domainNodesList, layoutPositions), ...inlineEditEdge],
@@ -504,8 +508,11 @@ function ThoughtMapCanvasInner({ mapId }: ThoughtMapCanvasInnerProps) {
     (_event, node) => {
       isDraggingRef.current = false;
 
-      // Skip inline edit node — it's not in the store
+      // Inline edit node: capture dragged position for commit + update edge routing
       if (node.id === '__inline-edit__') {
+        const pos = { x: node.position.x, y: node.position.y };
+        inlineEditPositionRef.current = pos;
+        setInlineEditDragPos(pos);
         return;
       }
       void updateNode(node.id, { x: node.position.x, y: node.position.y });

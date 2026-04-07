@@ -53,7 +53,7 @@ export interface EditableBranchNodeProps {
 // ============================================================================
 
 export function EditableBranchNode({ data, selected }: EditableBranchNodeProps) {
-  const { onCancel, onCommit, side = 'right' } = data;
+  const { onCancel, onCommit } = data;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
@@ -76,8 +76,8 @@ export function EditableBranchNode({ data, selected }: EditableBranchNodeProps) 
     }
     isCommittedRef.current = true;
     setIsConfirming(true);
-    // Brief animation before the real node replaces this one
-    setTimeout(() => onCommit(trimmed), 200);
+    // Let the confirm animation play before the real node replaces this one
+    setTimeout(() => onCommit(trimmed), 400);
   }, [text, onCommit]);
 
   const doCancel = useCallback(() => {
@@ -121,13 +121,15 @@ export function EditableBranchNode({ data, selected }: EditableBranchNodeProps) 
             // Draft styling: dashed border
             'border-dashed',
             'bg-stone-50 dark:bg-stone-800',
-            'transition-all duration-200',
+            'transition-all duration-300 ease-out',
             'border-stone-300 dark:border-stone-600',
             'shadow-md shadow-stone-200/60 dark:shadow-stone-900/40',
-            // Confirming animation: scale up + solidify border
+            // Confirming animation: scale up, solidify border, emerald glow
             isConfirming && [
-              'scale-105 border-solid border-stone-400 dark:border-stone-500',
-              'shadow-lg shadow-stone-300/60 dark:shadow-stone-800/60',
+              'scale-[1.06] border-solid',
+              'border-emerald-400 dark:border-emerald-500',
+              'shadow-lg shadow-emerald-200/40 dark:shadow-emerald-900/40',
+              'ring-2 ring-emerald-300/30 ring-offset-2 ring-offset-background',
             ],
             // Selected ring (skip when confirming)
             selected &&
@@ -199,38 +201,31 @@ export function EditableBranchNode({ data, selected }: EditableBranchNodeProps) 
             </button>
           </div>
 
-          {/* React Flow handles: side-aware (matches ThoughtNode) */}
-          {side === 'left' ? (
-            <>
-              <Handle
-                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-                id="target-right"
-                position={Position.Right}
-                type="target"
-              />
-              <Handle
-                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-                id="source-left"
-                position={Position.Left}
-                type="source"
-              />
-            </>
-          ) : (
-            <>
-              <Handle
-                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-                id="target-left"
-                position={Position.Left}
-                type="target"
-              />
-              <Handle
-                className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
-                id="source-right"
-                position={Position.Right}
-                type="source"
-              />
-            </>
-          )}
+          {/* React Flow handles: all four rendered so edges re-route when dragged across hemispheres */}
+          <Handle
+            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+            id="target-left"
+            position={Position.Left}
+            type="target"
+          />
+          <Handle
+            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+            id="target-right"
+            position={Position.Right}
+            type="target"
+          />
+          <Handle
+            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+            id="source-left"
+            position={Position.Left}
+            type="source"
+          />
+          <Handle
+            className="!h-2.5 !w-2.5 !border-stone-300 !bg-stone-200 dark:!border-stone-600 dark:!bg-stone-700"
+            id="source-right"
+            position={Position.Right}
+            type="source"
+          />
         </div>
       </ContextMenuTrigger>
 
