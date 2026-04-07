@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, LogOut, Monitor, Moon, Settings, Sparkles, Sun } from 'lucide-react';
+import { Check, LogOut, Monitor, Moon, Settings, Sun } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -71,28 +72,55 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
         >
           <div className="flex items-center gap-3 w-full">
             {/* User Avatar */}
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber">
-              {user?.firstName?.[0]}
-              {user?.lastName?.[0]}
-            </div>
+            {user?.foundingMember ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber founder-avatar-ring">
+                    {user?.firstName?.[0]}
+                    {user?.lastName?.[0]}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent
+                  className="p-0 shadow-lg rounded-lg overflow-hidden [&>svg]:hidden"
+                  side="right"
+                  sideOffset={14}
+                  style={{
+                    backgroundColor: 'var(--japandi-light-stone)',
+                    border: '1px solid var(--japandi-sand)',
+                  }}
+                >
+                  <div
+                    style={{ height: '2px', backgroundColor: 'var(--japandi-gold)', opacity: 0.55 }}
+                  />
+                  <div className="px-3.5 py-2.5">
+                    <p
+                      className="text-[10px] font-semibold tracking-[0.14em] uppercase"
+                      style={{ color: 'var(--japandi-gold)' }}
+                    >
+                      Founding Member
+                    </p>
+                    <p
+                      className="mt-0.5 text-[10px] leading-snug"
+                      style={{ color: 'var(--japandi-stone)', opacity: 0.55 }}
+                    >
+                      Early access supporter
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber">
+                {user?.firstName?.[0]}
+                {user?.lastName?.[0]}
+              </div>
+            )}
 
             {/* User Info - Hidden when collapsed */}
             {!collapsed && (
               <div className="flex flex-col items-start text-sm truncate overflow-hidden">
-                <div className="flex items-center gap-1.5 w-full">
-                  <span className="truncate text-left font-medium text-japandi-stone">
-                    {user?.firstName} {user?.lastName}
-                  </span>
-                  {user?.foundingMember && (
-                    <span
-                      className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-japandi-terracotta/15 px-1.5 py-0.5 text-[10px] font-medium text-japandi-terracotta"
-                      title="Founding Member"
-                    >
-                      <Sparkles className="h-2.5 w-2.5" />
-                      <span className="hidden sm:inline">Founder</span>
-                    </span>
-                  )}
-                </div>
+                <span className="truncate text-left font-medium text-japandi-stone">
+                  {user?.firstName} {user?.lastName}
+                </span>
                 <span className="w-full truncate text-left text-xs text-japandi-stone/65">
                   {user?.email}
                 </span>
