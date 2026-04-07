@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 /**
  * Gap detection result stored on dialogue for tracking.
@@ -159,12 +159,15 @@ export class NodeDialogue {
   @Prop({
     default: [],
     type: [
-      {
-        fromLevel: { type: Number },
-        reason: { type: String },
-        timestamp: { type: Date },
-        toLevel: { type: Number },
-      },
+      new MongooseSchema(
+        {
+          fromLevel: { type: Number },
+          reason: { type: String },
+          timestamp: { type: Date },
+          toLevel: { type: Number },
+        },
+        { _id: false },
+      ),
     ],
   })
   scaffoldHistory: {

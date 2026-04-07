@@ -68,7 +68,7 @@ interface ThoughtMapState {
    * Accept a ghost node: persists it as a real node via addNode, then removes the ghost.
    * @returns The new node's nodeId, or null if failed
    */
-  acceptGhostNode: (ghostId: string) => Promise<null | string>;
+  acceptGhostNode: (ghostId: string, position?: { x: number; y: number }) => Promise<null | string>;
 
   /**
    * Add a ghost node (AI suggestion) to the canvas.
@@ -319,7 +319,10 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
   /**
    * Accept a ghost node: persists it as a real node, then removes the ghost.
    */
-  acceptGhostNode: async (ghostId: string): Promise<null | string> => {
+  acceptGhostNode: async (
+    ghostId: string,
+    position?: { x: number; y: number }
+  ): Promise<null | string> => {
     const { ghostNodes, map } = get();
     const ghost = ghostNodes[ghostId];
 
@@ -334,10 +337,14 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
       mapId: map.id,
       parentNodeId: ghost.parentId,
       type: ghost.suggestedType,
+      x: position?.x,
+      y: position?.y,
     });
 
-    // Remove the ghost regardless of success
-    get().removeGhostNode(ghostId);
+    // Only remove the ghost if the node was created successfully
+    if (nodeId) {
+      get().removeGhostNode(ghostId);
+    }
 
     return nodeId;
   },
@@ -390,12 +397,31 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
     try {
       const created = await thoughtMapApi.createThoughtNode(dto);
 
-      // Replace temp node with real node from server
+      // Replace temp node with real node from server.
+      // If a position was provided in the DTO, override the server's default {x:0, y:0}
+      // so the node stays at the intended location (e.g. where a ghost was displayed).
+      // The layout algorithm only repositions nodes at origin, so a non-zero position
+      // is treated as user-placed and left untouched.
       const currentNodes = get().nodes;
       const { [tempNodeId]: _removed, ...rest } = currentNodes;
+      const nodeToStore: ThoughtMapNode =
+        dto.x !== undefined && dto.y !== undefined
+          ? { ...created, position: { x: dto.x, y: dto.y } }
+          : created;
       set({
-        nodes: { ...rest, [created.nodeId]: created },
+        nodes: { ...rest, [nodeToStore.nodeId]: nodeToStore },
       });
+
+      // Persist the intended position to the backend so it survives a page reload.
+      // Fire-and-forget: the node is already displayed at the correct position in the
+      // store; a failure here only means the position reverts on next load.
+      if (dto.x !== undefined && dto.y !== undefined) {
+        void thoughtMapApi
+          .updateThoughtNode(dto.mapId, created.nodeId, { x: dto.x, y: dto.y })
+          .catch((err) => {
+            console.error('Failed to persist node position after create:', err);
+          });
+      }
 
       return created.nodeId;
     } catch (err) {
@@ -566,10 +592,10 @@ export const useThoughtMapStore = create<ThoughtMapState>()((set, get) => ({
     } catch (err) {
       // Rollback
       console.error('Failed to delete thought node:', err);
-      set({
-        ghostNodes: { ...get().ghostNodes, ...ghostNodes },
-        nodes: { ...get().nodes, ...snapshotNodes },
-      });
+      set((state) => ({
+        ghostNodes: { ...state.ghostNodes, ...ghostNodes },
+        nodes: { ...state.nodes, ...snapshotNodes },
+      }));
       return false;
     }
   },

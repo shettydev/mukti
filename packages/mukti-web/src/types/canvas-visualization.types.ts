@@ -41,27 +41,27 @@ export interface InsightNodeData extends BaseNodeData {
 }
 
 /**
- * Configuration for auto-layout algorithm
- * @property centerX - X coordinate for center position
- * @property centerY - Y coordinate for center position
- * @property minNodeSpacing - Minimum pixels between nodes
- * @property rootEndAngle - Ending angle for root arc (radians)
- * @property rootRadius - Distance from center for root nodes
- * @property rootStartAngle - Starting angle for root arc (radians)
- * @property soilEndAngle - Ending angle for soil arc (radians)
- * @property soilRadius - Distance from center for soil nodes
- * @property soilStartAngle - Starting angle for soil arc (radians)
+ * Configuration for auto-layout algorithm (three-column layout)
+ *
+ * Layout strategy:
+ * - Seed node centered at (centerX, centerY)
+ * - Soil nodes stacked vertically in a left column
+ * - Root nodes stacked vertically in a right column
+ *
+ * @property centerX - X coordinate for seed node center
+ * @property centerY - Y coordinate for seed node center
+ * @property nodeVerticalSpacing - Vertical gap between nodes in a column (px)
+ * @property rootColumnX - X offset from center for root (assumption) column
+ * @property seedEstimatedHeight - Approximate seed node height for vertical centering
+ * @property soilColumnX - X offset from center for soil (context) column
  */
 export interface LayoutConfig {
   centerX: number;
   centerY: number;
-  minNodeSpacing: number;
-  rootEndAngle: number;
-  rootRadius: number;
-  rootStartAngle: number;
-  soilEndAngle: number;
-  soilRadius: number;
-  soilStartAngle: number;
+  nodeVerticalSpacing: number;
+  rootColumnX: number;
+  seedEstimatedHeight: number;
+  soilColumnX: number;
 }
 
 /**
@@ -128,21 +128,20 @@ interface BaseNodeData {
 }
 
 /**
- * Default layout configuration
- * - Seed at center (0, 0)
- * - Soil nodes in left arc (upper-left to lower-left)
- * - Root nodes in right arc (upper-right to lower-right)
+ * Default layout configuration — three-column layout
+ *
+ * - Seed centered at origin (0, 0)
+ * - Soil (context) nodes stacked vertically in left column at x = -450
+ * - Root (assumption) nodes stacked vertically in right column at x = +450
+ * - 130px vertical spacing between nodes in each column
  */
 export const DEFAULT_LAYOUT: LayoutConfig = {
   centerX: 0,
   centerY: 0,
-  minNodeSpacing: 80,
-  rootEndAngle: Math.PI * 0.25, // Lower right (45°)
-  rootRadius: 250,
-  rootStartAngle: -Math.PI * 0.25, // Upper right (-45°)
-  soilEndAngle: Math.PI * 1.25, // Lower left (225°)
-  soilRadius: 250,
-  soilStartAngle: Math.PI * 0.75, // Upper left (135°)
+  nodeVerticalSpacing: 130,
+  rootColumnX: 450,
+  seedEstimatedHeight: 100,
+  soilColumnX: -450,
 };
 
 // ============================================================================

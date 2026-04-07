@@ -132,8 +132,8 @@ describe('ThoughtMap DTO validation', () => {
     ).not.toHaveLength(0);
   });
 
-  it('surfaces the current ConvertCanvasDto optional-title contract mismatch', () => {
-    expect(validate(ConvertCanvasDto, {})).not.toHaveLength(0);
+  it('accepts ConvertCanvasDto when title is omitted', () => {
+    expect(validate(ConvertCanvasDto, {})).toHaveLength(0);
   });
 
   it('accepts a non-empty ConvertCanvasDto title when provided', () => {

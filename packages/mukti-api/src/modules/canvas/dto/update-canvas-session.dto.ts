@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  Allow,
   ArrayMaxSize,
   IsArray,
   IsNumber,
@@ -13,6 +14,12 @@ import {
  * DTO for node position data.
  */
 export class NodePositionDto {
+  @Allow()
+  _id?: any;
+
+  @Allow()
+  id?: any;
+
   @ApiProperty({
     description: 'Unique identifier for the node',
     example: 'seed',

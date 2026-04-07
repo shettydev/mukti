@@ -256,9 +256,30 @@ export interface ThoughtMapShareLink {
 }
 
 /**
- * Response from starting a Thought Map node dialogue.
+ * Async response from starting a new Thought Map node dialogue.
+ * The AI initial question is being generated via the queue —
+ * subscribe to the SSE stream for the message.
  */
-export interface ThoughtMapStartDialogueResponse {
+export interface ThoughtMapStartDialogueAsyncResponse {
+  dialogue: ThoughtMapDialogue;
+  jobId: string;
+  position: number;
+}
+
+/**
+ * Union response from starting a Thought Map node dialogue.
+ * - Async (has `jobId`): new dialogue, AI generating initial question via queue
+ * - Sync (has `initialQuestion`): existing dialogue, returns first message
+ */
+export type ThoughtMapStartDialogueResponse =
+  | ThoughtMapStartDialogueAsyncResponse
+  | ThoughtMapStartDialogueSyncResponse;
+
+/**
+ * Sync response when a Thought Map node dialogue already has messages.
+ * Returns the first message directly (no queue job needed).
+ */
+export interface ThoughtMapStartDialogueSyncResponse {
   dialogue: ThoughtMapDialogue;
   initialQuestion: ThoughtMapDialogueMessage;
 }

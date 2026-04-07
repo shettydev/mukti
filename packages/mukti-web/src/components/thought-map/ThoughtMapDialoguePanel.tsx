@@ -9,16 +9,27 @@
  *
  * Key differences from NodeChatPanel:
  * - Calls `/thought-maps/:mapId/nodes/:nodeId/` API endpoints
- * - Calls the dedicated `start` endpoint on mount to seed the initial question
+ * - Shows a "Start Dialogue" button to initiate the first Socratic question
  * - No "Create Insight" button (Thought Maps don't have insight nodes)
- * - Node label shown in header instead of node type badge
+ * - Node type icon + label shown in dialogue header
  */
 
-import { GripVertical, Loader2, X } from 'lucide-react';
+import {
+  GitBranch,
+  GripVertical,
+  Leaf,
+  Loader2,
+  MessageSquare,
+  Network,
+  Play,
+  X,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef } from 'react';
 
-import type { ThoughtMapNode } from '@/types/thought-map';
+import type { ThoughtMapNode, ThoughtMapNodeType } from '@/types/thought-map';
 
+import { LoadingMessage } from '@/components/conversations/loading-message';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   useSendThoughtMapMessage,
@@ -40,6 +51,22 @@ const MIN_PANEL_WIDTH = 280;
 const MAX_PANEL_WIDTH = 560;
 const DEFAULT_PANEL_WIDTH = 360;
 
+/**
+ * Display configuration for Thought Map node types.
+ * Maps each node type to its icon, label, and color for the dialogue header.
+ */
+const NODE_TYPE_CONFIG: Record<
+  ThoughtMapNodeType,
+  { color: string; icon: typeof Network; label: string }
+> = {
+  branch: { color: 'text-blue-600', icon: GitBranch, label: 'Branch' },
+  insight: { color: 'text-purple-500', icon: Network, label: 'Insight' },
+  leaf: { color: 'text-emerald-600', icon: Leaf, label: 'Leaf' },
+  question: { color: 'text-amber-500', icon: MessageSquare, label: 'Question' },
+  thought: { color: 'text-slate-500', icon: Network, label: 'Thought' },
+  topic: { color: 'text-green-600', icon: Network, label: 'Topic' },
+};
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -60,9 +87,10 @@ export interface ThoughtMapDialoguePanelProps {
 /**
  * ThoughtMapDialoguePanel - Per-node Socratic dialogue for Thought Maps.
  *
- * On mount it calls `startDialogue` which either:
- * - Creates the NodeDialogue + returns an initial Socratic question (first open), or
- * - Returns the existing dialogue if messages already exist.
+ * On mount it fetches existing messages. If no dialogue history exists,
+ * a "Start Dialogue" button is shown (matching the Thinking Canvas UX).
+ * Clicking the button calls `startDialogue` which creates the NodeDialogue
+ * and returns an initial Socratic question.
  *
  * @example
  * ```tsx
@@ -84,22 +112,20 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   const activeModel = useAiStore((state) => state.activeModel);
 
   // Start/load dialogue (seeds initial question on first open)
-  const {
-    isPending: isStarting,
-    isSuccess: hasStarted,
-    mutate: startDialogue,
-  } = useStartThoughtMapDialogue(mapId, node.nodeId);
+  const { isPending: isStarting, mutate: startDialogue } = useStartThoughtMapDialogue(
+    mapId,
+    node.nodeId
+  );
 
-  // Fetch paginated messages — gated on startDialogue completion to prevent
-  // a race condition where the query fetches the same initial message that
-  // the mutation just seeded into the cache, causing duplicates.
+  // Fetch paginated messages — always enabled so we can detect existing history
+  // and show the "Start Dialogue" button when no messages exist.
   const {
     data: messagesData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading: isLoadingMessages,
-  } = useThoughtMapNodeMessages(mapId, node.nodeId, hasStarted);
+  } = useThoughtMapNodeMessages(mapId, node.nodeId, true);
 
   // Send message mutation
   const { isPending: isSending, mutate: sendMessage } = useSendThoughtMapMessage(
@@ -110,14 +136,15 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   // SSE stream subscription
   const { isProcessing, processingStatus } = useThoughtMapDialogueStream(mapId, node.nodeId, true);
 
-  // Start dialogue on mount (or when node changes)
-  useEffect(() => {
-    startDialogue();
-  }, [mapId, node.nodeId]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Flatten pages
   const messages = messagesData?.pages.flatMap((page) => page.messages) ?? [];
   const messageCount = messagesData?.pages[0]?.dialogue?.messageCount ?? 0;
+  const hasDialogue = messagesData?.pages[0]?.dialogue !== null;
+  const hasHistory = messages.length > 0;
+  const isGeneratingInitialQuestion = hasDialogue && !hasHistory;
+  const showProcessingLoader = isProcessing && hasHistory;
+  const nodeConfig = NODE_TYPE_CONFIG[node.type] ?? NODE_TYPE_CONFIG.topic;
+  const NodeIcon = nodeConfig.icon;
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -199,9 +226,6 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Socratic Dialogue
           </p>
-          <h3 className="truncate text-sm font-semibold" title={node.label}>
-            {node.label}
-          </h3>
         </div>
         <Button className="ml-2 shrink-0" onClick={onClose} size="icon" variant="ghost">
           <X className="h-4 w-4" />
@@ -209,17 +233,61 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         </Button>
       </div>
 
-      {/* Message count badge */}
-      {messageCount > 0 && (
-        <div className="border-b px-4 py-2">
-          <span className="text-xs text-muted-foreground">
-            {messageCount} message{messageCount !== 1 ? 's' : ''}
-          </span>
-        </div>
-      )}
-
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4">
+        {/* Dialogue header — node type, label, count, and start button */}
+        <div className="flex flex-col gap-3 border-b pb-4 pt-4">
+          {/* Node type indicator and message count */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <NodeIcon className={cn('h-4 w-4', nodeConfig.color)} />
+              <span className="text-sm font-medium">{nodeConfig.label}</span>
+            </div>
+
+            {messageCount > 0 && (
+              <Badge className="gap-1" variant="secondary">
+                <MessageSquare className="h-3 w-3" />
+                {messageCount}
+              </Badge>
+            )}
+          </div>
+
+          {/* Node label */}
+          <div className="rounded-md bg-muted/50 p-3">
+            <p className="text-sm leading-relaxed">{node.label}</p>
+          </div>
+
+          {/* Start dialogue button — shown when no dialogue exists */}
+          {!hasDialogue && !isStarting && !isLoadingMessages && (
+            <Button className="w-full gap-2" onClick={() => startDialogue()} variant="default">
+              <Play className="h-4 w-4" />
+              Start Dialogue
+            </Button>
+          )}
+
+          {/* Loading state for start mutation in-flight */}
+          {isStarting && (
+            <div className="flex items-center justify-center py-2">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Starting dialogue…</span>
+            </div>
+          )}
+
+          {/* Generating state — dialogue created, AI producing initial question */}
+          {!isStarting && isGeneratingInitialQuestion && (
+            <div className="flex items-center justify-center py-2">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Generating initial question…</span>
+            </div>
+          )}
+
+          {/* Continue hint — shown when history exists */}
+          {hasHistory && (
+            <p className="text-xs text-muted-foreground">
+              Continue exploring this {nodeConfig.label.toLowerCase()} below
+            </p>
+          )}
+        </div>
         {/* Load older messages */}
         {hasNextPage && (
           <div className="py-2 text-center">
@@ -241,19 +309,10 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
           </div>
         )}
 
-        {/* Loading state */}
-        {(isLoadingMessages || isStarting) && messages.length === 0 && (
+        {/* Loading messages spinner */}
+        {isLoadingMessages && messages.length === 0 && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        )}
-
-        {/* Empty state — shown only after start has resolved with no messages */}
-        {!isLoadingMessages && !isStarting && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              Starting Socratic dialogue for this node…
-            </p>
           </div>
         )}
 
@@ -274,11 +333,8 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         ))}
 
         {/* Processing indicator */}
-        {isProcessing && (
-          <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>{processingStatus ?? 'Processing…'}</span>
-          </div>
+        {showProcessingLoader && (
+          <LoadingMessage status={processingStatus ?? 'Mukti is thinking...'} />
         )}
 
         {/* Scroll anchor */}
@@ -288,7 +344,7 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
       {/* Input */}
       <div className="border-t px-4 py-4">
         <ChatInput
-          disabled={isStarting}
+          disabled={isStarting || !hasHistory}
           isLoading={isSending || isProcessing}
           onSend={handleSend}
           placeholder={getPlaceholder(node.type)}

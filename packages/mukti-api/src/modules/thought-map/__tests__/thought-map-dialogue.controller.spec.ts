@@ -51,6 +51,7 @@ describe('ThoughtMapDialogueController', () => {
   };
 
   const mockAiPolicyService = {
+    getDefaultModel: jest.fn().mockReturnValue('openai/gpt-5-mini'),
     resolveEffectiveModel: jest.fn().mockResolvedValue('resolved-model'),
   };
 
@@ -68,6 +69,7 @@ describe('ThoughtMapDialogueController', () => {
   const mockThoughtNodeModel = {
     countDocuments: jest.fn(),
     findOne: jest.fn(),
+    updateOne: jest.fn().mockResolvedValue({}),
   };
 
   beforeEach(async () => {
@@ -153,6 +155,8 @@ describe('ThoughtMapDialogueController', () => {
 
     mockThoughtMapService.findMapById.mockResolvedValue({ _id: mapId });
     mockThoughtNodeModel.findOne.mockResolvedValue({
+      depth: 1,
+      fromSuggestion: false,
       label: 'Node label',
       type: 'thought',
     });
@@ -171,10 +175,13 @@ describe('ThoughtMapDialogueController', () => {
     );
 
     expect(mockDialogueService.addMessage).not.toHaveBeenCalled();
-    expect(result.initialQuestion.content).toBe('Existing question');
+    expect(result).toHaveProperty(
+      'initialQuestion.content',
+      'Existing question',
+    );
   });
 
-  it('creates the initial question when the dialogue is empty', async () => {
+  it('enqueues an AI job using server key when dialogue is empty and user has no BYOK', async () => {
     const mapId = new Types.ObjectId().toString();
     const dialogue = {
       _id: new Types.ObjectId(),
@@ -184,34 +191,29 @@ describe('ThoughtMapDialogueController', () => {
       nodeLabel: 'Node label',
       nodeType: 'thought',
     };
-    const updatedDialogue = {
-      ...dialogue,
-      messageCount: 1,
-    };
-    const createdMessage = {
-      _id: new Types.ObjectId(),
-      content:
-        'You\'ve noted: "Node label". What led you to this thought? Is this an observation, an assumption, or a conclusion?',
-      createdAt: new Date('2026-01-01T00:00:00.000Z'),
-      dialogueId: dialogue._id,
-      metadata: { model: 'system' },
-      role: 'assistant',
-      sequence: 0,
-    };
 
     mockThoughtMapService.findMapById.mockResolvedValue({ _id: mapId });
     mockThoughtNodeModel.findOne.mockResolvedValue({
+      depth: 1,
+      fromSuggestion: false,
       label: 'Node label',
       type: 'thought',
     });
-    mockThoughtMapDialogueQueueService.getOrCreateMapDialogue
-      .mockResolvedValueOnce(dialogue)
-      .mockResolvedValueOnce(updatedDialogue);
+    mockThoughtMapDialogueQueueService.getOrCreateMapDialogue.mockResolvedValue(
+      dialogue,
+    );
     mockDialogueService.getMessages.mockResolvedValue({
       messages: [],
       pagination: { total: 0 },
     });
-    mockDialogueService.addMessage.mockResolvedValue(createdMessage);
+    setUserRecord({
+      openRouterApiKeyEncrypted: undefined,
+      preferences: { activeModel: 'saved-model' },
+    });
+    mockThoughtMapDialogueQueueService.enqueueMapNodeRequest.mockResolvedValue({
+      jobId: 'job-1',
+      position: 1,
+    });
 
     const result = await controller.startDialogue(
       mapId,
@@ -219,14 +221,169 @@ describe('ThoughtMapDialogueController', () => {
       mockUser as any,
     );
 
-    expect(mockDialogueService.addMessage).toHaveBeenCalledWith(
-      dialogue._id,
-      'assistant',
-      createdMessage.content,
-      { model: 'system' },
+    // Should NOT create a message synchronously — the queue worker does that
+    expect(mockDialogueService.addMessage).not.toHaveBeenCalled();
+
+    // Should resolve model via policy service (no requestedModel for initial question)
+    expect(mockAiPolicyService.resolveEffectiveModel).toHaveBeenCalledWith({
+      hasByok: false,
+      userActiveModel: 'saved-model',
+      validationApiKey: 'server-openrouter-key',
+    });
+
+    // Should enqueue a job with isInitialQuestion flag and resolved model
+    expect(
+      mockThoughtMapDialogueQueueService.enqueueMapNodeRequest,
+    ).toHaveBeenCalledWith(
+      mockUser._id,
+      mapId,
+      'thought-0',
+      'thought',
+      'Node label',
+      1, // depth
+      false, // fromSuggestion
+      0, // siblings (no parentId)
+      undefined, // parentType
+      '', // empty message
+      'free', // subscriptionTier
+      'resolved-model', // effectiveModel from resolveEffectiveModel
+      false, // not BYOK
+      true, // isInitialQuestion
     );
-    expect(result.dialogue.messageCount).toBe(1);
-    expect(result.initialQuestion.content).toBe(createdMessage.content);
+
+    // Should return async response shape with jobId
+    expect('jobId' in result).toBe(true);
+    if ('jobId' in result) {
+      expect(result.jobId).toBe('job-1');
+      expect(result.position).toBe(1);
+    }
+  });
+
+  it('enqueues an AI job using BYOK when dialogue is empty and user has an API key', async () => {
+    const mapId = new Types.ObjectId().toString();
+    const dialogue = {
+      _id: new Types.ObjectId(),
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      messageCount: 0,
+      nodeId: 'thought-0',
+      nodeLabel: 'Node label',
+      nodeType: 'thought',
+    };
+
+    mockThoughtMapService.findMapById.mockResolvedValue({ _id: mapId });
+    mockThoughtNodeModel.findOne.mockResolvedValue({
+      depth: 1,
+      fromSuggestion: false,
+      label: 'Node label',
+      type: 'thought',
+    });
+    mockThoughtMapDialogueQueueService.getOrCreateMapDialogue.mockResolvedValue(
+      dialogue,
+    );
+    mockDialogueService.getMessages.mockResolvedValue({
+      messages: [],
+      pagination: { total: 0 },
+    });
+    setUserRecord({
+      openRouterApiKeyEncrypted: 'encrypted-key',
+      preferences: { activeModel: 'saved-model' },
+    });
+    mockThoughtMapDialogueQueueService.enqueueMapNodeRequest.mockResolvedValue({
+      jobId: 'job-2',
+      position: 1,
+    });
+
+    await controller.startDialogue(mapId, 'thought-0', mockUser as any);
+
+    expect(mockAiSecretsService.decryptString).toHaveBeenCalledWith(
+      'encrypted-key',
+    );
+    expect(mockAiPolicyService.resolveEffectiveModel).toHaveBeenCalledWith({
+      hasByok: true,
+      userActiveModel: 'saved-model',
+      validationApiKey: 'decrypted-key',
+    });
+    expect(
+      mockThoughtMapDialogueQueueService.enqueueMapNodeRequest,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      mapId,
+      'thought-0',
+      'thought',
+      'Node label',
+      1,
+      false,
+      0,
+      undefined,
+      '',
+      'free',
+      'resolved-model',
+      true, // BYOK
+      true, // isInitialQuestion
+    );
+  });
+
+  it('throws when server key is missing and user has no BYOK on startDialogue', async () => {
+    const mapId = new Types.ObjectId().toString();
+    const dialogue = {
+      _id: new Types.ObjectId(),
+      messageCount: 0,
+      nodeId: 'thought-0',
+      nodeLabel: 'Node label',
+      nodeType: 'thought',
+    };
+
+    mockThoughtMapService.findMapById.mockResolvedValue({ _id: mapId });
+    mockThoughtNodeModel.findOne.mockResolvedValue({
+      depth: 0,
+      fromSuggestion: false,
+      label: 'Node label',
+      type: 'thought',
+    });
+    mockThoughtMapDialogueQueueService.getOrCreateMapDialogue.mockResolvedValue(
+      dialogue,
+    );
+    mockDialogueService.getMessages.mockResolvedValue({
+      messages: [],
+      pagination: { total: 0 },
+    });
+    setUserRecord({ openRouterApiKeyEncrypted: undefined, preferences: {} });
+    mockConfigService.get.mockReturnValueOnce('');
+
+    await expect(
+      controller.startDialogue(mapId, 'thought-0', mockUser as any),
+    ).rejects.toThrow('OPENROUTER_API_KEY not configured');
+  });
+
+  it('throws when the user record is missing during startDialogue', async () => {
+    const mapId = new Types.ObjectId().toString();
+    const dialogue = {
+      _id: new Types.ObjectId(),
+      messageCount: 0,
+      nodeId: 'thought-0',
+      nodeLabel: 'Node label',
+      nodeType: 'thought',
+    };
+
+    mockThoughtMapService.findMapById.mockResolvedValue({ _id: mapId });
+    mockThoughtNodeModel.findOne.mockResolvedValue({
+      depth: 0,
+      fromSuggestion: false,
+      label: 'Node label',
+      type: 'thought',
+    });
+    mockThoughtMapDialogueQueueService.getOrCreateMapDialogue.mockResolvedValue(
+      dialogue,
+    );
+    mockDialogueService.getMessages.mockResolvedValue({
+      messages: [],
+      pagination: { total: 0 },
+    });
+    mockUserModel.lean.mockResolvedValue(null);
+
+    await expect(
+      controller.startDialogue(mapId, 'thought-0', mockUser as any),
+    ).rejects.toThrow('User not found');
   });
 
   it('returns empty pagination when no dialogue exists yet', async () => {

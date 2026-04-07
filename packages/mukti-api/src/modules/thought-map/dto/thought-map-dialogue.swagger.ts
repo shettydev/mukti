@@ -17,7 +17,7 @@ export const ApiStartThoughtMapNodeDialogue = () =>
   applyDecorators(
     ApiOperation({
       description:
-        'Starts a Socratic dialogue for a Thought Map node by generating an initial question. Creates the dialogue if it does not exist. Technique is auto-selected based on node context (RFC §5.1.1).',
+        'Starts a Socratic dialogue for a Thought Map node. If the dialogue does not exist, creates it and enqueues AI generation of the initial question (async path: returns jobId + position, subscribe to SSE for the question). If the dialogue already exists, returns the first message directly (sync path: returns initialQuestion). Technique is auto-selected based on node context (RFC §5.1.1).',
       summary: 'Start Thought Map node dialogue',
     }),
     ApiBearerAuth(),
@@ -32,7 +32,33 @@ export const ApiStartThoughtMapNodeDialogue = () =>
       name: 'nodeId',
     }),
     ApiResponse({
-      description: 'Dialogue started with initial Socratic question',
+      description:
+        'Async path — new dialogue created, AI generating initial question via queue. Subscribe to the SSE stream for the initial question.',
+      schema: {
+        example: {
+          data: {
+            dialogue: {
+              createdAt: '2026-01-01T00:00:00Z',
+              id: '507f1f77bcf86cd799439012',
+              lastMessageAt: null,
+              messageCount: 0,
+              nodeId: 'thought-0',
+              nodeLabel: 'The process is unclear',
+              nodeType: 'thought',
+              sessionId: '',
+            },
+            jobId: 'job-123',
+            position: 1,
+          },
+          meta: { requestId: 'uuid', timestamp: '2026-01-01T00:00:00Z' },
+          success: true,
+        },
+      },
+      status: 202,
+    }),
+    ApiResponse({
+      description:
+        'Sync path — dialogue already exists, returns the first message directly.',
       schema: {
         example: {
           data: {
@@ -61,7 +87,7 @@ export const ApiStartThoughtMapNodeDialogue = () =>
           success: true,
         },
       },
-      status: 201,
+      status: 202,
     }),
     ApiResponse({ description: 'Unauthorized', status: 401 }),
     ApiResponse({

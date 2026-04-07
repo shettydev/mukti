@@ -26,6 +26,13 @@ interface LayoutContextValue {
   updateState: (updates: Partial<LayoutState>) => void;
 }
 
+function getInitialSidebarCollapsed(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+}
+
 /**
  * Layout context for managing dashboard layout state
  */
@@ -66,7 +73,7 @@ export function DashboardLayout({
   const [state, setState] = useState<LayoutState>({
     mobileMenuOpen: false,
     pageTitle: title || '',
-    sidebarCollapsed: false,
+    sidebarCollapsed: getInitialSidebarCollapsed(),
   });
 
   // Dialog state
@@ -93,11 +100,7 @@ export function DashboardLayout({
   const toggleSidebar = () => {
     setState((prev) => {
       const next = !prev.sidebarCollapsed;
-      try {
-        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
-      } catch {
-        // localStorage unavailable
-      }
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
       return { ...prev, sidebarCollapsed: next };
     });
   };
@@ -107,6 +110,9 @@ export function DashboardLayout({
   };
 
   const updateState = (updates: Partial<LayoutState>) => {
+    if (updates.sidebarCollapsed !== undefined) {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(updates.sidebarCollapsed));
+    }
     setState((prev) => ({ ...prev, ...updates }));
   };
 
