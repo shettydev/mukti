@@ -18,6 +18,7 @@ export interface User {
   email: string;
   emailVerified: boolean;
   firstName: string;
+  foundingMember: boolean;
   id: string;
   isActive: boolean;
   lastLoginAt?: Date;

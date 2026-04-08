@@ -128,7 +128,10 @@ export class ThoughtMapService {
       mapId: map._id,
       nodeId,
       parentId: dto.parentId,
-      position: { x: 0, y: 0 },
+      position: {
+        x: dto.position?.x ?? 0,
+        y: dto.position?.y ?? 0,
+      },
       type: nodeType,
     });
 

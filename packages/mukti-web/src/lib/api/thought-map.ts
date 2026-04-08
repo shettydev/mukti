@@ -314,11 +314,13 @@ export const thoughtMapApi = {
    * ```
    */
   createThoughtNode: async (dto: CreateThoughtNodeRequest): Promise<ThoughtMapNode> => {
-    // Strip x/y — backend DTO does not accept position on create (position is always {0,0} server-side)
-    const { mapId, parentNodeId, x: _x, y: _y, ...body } = dto;
+    const { mapId, parentNodeId, x, y, ...body } = dto;
     const response = await apiClient.post<BackendThoughtMapNode>(`/thought-maps/${mapId}/nodes`, {
       ...body,
       parentId: parentNodeId,
+      ...(x !== undefined || y !== undefined
+        ? { position: { ...(x !== undefined && { x }), ...(y !== undefined && { y }) } }
+        : {}),
     });
     return transformThoughtMapNode(response);
   },

@@ -52,6 +52,7 @@ const mockUser: User = {
   email: 'test@example.com',
   emailVerified: true,
   firstName: 'Test',
+  foundingMember: false,
   id: 'user123',
   isActive: true,
   lastName: 'User',

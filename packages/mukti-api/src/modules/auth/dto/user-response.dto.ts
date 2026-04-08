@@ -35,6 +35,13 @@ export class UserResponseDto {
   firstName: string;
 
   @ApiProperty({
+    description: 'Whether user is a founding member (first 100 users)',
+    example: false,
+  })
+  @Expose()
+  foundingMember: boolean;
+
+  @ApiProperty({
     description: 'User ID',
     example: '507f1f77bcf86cd799439011',
   })

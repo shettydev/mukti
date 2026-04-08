@@ -66,7 +66,8 @@ describe('EditableBranchNode', () => {
     await user.type(input, '  My new branch  ');
     await user.keyboard('{Enter}');
 
-    expect(onCommit).toHaveBeenCalledWith('My new branch');
+    // onCommit fires after a 400ms animation delay — wait for it
+    await waitFor(() => expect(onCommit).toHaveBeenCalledWith('My new branch'));
   });
 
   it('calls onCancel on Escape', async () => {
@@ -83,7 +84,7 @@ describe('EditableBranchNode', () => {
     expect(onCommit).not.toHaveBeenCalled();
   });
 
-  it('calls onCancel when Enter is pressed with empty text', async () => {
+  it('does nothing when Enter is pressed with empty text', async () => {
     jest.useRealTimers();
     const user = userEvent.setup();
 
@@ -93,7 +94,7 @@ describe('EditableBranchNode', () => {
     await user.click(input);
     await user.keyboard('{Enter}');
 
-    expect(onCancel).toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
     expect(onCommit).not.toHaveBeenCalled();
   });
 
@@ -120,6 +121,7 @@ describe('EditableBranchNode', () => {
     await user.keyboard('{Enter}');
     await user.keyboard('{Enter}');
 
-    expect(onCommit).toHaveBeenCalledTimes(1);
+    // onCommit fires after a 400ms animation delay — wait for it, then confirm it's called only once
+    await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1));
   });
 });

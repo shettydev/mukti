@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
@@ -6,9 +7,11 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 
 import { ThoughtNodeType } from '../../../schemas/thought-node.schema';
+import { ThoughtNodePositionDto } from './update-thought-node.dto';
 
 /**
  * DTO for adding a new ThoughtNode to an existing ThoughtMap.
@@ -53,6 +56,19 @@ export class CreateThoughtNodeDto {
   @IsNotEmpty()
   @IsString()
   parentId: string;
+
+  /**
+   * Optional initial canvas position for the node.
+   * Defaults to { x: 0, y: 0 } if omitted.
+   */
+  @ApiPropertyOptional({
+    description: 'Initial canvas position. Defaults to { x: 0, y: 0 }',
+    type: ThoughtNodePositionDto,
+  })
+  @IsOptional()
+  @Type(() => ThoughtNodePositionDto)
+  @ValidateNested()
+  position?: ThoughtNodePositionDto;
 
   /**
    * Type of the new node — determines Socratic technique and visual style.

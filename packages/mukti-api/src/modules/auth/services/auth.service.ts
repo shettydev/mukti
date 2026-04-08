@@ -365,6 +365,7 @@ export class AuthService {
         email: user.email,
         emailVerified: user.emailVerified,
         firstName: user.firstName,
+        foundingMember: user.foundingMember,
         id: user._id.toString(),
         isActive: user.isActive,
         lastLoginAt: user.lastLoginAt,
@@ -510,6 +511,10 @@ export class AuthService {
     const verificationToken = randomBytes(32).toString('hex');
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+    // Grant founding member status to the first 100 users
+    const userCount = await this.userModel.countDocuments();
+    const isFoundingMember = userCount < 100;
+
     // Create user
     const user = await this.userModel.create({
       email: dto.email,
@@ -517,6 +522,7 @@ export class AuthService {
       emailVerificationToken: verificationToken,
       emailVerified: false,
       firstName: dto.firstName,
+      foundingMember: isFoundingMember,
       isActive: true,
       lastName: dto.lastName,
       password: hashedPassword,
@@ -571,6 +577,7 @@ export class AuthService {
         email: user.email,
         emailVerified: user.emailVerified,
         firstName: user.firstName,
+        foundingMember: user.foundingMember,
         id: user._id.toString(),
         isActive: user.isActive,
         lastName: user.lastName,

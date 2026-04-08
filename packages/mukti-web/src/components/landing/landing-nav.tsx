@@ -97,15 +97,27 @@ export default function LandingNav() {
       </Link>
 
       <div className="flex items-center gap-4 sm:gap-6">
+        <motion.div className="hidden xs:block" style={{ color: textColor }}>
+          <Link
+            className={cn(
+              'text-xs xs:text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
+              "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
+            )}
+            href="#demo"
+          >
+            See Demo
+          </Link>
+        </motion.div>
+
         <motion.div style={{ color: textColor }}>
           <Link
             className={cn(
               'text-xs xs:text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
               "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
             )}
-            href="#join"
+            href="/auth"
           >
-            Join Waitlist
+            Get Started
           </Link>
         </motion.div>
 

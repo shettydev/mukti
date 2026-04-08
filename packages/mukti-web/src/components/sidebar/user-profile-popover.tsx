@@ -3,7 +3,7 @@
 import { Check, LogOut, Monitor, Moon, Settings, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { User } from '@/types/user.types';
 
@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 /**
@@ -71,15 +72,60 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
         >
           <div className="flex items-center gap-3 w-full">
             {/* User Avatar */}
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber">
-              {user?.firstName?.[0]}
-              {user?.lastName?.[0]}
-            </div>
+            {user?.foundingMember ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber founder-avatar-ring">
+                    {user?.firstName?.[0]}
+                    {user?.lastName?.[0]}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent
+                  className="relative p-0 rounded-xl overflow-hidden founder-tooltip-card"
+                  hideArrow
+                  side="right"
+                  sideOffset={8}
+                  style={{
+                    backgroundColor: '#0f0e0d',
+                    border: '1px solid rgba(212,168,67,0.22)',
+                    boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,168,67,0.1)',
+                    minWidth: '190px',
+                  }}
+                >
+                  {/* Beams — full background */}
+                  <FounderBeams />
+
+                  {/* Content sits on top of beams */}
+                  <div className="relative px-4 py-3.5">
+                    <p
+                      className="text-[11px] font-semibold tracking-[0.18em] uppercase"
+                      style={{
+                        color: '#d4a843',
+                        textShadow: '0 0 18px rgba(212,168,67,0.6)',
+                      }}
+                    >
+                      Founding Member
+                    </p>
+                    <p
+                      className="mt-1.5 text-[10px] leading-snug"
+                      style={{ color: 'rgba(232,224,214,0.85)' }}
+                    >
+                      Early access supporter
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber">
+                {user?.firstName?.[0]}
+                {user?.lastName?.[0]}
+              </div>
+            )}
 
             {/* User Info - Hidden when collapsed */}
             {!collapsed && (
               <div className="flex flex-col items-start text-sm truncate overflow-hidden">
-                <span className="w-full truncate text-left font-medium text-japandi-stone">
+                <span className="truncate text-left font-medium text-japandi-stone">
                   {user?.firstName} {user?.lastName}
                 </span>
                 <span className="w-full truncate text-left text-xs text-japandi-stone/65">
@@ -136,5 +182,115 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function FounderBeams() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    let raf: number;
+    let W = 0;
+    let H = 0;
+
+    type Beam = { alpha: number; phase: number; speed: number; w: number; x: number };
+    let beams: Beam[] = [];
+
+    const init = (w: number, h: number) => {
+      W = w;
+      H = h;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      beams = Array.from({ length: 6 }, (_, i) => ({
+        alpha: 0.18 + Math.random() * 0.18,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.35 + Math.random() * 0.3,
+        w: 22 + Math.random() * 22,
+        x: (W / 6) * i + (Math.random() - 0.5) * 15,
+      }));
+    };
+
+    const ro = new ResizeObserver((entries) => {
+      const { height, width } = entries[0].contentRect;
+      if (width > 0 && height > 0) {
+        init(width, height);
+      }
+    });
+    ro.observe(canvas);
+
+    init(canvas.offsetWidth || 200, canvas.offsetHeight || 80);
+
+    let t = 0;
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      beams.forEach((b) => {
+        const dx = Math.sin(t * b.speed + b.phase) * 7;
+        const x = b.x + dx;
+
+        // Vertical fade: bright centre, fade toward top and bottom edges
+        const vertGrd = ctx.createLinearGradient(0, 0, 0, H);
+        vertGrd.addColorStop(0, 'rgba(0,0,0,0.6)');
+        vertGrd.addColorStop(0.3, 'rgba(0,0,0,0)');
+        vertGrd.addColorStop(0.7, 'rgba(0,0,0,0)');
+        vertGrd.addColorStop(1, 'rgba(0,0,0,0.6)');
+
+        // Horizontal beam shape
+        const hGrd = ctx.createLinearGradient(x, 0, x + b.w, 0);
+        hGrd.addColorStop(0, 'transparent');
+        hGrd.addColorStop(0.3, `rgba(212,168,67,${b.alpha})`);
+        hGrd.addColorStop(0.7, `rgba(212,168,67,${b.alpha})`);
+        hGrd.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = hGrd;
+        ctx.fillRect(x, 0, b.w, H);
+      });
+
+      // Top and bottom vignette
+      const topFade = ctx.createLinearGradient(0, 0, 0, H * 0.4);
+      topFade.addColorStop(0, 'rgba(15,14,13,0.7)');
+      topFade.addColorStop(1, 'transparent');
+      ctx.fillStyle = topFade;
+      ctx.fillRect(0, 0, W, H * 0.4);
+
+      const botFade = ctx.createLinearGradient(0, H * 0.6, 0, H);
+      botFade.addColorStop(0, 'transparent');
+      botFade.addColorStop(1, 'rgba(15,14,13,0.7)');
+      ctx.fillStyle = botFade;
+      ctx.fillRect(0, H * 0.6, W, H * 0.4);
+
+      t += 0.04;
+      raf = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        height: '100%',
+        inset: 0,
+        pointerEvents: 'none',
+        position: 'absolute',
+        width: '100%',
+      }}
+    />
   );
 }

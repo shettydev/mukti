@@ -12,6 +12,7 @@
   --japandi-sand: #d4c5b2;
   --japandi-timber: #6b4d3a;
   --japandi-light-stone: #e8e0d6;
+  --japandi-gold: #a07828;
 }
 
 /* Dark palette – warm, muted tones that preserve the Japandi aesthetic */
@@ -24,6 +25,7 @@
   --japandi-sand: #3d3830;
   --japandi-timber: #c4956e;
   --japandi-light-stone: #26241f;
+  --japandi-gold: #c9a040;
 }
 
 /* Wire Tailwind color tokens to the CSS custom properties */
@@ -36,6 +38,7 @@
   --color-japandi-sand: var(--japandi-sand);
   --color-japandi-timber: var(--japandi-timber);
   --color-japandi-light-stone: var(--japandi-light-stone);
+  --color-japandi-gold: var(--japandi-gold);
 }
 
 /* ─── Base page styles ─────────────────────────────────── */
@@ -119,6 +122,80 @@
 /* Soften grain in dark mode to avoid washing out dark backgrounds */
 .dark .bg-grain::before {
   opacity: 0.15;
+}
+
+/* ─── Founder avatar ring ───────────────────────────────── */
+
+@keyframes founder-ring-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1.5px rgba(180, 140, 60, 0.55),
+      0 0 0 3.5px rgba(180, 140, 60, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(180, 140, 60, 0.75),
+      0 0 0 4.5px rgba(180, 140, 60, 0.18);
+  }
+}
+
+.founder-avatar-ring {
+  box-shadow:
+    0 0 0 1.5px rgba(180, 140, 60, 0.55),
+    0 0 0 3.5px rgba(180, 140, 60, 0.1);
+  animation: founder-ring-pulse 3s ease-in-out infinite;
+}
+
+.dark .founder-avatar-ring {
+  animation: founder-ring-pulse-dark 3s ease-in-out infinite;
+}
+
+@keyframes founder-ring-pulse-dark {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1.5px rgba(210, 168, 72, 0.5),
+      0 0 0 3.5px rgba(210, 168, 72, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(210, 168, 72, 0.7),
+      0 0 0 4.5px rgba(210, 168, 72, 0.18);
+  }
+}
+
+/* ─── Founder tooltip card ──────────────────────────────── */
+
+@keyframes founder-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes founder-tooltip-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-4px) scale(0.97);
+  }
+}
+
+.founder-tooltip-card[data-state='delayed-open'],
+.founder-tooltip-card[data-state='instant-open'] {
+  animation: founder-tooltip-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.founder-tooltip-card[data-state='closed'] {
+  animation: founder-tooltip-out 0.16s ease-in forwards !important;
 }
 
 /* ─── Theme toggle – View Transitions API (ink-wash reveal) */

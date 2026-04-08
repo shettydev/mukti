@@ -79,6 +79,18 @@ export function DashboardLayout({
   // Dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
+  // Hydrate sidebar collapsed state from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (stored === 'true') {
+        setState((prev) => ({ ...prev, sidebarCollapsed: true }));
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
   // Update page title when prop changes
   useEffect(() => {
     setState((prev) => ({ ...prev, pageTitle: title || '' }));

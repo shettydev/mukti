@@ -2,7 +2,6 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Eye, EyeOff, Loader2, Mail, User } from 'lucide-react';
-import Link from 'next/link';
 import { useState } from 'react';
 import 'react-phone-number-input/style.css';
 import { useForm } from 'react-hook-form';
@@ -92,7 +91,6 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
     registerMutation.error instanceof Error
       ? registerMutation.error.message
       : 'Registration failed. Please try again.';
-  const waitlistRestrictionError = registrationErrorMessage.toLowerCase().includes('waitlist');
 
   return (
     <Form {...form}>
@@ -246,14 +244,6 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
             <p className="text-xs text-red-700 dark:text-red-300 sm:text-sm">
               {registrationErrorMessage}
             </p>
-            {waitlistRestrictionError && (
-              <Link
-                className="mt-1 inline-block text-xs font-medium text-japandi-timber underline underline-offset-2 hover:text-japandi-terracotta"
-                href="/#join"
-              >
-                Join the waitlist for access
-              </Link>
-            )}
           </div>
         )}
 
