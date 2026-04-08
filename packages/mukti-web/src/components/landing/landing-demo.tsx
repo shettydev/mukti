@@ -13,7 +13,7 @@ const demos = [
     label: 'Socratic Dialogue',
     placeholder: '/demos/socratic-chat.mp4',
     title: 'Six methods, one purpose: deeper thinking',
-    video: '/demo/demo-01.mp4',
+    video: 'https://github.com/shettydev/mukti/releases/download/assets-v1/demo-01.mp4',
   },
   {
     description:
@@ -22,7 +22,7 @@ const demos = [
     label: 'Thinking Canvas',
     placeholder: '/demos/thinking-canvas.mp4',
     title: 'Map the problem before you solve it',
-    video: '/demo/demo-02.mp4',
+    video: 'https://github.com/shettydev/mukti/releases/download/assets-v1/demo-02.mp4',
   },
   {
     description:
