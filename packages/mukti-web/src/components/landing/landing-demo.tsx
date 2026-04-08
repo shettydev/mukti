@@ -90,9 +90,7 @@ export default function LandingDemo() {
                         <p className="text-japandi-label text-xs tracking-[0.2em] text-japandi-sage">
                           {demo.label}
                         </p>
-                        <p className="mt-1 text-xs text-japandi-stone/40">
-                          Video placeholder — record with Screen Studio
-                        </p>
+                        <p className="mt-1 text-xs text-japandi-stone/40">coming soon...</p>
                       </div>
                     </div>
                   )}
