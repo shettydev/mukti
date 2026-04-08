@@ -10,9 +10,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { ThoughtNodePositionDto } from './update-thought-node.dto';
-
 import { ThoughtNodeType } from '../../../schemas/thought-node.schema';
+import { ThoughtNodePositionDto } from './update-thought-node.dto';
 
 /**
  * DTO for adding a new ThoughtNode to an existing ThoughtMap.

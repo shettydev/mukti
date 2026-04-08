@@ -37,11 +37,11 @@ export class User {
   @Prop({ default: false, type: Boolean })
   emailVerified: boolean;
 
-  @Prop({ default: false, type: Boolean })
-  foundingMember: boolean;
-
   @Prop({ required: true, trim: true, type: String })
   firstName: string;
+
+  @Prop({ default: false, type: Boolean })
+  foundingMember: boolean;
 
   @Prop({ required: false, select: false, type: String })
   geminiApiKeyEncrypted?: string;

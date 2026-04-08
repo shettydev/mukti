@@ -28,18 +28,18 @@ export class UserResponseDto {
   emailVerified: boolean;
 
   @ApiProperty({
-    description: 'Whether user is a founding member (first 100 users)',
-    example: false,
-  })
-  @Expose()
-  foundingMember: boolean;
-
-  @ApiProperty({
     description: 'User first name',
     example: 'John',
   })
   @Expose()
   firstName: string;
+
+  @ApiProperty({
+    description: 'Whether user is a founding member (first 100 users)',
+    example: false,
+  })
+  @Expose()
+  foundingMember: boolean;
 
   @ApiProperty({
     description: 'User ID',
