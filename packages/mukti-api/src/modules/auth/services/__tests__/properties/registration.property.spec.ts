@@ -64,6 +64,7 @@ describe('AuthService - Registration Properties', () => {
   beforeEach(async () => {
     // Create fresh mock implementations for each test
     mockUserModel = {
+      countDocuments: jest.fn(),
       create: jest.fn(),
       findOne: jest.fn(),
     };
@@ -138,6 +139,7 @@ describe('AuthService - Registration Properties', () => {
 
           // Setup mocks
           mockUserModel.findOne.mockResolvedValue(null); // No existing user
+          mockUserModel.countDocuments.mockResolvedValue(50);
           mockPasswordService.hashPassword.mockResolvedValue('hashed-password');
 
           const mockUserId = new Types.ObjectId();
@@ -149,6 +151,7 @@ describe('AuthService - Registration Properties', () => {
             emailVerificationToken: 'token',
             emailVerified: false,
             firstName: dto.firstName,
+            foundingMember: true,
             isActive: true,
             lastName: dto.lastName,
             password: 'hashed-password',
@@ -249,6 +252,7 @@ describe('AuthService - Registration Properties', () => {
 
           // Setup mocks
           mockUserModel.findOne.mockResolvedValue(null);
+          mockUserModel.countDocuments.mockResolvedValue(50);
           mockPasswordService.hashPassword.mockResolvedValue('hashed-password');
 
           const mockUserId = new Types.ObjectId();
@@ -258,6 +262,7 @@ describe('AuthService - Registration Properties', () => {
             email: dto.email,
             emailVerified: false,
             firstName: dto.firstName,
+            foundingMember: true,
             isActive: true,
             lastName: dto.lastName,
             role: 'user',
@@ -294,6 +299,7 @@ describe('AuthService - Registration Properties', () => {
 
           // Setup mocks
           mockUserModel.findOne.mockResolvedValue(null);
+          mockUserModel.countDocuments.mockResolvedValue(50);
           mockPasswordService.hashPassword.mockResolvedValue('hashed-password');
 
           const mockUserId = new Types.ObjectId();
@@ -303,6 +309,7 @@ describe('AuthService - Registration Properties', () => {
             email: dto.email,
             emailVerified: false,
             firstName: dto.firstName,
+            foundingMember: true,
             isActive: true,
             lastName: dto.lastName,
             role: 'user',

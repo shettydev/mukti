@@ -60,6 +60,7 @@ describe('AuthService - Default Role Property', () => {
   beforeEach(async () => {
     // Create fresh mock implementations for each test
     mockUserModel = {
+      countDocuments: jest.fn(),
       create: jest.fn(),
       findOne: jest.fn(),
     };
@@ -135,6 +136,7 @@ describe('AuthService - Default Role Property', () => {
 
           // Setup mocks
           mockUserModel.findOne.mockResolvedValue(null); // No existing user
+          mockUserModel.countDocuments.mockResolvedValue(50);
           mockPasswordService.hashPassword.mockResolvedValue('hashed-password');
 
           const mockUserId = new Types.ObjectId();
@@ -146,6 +148,7 @@ describe('AuthService - Default Role Property', () => {
             emailVerificationToken: 'token',
             emailVerified: false,
             firstName: dto.firstName,
+            foundingMember: true,
             isActive: true,
             lastName: dto.lastName,
             password: 'hashed-password',
@@ -198,6 +201,7 @@ describe('AuthService - Default Role Property', () => {
 
           // Setup mocks
           mockUserModel.findOne.mockResolvedValue(null);
+          mockUserModel.countDocuments.mockResolvedValue(50);
           mockPasswordService.hashPassword.mockResolvedValue('hashed-password');
 
           const mockUserId = new Types.ObjectId();
@@ -207,6 +211,7 @@ describe('AuthService - Default Role Property', () => {
             email: dto.email,
             emailVerified: false,
             firstName: dto.firstName,
+            foundingMember: true,
             isActive: true,
             lastName: dto.lastName,
             role: 'user',
@@ -241,6 +246,7 @@ describe('AuthService - Default Role Property', () => {
 
           // Setup mocks
           mockUserModel.findOne.mockResolvedValue(null);
+          mockUserModel.countDocuments.mockResolvedValue(50);
           mockPasswordService.hashPassword.mockResolvedValue('hashed-password');
 
           const mockUserId = new Types.ObjectId();
@@ -250,6 +256,7 @@ describe('AuthService - Default Role Property', () => {
             email: dto.email,
             emailVerified: false,
             firstName: dto.firstName,
+            foundingMember: true,
             isActive: true,
             lastName: dto.lastName,
             role: 'user',
