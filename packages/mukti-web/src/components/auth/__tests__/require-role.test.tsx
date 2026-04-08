@@ -25,6 +25,7 @@ describe('RequireRole', () => {
     email: 'test@example.com',
     emailVerified: true,
     firstName: 'Test',
+    foundingMember: false,
     id: '123',
     isActive: true,
     lastName: 'User',
