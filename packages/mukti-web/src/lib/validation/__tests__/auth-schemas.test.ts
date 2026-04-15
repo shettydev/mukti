@@ -61,8 +61,8 @@ describe('Email Schema', () => {
 });
 
 describe('Password Schema', () => {
-  it('should accept valid passwords', () => {
-    const validPasswords = ['MyP@ssw0rd', 'Str0ng!Pass', 'C0mpl3x@Pass', 'Test123!@#'];
+  it('should accept any non-empty password', () => {
+    const validPasswords = ['a', 'password', '12345', 'MyP@ssw0rd'];
 
     validPasswords.forEach((password) => {
       const result = passwordSchema.safeParse(password);
@@ -70,45 +70,11 @@ describe('Password Schema', () => {
     });
   });
 
-  it('should reject passwords that are too short', () => {
-    const result = passwordSchema.safeParse('Short1!');
+  it('should reject empty passwords', () => {
+    const result = passwordSchema.safeParse('');
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toContain('at least 8 characters');
-    }
-  });
-
-  it('should reject passwords without lowercase letters', () => {
-    const result = passwordSchema.safeParse('PASSWORD123!');
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.message.includes('lowercase'))).toBe(true);
-    }
-  });
-
-  it('should reject passwords without uppercase letters', () => {
-    const result = passwordSchema.safeParse('password123!');
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.message.includes('uppercase'))).toBe(true);
-    }
-  });
-
-  it('should reject passwords without numbers', () => {
-    const result = passwordSchema.safeParse('Password!');
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.message.includes('number'))).toBe(true);
-    }
-  });
-
-  it('should reject passwords without special characters', () => {
-    const result = passwordSchema.safeParse('Password123');
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.message.includes('special character'))).toBe(
-        true
-      );
+      expect(result.error.issues[0].message).toBe('Password is required');
     }
   });
 });
@@ -294,14 +260,14 @@ describe('Reset Password Schema', () => {
     }
   });
 
-  it('should reject weak passwords', () => {
-    const invalidData = {
+  it('should accept any non-empty matching passwords', () => {
+    const validData = {
       confirmPassword: 'weak',
       newPassword: 'weak',
     };
 
-    const result = resetPasswordSchema.safeParse(invalidData);
-    expect(result.success).toBe(false);
+    const result = resetPasswordSchema.safeParse(validData);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -398,14 +364,14 @@ describe('Password Strength Helpers', () => {
       });
     });
 
-    it('should identify missing requirements', () => {
+    it('should identify character variety', () => {
       const result = checkPasswordRequirements('password');
       expect(result).toEqual({
         hasLowercase: true,
         hasNumber: false,
         hasSpecialChar: false,
         hasUppercase: false,
-        isValid: false,
+        isValid: true,
         minLength: true,
       });
     });

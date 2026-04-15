@@ -29,16 +29,7 @@ const PASSWORD_PATTERNS = {
  * - Contains special character (@$!%*?&)
  *
  */
-export const passwordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters')
-  .regex(PASSWORD_PATTERNS.lowercase, 'Password must contain at least one lowercase letter')
-  .regex(PASSWORD_PATTERNS.uppercase, 'Password must contain at least one uppercase letter')
-  .regex(PASSWORD_PATTERNS.number, 'Password must contain at least one number')
-  .regex(
-    PASSWORD_PATTERNS.specialChar,
-    'Password must contain at least one special character (@$!%*?&)'
-  );
+export const passwordSchema = z.string().min(1, 'Password is required');
 
 /**
  * Email validation schema
@@ -243,13 +234,8 @@ export function checkPasswordRequirements(password: string) {
     hasNumber: PASSWORD_PATTERNS.number.test(password),
     hasSpecialChar: PASSWORD_PATTERNS.specialChar.test(password),
     hasUppercase: PASSWORD_PATTERNS.uppercase.test(password),
-    isValid:
-      password.length >= 8 &&
-      PASSWORD_PATTERNS.lowercase.test(password) &&
-      PASSWORD_PATTERNS.uppercase.test(password) &&
-      PASSWORD_PATTERNS.number.test(password) &&
-      PASSWORD_PATTERNS.specialChar.test(password),
-    minLength: password.length >= 8,
+    isValid: password.length >= 1,
+    minLength: password.length >= 1,
   };
 }
 
