@@ -230,39 +230,56 @@ export class AuthController {
   @ApiGoogleCallback()
   @Get('google/callback')
   @Public()
+  @SkipEnvelope()
   @UseGuards(AuthGuard('google'))
   async googleCallback(
     @Req() req: Request & { user?: unknown },
     @Ip() ip: string,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponseDto> {
-    this.logger.log(`Google OAuth callback from IP ${ip}`);
+    @Res() res: Response,
+  ): Promise<void> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
 
-    // Extract user profile from request (set by GoogleStrategy)
-    const profile = req.user as OAuthProfile;
+    try {
+      this.logger.log(`Google OAuth callback from IP ${ip}`);
 
-    if (!profile) {
-      throw new UnauthorizedException('User profile not found in request');
+      // Extract user profile from request (set by GoogleStrategy)
+      const profile = req.user as OAuthProfile;
+
+      if (!profile) {
+        throw new UnauthorizedException('User profile not found in request');
+      }
+
+      // Get device info
+      const deviceInfo = req.headers['user-agent'] ?? 'Unknown device';
+
+      // Authenticate with Google
+      const result = await this.oauthService.authenticateWithGoogle(
+        profile,
+        deviceInfo,
+        ip,
+      );
+
+      // Set refresh token in httpOnly cookie
+      res.cookie(
+        'refreshToken',
+        result.refreshToken,
+        this.getCookieOptions(7 * 24 * 60 * 60 * 1000), // 7 days
+      );
+
+      // Redirect to frontend callback with access token
+      const redirectUrl = new URL('/auth/google/callback', frontendUrl);
+      redirectUrl.searchParams.set('token', result.accessToken);
+      res.redirect(redirectUrl.toString());
+    } catch (error) {
+      // Redirect to frontend with error
+      const redirectUrl = new URL('/auth/google/callback', frontendUrl);
+      redirectUrl.searchParams.set(
+        'error',
+        error instanceof Error ? error.message : 'Authentication failed',
+      );
+      res.redirect(redirectUrl.toString());
     }
-
-    // Get device info
-    const deviceInfo = req.headers['user-agent'] ?? 'Unknown device';
-
-    // Authenticate with Google
-    const result = await this.oauthService.authenticateWithGoogle(
-      profile,
-      deviceInfo,
-      ip,
-    );
-
-    // Set refresh token in httpOnly cookie
-    res.cookie(
-      'refreshToken',
-      result.refreshToken,
-      this.getCookieOptions(7 * 24 * 60 * 60 * 1000), // 7 days
-    );
-
-    return result;
   }
 
   /**

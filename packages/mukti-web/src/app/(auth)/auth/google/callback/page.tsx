@@ -48,27 +48,24 @@ function GoogleCallbackContent() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Extract authorization code from URL
-        const code = searchParams.get('code');
+        // Check for error from backend redirect
         const errorParam = searchParams.get('error');
-
-        // Handle OAuth errors from provider
         if (errorParam) {
-          const errorDescription = searchParams.get('error_description');
-          throw new Error(errorDescription || 'OAuth authentication was cancelled or failed');
+          throw new Error(errorParam);
         }
 
-        // Validate code exists
-        if (!code) {
-          throw new Error('Authorization code not found in callback URL');
+        // Extract access token from backend redirect
+        const token = searchParams.get('token');
+        if (!token) {
+          throw new Error('Authentication token not found in callback URL');
         }
 
-        // Call backend OAuth endpoint
-        const response = await authApi.googleAuth({ code });
+        // Store access token
+        setAccessToken(token);
 
-        // Store tokens and user data
-        setAccessToken(response.accessToken);
-        setUser(response.user);
+        // Fetch user data using the token
+        const user = await authApi.getMe();
+        setUser(user);
 
         // Redirect to chat
         router.push('/chat');

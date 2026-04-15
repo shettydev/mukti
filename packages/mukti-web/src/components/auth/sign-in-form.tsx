@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -232,6 +233,9 @@ export function SignInForm({ onForgotPassword, onSuccess, onSwitchToSignUp }: Si
             </>
           )}
         </Button>
+
+        {/* OAuth Buttons */}
+        <OAuthButtons />
 
         {/* Switch to Sign Up */}
         <div className="text-center">

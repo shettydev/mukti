@@ -7,6 +7,7 @@ import 'react-phone-number-input/style.css';
 import { useForm } from 'react-hook-form';
 import PhoneInput from 'react-phone-number-input';
 
+import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -266,6 +267,9 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
             </>
           )}
         </Button>
+
+        {/* OAuth Buttons */}
+        <OAuthButtons />
 
         {/* Switch to Sign In */}
         <div className="text-center">
