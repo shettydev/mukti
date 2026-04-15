@@ -12,10 +12,6 @@ interface OAuthButtonsProps {
    */
   className?: string;
   /**
-   * Callback when Apple OAuth button is clicked (optional, defaults to redirect)
-   */
-  onAppleClick?: () => void;
-  /**
    * Callback when Google OAuth button is clicked (optional, defaults to redirect)
    */
   onGoogleClick?: () => void;
@@ -48,8 +44,8 @@ const API_BASE_URL = config.api.baseUrl;
  * />
  * ```
  */
-export function OAuthButtons({ className, onAppleClick, onGoogleClick }: OAuthButtonsProps) {
-  const [loadingProvider, setLoadingProvider] = useState<'apple' | 'google' | null>(null);
+export function OAuthButtons({ className, onGoogleClick }: OAuthButtonsProps) {
+  const [loadingProvider, setLoadingProvider] = useState<'google' | null>(null);
 
   const handleGoogleClick = () => {
     if (loadingProvider) {
@@ -71,26 +67,6 @@ export function OAuthButtons({ className, onAppleClick, onGoogleClick }: OAuthBu
     }
   };
 
-  const handleAppleClick = () => {
-    if (loadingProvider) {
-      return;
-    }
-
-    setLoadingProvider('apple');
-    try {
-      // If custom handler provided, use it
-      if (onAppleClick) {
-        onAppleClick();
-      } else {
-        // Default behavior: redirect to backend Apple OAuth endpoint
-        window.location.href = `${API_BASE_URL}/auth/apple`;
-      }
-    } catch (error) {
-      showErrorToast(error, 'Failed to initiate Apple sign in. Please try again.');
-      setLoadingProvider(null);
-    }
-  };
-
   return (
     <div className={cn('space-y-2 sm:space-y-3', className)}>
       {/* Divider */}
@@ -100,77 +76,42 @@ export function OAuthButtons({ className, onAppleClick, onGoogleClick }: OAuthBu
         </div>
       </div>
 
-      {/* OAuth Buttons - responsive grid */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        {/* Google OAuth Button - touch-friendly */}
-        <Button
-          aria-label="Sign in with Google"
-          className={cn(
-            'bg-white/10 hover:bg-white/20 text-white border border-white/20',
-            'transition-all duration-200',
-            'hover:scale-[1.02] active:scale-[0.98]',
-            'touch-manipulation',
-            'h-10 sm:h-11',
-            'text-xs sm:text-sm',
-            loadingProvider === 'google' && 'opacity-80'
-          )}
-          disabled={loadingProvider !== null}
-          onClick={handleGoogleClick}
-          type="button"
-          variant="outline"
-        >
-          {loadingProvider === 'google' ? (
-            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-          ) : (
-            <GoogleIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-          )}
-          <span className="hidden xs:inline ml-1 sm:ml-2">Google</span>
-        </Button>
-
-        {/* Apple OAuth Button - touch-friendly */}
-        <Button
-          aria-label="Sign in with Apple"
-          className={cn(
-            'bg-white/10 hover:bg-white/20 text-white border border-white/20',
-            'transition-all duration-200',
-            'hover:scale-[1.02] active:scale-[0.98]',
-            'touch-manipulation',
-            'h-10 sm:h-11',
-            'text-xs sm:text-sm',
-            loadingProvider === 'apple' && 'opacity-80'
-          )}
-          disabled={loadingProvider !== null}
-          onClick={handleAppleClick}
-          type="button"
-          variant="outline"
-        >
-          {loadingProvider === 'apple' ? (
-            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-          ) : (
-            <AppleIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-          )}
-          <span className="hidden xs:inline ml-1 sm:ml-2">Apple</span>
-        </Button>
-      </div>
+      {/* Google OAuth Button - touch-friendly */}
+      <Button
+        aria-label="Sign in with Google"
+        className={cn(
+          'w-full bg-white/10 hover:bg-white/20 text-white border border-white/20',
+          'transition-all duration-200',
+          'hover:scale-[1.02] active:scale-[0.98]',
+          'touch-manipulation',
+          'h-10 sm:h-11',
+          'text-xs sm:text-sm',
+          loadingProvider === 'google' && 'opacity-80'
+        )}
+        disabled={loadingProvider !== null}
+        onClick={handleGoogleClick}
+        type="button"
+        variant="outline"
+      >
+        {loadingProvider === 'google' ? (
+          <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+        ) : (
+          <GoogleIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+        )}
+        <span className="ml-1 sm:ml-2">Google</span>
+      </Button>
     </div>
   );
 }
 
-/**
- * Apple icon SVG component
- */
-function AppleIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="currentColor"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-    </svg>
-  );
-}
+// TODO: Apple OAuth — uncomment when backend Apple strategy is implemented
+// function AppleIcon({ className }: { className?: string }) {
+//   return (
+//     <svg className={className} fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+//       <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+//     </svg>
+//   );
+// }
 
 /**
  * Google icon SVG component
