@@ -4,6 +4,8 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
+import { GradientBackground } from '@/components/auth/gradient-background';
+import { Button } from '@/components/ui/button';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -14,9 +16,9 @@ export default function GoogleCallbackPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-600 via-blue-600 to-pink-600">
-          <Loader2 className="h-12 w-12 animate-spin text-white" />
-        </div>
+        <GradientBackground>
+          <Loader2 className="h-10 w-10 animate-spin text-japandi-timber/60" />
+        </GradientBackground>
       }
     >
       <GoogleCallbackContent />
@@ -82,37 +84,39 @@ function GoogleCallbackContent() {
   // Loading state
   if (isProcessing && !error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-600 via-blue-600 to-pink-600">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-white mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-white mb-2">
-            Completing sign in with Google...
-          </h2>
-          <p className="text-white/80">Please wait while we authenticate your account</p>
+      <GradientBackground>
+        <div className="mx-auto w-full max-w-[95%] xs:max-w-md sm:max-w-xl rounded-3xl border border-japandi-sand/70 bg-japandi-cream/85 backdrop-blur-sm p-8 sm:p-10 shadow-[0_24px_70px_-42px_rgba(107,77,58,0.45)] dark:shadow-[0_24px_70px_-42px_rgba(0,0,0,0.65)]">
+          <div className="text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-japandi-timber/60 mx-auto mb-5" />
+            <h2 className="text-japandi-heading text-xl sm:text-2xl mb-2">Completing sign in...</h2>
+            <p className="text-japandi-body text-sm text-japandi-stone/70">
+              Please wait while we authenticate your account
+            </p>
+          </div>
         </div>
-      </div>
+      </GradientBackground>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-600 via-blue-600 to-pink-600 p-4">
-        <div className="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-lg p-8 border border-white/20">
+      <GradientBackground>
+        <div className="mx-auto w-full max-w-[95%] xs:max-w-md sm:max-w-xl rounded-3xl border border-japandi-sand/70 bg-japandi-cream/85 backdrop-blur-sm p-8 sm:p-10 shadow-[0_24px_70px_-42px_rgba(107,77,58,0.45)] dark:shadow-[0_24px_70px_-42px_rgba(0,0,0,0.65)]">
           <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-white mb-2">Authentication Failed</h2>
-            <p className="text-white/80 mb-6">{error}</p>
-            <button
-              className="w-full bg-white/20 hover:bg-white/30 text-white font-medium py-3 px-4 rounded-lg transition-colors border border-white/20"
+            <AlertCircle className="h-10 w-10 text-red-500/70 mx-auto mb-5" />
+            <h2 className="text-japandi-heading text-xl sm:text-2xl mb-2">Authentication Failed</h2>
+            <p className="text-japandi-body text-sm text-japandi-stone/70 mb-6">{error}</p>
+            <Button
+              className="w-full h-11 bg-japandi-terracotta text-sm font-medium text-white shadow-sm shadow-japandi-timber/20 transition-colors hover:bg-japandi-timber focus-visible:ring-japandi-sage/40 touch-manipulation sm:h-12 sm:text-base"
               onClick={() => router.push('/')}
               type="button"
             >
               Return to Home
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </GradientBackground>
     );
   }
 
