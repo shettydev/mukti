@@ -150,8 +150,8 @@ export function Hero() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <span className="hidden sm:inline">mukti.live</span>
-                  <span className="sm:hidden">mukti.live</span>
+                  <span className="hidden sm:inline">mukti.chat</span>
+                  <span className="sm:hidden">mukti.chat</span>
                 </div>
               </div>
 

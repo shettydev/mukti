@@ -279,7 +279,7 @@ describe('SeedService', () => {
       expect(mockUsers.length).toBe(1);
       const user = mockUsers[0];
 
-      expect(user.email).toBe('admin@mukti.live');
+      expect(user.email).toBe('admin@mukti.chat');
       expect(user.firstName).toBe('Mukti');
       expect(user.lastName).toBe('Admin');
       expect(user.role).toBe('admin');
@@ -370,7 +370,7 @@ describe('SeedService', () => {
 
           expect(mockUsers.length).toBe(1);
           expect(mockSubscriptions.length).toBe(1);
-          expect(mockUsers[0].email).toBe('admin@mukti.live');
+          expect(mockUsers[0].email).toBe('admin@mukti.chat');
         }),
         { numRuns: 20 },
       );
@@ -390,12 +390,12 @@ describe('SeedService', () => {
         expect.arrayContaining([
           'system@mukti.app',
           'test@mukti.app',
-          'admin@mukti.live',
+          'admin@mukti.chat',
         ]),
       );
 
       const testUser = mockUsers.find((u) => u.email === 'test@mukti.app');
-      const adminUser = mockUsers.find((u) => u.email === 'admin@mukti.live');
+      const adminUser = mockUsers.find((u) => u.email === 'admin@mukti.chat');
       expect(testUser).toBeDefined();
       expect(adminUser).toBeDefined();
       expect(mockSubscriptions.length).toBe(2);

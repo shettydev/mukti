@@ -606,7 +606,7 @@ export class AuthController {
       }
     }
 
-    return this.isProduction ? 'mukti.live' : 'localhost';
+    return this.isProduction ? 'mukti.chat' : 'localhost';
   }
 
   private normalizeCookieDomain(): string {

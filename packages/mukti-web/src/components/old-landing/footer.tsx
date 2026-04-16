@@ -111,7 +111,7 @@ export function Footer() {
               <li>
                 <Link
                   className="hover:text-foreground transition-colors"
-                  href="https://api.mukti.live/reference"
+                  href="https://api.mukti.chat/reference"
                 >
                   Documentation
                 </Link>

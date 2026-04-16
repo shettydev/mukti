@@ -56,7 +56,7 @@ bun run affected:lint / affected:test / affected:build
 
 Docker Compose provides: **MongoDB 7** (port 27017, db: `mukti`), **Redis 7** (port 6379). API runs on port 3000, Web on port 3001.
 
-Key env vars: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `OPENROUTER_API_KEY`, `SESSION_SECRET`, `CORS_ORIGINS`, `COOKIE_DOMAIN` (defaults to `mukti.live` in production).
+Key env vars: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `OPENROUTER_API_KEY`, `SESSION_SECRET`, `CORS_ORIGINS`, `COOKIE_DOMAIN` (defaults to `mukti.chat` in production).
 
 ---
 
@@ -243,4 +243,4 @@ Property-based tests: `__tests__/properties/*.property.spec.ts` using fast-check
 - **Nx version:** 21.6.3 | **Parallel tasks:** 3 | **Cache:** `.nx/cache`
 - **Clear cache:** `bun nx reset`
 - **Visualize deps:** `bun run graph`
-- **Production domain:** `mukti.live`
+- **Production domain:** `mukti.chat`

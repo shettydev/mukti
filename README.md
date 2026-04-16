@@ -131,7 +131,10 @@ Use one of the seeded accounts:
 | Email              | Password            |
 | ------------------ | ------------------- |
 | `test@mukti.app`   | `testpassword123`   |
-| `admin@mukti.live` | `muktifrombrainrot` |
+| `admin@mukti.chat` | `muktifrombrainrot` |
+
+> If you previously seeded the old `admin@mukti.live` user, reset the database with
+> `docker compose down -v && docker compose up -d` to pick up the new seed.
 
 ### Useful commands
 

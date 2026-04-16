@@ -90,7 +90,7 @@ async function bootstrap() {
   const frontendUrl = configService.get<string>('FRONTEND_URL');
   const cookieDomain =
     configService.get<string>('COOKIE_DOMAIN') ??
-    (isProduction ? 'mukti.live' : 'localhost');
+    (isProduction ? 'mukti.chat' : 'localhost');
 
   const allowedOrigins = new Set<string>(
     corsOrigins

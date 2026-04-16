@@ -536,7 +536,7 @@ export class BranchSuggestionService extends WorkerHost {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://mukti.live',
+          'HTTP-Referer': 'https://mukti.chat',
           'X-Title': 'Mukti Thought Map',
         },
         method: 'POST',

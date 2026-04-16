@@ -61,7 +61,7 @@ export class SeedService {
 
     try {
       await this.ensureSeedUser({
-        email: 'admin@mukti.live',
+        email: 'admin@mukti.chat',
         emailNotifications: true,
         firstName: 'Mukti',
         lastName: 'Admin',

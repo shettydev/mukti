@@ -40,7 +40,7 @@ and only then starts the API container.
 Seeded local users:
 
 - `test@mukti.app` / `testpassword123`
-- `admin@mukti.live` / `muktifrombrainrot`
+- `admin@mukti.chat` / `muktifrombrainrot`
 
 Useful commands:
 

@@ -58,14 +58,14 @@ docker compose down -v          # Stop + remove volumes (deletes data)
 | `OPENROUTER_API_KEY`     | _(required)_                    | Server-side OpenRouter key                   |
 | `FRONTEND_URL`           | `http://localhost:3001`         | Public frontend URL (for email links)        |
 | `CORS_ORIGINS`           | `http://localhost:3001`         | Allowed CORS origins (comma-separated)       |
-| `COOKIE_DOMAIN`          | `localhost`                     | Cookie domain (prod: `mukti.live`)           |
+| `COOKIE_DOMAIN`          | `localhost`                     | Cookie domain (prod: `mukti.chat`)           |
 | `API_URL`                | `http://localhost:3000`         | Public API URL                               |
 | `NEXT_PUBLIC_API_URL`    | `http://localhost:3000/api/v1`  | Browser-facing API URL (baked at build time) |
 | `SESSION_SECRET`         | _(required)_                    | Express session secret (CSRF)                |
 
 **Rules**:
 
-- `COOKIE_DOMAIN` defaults to `mukti.live` in production — set explicitly in dev
+- `COOKIE_DOMAIN` defaults to `mukti.chat` in production — set explicitly in dev
 - `NEXT_PUBLIC_API_URL` is baked at Next.js build time via `--build-arg`
 - CSRF is production-only — `NODE_ENV=production` enables it
 
