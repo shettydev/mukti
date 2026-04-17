@@ -31,6 +31,7 @@ const demos = [
     label: 'Thinking Map',
     placeholder: '/demos/thinking-map.mp4',
     title: 'Let your reasoning branch freely',
+    video: 'https://github.com/shettydev/mukti/releases/download/assets-v1/demo-03.mp4',
   },
 ];
 
