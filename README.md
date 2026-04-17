@@ -44,9 +44,9 @@ Mukti is a thinking workspace powered by a Socratic assistant. Instead of giving
 
 ## Demo
 
-<video src="packages/mukti-web/public/demo/demo-01.mp4" width="100%" controls></video>
+<video src="https://github.com/shettydev/mukti/releases/download/assets-v1/demo-01.mp4" width="100%" controls></video>
 
-<video src="packages/mukti-web/public/demo/demo-02.mp4" width="100%" controls></video>
+<video src="https://github.com/shettydev/mukti/releases/download/assets-v1/demo-02.mp4" width="100%" controls></video>
 
 ## Why?
 
