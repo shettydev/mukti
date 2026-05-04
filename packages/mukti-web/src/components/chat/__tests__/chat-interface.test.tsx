@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -66,24 +67,27 @@ const mockConversation: Conversation = {
   hasArchivedMessages: false,
   id: 'conv-123',
   isArchived: false,
+  isFavorite: false,
+  metadata: {
+    estimatedCost: 0,
+    messageCount: 2,
+    totalTokens: 0,
+  },
   recentMessages: [
     {
       content: 'Hello',
-      conversationId: 'conv-123',
-      createdAt: '2024-01-01T00:00:00Z',
-      id: 'msg-1',
       role: 'user',
-      updatedAt: '2024-01-01T00:00:00Z',
+      sequence: 0,
+      timestamp: '2024-01-01T00:00:00Z',
     },
     {
       content: 'Hi there!',
-      conversationId: 'conv-123',
-      createdAt: '2024-01-01T00:00:01Z',
-      id: 'msg-2',
       role: 'assistant',
-      updatedAt: '2024-01-01T00:00:01Z',
+      sequence: 1,
+      timestamp: '2024-01-01T00:00:01Z',
     },
   ],
+  tags: [],
   technique: 'elenchus' as SocraticTechnique,
   title: 'Test Conversation',
   updatedAt: '2024-01-01T00:00:01Z',
@@ -405,10 +409,12 @@ describe('ChatInterface', () => {
 
       let onRateLimitCallback: ((retryAfter: number) => void) | undefined;
 
-      useConversationStream.mockImplementation(({ onRateLimit }: any) => {
-        onRateLimitCallback = onRateLimit;
-        return { isConnected: false };
-      });
+      useConversationStream.mockImplementation(
+        ({ onRateLimit }: { onRateLimit?: (retryAfter: number) => void }) => {
+          onRateLimitCallback = onRateLimit;
+          return { isConnected: false };
+        }
+      );
 
       renderWithProviders(
         <ChatInterface
@@ -447,10 +453,12 @@ describe('ChatInterface', () => {
 
       let onRateLimitCallback: ((retryAfter: number) => void) | undefined;
 
-      useConversationStream.mockImplementation(({ onRateLimit }: any) => {
-        onRateLimitCallback = onRateLimit;
-        return { isConnected: false };
-      });
+      useConversationStream.mockImplementation(
+        ({ onRateLimit }: { onRateLimit?: (retryAfter: number) => void }) => {
+          onRateLimitCallback = onRateLimit;
+          return { isConnected: false };
+        }
+      );
 
       renderWithProviders(
         <ChatInterface
@@ -483,13 +491,15 @@ describe('ChatInterface', () => {
       // Mock conversation with 10 user messages (at limit)
       const conversationAtLimit = {
         ...mockConversation,
+        metadata: {
+          ...mockConversation.metadata,
+          messageCount: 10,
+        },
         recentMessages: Array.from({ length: 10 }, (_, i) => ({
           content: `Message ${i}`,
-          conversationId: 'conv-123',
-          createdAt: '2024-01-01T00:00:00Z',
-          id: `msg-${i}`,
-          role: 'user',
-          updatedAt: '2024-01-01T00:00:00Z',
+          role: 'user' as const,
+          sequence: i,
+          timestamp: '2024-01-01T00:00:00Z',
         })),
       };
 
@@ -606,8 +616,8 @@ describe('ChatInterface', () => {
 
   describe('SSE Connection', () => {
     it('should show connection status when not connected', () => {
-      const { useConversation, useDeleteConversation } = require('@/lib/hooks/use-conversations');
       const { useConversationStream } = require('@/lib/hooks/use-conversation-stream');
+      const { useConversation, useDeleteConversation } = require('@/lib/hooks/use-conversations');
 
       useConversation.mockReturnValue({
         data: mockConversation,
@@ -652,12 +662,14 @@ describe('ChatInterface', () => {
         mutate: jest.fn(),
       });
 
-      let onErrorCallback: ((error: any) => void) | undefined;
+      let onErrorCallback: ((error: Error) => void) | undefined;
 
-      useConversationStream.mockImplementation(({ onError }: any) => {
-        onErrorCallback = onError;
-        return { isConnected: false };
-      });
+      useConversationStream.mockImplementation(
+        ({ onError }: { onError?: (error: Error) => void }) => {
+          onErrorCallback = onError;
+          return { isConnected: false };
+        }
+      );
 
       renderWithProviders(
         <ChatInterface

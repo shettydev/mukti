@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -42,7 +43,14 @@ const mockConversation: Conversation = {
   hasArchivedMessages: false,
   id: 'conv-123',
   isArchived: false,
+  isFavorite: false,
+  metadata: {
+    estimatedCost: 0,
+    messageCount: 0,
+    totalTokens: 0,
+  },
   recentMessages: [],
+  tags: [],
   technique: 'elenchus' as SocraticTechnique,
   title: 'Test Conversation',
   updatedAt: '2024-01-01T00:00:01Z',

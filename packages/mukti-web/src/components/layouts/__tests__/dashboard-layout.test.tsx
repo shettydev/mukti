@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -15,7 +16,13 @@ jest.mock('@/lib/hooks/use-keyboard-shortcuts', () => ({
 }));
 
 jest.mock('@/components/conversations', () => ({
-  CreateConversationDialog: ({ open, onSuccess }: any) =>
+  CreateConversationDialog: ({
+    onSuccess,
+    open,
+  }: {
+    onSuccess: (data: { id: string }) => void;
+    open: boolean;
+  }) =>
     open ? (
       <div data-testid="create-dialog">
         <button onClick={() => onSuccess({ id: 'new-conv-123' })} type="button">
@@ -26,12 +33,22 @@ jest.mock('@/components/conversations', () => ({
 }));
 
 jest.mock('@/components/dashboard/sidebar', () => ({
-  MobileMenuButton: ({ onClick }: any) => (
+  MobileMenuButton: ({ onClick }: { onClick: () => void }) => (
     <button data-testid="mobile-menu-button" onClick={onClick} type="button">
       Menu
     </button>
   ),
-  Sidebar: ({ collapsed, mobileOpen, onMobileClose, onToggleCollapse }: any) => (
+  Sidebar: ({
+    collapsed,
+    mobileOpen,
+    onMobileClose,
+    onToggleCollapse,
+  }: {
+    collapsed: boolean;
+    mobileOpen: boolean;
+    onMobileClose: () => void;
+    onToggleCollapse: () => void;
+  }) => (
     <div data-testid="sidebar">
       <div>Collapsed: {String(collapsed)}</div>
       <div>Mobile Open: {String(mobileOpen)}</div>
@@ -296,9 +313,11 @@ describe('DashboardLayout', () => {
       const { useKeyboardShortcuts } = require('@/lib/hooks/use-keyboard-shortcuts');
       let onToggleSidebar: () => void;
 
-      useKeyboardShortcuts.mockImplementation(({ onToggleSidebar: callback }: any) => {
-        onToggleSidebar = callback;
-      });
+      useKeyboardShortcuts.mockImplementation(
+        ({ onToggleSidebar: callback }: { onToggleSidebar: () => void }) => {
+          onToggleSidebar = callback;
+        }
+      );
 
       renderWithProviders(
         <DashboardLayout title="Test Page">
@@ -333,9 +352,11 @@ describe('DashboardLayout', () => {
       const { useKeyboardShortcuts } = require('@/lib/hooks/use-keyboard-shortcuts');
       let onNewConversation: () => void;
 
-      useKeyboardShortcuts.mockImplementation(({ onNewConversation: callback }: any) => {
-        onNewConversation = callback;
-      });
+      useKeyboardShortcuts.mockImplementation(
+        ({ onNewConversation: callback }: { onNewConversation: () => void }) => {
+          onNewConversation = callback;
+        }
+      );
 
       renderWithProviders(
         <DashboardLayout title="Test Page">
@@ -356,9 +377,11 @@ describe('DashboardLayout', () => {
       const { useKeyboardShortcuts } = require('@/lib/hooks/use-keyboard-shortcuts');
       let onNewConversation: () => void;
 
-      useKeyboardShortcuts.mockImplementation(({ onNewConversation: callback }: any) => {
-        onNewConversation = callback;
-      });
+      useKeyboardShortcuts.mockImplementation(
+        ({ onNewConversation: callback }: { onNewConversation: () => void }) => {
+          onNewConversation = callback;
+        }
+      );
 
       renderWithProviders(
         <DashboardLayout title="Test Page">
@@ -388,7 +411,13 @@ describe('DashboardLayout', () => {
       let onEscape: () => void;
 
       useKeyboardShortcuts.mockImplementation(
-        ({ onNewConversation: newCallback, onEscape: escapeCallback }: any) => {
+        ({
+          onEscape: escapeCallback,
+          onNewConversation: newCallback,
+        }: {
+          onEscape: () => void;
+          onNewConversation: () => void;
+        }) => {
           onNewConversation = newCallback;
           onEscape = escapeCallback;
         }
