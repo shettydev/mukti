@@ -61,7 +61,7 @@ describe('SignInForm', () => {
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/remember me/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
   });
 
   it('renders forgot password link', () => {
@@ -74,7 +74,7 @@ describe('SignInForm', () => {
     const user = userEvent.setup();
     renderWithProviders(<SignInForm />);
 
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /^sign in$/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -100,7 +100,7 @@ describe('SignInForm', () => {
     await user.type(emailInput, 'notanemail');
     await user.type(passwordInput, 'somepassword');
 
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /^sign in$/i });
     await user.click(submitButton);
 
     // Give time for any validation to occur
@@ -177,7 +177,7 @@ describe('SignInForm', () => {
     await user.type(screen.getByLabelText(/email/i), 'john@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
 
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /^sign in$/i });
     await user.click(submitButton);
 
     // Should not show validation errors
@@ -205,7 +205,7 @@ describe('SignInForm', () => {
     await user.type(screen.getByLabelText(/email/i), 'john@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
 
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /^sign in$/i });
 
     // Click submit
     await user.click(submitButton);
@@ -269,7 +269,7 @@ describe('SignInForm', () => {
     await user.type(screen.getByLabelText(/email/i), 'john@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
 
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /^sign in$/i });
     await user.click(submitButton);
 
     // Should call onSuccess
@@ -291,7 +291,7 @@ describe('SignInForm', () => {
     await user.type(screen.getByLabelText(/email/i), 'john@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'WrongPassword123!');
 
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /^sign in$/i });
     await user.click(submitButton);
 
     // Should show error message
