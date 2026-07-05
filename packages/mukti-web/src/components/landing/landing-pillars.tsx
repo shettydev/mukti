@@ -18,7 +18,7 @@ const pillars = [
     ),
     description:
       'Probing questions that challenge your assumptions rather than providing easy answers. Deep questioning over quick solutions.',
-    english: 'Inquiry',
+    english: 'Curiosity',
     id: '01',
     japanese: 'जिज्ञासा',
     romanized: 'Jigyasa',
@@ -38,7 +38,7 @@ const pillars = [
     ),
     description:
       'Building mental muscle through active problem solving. Structured struggle that leads to genuine understanding.',
-    english: 'Resilience',
+    english: 'Disciplined Effort',
     id: '02',
     japanese: 'तपस',
     romanized: 'Tapas',
