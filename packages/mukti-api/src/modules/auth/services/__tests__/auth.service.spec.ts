@@ -9,6 +9,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 import { User } from '../../../../schemas/user.schema';
+import { SubscriptionService } from '../../../subscription/subscription.service';
 import { AuthService } from '../auth.service';
 import { EmailService } from '../email.service';
 import { JwtTokenService } from '../jwt.service';
@@ -118,6 +119,12 @@ describe('AuthService', () => {
     >,
   };
 
+  const mockSubscriptionService = {
+    ensureSubscription: jest.fn() as jest.MockedFunction<
+      SubscriptionService['ensureSubscription']
+    >,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -128,6 +135,7 @@ describe('AuthService', () => {
         { provide: TokenService, useValue: mockTokenService },
         { provide: EmailService, useValue: mockEmailService },
         { provide: RateLimitService, useValue: mockRateLimitService },
+        { provide: SubscriptionService, useValue: mockSubscriptionService },
       ],
     }).compile();
 

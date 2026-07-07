@@ -11,6 +11,7 @@ import { randomBytes } from 'crypto';
 import { Model } from 'mongoose';
 
 import { User, UserDocument } from '../../../schemas/user.schema';
+import { SubscriptionService } from '../../subscription/subscription.service';
 import { AuthResponseDto } from '../dto/auth-response.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
@@ -48,6 +49,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly emailService: EmailService,
     private readonly rateLimitService: RateLimitService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -531,6 +533,10 @@ export class AuthService {
     });
 
     this.logger.log(`User created successfully: ${user._id.toString()}`);
+
+    // Provision the default free subscription so the daily free-message
+    // allowance applies from the first request.
+    await this.subscriptionService.ensureSubscription(user._id);
 
     // Send verification email
     try {
