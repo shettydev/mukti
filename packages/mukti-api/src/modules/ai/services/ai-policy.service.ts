@@ -10,10 +10,13 @@ export interface AllowedModel {
   label: string;
 }
 
-const DEFAULT_MODEL = 'anthropic/claude-sonnet-4-6';
+/** Model served to free (non-BYOK) users. */
+const FREE_MODEL = 'qwen/qwen3.7-max';
+
+const DEFAULT_MODEL = FREE_MODEL;
 
 const CURATED_MODELS: AllowedModel[] = [
-  { id: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
+  { id: FREE_MODEL, label: 'Qwen3.7 Max' },
 ];
 
 @Injectable()
@@ -63,20 +66,11 @@ export class AiPolicyService {
     userActiveModel?: string;
     validationApiKey: string;
   }): Promise<string> {
-    const candidate =
-      params.requestedModel ?? params.userActiveModel ?? DEFAULT_MODEL;
-
-    if (!params.hasByok) {
-      const isCurated = CURATED_MODELS.some((m) => m.id === candidate);
-      if (!isCurated) {
-        throw new BadRequestException({
-          error: {
-            code: 'MODEL_NOT_ALLOWED',
-            message: 'Model not allowed for this account',
-          },
-        });
-      }
-    }
+    // Free (non-BYOK) users are always served the free-tier model, regardless
+    // of any requested or previously stored model preference.
+    const candidate = params.hasByok
+      ? (params.requestedModel ?? params.userActiveModel ?? DEFAULT_MODEL)
+      : FREE_MODEL;
 
     // Always validate the model exists on OpenRouter.
     await this.validateModelOrThrow({
