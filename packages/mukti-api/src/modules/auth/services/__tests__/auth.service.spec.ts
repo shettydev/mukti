@@ -8,10 +8,13 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
+import type { RefreshToken } from '../../../../schemas/refresh-token.schema';
+
 import { User } from '../../../../schemas/user.schema';
+import { SubscriptionService } from '../../../subscription/subscription.service';
 import { AuthService } from '../auth.service';
 import { EmailService } from '../email.service';
-import { JwtTokenService } from '../jwt.service';
+import { type JwtPayload, JwtTokenService } from '../jwt.service';
 import { PasswordService } from '../password.service';
 import { RateLimitService } from '../rate-limit.service';
 import { TokenService } from '../token.service';
@@ -44,6 +47,28 @@ const buildMockUser = (overrides: Partial<Record<string, unknown>> = {}) => {
     ...overrides,
   };
 };
+
+const buildJwtPayload = (overrides: Partial<JwtPayload> = {}): JwtPayload => ({
+  email: 'test@example.com',
+  exp: Math.floor(Date.now() / 1000) + 900,
+  iat: Math.floor(Date.now() / 1000),
+  role: 'user',
+  sub: makeUserId().toString(),
+  ...overrides,
+});
+
+const buildRefreshToken = (
+  overrides: Partial<RefreshToken> = {},
+): RefreshToken => ({
+  _id: makeUserId(),
+  createdAt: new Date(),
+  expiresAt: new Date(Date.now() + 60_000),
+  isRevoked: false,
+  token: 'refresh-token',
+  updatedAt: new Date(),
+  userId: makeUserId(),
+  ...overrides,
+});
 
 // ─── describe AuthService ─────────────────────────────────────────────────────
 
@@ -118,6 +143,12 @@ describe('AuthService', () => {
     >,
   };
 
+  const mockSubscriptionService = {
+    ensureSubscription: jest.fn() as jest.MockedFunction<
+      SubscriptionService['ensureSubscription']
+    >,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -128,6 +159,7 @@ describe('AuthService', () => {
         { provide: TokenService, useValue: mockTokenService },
         { provide: EmailService, useValue: mockEmailService },
         { provide: RateLimitService, useValue: mockRateLimitService },
+        { provide: SubscriptionService, useValue: mockSubscriptionService },
       ],
     }).compile();
 
@@ -363,16 +395,12 @@ describe('AuthService', () => {
     it('should return a new access token for a valid refresh token', async () => {
       // Arrange
       const userId = makeUserId();
-      mockJwtService.verifyRefreshToken.mockReturnValue({
-        email: 'test@example.com',
-        role: 'user',
-        sub: userId.toString(),
-      });
-      mockTokenService.findRefreshToken.mockResolvedValue({
-        expiresAt: new Date(Date.now() + 60_000),
-        isRevoked: false,
-        token: 'valid-refresh-token',
-      });
+      mockJwtService.verifyRefreshToken.mockReturnValue(
+        buildJwtPayload({ sub: userId.toString() }),
+      );
+      mockTokenService.findRefreshToken.mockResolvedValue(
+        buildRefreshToken({ token: 'valid-refresh-token' }),
+      );
       mockUserModel.findById.mockResolvedValue(buildMockUser({ _id: userId }));
       mockJwtService.generateAccessToken.mockReturnValue('new-access-token');
 
@@ -385,7 +413,9 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException when token is not in the database', async () => {
       // Arrange
-      mockJwtService.verifyRefreshToken.mockReturnValue({ sub: 'user-id' });
+      mockJwtService.verifyRefreshToken.mockReturnValue(
+        buildJwtPayload({ sub: 'user-id' }),
+      );
       mockTokenService.findRefreshToken.mockResolvedValue(null);
 
       // Act & Assert
@@ -396,12 +426,12 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException when token is revoked', async () => {
       // Arrange
-      mockJwtService.verifyRefreshToken.mockReturnValue({ sub: 'user-id' });
-      mockTokenService.findRefreshToken.mockResolvedValue({
-        expiresAt: new Date(Date.now() + 60_000),
-        isRevoked: true,
-        token: 'revoked-token',
-      });
+      mockJwtService.verifyRefreshToken.mockReturnValue(
+        buildJwtPayload({ sub: 'user-id' }),
+      );
+      mockTokenService.findRefreshToken.mockResolvedValue(
+        buildRefreshToken({ isRevoked: true, token: 'revoked-token' }),
+      );
 
       // Act & Assert
       await expect(service.refresh('revoked-token')).rejects.toThrow(
@@ -411,12 +441,15 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException when token is expired', async () => {
       // Arrange
-      mockJwtService.verifyRefreshToken.mockReturnValue({ sub: 'user-id' });
-      mockTokenService.findRefreshToken.mockResolvedValue({
-        expiresAt: new Date(Date.now() - 1000),
-        isRevoked: false,
-        token: 'expired-token',
-      });
+      mockJwtService.verifyRefreshToken.mockReturnValue(
+        buildJwtPayload({ sub: 'user-id' }),
+      );
+      mockTokenService.findRefreshToken.mockResolvedValue(
+        buildRefreshToken({
+          expiresAt: new Date(Date.now() - 1000),
+          token: 'expired-token',
+        }),
+      );
 
       // Act & Assert
       await expect(service.refresh('expired-token')).rejects.toThrow(
@@ -427,14 +460,12 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException when associated user is inactive', async () => {
       // Arrange
       const userId = makeUserId();
-      mockJwtService.verifyRefreshToken.mockReturnValue({
-        sub: userId.toString(),
-      });
-      mockTokenService.findRefreshToken.mockResolvedValue({
-        expiresAt: new Date(Date.now() + 60_000),
-        isRevoked: false,
-        token: 'valid-token',
-      });
+      mockJwtService.verifyRefreshToken.mockReturnValue(
+        buildJwtPayload({ sub: userId.toString() }),
+      );
+      mockTokenService.findRefreshToken.mockResolvedValue(
+        buildRefreshToken({ token: 'valid-token' }),
+      );
       mockUserModel.findById.mockResolvedValue(
         buildMockUser({ isActive: false }),
       );

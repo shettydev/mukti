@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
 import { User, UserDocument } from '../../../schemas/user.schema';
+import { SubscriptionService } from '../../subscription/subscription.service';
 import { AuthResponseDto } from '../dto/auth-response.dto';
 import { JwtTokenService } from './jwt.service';
 import { SessionService } from './session.service';
@@ -46,6 +47,7 @@ export class OAuthService {
     private readonly jwtService: JwtTokenService,
     private readonly tokenService: TokenService,
     private readonly sessionService: SessionService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -139,6 +141,10 @@ export class OAuthService {
           password: undefined, // No password for OAuth users
           role: 'user',
         });
+
+        // Provision the default free subscription so the daily free-message
+        // allowance applies from the first request.
+        await this.subscriptionService.ensureSubscription(user._id);
       }
     }
 

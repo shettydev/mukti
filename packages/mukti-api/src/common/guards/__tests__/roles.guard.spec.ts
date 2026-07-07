@@ -7,6 +7,8 @@ import type { User } from '../../../schemas/user.schema';
 
 import { RolesGuard } from '../roles.guard';
 
+const noop = (): void => undefined;
+
 const makeUser = (role: string): Partial<User> => ({
   _id: { toString: () => 'user-id-123' } as any,
   role: role as any,
@@ -37,7 +39,7 @@ describe('RolesGuard', () => {
     it('allows access when no @Roles() decorator is present', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
-      const ctx = makeContext(makeUser('user'), () => {});
+      const ctx = makeContext(makeUser('user'), noop);
 
       // Act
       const result = guard.canActivate(ctx);
@@ -49,7 +51,7 @@ describe('RolesGuard', () => {
     it('allows access when @Roles() is set to an empty array', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([]);
-      const ctx = makeContext(makeUser('user'), () => {});
+      const ctx = makeContext(makeUser('user'), noop);
 
       // Act
       const result = guard.canActivate(ctx);
@@ -63,7 +65,7 @@ describe('RolesGuard', () => {
     it('allows a user with the exact required role', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['user']);
-      const ctx = makeContext(makeUser('user'), () => {});
+      const ctx = makeContext(makeUser('user'), noop);
 
       // Act
       const result = guard.canActivate(ctx);
@@ -75,7 +77,7 @@ describe('RolesGuard', () => {
     it('denies a user whose role is below the required role', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['moderator']);
-      const ctx = makeContext(makeUser('user'), () => {});
+      const ctx = makeContext(makeUser('user'), noop);
 
       // Act & Assert
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
@@ -86,7 +88,7 @@ describe('RolesGuard', () => {
     it('allows admin to access a route requiring moderator', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['moderator']);
-      const ctx = makeContext(makeUser('admin'), () => {});
+      const ctx = makeContext(makeUser('admin'), noop);
 
       // Act
       const result = guard.canActivate(ctx);
@@ -98,7 +100,7 @@ describe('RolesGuard', () => {
     it('allows admin to access a route requiring user', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['user']);
-      const ctx = makeContext(makeUser('admin'), () => {});
+      const ctx = makeContext(makeUser('admin'), noop);
 
       // Act
       const result = guard.canActivate(ctx);
@@ -110,7 +112,7 @@ describe('RolesGuard', () => {
     it('allows moderator to access a route requiring user', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['user']);
-      const ctx = makeContext(makeUser('moderator'), () => {});
+      const ctx = makeContext(makeUser('moderator'), noop);
 
       // Act
       const result = guard.canActivate(ctx);
@@ -122,7 +124,7 @@ describe('RolesGuard', () => {
     it('denies moderator from accessing a route requiring admin', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
-      const ctx = makeContext(makeUser('moderator'), () => {});
+      const ctx = makeContext(makeUser('moderator'), noop);
 
       // Act & Assert
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
@@ -131,7 +133,7 @@ describe('RolesGuard', () => {
     it('denies user from accessing a route requiring admin', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
-      const ctx = makeContext(makeUser('user'), () => {});
+      const ctx = makeContext(makeUser('user'), noop);
 
       // Act & Assert
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
@@ -144,7 +146,7 @@ describe('RolesGuard', () => {
       jest
         .spyOn(reflector, 'getAllAndOverride')
         .mockReturnValue(['admin', 'moderator']);
-      const ctx = makeContext(makeUser('moderator'), () => {});
+      const ctx = makeContext(makeUser('moderator'), noop);
 
       // Act
       const result = guard.canActivate(ctx);
@@ -158,7 +160,7 @@ describe('RolesGuard', () => {
       jest
         .spyOn(reflector, 'getAllAndOverride')
         .mockReturnValue(['admin', 'moderator']);
-      const ctx = makeContext(makeUser('user'), () => {});
+      const ctx = makeContext(makeUser('user'), noop);
 
       // Act & Assert
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
@@ -169,7 +171,7 @@ describe('RolesGuard', () => {
     it('throws ForbiddenException when no user is on the request', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['user']);
-      const ctx = makeContext(undefined, () => {});
+      const ctx = makeContext(undefined, noop);
 
       // Act & Assert
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
@@ -178,7 +180,7 @@ describe('RolesGuard', () => {
     it('denies access for a user with an unrecognised role', () => {
       // Arrange
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['user']);
-      const ctx = makeContext(makeUser('unknown-role'), () => {});
+      const ctx = makeContext(makeUser('unknown-role'), noop);
 
       // Act & Assert
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);

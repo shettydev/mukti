@@ -16,6 +16,7 @@ import {
 } from '../../schemas/refresh-token.schema';
 import { Session, SessionSchema } from '../../schemas/session.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
+import { SubscriptionModule } from '../subscription/subscription.module';
 import { AuthController } from './auth.controller';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { PasswordResetRateLimitGuard } from './guards/password-reset-rate-limit.guard';
@@ -101,6 +102,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       { name: User.name, schema: UserSchema },
     ]),
 
+    SubscriptionModule,
     ConfigModule,
   ],
   providers: [

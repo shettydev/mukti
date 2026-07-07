@@ -7,6 +7,7 @@ import {
   SubscriptionSchema,
 } from '../../schemas/subscription.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
+import { SubscriptionModule } from '../subscription/subscription.module';
 import { AiController } from './ai.controller';
 import { AiPolicyService } from './services/ai-policy.service';
 import { AiSecretsService } from './services/ai-secrets.service';
@@ -27,6 +28,7 @@ import { OpenRouterModelsService } from './services/openrouter-models.service';
   ],
   imports: [
     ConfigModule,
+    SubscriptionModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Subscription.name, schema: SubscriptionSchema },

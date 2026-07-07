@@ -30,7 +30,7 @@ const makeContext = (
 ): ExecutionContext =>
   ({
     getClass: jest.fn().mockReturnValue(class TestController {}),
-    getHandler: jest.fn().mockReturnValue(() => {}),
+    getHandler: jest.fn().mockReturnValue((): void => undefined),
     switchToHttp: jest.fn().mockReturnValue({
       getRequest: jest.fn().mockReturnValue({ method, url }),
     }),

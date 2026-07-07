@@ -7,6 +7,7 @@ import * as fc from 'fast-check';
 import { Types } from 'mongoose';
 
 import { User } from '../../../../../schemas/user.schema';
+import { SubscriptionService } from '../../../../subscription/subscription.service';
 import { AuthService } from '../../auth.service';
 import { EmailService } from '../../email.service';
 import { JwtTokenService } from '../../jwt.service';
@@ -94,6 +95,10 @@ describe('AuthService - Login Properties', () => {
         {
           provide: RateLimitService,
           useValue: mockRateLimitService,
+        },
+        {
+          provide: SubscriptionService,
+          useValue: { ensureSubscription: jest.fn() },
         },
       ],
     }).compile();
