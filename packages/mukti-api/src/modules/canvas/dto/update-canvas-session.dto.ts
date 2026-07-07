@@ -15,10 +15,10 @@ import {
  */
 export class NodePositionDto {
   @Allow()
-  _id?: any;
+  _id?: unknown;
 
   @Allow()
-  id?: any;
+  id?: unknown;
 
   @ApiProperty({
     description: 'Unique identifier for the node',

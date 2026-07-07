@@ -98,7 +98,7 @@ describe('WaitlistService', () => {
 
     it('should lowercase the email before saving', async () => {
       // Arrange
-      const { mockInstance } = setupJoinMock(null, 'upper@example.com');
+      setupJoinMock(null, 'upper@example.com');
 
       // Act
       const result = await service.join(
