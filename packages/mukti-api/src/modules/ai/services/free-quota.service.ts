@@ -65,6 +65,13 @@ export class FreeQuotaService {
     }
   }
 
+  private getNextMidnight(): Date {
+    const next = new Date();
+    next.setUTCDate(next.getUTCDate() + 1);
+    next.setUTCHours(0, 0, 0, 0);
+    return next;
+  }
+
   /**
    * Atomically consumes one free message when the user is under their daily
    * limit. Returns the updated document, or `null` when nothing matched
@@ -72,7 +79,7 @@ export class FreeQuotaService {
    */
   private async tryConsume(
     userId: string | Types.ObjectId,
-  ): Promise<Subscription | null> {
+  ): Promise<null | Subscription> {
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
 
@@ -111,12 +118,5 @@ export class FreeQuotaService {
       ],
       { new: true },
     );
-  }
-
-  private getNextMidnight(): Date {
-    const next = new Date();
-    next.setUTCDate(next.getUTCDate() + 1);
-    next.setUTCHours(0, 0, 0, 0);
-    return next;
   }
 }
