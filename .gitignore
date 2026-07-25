@@ -21,3 +21,5 @@ out
 
 # Demo videos — hosted on GitHub Releases CDN
 packages/mukti-web/public/demo/*.mp4
+
+openspec
