@@ -9,7 +9,7 @@ jest.mock('@openrouter/sdk', () => ({
 import type { RecentMessage } from '../../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../../schemas/technique.schema';
 
-import { OpenRouterClientFactory } from '../../../ai/services/openrouter-client.factory';
+import { AI_CHAT_CLIENT_FACTORY } from '../../../ai/types/ai-chat-client.interface';
 import { ScaffoldPromptAugmenter } from '../../../scaffolding/services/scaffold-prompt-augmenter.service';
 import { OpenRouterService } from '../openrouter.service';
 
@@ -21,7 +21,7 @@ describe('OpenRouterService', () => {
       providers: [
         OpenRouterService,
         {
-          provide: OpenRouterClientFactory,
+          provide: AI_CHAT_CLIENT_FACTORY,
           useValue: {
             create: jest.fn(() => ({
               chat: {
