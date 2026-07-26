@@ -7,6 +7,7 @@ import { Model, Types } from 'mongoose';
 
 import type { MisconceptionResult } from '../../dialogue-quality/interfaces/quality.interface';
 
+import { isLocalMode } from '../../../common/config/local-mode';
 import {
   Conversation,
   ConversationDocument,
@@ -155,21 +156,28 @@ export class QueueService extends WorkerHost {
       `Enqueueing request for user ${userIdString}, conversation ${conversationIdString}, tier: ${subscriptionTier}`,
     );
 
+    // Create job data
+    const jobData: ConversationRequestJobData = {
+      conversationId: conversationIdString,
+      message,
+      model,
+      subscriptionTier,
+      technique,
+      usedByok,
+      userId: userIdString,
+      ...(wrapUpRequested ? { wrapUpRequested } : {}),
+    };
+
+    // Local mode: process inline with no Redis/BullMQ, preserving the SSE
+    // contract via the shared process() path.
+    if (isLocalMode()) {
+      this.logger.log('Local mode: processing conversation request inline');
+      return this.processInline(jobData);
+    }
+
     try {
       // Determine priority based on subscription tier
       const priority = subscriptionTier === 'paid' ? 10 : 1;
-
-      // Create job data
-      const jobData: ConversationRequestJobData = {
-        conversationId: conversationIdString,
-        message,
-        model,
-        subscriptionTier,
-        technique,
-        usedByok,
-        userId: userIdString,
-        ...(wrapUpRequested ? { wrapUpRequested } : {}),
-      };
 
       // Add job to queue with priority
       const job = await this.conversationRequestsQueue.add(
@@ -796,6 +804,37 @@ export class QueueService extends WorkerHost {
 
   private getErrorStack(error: unknown): string | undefined {
     return error instanceof Error ? error.stack : undefined;
+  }
+
+  /**
+   * Processes a conversation request inline (local mode) instead of enqueuing to
+   * BullMQ. Runs the same {@link process} path — so the SSE event sequence
+   * (`processing → message → complete | error`) is identical — but deferred via
+   * setImmediate so the HTTP response returns before events are emitted onto the
+   * already-open conversation stream.
+   */
+  private processInline(jobData: ConversationRequestJobData): {
+    jobId: string;
+    position: number;
+  } {
+    const jobId = `local-${jobData.conversationId}-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+
+    const job = {
+      data: jobData,
+      id: jobId,
+    } as Job<ConversationRequestJobData, ConversationRequestJobResult>;
+
+    setImmediate(() => {
+      void this.process(job).catch(() => {
+        // process() already emitted an SSE 'error' event before rethrowing for
+        // BullMQ retry. There is no queue here, so swallow to avoid an
+        // unhandledRejection.
+      });
+    });
+
+    return { jobId, position: 1 };
   }
 
   private async resolveApiKey(
