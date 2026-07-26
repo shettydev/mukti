@@ -74,6 +74,7 @@ describe('ConversationController', () => {
   };
 
   const mockAiPolicyService = {
+    isClaudeCodeProvider: jest.fn().mockReturnValue(false),
     resolveEffectiveModel: jest.fn().mockResolvedValue(undefined),
   };
 
