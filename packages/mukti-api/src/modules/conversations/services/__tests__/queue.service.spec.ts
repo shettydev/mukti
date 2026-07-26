@@ -388,6 +388,73 @@ describe('QueueService', () => {
     });
   });
 
+  describe('enqueueRequest — local mode (inline)', () => {
+    const original = process.env.MUKTI_LOCAL;
+
+    afterEach(() => {
+      if (original === undefined) {
+        delete process.env.MUKTI_LOCAL;
+      } else {
+        process.env.MUKTI_LOCAL = original;
+      }
+    });
+
+    const flush = () => new Promise((resolve) => setImmediate(resolve));
+
+    it('processes inline without enqueuing and routes through process()', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      const processSpy = jest
+        .spyOn(service, 'process')
+        .mockResolvedValue({} as never);
+
+      const result = await service.enqueueRequest(
+        '507f1f77bcf86cd799439011',
+        '507f1f77bcf86cd799439012',
+        'Hello',
+        'free',
+        'elenchus',
+        'sonnet',
+        false,
+      );
+
+      // No job was added to the queue.
+      expect(queue.add).not.toHaveBeenCalled();
+      expect(result.position).toBe(1);
+      expect(result.jobId).toMatch(/^local-/);
+
+      // Deferred processing runs the shared path with the same data.
+      await flush();
+      expect(processSpy).toHaveBeenCalledTimes(1);
+      const job = processSpy.mock.calls[0][0];
+      expect(job.data.conversationId).toBe('507f1f77bcf86cd799439012');
+      expect(job.data.message).toBe('Hello');
+      expect(job.id).toBe(result.jobId);
+    });
+
+    it('swallows inline processing failures (no unhandled rejection)', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      const processSpy = jest
+        .spyOn(service, 'process')
+        .mockRejectedValue(new Error('AI down'));
+
+      const result = await service.enqueueRequest(
+        '507f1f77bcf86cd799439011',
+        '507f1f77bcf86cd799439012',
+        'Hello',
+        'free',
+        'elenchus',
+        'sonnet',
+        false,
+      );
+
+      expect(result.jobId).toMatch(/^local-/);
+      await flush();
+      // process() (which emits the SSE 'error' event) was invoked; its
+      // rejection is swallowed by the inline wrapper.
+      expect(processSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('getJobStatus', () => {
     it('should return job status for existing job', async () => {
       // Enqueue a request
