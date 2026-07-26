@@ -79,7 +79,11 @@ export class AiController {
 
     const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
 
-    const validationApiKey = this.getValidationApiKey({ hasByok, user });
+    // Claude Code needs no OpenRouter validation key; resolveEffectiveModel
+    // honours the requested Claude alias directly.
+    const validationApiKey = this.aiPolicyService.isClaudeCodeProvider()
+      ? ''
+      : this.getValidationApiKey({ hasByok, user });
 
     const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
       hasByok,
@@ -255,6 +259,15 @@ export class AiController {
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // Claude Code provider serves a curated Claude-alias list with no OpenRouter
+    // catalog lookup, regardless of any stored BYOK key.
+    if (this.aiPolicyService.isClaudeCodeProvider()) {
+      return {
+        mode: 'curated',
+        models: this.aiPolicyService.getCuratedModels(),
+      };
     }
 
     const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
