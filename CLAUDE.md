@@ -204,7 +204,7 @@ Always use the commit tools:
 ```bash
 git add .
 bun run commit          # Interactive guided commits (czg)
-bun run ai:commit       # AI-generated commit message (OpenCommit)
+bun run commit:ai       # AI-generated commit message (scripts/ai-commit.js)
 ```
 
 ### Pre-commit Hooks (Husky + lint-staged)
