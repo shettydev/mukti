@@ -1,7 +1,19 @@
 export default {
-  provider: 'openrouter',
-  model: 'google/gemini-3-flash-preview',
-  // OpenRouter API configuration
+  // Provider selects the generation backend. Supported values:
+  //   'claude-cli'  — default; runs the local `claude -p` CLI, uses your existing
+  //                   Claude Code auth (no API key needed).
+  //   'openrouter'  — HTTP backend; requires OPENROUTER_API_KEY in the environment.
+  // To switch back to OpenRouter, set this to 'openrouter' and pick an OpenRouter
+  // slug for `model` below (e.g. 'google/gemini-3-flash-preview').
+  provider: 'claude-cli',
+
+  // NOTE: `model` is provider-dependent.
+  //   - For 'claude-cli': a Claude alias ('haiku' | 'sonnet' | 'opus') or a full model id.
+  //   - For 'openrouter': an OpenRouter slug (e.g. 'google/gemini-3-flash-preview').
+  // Keep this in sync with `provider` when you switch backends.
+  model: 'haiku',
+
+  // OpenRouter API configuration (only used when provider === 'openrouter')
   apiEndpoint: 'https://openrouter.ai/api/v1/chat/completions',
   // Will use OPENROUTER_API_KEY from environment
 

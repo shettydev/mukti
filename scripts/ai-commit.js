@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { confirm, input, select, editor } from '@inquirer/prompts';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -19,14 +19,8 @@ try {
   process.exit(1);
 }
 
-// Check for API key
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-if (!OPENROUTER_API_KEY) {
-  console.error('❌ OPENROUTER_API_KEY environment variable is not set');
-  console.error('   Set it in your shell or .env file:');
-  console.error('   export OPENROUTER_API_KEY=your_key_here');
-  process.exit(1);
-}
+// Supported generation providers
+const PROVIDERS = ['claude-cli', 'openrouter'];
 
 // Get git diff
 function getGitDiff() {
@@ -51,9 +45,97 @@ function getGitDiff() {
   }
 }
 
-// Call OpenRouter API
+// Build the user prompt from the template
+function buildUserPrompt(diff, count) {
+  return config.userPromptTemplate.replace('{diff}', diff).replace('{count}', count);
+}
+
+// Dispatch to the configured provider. Each provider handles its own diff
+// preparation (OpenRouter truncates for token limits; Claude sends the full diff).
+async function generate(diff, count = 3) {
+  switch (config.provider) {
+    case 'claude-cli':
+      return callClaude(diff, count);
+    case 'openrouter':
+      return callOpenRouter(diff, count);
+    default:
+      console.error(
+        `❌ Unknown provider "${config.provider}" in .ai-commit.config.js. ` +
+          `Supported providers: ${PROVIDERS.join(', ')}`
+      );
+      process.exit(1);
+  }
+}
+
+// Call the local Claude CLI in print mode. Uses your existing Claude Code
+// authentication — no API key required. The full diff is sent (no truncation).
+function callClaude(diff, count = 3) {
+  const userPrompt = buildUserPrompt(diff, count);
+
+  // Use execFileSync with an args array (not a shell string) so the multi-line
+  // system prompt and diff need no shell escaping. The user prompt is piped via stdin.
+  let stdout;
+  try {
+    stdout = execFileSync(
+      'claude',
+      [
+        '-p',
+        '--output-format',
+        'json',
+        '--model',
+        config.model,
+        '--append-system-prompt',
+        config.systemPrompt,
+      ],
+      {
+        input: userPrompt,
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
+      }
+    );
+  } catch (error) {
+    console.error(
+      '❌ Failed to run the Claude CLI. Ensure `claude` is installed, on your PATH, ' +
+        "and authenticated (`claude` once interactively), or set provider to 'openrouter'."
+    );
+    console.error(`   ${error.message}`);
+    process.exit(1);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    console.error('❌ Claude CLI returned non-JSON output. Cannot parse the response.');
+    process.exit(1);
+  }
+
+  if (!parsed || typeof parsed.result !== 'string' || !parsed.result.trim()) {
+    console.error('❌ Claude CLI response did not contain a usable `result` field.');
+    process.exit(1);
+  }
+
+  return parsed.result;
+}
+
+// Call OpenRouter API. Requires OPENROUTER_API_KEY.
 async function callOpenRouter(diff, count = 3) {
-  const userPrompt = config.userPromptTemplate.replace('{diff}', diff).replace('{count}', count);
+  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+  if (!OPENROUTER_API_KEY) {
+    console.error('❌ OPENROUTER_API_KEY environment variable is not set');
+    console.error('   Set it in your shell or .env file:');
+    console.error('   export OPENROUTER_API_KEY=your_key_here');
+    process.exit(1);
+  }
+
+  // OpenRouter has token limits — truncate the diff for this backend.
+  const maxDiffLength = 4000;
+  const truncatedDiff =
+    diff.length > maxDiffLength
+      ? diff.substring(0, maxDiffLength) + '\n... (diff truncated)'
+      : diff;
+
+  const userPrompt = buildUserPrompt(truncatedDiff, count);
 
   const response = await fetch(config.apiEndpoint, {
     method: 'POST',
@@ -190,24 +272,17 @@ function parseCommitMessages(aiResponse) {
 // Main function
 async function main() {
   console.log('🤖 AI-Powered Commit Message Generator\n');
-  console.log(`Using: ${config.model}\n`);
+  console.log(`Using: ${config.provider} (${config.model})\n`);
 
   // Get diff
   console.log('📊 Analyzing your changes...\n');
   const diff = getGitDiff();
 
-  // Limit diff size (OpenRouter has token limits)
-  const maxDiffLength = 4000;
-  const truncatedDiff =
-    diff.length > maxDiffLength
-      ? diff.substring(0, maxDiffLength) + '\n... (diff truncated)'
-      : diff;
-
-  // Generate commit messages
+  // Generate commit messages. The provider handles any diff size limiting itself.
   console.log('🧠 Generating commit messages...\n');
   let aiResponse;
   try {
-    aiResponse = await callOpenRouter(truncatedDiff, config.generate);
+    aiResponse = await generate(diff, config.generate);
   } catch (error) {
     console.error('❌ Failed to generate commit messages:', error.message);
     process.exit(1);
