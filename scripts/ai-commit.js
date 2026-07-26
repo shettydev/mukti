@@ -388,17 +388,29 @@ async function main() {
     }
 
     if (action === 'edit') {
-      commitMessage = await input({
-        message: 'Edit subject:',
-        default: commitMessage,
-        validate: (value) => value.length > 0 || 'Message cannot be empty',
+      // Open the whole commit (subject + body) in the default CLI editor
+      // ($VISUAL / $EDITOR — vim, nano, etc.), git-style: subject, blank line, body.
+      const seed = commitBody ? `${commitMessage}\n\n${commitBody}` : commitMessage;
+      const edited = await editor({
+        message: 'Edit commit message (opens in your default editor):',
+        default: seed,
       });
 
-      commitBody = await editor({
-        message: 'Edit body (opens in your default editor):',
-        default: commitBody,
-      });
-      commitBody = wrapText(commitBody, 100);
+      // First non-empty line is the subject; everything after it is the body.
+      const editedLines = edited.replace(/\r\n/g, '\n').split('\n');
+      const subjectIndex = editedLines.findIndex((line) => line.trim() !== '');
+      if (subjectIndex === -1) {
+        console.log('⚠️  Empty message — keeping the previous one.');
+        continue;
+      }
+      commitMessage = editedLines[subjectIndex].trim();
+      commitBody = wrapText(
+        editedLines
+          .slice(subjectIndex + 1)
+          .join('\n')
+          .trim(),
+        100
+      );
     }
   }
 
