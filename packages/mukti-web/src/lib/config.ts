@@ -263,3 +263,19 @@ export function getAppUrl(path: string = ''): string {
 export function isFeatureEnabled(feature: keyof typeof config.features): boolean {
   return config.features[feature];
 }
+
+/**
+ * Whether the web app is running against the local (`MUKTI_LOCAL`) runtime.
+ *
+ * @remarks
+ * Set by the `start:local` launcher via `NEXT_PUBLIC_MUKTI_LOCAL=1`. `NEXT_PUBLIC_*`
+ * is the only env class inlined into client bundles, and it is also readable from
+ * `middleware.ts`, so both layers can branch on a single signal. Mirrors the backend
+ * `isLocalMode()`. In local mode the API auth guard is bypassed for a seeded user, so
+ * the web app skips its own auth gate. Every local-only branch MUST gate on this;
+ * when unset, the hosted experience is unchanged.
+ */
+export function isLocalMode(): boolean {
+  const value = process.env.NEXT_PUBLIC_MUKTI_LOCAL;
+  return value === '1' || value === 'true';
+}

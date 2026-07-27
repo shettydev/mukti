@@ -2,12 +2,25 @@ import type { NextRequest } from 'next/server';
 
 import { NextResponse } from 'next/server';
 
+import { isLocalMode } from './lib/config';
+
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Local mode: the API runs with a bypassed auth guard and a seeded user, so
+  // there is no login and no session cookie. Skip the auth gate entirely and
+  // keep only the (auth-unrelated) legacy redirect.
+  if (isLocalMode()) {
+    if (pathname === '/dashboard/conversations/new') {
+      return NextResponse.redirect(new URL('/chat', request.url));
+    }
+    return NextResponse.next();
+  }
+
   // Check for the refresh token in cookies
   // The refresh token is httpOnly and secure, used as the primary indicator of a session
   const refreshToken = request.cookies.get('refreshToken');
   const isAuth = !!refreshToken;
-  const { pathname } = request.nextUrl;
 
   // Define paths
   const isProtectedPath =
