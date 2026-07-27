@@ -16,6 +16,7 @@ import { useEffect, useRef } from 'react';
 import type { AuthResponse, LoginDto, RegisterDto, TokenResponse } from '@/types/auth.types';
 
 import { authApi } from '@/lib/api/auth';
+import { isLocalMode } from '@/lib/config';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 /**
@@ -73,7 +74,8 @@ const REFRESH_BEFORE_EXPIRATION_MS = 2 * 60 * 1000; // 2 minutes
  */
 export function useAuth() {
   const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  // Local mode is authenticated without a token; hosted keeps the token check.
+  const isAuthenticated = useAuthStore((state) => isLocalMode() || state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const isInitializing = useAuthStore((state) => state.isInitializing);
 

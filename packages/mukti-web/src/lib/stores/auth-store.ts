@@ -13,6 +13,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { User } from '@/types/user.types';
 
+import { isLocalMode } from '@/lib/config';
+
 interface AuthState {
   /**
    * Whether the store has been hydrated from storage
@@ -149,4 +151,7 @@ export const useAuthStore = create<AuthState>()(
 
 export const useUser = () => useAuthStore((state) => state.user);
 export const useAccessToken = () => useAuthStore((state) => state.accessToken);
-export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenticated);
+// Local mode is authenticated without a token (the API bypasses auth for the
+// seeded user); hosted mode still requires user + access token.
+export const useIsAuthenticated = () =>
+  useAuthStore((state) => isLocalMode() || state.isAuthenticated);
