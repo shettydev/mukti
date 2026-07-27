@@ -827,20 +827,54 @@ export class QueueService extends WorkerHost {
     } as Job<ConversationRequestJobData, ConversationRequestJobResult>;
 
     setImmediate(() => {
-      void this.process(job).catch(() => {
-        // process() already emitted an SSE 'error' event before rethrowing for
-        // BullMQ retry. There is no queue here, so swallow to avoid an
-        // unhandledRejection.
-      });
+      // Wait for the client's SSE stream before running, so the first
+      // ('processing') event isn't dropped — emitToConversation has no buffer.
+      void this.waitForStreamConnection(jobData.conversationId)
+        .then(() => this.process(job))
+        .catch(() => {
+          // process() already emitted an SSE 'error' event before rethrowing
+          // for BullMQ retry. There is no queue here, so swallow to avoid an
+          // unhandledRejection.
+        });
     });
 
     return { jobId, position: 1 };
+  }
+
+  /**
+   * Waits (bounded) for a client to open the conversation's SSE stream. The
+   * inline path emits onto a live stream only; without this the response's
+   * jobId would race the first emitted event. Proceeds anyway on timeout.
+   */
+  private async waitForStreamConnection(
+    conversationId: string,
+    timeoutMs = 10000,
+    intervalMs = 25,
+  ): Promise<void> {
+    const start = Date.now();
+    while (
+      this.streamService.getConversationConnectionCount(conversationId) === 0
+    ) {
+      if (Date.now() - start >= timeoutMs) {
+        this.logger.warn(
+          `No SSE connection for conversation ${conversationId} after ${timeoutMs}ms; processing anyway`,
+        );
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
   }
 
   private async resolveApiKey(
     userId: string,
     usedByok: boolean,
   ): Promise<string> {
+    // Claude Code runs on the developer's own auth; no API key is threaded
+    // through and the client ignores it.
+    if (this.aiPolicyService.isClaudeCodeProvider()) {
+      return '';
+    }
+
     if (usedByok) {
       const user = await this.userModel
         .findById(userId)

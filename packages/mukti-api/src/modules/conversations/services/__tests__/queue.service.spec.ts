@@ -56,7 +56,10 @@ describe('QueueService', () => {
     selectModel: jest.Mock;
     sendChatCompletion: jest.Mock;
   };
-  let streamService: { emitToConversation: jest.Mock };
+  let streamService: {
+    emitToConversation: jest.Mock;
+    getConversationConnectionCount: jest.Mock;
+  };
 
   beforeEach(async () => {
     jobs = [];
@@ -127,6 +130,7 @@ describe('QueueService', () => {
       getCuratedModels: jest.fn(() => [
         { id: 'openai/gpt-5-mini', label: 'GPT-5 Mini' },
       ]),
+      isClaudeCodeProvider: jest.fn(() => false),
     };
 
     const mockAiSecretsService = {
@@ -703,6 +707,128 @@ describe('QueueService', () => {
         'user',
         'assistant',
       ]);
+    });
+  });
+
+  describe('local mode (inline processing)', () => {
+    const originalLocal = process.env.MUKTI_LOCAL;
+    const CONV = '507f1f77bcf86cd799439012';
+    const USER = '507f1f77bcf86cd799439011';
+
+    const primeSuccessMocks = () => {
+      conversationModel.findById.mockResolvedValue({
+        _id: CONV,
+        consecutiveFailures: 0,
+        consecutiveSuccesses: 0,
+        currentScaffoldLevel: 0,
+        detectedConcepts: [],
+        recentMessages: [],
+      });
+      techniqueModel.findOne.mockResolvedValue({ template: 'Technique' });
+      messageService.buildConversationContext.mockReturnValue({ messages: [] });
+      openRouterService.buildPrompt.mockReturnValue([]);
+      messageService.addMessageToConversation.mockResolvedValue({
+        _id: { toString: () => CONV },
+        metadata: { messageCount: 2 },
+        recentMessages: [
+          { content: 'u', role: 'user', timestamp: new Date().toISOString() },
+          {
+            content: 'a',
+            role: 'assistant',
+            timestamp: new Date().toISOString(),
+          },
+        ],
+        totalMessageCount: 2,
+      });
+      usageEventModel.create.mockResolvedValue({});
+    };
+
+    // Let setImmediate + waitForStreamConnection + the async process() settle.
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 60));
+
+    afterEach(() => {
+      if (originalLocal === undefined) {
+        delete process.env.MUKTI_LOCAL;
+      } else {
+        process.env.MUKTI_LOCAL = originalLocal;
+      }
+    });
+
+    it('processes inline and does not enqueue to BullMQ', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      streamService.getConversationConnectionCount.mockReturnValue(0);
+
+      const result = await service.enqueueRequest(
+        USER,
+        CONV,
+        'hi',
+        'free',
+        'elenchus',
+        'openai/gpt-5-mini',
+        false,
+      );
+
+      expect(queue.add).not.toHaveBeenCalled();
+      expect(result.jobId).toMatch(/^local-/);
+    });
+
+    it('emits processing then complete on the live stream (no error)', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      streamService.getConversationConnectionCount.mockReturnValue(1);
+      primeSuccessMocks();
+      openRouterService.sendChatCompletion.mockResolvedValue({
+        completionTokens: 8,
+        content: 'What do you mean by that?',
+        cost: 0,
+        model: 'openai/gpt-5-mini',
+        promptTokens: 12,
+        totalTokens: 20,
+      });
+
+      await service.enqueueRequest(
+        USER,
+        CONV,
+        'hi',
+        'free',
+        'elenchus',
+        'openai/gpt-5-mini',
+        false,
+      );
+      await flush();
+
+      const types = streamService.emitToConversation.mock.calls.map(
+        ([, payload]) => payload.type,
+      );
+      expect(queue.add).not.toHaveBeenCalled();
+      expect(types).toContain('processing');
+      expect(types).toContain('complete');
+      expect(types).not.toContain('error');
+    });
+
+    it('emits error and no complete when the provider fails', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      streamService.getConversationConnectionCount.mockReturnValue(1);
+      primeSuccessMocks();
+      openRouterService.sendChatCompletion.mockRejectedValue(
+        new Error('provider down'),
+      );
+
+      await service.enqueueRequest(
+        USER,
+        CONV,
+        'hi',
+        'free',
+        'elenchus',
+        'openai/gpt-5-mini',
+        false,
+      );
+      await flush();
+
+      const types = streamService.emitToConversation.mock.calls.map(
+        ([, payload]) => payload.type,
+      );
+      expect(types).toContain('error');
+      expect(types).not.toContain('complete');
     });
   });
 });
