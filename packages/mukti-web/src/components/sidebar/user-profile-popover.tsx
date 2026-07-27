@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { isLocalMode } from '@/lib/config';
 import { cn } from '@/lib/utils';
 
 /**
@@ -169,17 +170,20 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
           {activeTheme === 'dark' && <Check className="ml-auto h-3.5 w-3.5" />}
         </DropdownMenuItem>
 
-        <DropdownMenuSeparator />
-
-        {/* Logout Button */}
-        <DropdownMenuItem
-          className="cursor-pointer text-red-600 focus:bg-red-500/10 focus:text-red-700 dark:text-red-300 dark:focus:text-red-200"
-          onClick={onLogout}
-          variant="destructive"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-        </DropdownMenuItem>
+        {/* Logout Button — hidden in local mode (single seeded user, no session) */}
+        {!isLocalMode() && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-red-600 focus:bg-red-500/10 focus:text-red-700 dark:text-red-300 dark:focus:text-red-200"
+              onClick={onLogout}
+              variant="destructive"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

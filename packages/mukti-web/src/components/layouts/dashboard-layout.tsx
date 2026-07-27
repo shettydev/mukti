@@ -7,6 +7,7 @@ import type { DashboardLayoutProps, LayoutState } from '@/types/layout.types';
 
 import { CreateConversationDialog } from '@/components/conversations';
 import { MobileMenuButton, Sidebar } from '@/components/dashboard/sidebar';
+import { LocalOnboardingTour } from '@/components/onboarding/local-onboarding-tour';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { cn } from '@/lib/utils';
 
@@ -192,6 +193,9 @@ export function DashboardLayout({
           onSuccess={handleConversationCreated}
           open={createDialogOpen}
         />
+
+        {/* Local-mode first-run welcome tour (renders nothing when hosted) */}
+        <LocalOnboardingTour />
       </div>
     </LayoutContext.Provider>
   );

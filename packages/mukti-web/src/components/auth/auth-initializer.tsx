@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 
 import { authApi } from '@/lib/api/auth';
 import { ApiClientError } from '@/lib/api/client';
+import { isLocalMode } from '@/lib/config';
 import { useAiStore } from '@/lib/stores/ai-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -18,6 +19,7 @@ export function AuthInitializer() {
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const setAuth = useAuthStore((state) => state.setAuth);
+  const setUser = useAuthStore((state) => state.setUser);
   const setHasHydrated = useAuthStore((state) => state.setHasHydrated);
   const setInitializing = useAuthStore((state) => state.setInitializing);
 
@@ -31,6 +33,38 @@ export function AuthInitializer() {
     // Ensure hydration is marked as complete
     // This is a safety fallback in case Zustand's persist onRehydrateStorage doesn't fire
     setHasHydrated(true);
+
+    // Local mode: there is no login or refresh token. The API bypasses auth and
+    // GET /auth/me returns the seeded user, so hydrate identity from it. The API
+    // may still be starting, so retry rather than bouncing to /auth (which does
+    // not exist locally). No access token is set; isAuthenticated is relaxed for
+    // local mode at the read side.
+    if (isLocalMode()) {
+      const loadLocalUser = async (attempt = 0): Promise<void> => {
+        try {
+          const user = await authApi.getMe();
+          setUser(user);
+          try {
+            await useAiStore.getState().hydrate();
+          } catch {
+            // Ignore AI settings failures during local init
+          }
+          setInitializing(false);
+        } catch {
+          if (attempt < 10) {
+            setTimeout(() => {
+              void loadLocalUser(attempt + 1);
+            }, 500);
+            return;
+          }
+          // Give up after retries but still let the app render (no bounce).
+          setInitializing(false);
+        }
+      };
+
+      void loadLocalUser();
+      return;
+    }
 
     const initAuth = async () => {
       try {
@@ -89,7 +123,7 @@ export function AuthInitializer() {
     };
 
     initAuth();
-  }, [setAccessToken, clearAuth, setHasHydrated, setInitializing, setAuth]);
+  }, [setAccessToken, clearAuth, setHasHydrated, setInitializing, setAuth, setUser]);
 
   // This component doesn't render anything
   return null;
