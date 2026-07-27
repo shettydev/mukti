@@ -103,6 +103,9 @@ const env = {
   ...process.env,
   AI_PROVIDER: 'claude-code',
   MUKTI_LOCAL: '1',
+  // Client-visible local-mode signal for the Next.js web process (read by
+  // middleware.ts and client components via isLocalMode()).
+  NEXT_PUBLIC_MUKTI_LOCAL: '1',
   // Keep the embedded DB at the repo root regardless of each child's cwd.
   MUKTI_LOCAL_DB_PATH: resolve(REPO_ROOT, '.mukti/local-db'),
 };
