@@ -13,12 +13,14 @@
  *
  * Usage: bun run start:local
  */
-import { intro, log, note, outro, spinner, type SpinnerResult } from '@clack/prompts';
+import { intro, log, outro, spinner, type SpinnerResult } from '@clack/prompts';
 import { type ChildProcess, spawn, spawnSync } from 'child_process';
 import { createWriteStream, existsSync, mkdirSync, type WriteStream } from 'fs';
 import { createConnection } from 'net';
 import { join, relative, resolve } from 'path';
 import pc from 'picocolors';
+
+import { renderReadyBanner, SHOW_CURSOR } from './lib/mukti-banner';
 
 const API_PORT = 3000;
 const WEB_PORT = 3001;
@@ -317,6 +319,8 @@ async function shutdown(code = 0): Promise<never> {
   // A second Ctrl-C while shutting down means "just get me out".
   if (!shuttingDown) {
     shuttingDown = true;
+    // The banner hides the cursor while it animates; never leave it hidden.
+    if (process.stdout.isTTY) process.stdout.write(SHOW_CURSOR);
     for (const service of services) killTree(service, 'SIGINT');
     await Promise.race([Promise.all(services.map((s) => s.exited)), sleep(5_000)]);
     for (const service of services) {
@@ -438,23 +442,22 @@ await runPhase(
 
 // ── Ready ──────────────────────────────────────────────────────────────────
 
-note(
-  [
-    `${pc.green('▲')} ${pc.bold(WEB_URL)}`,
-    '',
-    `${pc.dim('logs')}  ${relative(REPO_ROOT, LOG_DIR)}/api.log, web.log`,
-    `${pc.dim('stop')}  Ctrl-C`,
-  ].join('\n'),
-  'Mukti is ready'
-);
-outro(pc.dim('streaming logs…'));
+// Close the clack flow first so the wordmark gets the full width, outside the
+// prompt gutter.
+outro(pc.dim('all checks passed'));
 
-// Only stream once the last spinner is gone, so frames never interleave.
+// The last spinner is gone — re-arm before the banner, so a Ctrl-C mid-animation
+// still shuts down cleanly (and restores the cursor).
+armSignalHandlers();
+
+await renderReadyBanner({
+  logHint: `${relative(REPO_ROOT, LOG_DIR)}/api.log · web.log`,
+  url: WEB_URL,
+});
+
+// Only stream once the banner has settled, so nothing repaints over it.
 bufferedBootLines.length = 0;
 streaming = true;
-
-// The ready banner's spinner is the last one — re-arm before handing over.
-armSignalHandlers();
 
 openBrowser(WEB_URL);
 
