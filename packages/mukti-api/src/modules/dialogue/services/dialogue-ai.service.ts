@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
@@ -7,7 +7,10 @@ import type { NodeType } from '../../../schemas/node-dialogue.schema';
 import type { QualityDirectives } from '../../dialogue-quality/interfaces/quality.interface';
 import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
 
-import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
+import {
+  AI_CHAT_CLIENT_FACTORY,
+  type AiChatClientFactory,
+} from '../../ai/types/ai-chat-client.interface';
 import {
   appendQualityGuardrails,
   buildScaffoldAwarePrompt,
@@ -68,7 +71,8 @@ export class DialogueAIService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly openRouterClientFactory: OpenRouterClientFactory,
+    @Inject(AI_CHAT_CLIENT_FACTORY)
+    private readonly chatClientFactory: AiChatClientFactory,
   ) {}
 
   /**
@@ -120,7 +124,7 @@ export class DialogueAIService {
         `Generating AI response for node ${nodeContext.nodeId} with model ${effectiveModel}`,
       );
 
-      const client = this.openRouterClientFactory.create(apiKey);
+      const client = this.chatClientFactory.create(apiKey);
 
       // Send request to OpenRouter
       const response = await client.chat.send(
@@ -225,7 +229,7 @@ export class DialogueAIService {
         `Generating scaffolded AI response for node ${nodeContext.nodeId} with model ${effectiveModel} (scaffold level: ${scaffoldLevel})`,
       );
 
-      const client = this.openRouterClientFactory.create(apiKey);
+      const client = this.chatClientFactory.create(apiKey);
 
       // Send request to OpenRouter
       const response = await client.chat.send(
@@ -323,7 +327,7 @@ export class DialogueAIService {
         `Generating ThoughtMap AI response with model ${effectiveModel} (scaffold level: ${scaffoldContext?.level ?? 'none'})`,
       );
 
-      const client = this.openRouterClientFactory.create(apiKey);
+      const client = this.chatClientFactory.create(apiKey);
 
       const response = await client.chat.send(
         { messages, model: effectiveModel, stream: false, temperature: 0.7 },

@@ -52,7 +52,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { Conversation, Message } from '@/types/conversation.types';
 
-import { config } from '@/lib/config';
+import { config, isLocalMode } from '@/lib/config';
 import { conversationKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -336,8 +336,9 @@ export function useConversationStream(options: UseConversationStreamOptions) {
       return;
     }
 
-    // Get access token for authentication
-    if (!accessToken) {
+    // Get access token for authentication. Local mode has no token — the API
+    // bypasses auth for the seeded user and accepts a token-less SSE stream.
+    if (!accessToken && !isLocalMode()) {
       const authError = new SSEError('No access token available', 'authentication', 401);
       setError(authError);
       callbacksRef.current.onError?.(authError);

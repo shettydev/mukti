@@ -30,40 +30,32 @@ describe('MapExtractionService', () => {
     create: jest.fn(),
   };
 
-  const mockUserModel = {
-    findById: jest.fn().mockReturnThis(),
-    lean: jest.fn(),
-    select: jest.fn().mockReturnThis(),
-  };
-
-  const mockConfigService = {
-    get: jest.fn().mockReturnValue('server-openrouter-key'),
+  const mockAiKeyResolver = {
+    resolve: jest.fn().mockResolvedValue('server-openrouter-key'),
   };
 
   const mockAiPolicyService = {
     getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
   };
 
-  const mockAiSecretsService = {
-    decryptString: jest.fn().mockReturnValue('decrypted-key'),
+  const mockSend = jest.fn();
+  const mockChatClientFactory = {
+    create: jest.fn(() => ({ chat: { send: mockSend } })),
   };
 
-  const fetchMock = jest.fn();
-
   beforeEach(() => {
-    (global as any).fetch = fetchMock;
     service = new MapExtractionService(
       mockQueue as any,
       mockThoughtMapModel as any,
       mockThoughtNodeModel as any,
       mockConversationModel as any,
       mockUsageEventModel as any,
-      mockUserModel as any,
-      mockConfigService as any,
+      mockAiKeyResolver as any,
       mockAiPolicyService as any,
-      mockAiSecretsService as any,
+      mockChatClientFactory as any,
     );
     jest.clearAllMocks();
+    mockChatClientFactory.create.mockReturnValue({ chat: { send: mockSend } });
   });
 
   const leanQuery = <T>(value: T) => ({
@@ -154,32 +146,29 @@ describe('MapExtractionService', () => {
           userId: new Types.ObjectId(userId),
         }),
       );
-      fetchMock.mockResolvedValue({
-        json: jest.fn().mockResolvedValue({
-          choices: [
-            {
-              message: {
-                content: JSON.stringify({
-                  branches: [
-                    {
-                      label: 'Branch one',
-                      sourceMessageIndices: [0],
-                      subPoints: [
-                        {
-                          label: 'Sub point one',
-                          sourceMessageIndices: [0],
-                        },
-                      ],
-                    },
-                  ],
-                  centralTopic: 'Main topic',
-                  unresolvedQuestions: ['Open question'],
-                }),
-              },
+      mockSend.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                branches: [
+                  {
+                    label: 'Branch one',
+                    sourceMessageIndices: [0],
+                    subPoints: [
+                      {
+                        label: 'Sub point one',
+                        sourceMessageIndices: [0],
+                      },
+                    ],
+                  },
+                ],
+                centralTopic: 'Main topic',
+                unresolvedQuestions: ['Open question'],
+              }),
             },
-          ],
-        }),
-        ok: true,
+          },
+        ],
       });
       mockThoughtMapModel.create.mockResolvedValue(map);
       mockThoughtNodeModel.create.mockImplementation((doc: any) => ({
@@ -296,27 +285,6 @@ describe('MapExtractionService', () => {
       ).toBe('allowed-model');
     });
 
-    it('resolves BYOK and server API keys', async () => {
-      mockUserModel.lean.mockResolvedValue({
-        openRouterApiKeyEncrypted: 'encrypted-key',
-      });
-
-      await expect(
-        (service as any).resolveApiKey(new Types.ObjectId().toString(), true),
-      ).resolves.toBe('decrypted-key');
-      await expect(
-        (service as any).resolveApiKey(new Types.ObjectId().toString(), false),
-      ).resolves.toBe('server-openrouter-key');
-    });
-
-    it('throws when neither BYOK nor server API keys are configured', async () => {
-      mockConfigService.get.mockReturnValueOnce('');
-
-      await expect(
-        (service as any).resolveApiKey(new Types.ObjectId().toString(), false),
-      ).rejects.toThrow('OPENROUTER_API_KEY not configured');
-    });
-
     it('persists draft maps with stable node ids and layout defaults', async () => {
       const userId = new Types.ObjectId().toString();
       const conversationId = new Types.ObjectId().toString();
@@ -400,6 +368,115 @@ describe('MapExtractionService', () => {
         'thought-3',
         'question-0',
       ]);
+    });
+  });
+
+  describe('local mode (inline)', () => {
+    const originalLocal = process.env.MUKTI_LOCAL;
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 60));
+
+    afterEach(() => {
+      if (originalLocal === undefined) {
+        delete process.env.MUKTI_LOCAL;
+      } else {
+        process.env.MUKTI_LOCAL = originalLocal;
+      }
+    });
+
+    it('does not enqueue to BullMQ and returns a local job id', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      // Fail fast so the deferred inline run drains without waiting for a stream.
+      mockConversationModel.findOne.mockReturnValue(leanQuery(null));
+
+      const emitFn = jest.fn();
+      const result = await service.enqueueExtraction(
+        new Types.ObjectId(),
+        new Types.ObjectId().toString(),
+        'allowed-model',
+        false,
+        'free',
+      );
+      service.addConnection(result.jobId, 'conn-1', emitFn);
+      await flush();
+
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(result.position).toBe(1);
+      expect(result.jobId).toMatch(/^local-/);
+    });
+
+    it('processes inline emitting processing → preview → complete', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      const userId = new Types.ObjectId().toString();
+      const map = { _id: new Types.ObjectId(), title: 'Main topic' };
+      mockConversationModel.findOne.mockReturnValue(
+        leanQuery({
+          recentMessages: [
+            { content: 'User message', role: 'user', timestamp: new Date() },
+          ],
+          title: 'Conversation title',
+          userId: new Types.ObjectId(userId),
+        }),
+      );
+      mockSend.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                branches: [
+                  {
+                    label: 'Branch one',
+                    sourceMessageIndices: [0],
+                    subPoints: [],
+                  },
+                ],
+                centralTopic: 'Main topic',
+                unresolvedQuestions: [],
+              }),
+            },
+          },
+        ],
+      });
+      mockThoughtMapModel.create.mockResolvedValue(map);
+      mockThoughtNodeModel.create.mockImplementation((doc: any) => ({
+        ...doc,
+        _id: new Types.ObjectId(),
+      }));
+
+      const emitFn = jest.fn();
+      const result = await service.enqueueExtraction(
+        userId,
+        new Types.ObjectId().toString(),
+        'allowed-model',
+        false,
+        'free',
+      );
+      // Client subscribes to the returned jobId-keyed stream before processing.
+      service.addConnection(result.jobId, 'conn-1', emitFn);
+      await flush();
+
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      const types = emitFn.mock.calls.map(([event]) => event.type);
+      expect(types).toEqual(['processing', 'preview', 'complete']);
+    });
+
+    it('emits error and no complete when extraction fails', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      mockConversationModel.findOne.mockReturnValue(leanQuery(null));
+
+      const emitFn = jest.fn();
+      const result = await service.enqueueExtraction(
+        new Types.ObjectId(),
+        new Types.ObjectId().toString(),
+        'allowed-model',
+        false,
+        'free',
+      );
+      service.addConnection(result.jobId, 'conn-1', emitFn);
+      await flush();
+
+      const types = emitFn.mock.calls.map(([event]) => event.type);
+      expect(types).toContain('error');
+      expect(types).not.toContain('complete');
     });
   });
 });

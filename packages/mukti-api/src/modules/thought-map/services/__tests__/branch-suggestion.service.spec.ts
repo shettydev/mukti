@@ -24,38 +24,30 @@ describe('BranchSuggestionService', () => {
     create: jest.fn(),
   };
 
-  const mockUserModel = {
-    findById: jest.fn().mockReturnThis(),
-    lean: jest.fn(),
-    select: jest.fn().mockReturnThis(),
-  };
-
-  const mockConfigService = {
-    get: jest.fn().mockReturnValue('server-openrouter-key'),
+  const mockAiKeyResolver = {
+    resolve: jest.fn().mockResolvedValue('server-openrouter-key'),
   };
 
   const mockAiPolicyService = {
     getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
   };
 
-  const mockAiSecretsService = {
-    decryptString: jest.fn().mockReturnValue('decrypted-key'),
+  const mockSend = jest.fn();
+  const mockChatClientFactory = {
+    create: jest.fn(() => ({ chat: { send: mockSend } })),
   };
 
-  const fetchMock = jest.fn();
-
   beforeEach(() => {
-    (global as any).fetch = fetchMock;
     service = new BranchSuggestionService(
       mockQueue as any,
       mockThoughtNodeModel as any,
       mockUsageEventModel as any,
-      mockUserModel as any,
-      mockConfigService as any,
+      mockAiKeyResolver as any,
       mockAiPolicyService as any,
-      mockAiSecretsService as any,
+      mockChatClientFactory as any,
     );
     jest.clearAllMocks();
+    mockChatClientFactory.create.mockReturnValue({ chat: { send: mockSend } });
   });
 
   const leanQuery = <T>(value: T) => ({
@@ -196,30 +188,27 @@ describe('BranchSuggestionService', () => {
       const mapId = new Types.ObjectId().toString();
       const emitFn = jest.fn();
       service.addConnection(mapId, 'topic-0', 'conn-1', emitFn);
-      fetchMock.mockResolvedValue({
-        json: jest.fn().mockResolvedValue({
-          choices: [
-            {
-              message: {
-                content: JSON.stringify([
-                  {
-                    label: 'What assumptions are you making?',
-                    suggestedType: 'question',
-                  },
-                  {
-                    label: 'What evidence supports this?',
-                    suggestedType: 'question',
-                  },
-                  {
-                    label: 'What if this were false?',
-                    suggestedType: 'thought',
-                  },
-                ]),
-              },
+      mockSend.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify([
+                {
+                  label: 'What assumptions are you making?',
+                  suggestedType: 'question',
+                },
+                {
+                  label: 'What evidence supports this?',
+                  suggestedType: 'question',
+                },
+                {
+                  label: 'What if this were false?',
+                  suggestedType: 'thought',
+                },
+              ]),
             },
-          ],
-        }),
-        ok: true,
+          },
+        ],
       });
 
       const result = await service.process({
@@ -283,11 +272,7 @@ describe('BranchSuggestionService', () => {
       const mapId = new Types.ObjectId().toString();
       const emitFn = jest.fn();
       service.addConnection(mapId, 'topic-0', 'conn-1', emitFn);
-      fetchMock.mockResolvedValue({
-        ok: false,
-        status: 500,
-        text: jest.fn().mockResolvedValue('boom'),
-      });
+      mockSend.mockRejectedValue(new Error('provider down'));
 
       await expect(
         service.process({
@@ -304,12 +289,12 @@ describe('BranchSuggestionService', () => {
           },
           id: 'job-1',
         } as any),
-      ).rejects.toThrow('OpenRouter API error 500: boom');
+      ).rejects.toThrow('provider down');
 
       expect(emitFn.mock.calls.at(-1)?.[0]).toEqual({
         data: {
           code: 'SUGGESTION_ERROR',
-          message: 'OpenRouter API error 500: boom',
+          message: 'provider down',
           retriable: true,
         },
         type: 'error',
@@ -359,26 +344,97 @@ describe('BranchSuggestionService', () => {
         (service as any).validateEffectiveModel('allowed-model', false),
       ).toBe('allowed-model');
     });
+  });
 
-    it('resolves BYOK and server API keys through the configured sources', async () => {
-      mockUserModel.lean.mockResolvedValue({
-        openRouterApiKeyEncrypted: 'encrypted-key',
-      });
+  describe('local mode (inline)', () => {
+    const originalLocal = process.env.MUKTI_LOCAL;
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 60));
 
-      await expect(
-        (service as any).resolveApiKey(new Types.ObjectId().toString(), true),
-      ).resolves.toBe('decrypted-key');
-      await expect(
-        (service as any).resolveApiKey(new Types.ObjectId().toString(), false),
-      ).resolves.toBe('server-openrouter-key');
+    beforeEach(() => {
+      mockThoughtNodeModel.findOne.mockReturnValue(
+        leanQuery({ label: 'Main topic', type: 'topic' }),
+      );
+      mockThoughtNodeModel.find.mockReturnValue(leanQuery([]));
     });
 
-    it('throws when neither BYOK nor server API keys are available', async () => {
-      mockConfigService.get.mockReturnValueOnce('');
+    afterEach(() => {
+      if (originalLocal === undefined) {
+        delete process.env.MUKTI_LOCAL;
+      } else {
+        process.env.MUKTI_LOCAL = originalLocal;
+      }
+    });
 
-      await expect(
-        (service as any).resolveApiKey(new Types.ObjectId().toString(), false),
-      ).rejects.toThrow('OPENROUTER_API_KEY not configured');
+    const enqueue = (mapId: string) =>
+      service.enqueueSuggestion(
+        new Types.ObjectId(),
+        mapId,
+        'topic-0',
+        'free',
+        'allowed-model',
+        false,
+      );
+
+    it('does not enqueue to BullMQ and returns a local job id', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      // Fail fast so the deferred inline run drains without waiting for a stream.
+      mockSend.mockRejectedValue(new Error('drain'));
+
+      const mapId = new Types.ObjectId().toString();
+      const emitFn = jest.fn();
+      const result = await enqueue(mapId);
+      service.addConnection(mapId, 'topic-0', 'conn-1', emitFn);
+      await flush();
+
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(result.position).toBe(1);
+      expect(result.jobId).toMatch(/^local-/);
+    });
+
+    it('processes inline emitting processing → suggestion×N → complete', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      mockSend.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify([
+                { label: 'What assumptions?', suggestedType: 'question' },
+                { label: 'What evidence?', suggestedType: 'question' },
+              ]),
+            },
+          },
+        ],
+      });
+
+      const mapId = new Types.ObjectId().toString();
+      const emitFn = jest.fn();
+      const result = await enqueue(mapId);
+      // Client subscribes on the {mapId}:{parentNodeId} stream before processing.
+      service.addConnection(mapId, 'topic-0', 'conn-1', emitFn);
+      await flush();
+
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      const types = emitFn.mock.calls.map(([event]) => event.type);
+      expect(types[0]).toBe('processing');
+      expect(types).toContain('suggestion');
+      expect(types.at(-1)).toBe('complete');
+      expect(types).not.toContain('error');
+      expect(result.jobId).toMatch(/^local-/);
+    });
+
+    it('emits error and no complete when the provider fails', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      mockSend.mockRejectedValue(new Error('provider down'));
+
+      const mapId = new Types.ObjectId().toString();
+      const emitFn = jest.fn();
+      await enqueue(mapId);
+      service.addConnection(mapId, 'topic-0', 'conn-1', emitFn);
+      await flush();
+
+      const types = emitFn.mock.calls.map(([event]) => event.type);
+      expect(types).toContain('error');
+      expect(types).not.toContain('complete');
     });
   });
 });

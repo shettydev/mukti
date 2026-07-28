@@ -7,8 +7,10 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
+import { Types } from 'mongoose';
 import { Observable } from 'rxjs';
 
+import { isLocalMode, LOCAL_USER, LOCAL_USER_ID } from '../config/local-mode';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /** Shape of the info object provided by passport-jwt on authentication failure. */
@@ -82,6 +84,25 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     if (isPublic) {
       this.logger.debug('Public route accessed, skipping authentication');
+      return true;
+    }
+
+    // Local mode: authorize the fixed seeded user without a token, bypassing
+    // JWT and email-verification. Strictly gated on MUKTI_LOCAL.
+    if (isLocalMode()) {
+      const request = context.switchToHttp().getRequest<
+        Request & {
+          user?: unknown;
+        }
+      >();
+      request.user = {
+        _id: new Types.ObjectId(LOCAL_USER_ID),
+        email: LOCAL_USER.email,
+        emailVerified: true,
+        firstName: LOCAL_USER.firstName,
+        lastName: LOCAL_USER.lastName,
+        role: 'user',
+      };
       return true;
     }
 

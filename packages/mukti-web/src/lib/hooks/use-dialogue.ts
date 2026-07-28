@@ -32,7 +32,7 @@ import type {
 } from '@/types/dialogue.types';
 
 import { dialogueApi } from '@/lib/api/dialogue';
-import { config } from '@/lib/config';
+import { config, isLocalMode } from '@/lib/config';
 import { dialogueKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -116,7 +116,7 @@ export function useDialogueStream(
       reconnectTimeoutRef.current = null;
     }
 
-    if (!enabled || !sessionId || !nodeId || !accessToken) {
+    if (!enabled || !sessionId || !nodeId || (!accessToken && !isLocalMode())) {
       // Cleanup existing connection
       if (cleanupRef.current) {
         cleanupRef.current();
@@ -282,7 +282,7 @@ export function useDialogueStream(
      * Establish connection
      */
     function connect() {
-      if (isUnmountedRef.current || !accessToken) {
+      if (isUnmountedRef.current || (!accessToken && !isLocalMode())) {
         return;
       }
 
@@ -295,7 +295,7 @@ export function useDialogueStream(
       cleanupRef.current = dialogueApi.subscribeToStream(
         sessionIdRef.current,
         nodeIdRef.current,
-        accessToken,
+        accessToken ?? '',
         handleEvent,
         handleError,
         handleOpen

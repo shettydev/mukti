@@ -33,22 +33,12 @@ describe('ThoughtMapDialogueQueueService', () => {
     create: jest.fn(),
   };
 
-  const mockUserModel = {
-    findById: jest.fn().mockReturnThis(),
-    lean: jest.fn(),
-    select: jest.fn().mockReturnThis(),
-  };
-
-  const mockConfigService = {
-    get: jest.fn().mockReturnValue('server-openrouter-key'),
+  const mockAiKeyResolver = {
+    resolve: jest.fn().mockResolvedValue('server-openrouter-key'),
   };
 
   const mockAiPolicyService = {
     getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
-  };
-
-  const mockAiSecretsService = {
-    decryptString: jest.fn().mockReturnValue('decrypted-key'),
   };
 
   const mockDialogueAIService = {
@@ -63,6 +53,7 @@ describe('ThoughtMapDialogueQueueService', () => {
 
   const mockDialogueStreamService = {
     emitToNodeDialogue: jest.fn(),
+    getNodeDialogueConnectionCount: jest.fn().mockReturnValue(1),
   };
 
   const mockKnowledgeGapDetector = {
@@ -85,10 +76,8 @@ describe('ThoughtMapDialogueQueueService', () => {
       mockDialogueMessageModel as any,
       mockThoughtNodeModel as any,
       mockUsageEventModel as any,
-      mockUserModel as any,
-      mockConfigService as any,
+      mockAiKeyResolver as any,
       mockAiPolicyService as any,
-      mockAiSecretsService as any,
       mockDialogueAIService as any,
       mockDialogueService as any,
       mockDialogueStreamService as any,
@@ -930,19 +919,6 @@ describe('ThoughtMapDialogueQueueService', () => {
       ).toBe('allowed-model');
     });
 
-    it('resolves BYOK and server API keys', async () => {
-      mockUserModel.lean.mockResolvedValue({
-        openRouterApiKeyEncrypted: 'encrypted-key',
-      });
-
-      await expect(
-        (service as any).resolveApiKey(new Types.ObjectId().toString(), true),
-      ).resolves.toBe('decrypted-key');
-      await expect(
-        (service as any).resolveApiKey(new Types.ObjectId().toString(), false),
-      ).resolves.toBe('server-openrouter-key');
-    });
-
     it('falls back to "Unknown topic" when the root node cannot be found', async () => {
       const mapId = validMapId();
       mockThoughtNodeModel.findOne.mockReturnValue(leanQuery(null));
@@ -961,6 +937,157 @@ describe('ThoughtMapDialogueQueueService', () => {
       await expect(
         (service as any).resolveMapTitle(mapId, 'node-1'),
       ).resolves.toBe('Root topic');
+    });
+  });
+
+  describe('local mode (inline)', () => {
+    const originalLocal = process.env.MUKTI_LOCAL;
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 60));
+
+    afterEach(() => {
+      if (originalLocal === undefined) {
+        delete process.env.MUKTI_LOCAL;
+      } else {
+        process.env.MUKTI_LOCAL = originalLocal;
+      }
+    });
+
+    const dialogue = {
+      _id: new Types.ObjectId(),
+      consecutiveFailures: 0,
+      consecutiveSuccesses: 0,
+      currentScaffoldLevel: ScaffoldLevel.PURE_SOCRATIC,
+      detectedConcepts: [],
+      lastMessageAt: null,
+      nodeId: 'thought-0',
+      nodeLabel: 'My thought',
+      nodeType: 'thought',
+    };
+
+    const enqueue = (mapId: string) =>
+      service.enqueueMapNodeRequest(
+        new Types.ObjectId(),
+        mapId,
+        'thought-0',
+        'thought',
+        'My thought',
+        1,
+        false,
+        0,
+        undefined,
+        'A user message',
+        'free',
+        'allowed-model',
+        false,
+      );
+
+    it('does not enqueue to BullMQ and returns a local job id', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      const result = await enqueue(validMapId());
+
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(result.position).toBe(1);
+      expect(result.jobId).toMatch(/^local-/);
+    });
+
+    it('processes inline with the map-scoped SSE sequence on success', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      // A live stream exists, so the bounded wait proceeds immediately.
+      mockDialogueStreamService.getNodeDialogueConnectionCount = jest
+        .fn()
+        .mockReturnValue(1);
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      mockDialogueService.addMessage
+        .mockResolvedValueOnce({
+          _id: new Types.ObjectId(),
+          createdAt: new Date(),
+          sequence: 1,
+        })
+        .mockResolvedValueOnce({
+          _id: new Types.ObjectId(),
+          createdAt: new Date(),
+          sequence: 2,
+        });
+      mockDialogueService.getMessages.mockResolvedValue({ messages: [] });
+      mockKnowledgeGapDetector.analyze.mockResolvedValue({
+        detectedConcepts: [],
+        gapScore: 0.1,
+        knowledgeProbability: 0.5,
+        missingPrerequisites: [],
+        recommendation: 'socratic',
+        rootGap: null,
+        scaffoldLevel: ScaffoldLevel.PURE_SOCRATIC,
+        signals: { behavioral: 0, linguistic: 0, temporal: 0 },
+      });
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+        {
+          completionTokens: 8,
+          content: 'What makes you believe that?',
+          cost: 0,
+          latencyMs: 5,
+          model: 'allowed-model',
+          promptTokens: 12,
+          totalTokens: 20,
+        },
+      );
+
+      await enqueue(validMapId());
+      await flush();
+
+      const types = mockDialogueStreamService.emitToNodeDialogue.mock.calls.map(
+        ([, , , event]) => event.type,
+      );
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(types).toContain('processing');
+      expect(types).toContain('message');
+      expect(types).toContain('complete');
+      expect(types).not.toContain('error');
+    });
+
+    it('emits error and no complete when the provider fails', async () => {
+      process.env.MUKTI_LOCAL = '1';
+      mockDialogueStreamService.getNodeDialogueConnectionCount = jest
+        .fn()
+        .mockReturnValue(1);
+      jest
+        .spyOn(service as any, 'getOrCreateMapDialogue')
+        .mockResolvedValue(dialogue);
+      jest
+        .spyOn(service as any, 'resolveMapTitle')
+        .mockResolvedValue('Map title');
+      mockDialogueService.addMessage.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        createdAt: new Date(),
+        sequence: 1,
+      });
+      mockDialogueService.getMessages.mockResolvedValue({ messages: [] });
+      mockKnowledgeGapDetector.analyze.mockResolvedValue({
+        detectedConcepts: [],
+        gapScore: 0.1,
+        knowledgeProbability: 0.5,
+        missingPrerequisites: [],
+        recommendation: 'socratic',
+        rootGap: null,
+        scaffoldLevel: ScaffoldLevel.PURE_SOCRATIC,
+        signals: { behavioral: 0, linguistic: 0, temporal: 0 },
+      });
+      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockRejectedValue(
+        new Error('provider down'),
+      );
+
+      await enqueue(validMapId());
+      await flush();
+
+      const types = mockDialogueStreamService.emitToNodeDialogue.mock.calls.map(
+        ([, , , event]) => event.type,
+      );
+      expect(types).toContain('error');
+      expect(types).not.toContain('complete');
     });
   });
 });

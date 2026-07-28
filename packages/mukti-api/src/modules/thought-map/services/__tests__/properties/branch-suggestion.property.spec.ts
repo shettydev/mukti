@@ -14,16 +14,11 @@ describe('BranchSuggestionService - Parser Invariants (Property-Based)', () => {
       { add: jest.fn(), getJob: jest.fn(), getWaiting: jest.fn() } as any,
       { find: jest.fn(), findOne: jest.fn() } as any,
       { create: jest.fn() } as any,
-      {
-        findById: jest.fn().mockReturnThis(),
-        lean: jest.fn(),
-        select: jest.fn().mockReturnThis(),
-      } as any,
-      { get: jest.fn() } as any,
+      { resolve: jest.fn() } as any,
       {
         getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
       } as any,
-      { decryptString: jest.fn() } as any,
+      { create: jest.fn() } as any,
     );
   });
 

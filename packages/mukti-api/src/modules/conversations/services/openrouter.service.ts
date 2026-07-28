@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import type { RecentMessage } from '../../../schemas/conversation.schema';
@@ -6,7 +6,10 @@ import type { TechniqueTemplate } from '../../../schemas/technique.schema';
 import type { QualityDirectives } from '../../dialogue-quality/interfaces/quality.interface';
 import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
 
-import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
+import {
+  AI_CHAT_CLIENT_FACTORY,
+  type AiChatClientFactory,
+} from '../../ai/types/ai-chat-client.interface';
 import { appendQualityGuardrails } from '../../dialogue/utils/prompt-builder';
 import { ScaffoldPromptAugmenter } from '../../scaffolding/services/scaffold-prompt-augmenter.service';
 
@@ -70,7 +73,8 @@ export class OpenRouterService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly openRouterClientFactory: OpenRouterClientFactory,
+    @Inject(AI_CHAT_CLIENT_FACTORY)
+    private readonly chatClientFactory: AiChatClientFactory,
     private readonly scaffoldPromptAugmenter: ScaffoldPromptAugmenter,
   ) {}
 
@@ -261,7 +265,7 @@ export class OpenRouterService {
         `Sending chat completion request to OpenRouter with model: ${model}`,
       );
 
-      const client = this.openRouterClientFactory.create(apiKey);
+      const client = this.chatClientFactory.create(apiKey);
 
       const response = await client.chat.send(
         {

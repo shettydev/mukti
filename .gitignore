@@ -23,3 +23,6 @@ out
 packages/mukti-web/public/demo/*.mp4
 
 openspec
+
+# Local runtime (MUKTI_LOCAL) embedded DB + state
+.mukti/

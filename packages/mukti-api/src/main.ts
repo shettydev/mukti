@@ -10,9 +10,13 @@ import * as csurf from 'csurf';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
+import { applyLocalModeEnvDefaults } from './common/config/local-mode';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
+  // Fill in ephemeral secrets/defaults before any module reads config.
+  applyLocalModeEnvDefaults();
+
   const app = await NestFactory.create(AppModule, {
     bodyParser: true, // Explicitly enable body parser
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],

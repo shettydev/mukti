@@ -1,12 +1,17 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
 import type { MisconceptionResult } from '../../dialogue-quality/interfaces/quality.interface';
 
+import { isLocalMode } from '../../../common/config/local-mode';
+import {
+  makeInlineJobId,
+  runJobInline,
+  waitForStreamConnection,
+} from '../../../common/queue/inline-runner';
 import {
   Conversation,
   ConversationDocument,
@@ -20,9 +25,8 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { User, UserDocument } from '../../../schemas/user.schema';
+import { AiKeyResolver } from '../../ai/services/ai-key-resolver.service';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
 import { DialogueQualityService } from '../../dialogue-quality/services/dialogue-quality.service';
 import { PostResponseMonitorService } from '../../dialogue-quality/services/post-response-monitor.service';
 import {
@@ -91,11 +95,8 @@ export class QueueService extends WorkerHost {
     private techniqueModel: Model<TechniqueDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
-    @InjectModel(User.name)
-    private userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
+    private readonly aiKeyResolver: AiKeyResolver,
     private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
     private readonly dialogueQualityService: DialogueQualityService,
     private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
     private readonly postResponseMonitor: PostResponseMonitorService,
@@ -155,21 +156,28 @@ export class QueueService extends WorkerHost {
       `Enqueueing request for user ${userIdString}, conversation ${conversationIdString}, tier: ${subscriptionTier}`,
     );
 
+    // Create job data
+    const jobData: ConversationRequestJobData = {
+      conversationId: conversationIdString,
+      message,
+      model,
+      subscriptionTier,
+      technique,
+      usedByok,
+      userId: userIdString,
+      ...(wrapUpRequested ? { wrapUpRequested } : {}),
+    };
+
+    // Local mode: process inline with no Redis/BullMQ, preserving the SSE
+    // contract via the shared process() path.
+    if (isLocalMode()) {
+      this.logger.log('Local mode: processing conversation request inline');
+      return this.processInline(jobData);
+    }
+
     try {
       // Determine priority based on subscription tier
       const priority = subscriptionTier === 'paid' ? 10 : 1;
-
-      // Create job data
-      const jobData: ConversationRequestJobData = {
-        conversationId: conversationIdString,
-        message,
-        model,
-        subscriptionTier,
-        technique,
-        usedByok,
-        userId: userIdString,
-        ...(wrapUpRequested ? { wrapUpRequested } : {}),
-      };
 
       // Add job to queue with priority
       const job = await this.conversationRequestsQueue.add(
@@ -469,7 +477,7 @@ export class QueueService extends WorkerHost {
 
       // 3. Resolve model and API key
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.resolveApiKey(userId, usedByok);
+      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
 
       // 4. RFC-0001 + RFC-0004: Detect knowledge gaps and assess quality in parallel.
       // Use recentMessages (which carry real timestamps) so temporal signals
@@ -798,33 +806,38 @@ export class QueueService extends WorkerHost {
     return error instanceof Error ? error.stack : undefined;
   }
 
-  private async resolveApiKey(
-    userId: string,
-    usedByok: boolean,
-  ): Promise<string> {
-    if (usedByok) {
-      const user = await this.userModel
-        .findById(userId)
-        .select('+openRouterApiKeyEncrypted')
-        .lean();
-
-      if (!user?.openRouterApiKeyEncrypted) {
-        throw new Error('OPENROUTER_KEY_MISSING');
-      }
-
-      return this.aiSecretsService.decryptString(
-        user.openRouterApiKeyEncrypted,
-      );
-    }
-
-    const serverKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-
-    return serverKey;
+  /**
+   * Processes a conversation request inline (local mode) instead of enqueuing to
+   * BullMQ. Runs the same {@link process} path — so the SSE event sequence
+   * (`processing → message → complete | error`) is identical — but deferred via
+   * setImmediate so the HTTP response returns before events are emitted onto the
+   * already-open conversation stream.
+   */
+  private processInline(jobData: ConversationRequestJobData): {
+    jobId: string;
+    position: number;
+  } {
+    return runJobInline({
+      jobData,
+      makeJobId: () => makeInlineJobId(jobData.conversationId),
+      process: (job) =>
+        this.process(
+          job as Job<ConversationRequestJobData, ConversationRequestJobResult>,
+        ),
+      // Wait for the client's SSE stream before running, so the first
+      // ('processing') event isn't dropped — emitToConversation has no buffer.
+      waitForConnection: () =>
+        waitForStreamConnection(
+          () =>
+            this.streamService.getConversationConnectionCount(
+              jobData.conversationId,
+            ) > 0,
+          {
+            label: `conversation ${jobData.conversationId}`,
+            logger: this.logger,
+          },
+        ),
+    });
   }
 
   /**

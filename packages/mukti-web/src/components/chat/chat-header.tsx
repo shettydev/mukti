@@ -2,11 +2,12 @@
 
 import { Archive, ArchiveRestore, Loader2, MoreHorizontal, PanelLeft, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import type { Conversation } from '@/types/conversation.types';
 
+import { ModelSelector } from '@/components/ai/model-selector';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,6 +20,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { conversationsApi } from '@/lib/api/conversations';
 import { useDeleteConversation } from '@/lib/hooks/use-conversations';
+import { useAiStore } from '@/lib/stores/ai-store';
 import { cn } from '@/lib/utils';
 
 interface ChatHeaderProps {
@@ -40,8 +42,23 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
 
   const { isPending: isDeleting, mutate: deleteConversation } = useDeleteConversation();
 
+  const {
+    activeModel,
+    hydrate: hydrateAi,
+    isHydrated: aiHydrated,
+    models,
+    setActiveModel,
+  } = useAiStore();
+
   const isNewChat = !conversation;
   const title = conversation?.title || 'New Chat';
+
+  // Hydrate the model list so the picker is populated on the entry screen.
+  useEffect(() => {
+    if (!aiHydrated) {
+      hydrateAi();
+    }
+  }, [aiHydrated, hydrateAi]);
 
   // Handle archive/unarchive
   const handleArchive = useCallback(async () => {
@@ -131,6 +148,19 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
 
           {/* Right side - Options */}
           <div className="flex items-center gap-1">
+            {/* Model picker on the new-chat entry screen (reachable in local
+                mode, where Settings tabs are hidden). */}
+            {isNewChat && (
+              <ModelSelector
+                className="h-8 w-auto min-w-[9rem] border-japandi-sand/60 bg-transparent text-xs"
+                disabled={models.length === 0}
+                models={models}
+                onChange={(modelId) => {
+                  setActiveModel(modelId);
+                }}
+                value={activeModel}
+              />
+            )}
             {!isNewChat && (
               <Popover onOpenChange={setPopoverOpen} open={popoverOpen}>
                 <PopoverTrigger asChild>

@@ -28,7 +28,7 @@ import {
   type ThoughtMapDialogueStreamEvent,
   type ThoughtMapSendMessageResponse,
 } from '@/lib/api/thought-map-dialogue';
-import { config } from '@/lib/config';
+import { config, isLocalMode } from '@/lib/config';
 import { thoughtMapDialogueKeys, thoughtMapKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useThoughtMapStore } from '@/lib/stores/thought-map-store';
@@ -302,7 +302,7 @@ export function useThoughtMapDialogueStream(
       reconnectTimeoutRef.current = null;
     }
 
-    if (!enabled || !mapId || !nodeId || !accessToken) {
+    if (!enabled || !mapId || !nodeId || (!accessToken && !isLocalMode())) {
       cleanupRef.current?.();
       cleanupRef.current = null;
       setState({ error: null, isConnected: false, isProcessing: false, processingStatus: null });
@@ -457,7 +457,7 @@ export function useThoughtMapDialogueStream(
     }
 
     function connect() {
-      if (isUnmountedRef.current || !accessToken) {
+      if (isUnmountedRef.current || (!accessToken && !isLocalMode())) {
         return;
       }
 
@@ -467,7 +467,7 @@ export function useThoughtMapDialogueStream(
       cleanupRef.current = thoughtMapDialogueApi.subscribeToStream(
         mapIdRef.current,
         nodeIdRef.current,
-        accessToken,
+        accessToken ?? '',
         handleEvent,
         handleError,
         handleOpen

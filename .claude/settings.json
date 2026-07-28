@@ -1,4 +1,9 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "enabledPlugins": {
     "oac@oac-marketplace": true
   }

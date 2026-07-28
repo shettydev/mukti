@@ -33,20 +33,26 @@ jest.mock('next/navigation', () => ({
   },
 }));
 
+// DOM mocks only apply under the jsdom environment. Node-environment tests
+// (e.g. middleware, which imports next/server) skip them.
+const hasDom = typeof window !== 'undefined';
+
 // Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  value: jest.fn().mockImplementation((query) => ({
-    addEventListener: jest.fn(),
-    addListener: jest.fn(), // deprecated
-    dispatchEvent: jest.fn(),
-    matches: false,
-    media: query,
-    onchange: null,
-    removeEventListener: jest.fn(),
-    removeListener: jest.fn(), // deprecated
-  })),
-  writable: true,
-});
+if (hasDom) {
+  Object.defineProperty(window, 'matchMedia', {
+    value: jest.fn().mockImplementation((query) => ({
+      addEventListener: jest.fn(),
+      addListener: jest.fn(), // deprecated
+      dispatchEvent: jest.fn(),
+      matches: false,
+      media: query,
+      onchange: null,
+      removeEventListener: jest.fn(),
+      removeListener: jest.fn(), // deprecated
+    })),
+    writable: true,
+  });
+}
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
@@ -60,7 +66,9 @@ global.IntersectionObserver = class IntersectionObserver {
 };
 
 // Mock scrollIntoView
-Element.prototype.scrollIntoView = jest.fn();
+if (hasDom) {
+  Element.prototype.scrollIntoView = jest.fn();
+}
 
 // Mock ResizeObserver used by some UI components
 if (!global.ResizeObserver) {
@@ -90,9 +98,11 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
+if (hasDom) {
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+  });
+}
 
 // Mock react-markdown and remark-gfm to avoid ESM issues
 jest.mock('react-markdown', () => ({

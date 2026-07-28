@@ -1,6 +1,6 @@
 'use client';
 
-import { Brain, Menu, Network, PanelLeft, Plus, X } from 'lucide-react';
+import { Brain, Compass, Menu, Network, PanelLeft, Plus, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,7 +10,9 @@ import { useEffect, useState } from 'react';
 import { ConversationList } from '@/components/sidebar/conversation-list';
 import { UserProfilePopover } from '@/components/sidebar/user-profile-popover';
 import { Button } from '@/components/ui/button';
+import { isLocalMode } from '@/lib/config';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useOnboardingStore } from '@/lib/stores/onboarding-store';
 import { cn } from '@/lib/utils';
 
 /**
@@ -80,6 +82,7 @@ export function Sidebar({
   const pathname = usePathname();
   const { resolvedTheme } = useTheme();
   const { logout, user } = useAuth();
+  const openOnboarding = useOnboardingStore((s) => s.open);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -235,6 +238,21 @@ export function Sidebar({
                 We are still in active development.
               </p>
             </div>
+          )}
+          {/* Local mode: re-open the first-run welcome tour on demand */}
+          {isLocalMode() && (
+            <Button
+              className={cn(
+                'mb-2 h-auto w-full justify-start gap-3 rounded-xl p-2 text-japandi-stone/75 transition-all hover:bg-japandi-cream/70 hover:text-japandi-stone',
+                collapsed && 'justify-center px-2'
+              )}
+              onClick={openOnboarding}
+              title={collapsed ? 'Take the tour' : undefined}
+              variant="ghost"
+            >
+              <Compass aria-hidden="true" className="h-4 w-4 shrink-0" />
+              {!collapsed && <span className="whitespace-nowrap text-sm">Take the tour</span>}
+            </Button>
           )}
           <UserProfilePopover collapsed={collapsed} onLogout={logout} user={user!} />
         </div>
