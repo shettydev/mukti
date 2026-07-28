@@ -94,6 +94,22 @@ const mockConversation: Conversation = {
   userId: 'user-123',
 };
 
+/**
+ * Mirrors the shape of the real ai-store so components that read model state
+ * (e.g. ChatHeader's model picker) don't blow up on missing fields.
+ */
+function createAiStoreState(overrides: Record<string, unknown> = {}) {
+  return {
+    activeModel: 'anthropic/claude-sonnet-4-6',
+    hasOpenRouterKey: false,
+    hydrate: jest.fn(),
+    isHydrated: true,
+    models: [],
+    setActiveModel: jest.fn(),
+    ...overrides,
+  };
+}
+
 function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -153,10 +169,7 @@ describe('ChatInterface', () => {
       isConnected: false,
     });
 
-    useAiStore.mockReturnValue({
-      hasOpenRouterKey: false,
-      isHydrated: true,
-    });
+    useAiStore.mockReturnValue(createAiStoreState());
   });
 
   describe('Empty State', () => {
@@ -514,10 +527,7 @@ describe('ChatInterface', () => {
         mutate: jest.fn(),
       });
 
-      useAiStore.mockReturnValue({
-        hasOpenRouterKey: false,
-        isHydrated: true,
-      });
+      useAiStore.mockReturnValue(createAiStoreState({ hasOpenRouterKey: false }));
 
       renderWithProviders(
         <ChatInterface
@@ -586,10 +596,7 @@ describe('ChatInterface', () => {
         reset: jest.fn(),
       });
 
-      useAiStore.mockReturnValue({
-        hasOpenRouterKey: true,
-        isHydrated: true,
-      });
+      useAiStore.mockReturnValue(createAiStoreState({ hasOpenRouterKey: true }));
 
       renderWithProviders(
         <ChatInterface
