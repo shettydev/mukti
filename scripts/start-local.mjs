@@ -42,11 +42,34 @@ function abort(lines) {
   process.exit(1);
 }
 
-if (!existsSync(join(REPO_ROOT, 'node_modules'))) {
+/**
+ * Walks up from the script looking for an installed package, the way Node's own
+ * resolver does — so a hoisted, nested or non-root `node_modules` all count.
+ * Checked by directory rather than `require.resolve` because these packages are
+ * ESM-only, which makes a CommonJS resolve throw even when they are installed.
+ */
+function isInstalled(packageName) {
+  const segments = packageName.split('/');
+  for (let dir = SCRIPT_DIR; ; ) {
+    if (existsSync(join(dir, 'node_modules', ...segments))) return true;
+    const parent = dirname(dir);
+    if (parent === dir) return false;
+    dir = parent;
+  }
+}
+
+// Exactly what the launcher and its banner import — a bare `node_modules`
+// existence check reports false alarms on partial or relocated installs.
+const missing = ['@clack/prompts', 'picocolors'].filter((name) => !isInstalled(name));
+
+if (missing.length > 0) {
   abort([
-    'Dependencies are not installed.',
+    `Dependencies are not installed (missing: ${missing.join(', ')}).`,
     '',
-    '  Run `bun install` (or `npm install`) first, then try again.',
+    '  Run `npm install` (or `bun install`) in the repo root, then try again.',
+    '',
+    `  Looked for them under ${join(REPO_ROOT, 'node_modules')} and every parent.`,
+    '  If the install itself is failing, that error is the one to fix first.',
   ]);
 }
 
