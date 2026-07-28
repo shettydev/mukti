@@ -171,7 +171,13 @@ function frame(head: number): string[] {
 
 // ── Composition ────────────────────────────────────────────────────────────
 
-const TAGLINE = 'मुक्ति  ·  more questions than answers';
+/**
+ * Romanised on purpose. मुक्ति is two grapheme clusters, and the second (क्ति)
+ * needs a क्त conjunct ligature plus i-matra reordering — shaping that terminals
+ * without a full Indic text engine silently drop, leaving a bare "मु". The
+ * transliteration carries the same word everywhere.
+ */
+const TAGLINE = 'मुukti  ·  more questions than answers';
 
 export interface BannerOptions {
   /** Where the per-service logs were written, relative to the repo root. */
