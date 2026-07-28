@@ -12,8 +12,8 @@ import { Conversation } from '../../../../schemas/conversation.schema';
 import { Technique } from '../../../../schemas/technique.schema';
 import { UsageEvent } from '../../../../schemas/usage-event.schema';
 import { User } from '../../../../schemas/user.schema';
+import { AiKeyResolver } from '../../../ai/services/ai-key-resolver.service';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
 import { DialogueQualityService } from '../../../dialogue-quality/services/dialogue-quality.service';
 import { PostResponseMonitorService } from '../../../dialogue-quality/services/post-response-monitor.service';
 import { KnowledgeGapDetectorService } from '../../../scaffolding/services/knowledge-gap-detector.service';
@@ -133,8 +133,8 @@ describe('QueueService', () => {
       isClaudeCodeProvider: jest.fn(() => false),
     };
 
-    const mockAiSecretsService = {
-      decryptString: jest.fn(),
+    const mockAiKeyResolver = {
+      resolve: jest.fn().mockResolvedValue('test-api-key'),
     };
 
     // Create mock services
@@ -189,8 +189,8 @@ describe('QueueService', () => {
           useValue: mockAiPolicyService,
         },
         {
-          provide: AiSecretsService,
-          useValue: mockAiSecretsService,
+          provide: AiKeyResolver,
+          useValue: mockAiKeyResolver,
         },
         {
           provide: KnowledgeGapDetectorService,
@@ -407,6 +407,8 @@ describe('QueueService', () => {
 
     it('processes inline without enqueuing and routes through process()', async () => {
       process.env.MUKTI_LOCAL = '1';
+      // A live stream exists, so the bounded wait proceeds immediately.
+      streamService.getConversationConnectionCount.mockReturnValue(1);
       const processSpy = jest
         .spyOn(service, 'process')
         .mockResolvedValue({} as never);
@@ -437,6 +439,8 @@ describe('QueueService', () => {
 
     it('swallows inline processing failures (no unhandled rejection)', async () => {
       process.env.MUKTI_LOCAL = '1';
+      // A live stream exists, so the bounded wait proceeds immediately.
+      streamService.getConversationConnectionCount.mockReturnValue(1);
       const processSpy = jest
         .spyOn(service, 'process')
         .mockRejectedValue(new Error('AI down'));

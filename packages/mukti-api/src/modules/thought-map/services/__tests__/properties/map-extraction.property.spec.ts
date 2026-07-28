@@ -16,16 +16,11 @@ describe('MapExtractionService - Parser Invariants (Property-Based)', () => {
       { create: jest.fn() } as any,
       { findOne: jest.fn() } as any,
       { create: jest.fn() } as any,
-      {
-        findById: jest.fn().mockReturnThis(),
-        lean: jest.fn(),
-        select: jest.fn().mockReturnThis(),
-      } as any,
-      { get: jest.fn() } as any,
+      { resolve: jest.fn() } as any,
       {
         getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
       } as any,
-      { decryptString: jest.fn() } as any,
+      { create: jest.fn() } as any,
     );
   });
 

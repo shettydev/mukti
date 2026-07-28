@@ -5,13 +5,14 @@ jest.mock('@openrouter/sdk', () => ({
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
-import { OpenRouterClientFactory } from '../../../ai/services/openrouter-client.factory';
+import { AiPolicyService } from '../../../ai/services/ai-policy.service';
+import { AI_CHAT_CLIENT_FACTORY } from '../../../ai/types/ai-chat-client.interface';
 import { MisconceptionDetectorService } from '../misconception-detector.service';
 
 describe('MisconceptionDetectorService', () => {
   let service: MisconceptionDetectorService;
   let configService: ConfigService;
-  let clientFactory: OpenRouterClientFactory;
+  let clientFactory: { create: jest.Mock };
   let redis: { get: jest.Mock; set: jest.Mock };
 
   beforeEach(async () => {
@@ -35,9 +36,16 @@ describe('MisconceptionDetectorService', () => {
           },
         },
         {
-          provide: OpenRouterClientFactory,
+          provide: AI_CHAT_CLIENT_FACTORY,
           useValue: {
             create: jest.fn(),
+          },
+        },
+        {
+          provide: AiPolicyService,
+          useValue: {
+            getDefaultModel: jest.fn().mockReturnValue('sonnet'),
+            isClaudeCodeProvider: jest.fn().mockReturnValue(false),
           },
         },
         {
@@ -49,7 +57,7 @@ describe('MisconceptionDetectorService', () => {
 
     service = module.get(MisconceptionDetectorService);
     configService = module.get(ConfigService);
-    clientFactory = module.get(OpenRouterClientFactory);
+    clientFactory = module.get(AI_CHAT_CLIENT_FACTORY);
   });
 
   it('should return no misconception when disabled', async () => {
@@ -100,7 +108,7 @@ describe('MisconceptionDetectorService', () => {
       ],
     });
 
-    (clientFactory.create as jest.Mock).mockReturnValue({
+    clientFactory.create.mockReturnValue({
       chat: { send: mockSend },
     });
 
@@ -133,7 +141,7 @@ describe('MisconceptionDetectorService', () => {
       .mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 1000)),
       );
-    (clientFactory.create as jest.Mock).mockReturnValue({
+    clientFactory.create.mockReturnValue({
       chat: { send: mockSend },
     });
 
@@ -150,7 +158,7 @@ describe('MisconceptionDetectorService', () => {
     redis.get.mockResolvedValue(null);
 
     const mockSend = jest.fn().mockRejectedValue(new Error('API error'));
-    (clientFactory.create as jest.Mock).mockReturnValue({
+    clientFactory.create.mockReturnValue({
       chat: { send: mockSend },
     });
 
