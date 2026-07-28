@@ -85,7 +85,8 @@ key** — the AI runs through your own `claude` CLI.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) and [Git](https://git-scm.com/)
+- [Git](https://git-scm.com/), and either [Bun](https://bun.sh/) (recommended — it is what
+  the rest of the workspace uses) or Node 22.18+
 - The `claude` CLI, authenticated (`claude login`)
 
 ### Run it
@@ -97,6 +98,10 @@ bun install
 bun run start:local
 ```
 
+Without Bun, the same two steps are `npm install` and `npm run start:local` — the launcher
+runs on Node's built-in TypeScript support. Every other workspace script assumes Bun, so
+install it before doing more than trying Mukti out.
+
 That's it. The launcher runs preflight checks (Claude CLI present + authenticated, ports
 free), then boots the API and web app and opens [http://localhost:3001](http://localhost:3001).
 No login is required — local mode signs you in as a seeded local user.
@@ -107,7 +112,7 @@ across restarts), processes conversations inline (no Redis), and generates ephem
 secrets on boot.
 
 > **First run** downloads a one-time embedded MongoDB binary (via `mongodb-memory-server`),
-> so the first `bun run start:local` takes a little longer.
+> so the first `run start:local` takes a little longer.
 >
 > Pick your Claude model in **Settings** (Sonnet / Opus / Haiku); the selection is passed
 > to `claude -p --model`.

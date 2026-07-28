@@ -62,7 +62,8 @@ if (stripping === 'none') {
       ? '    powershell -c "irm bun.sh/install.ps1 | iex"'
       : '    curl -fsSL https://bun.sh/install | bash',
     '',
-    '  Or upgrade Node to 22.18 or newer, then re-run `npm run start:local`.',
+    '  Or upgrade Node (22.18+ runs TypeScript without a flag), then re-run',
+    '  `npm run start:local`.',
   ]);
 }
 
@@ -76,7 +77,10 @@ const [command, args] =
           // workspace package.json having no "type" (it is CommonJS for
           // commitlint.config.js).
           '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
-          ...(stripping === 'flag' ? ['--experimental-strip-types'] : []),
+          // Pre-22.18: type stripping is behind a flag, and announces itself.
+          ...(stripping === 'flag'
+            ? ['--experimental-strip-types', '--disable-warning=ExperimentalWarning']
+            : []),
           LAUNCHER,
         ],
       ];
