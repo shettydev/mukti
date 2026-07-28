@@ -38,7 +38,7 @@
   "scripts": {
     "prepare": "husky",
     "dev": "bun nx run-many --target=dev --all --parallel=2",
-    "start:local": "bun scripts/start-local.ts",
+    "start:local": "node scripts/start-local.mjs",
     "build": "bun nx run-many --target=build --all",
     "lint": "bun nx run-many --target=lint --all",
     "type-check": "bun nx run-many --target=type-check --all",

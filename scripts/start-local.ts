@@ -11,7 +11,11 @@
  * critical path. Their output is piped, line-buffered, prefixed per service and
  * teed to `.mukti/logs/` so the terminal stays readable and scrollback survives.
  *
- * Usage: bun run start:local
+ * Entered through `scripts/start-local.mjs`, which picks the runtime (Bun, or
+ * Node's own type stripping) — hence the explicit `.ts` extension on the local
+ * import below, which Node's ESM resolver requires.
+ *
+ * Usage: bun run start:local (or npm run start:local)
  */
 import { intro, log, outro, spinner, type SpinnerResult } from '@clack/prompts';
 import { type ChildProcess, spawn, spawnSync } from 'child_process';
@@ -20,7 +24,7 @@ import { createConnection } from 'net';
 import { join, relative, resolve } from 'path';
 import pc from 'picocolors';
 
-import { renderReadyBanner, SHOW_CURSOR } from './lib/mukti-banner';
+import { renderReadyBanner, SHOW_CURSOR } from './lib/mukti-banner.ts';
 
 const API_PORT = 3000;
 const WEB_PORT = 3001;
@@ -125,9 +129,14 @@ function openBrowser(url: string): void {
   }).unref();
 }
 
+/** True when this launcher is itself running under Bun rather than Node. */
+const UNDER_BUN = 'bun' in process.versions;
+
 /**
  * Resolves a workspace binary without assuming a shell or a particular hoisting
- * layout. Falls back to `bun x <bin>`, which resolves the local install itself.
+ * layout. Falls back to the runtime's own package runner (`bun x` / `npx`),
+ * which resolves the local install itself — `bun x` is only reachable when Bun
+ * is what's running us, so the Node path must not assume Bun exists.
  */
 function resolveBin(bin: string): { args: string[]; command: string; shell: boolean } {
   const isWindows = process.platform === 'win32';
@@ -138,7 +147,10 @@ function resolveBin(bin: string): { args: string[]; command: string; shell: bool
     const needsShell = isWindows && candidate.endsWith('.cmd');
     return { args: [], command: needsShell ? `"${full}"` : full, shell: needsShell };
   }
-  return { args: ['x', bin], command: 'bun', shell: false };
+  return UNDER_BUN
+    ? { args: ['x', bin], command: 'bun', shell: false }
+    : // `npx` is a `.cmd` shim on Windows, so it needs a shell there.
+      { args: ['--no-install', bin], command: 'npx', shell: isWindows };
 }
 
 // ── Log rendering ──────────────────────────────────────────────────────────
