@@ -1,12 +1,17 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
 import type { ThoughtNodeType } from '../../../schemas/thought-node.schema';
 
+import { isLocalMode } from '../../../common/config/local-mode';
+import {
+  makeInlineJobId,
+  runJobInline,
+  waitForStreamConnection,
+} from '../../../common/queue/inline-runner';
 import {
   ThoughtNode,
   ThoughtNodeDocument,
@@ -15,9 +20,12 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { User, UserDocument } from '../../../schemas/user.schema';
+import { AiKeyResolver } from '../../ai/services/ai-key-resolver.service';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import {
+  AI_CHAT_CLIENT_FACTORY,
+  type AiChatClientFactory,
+} from '../../ai/types/ai-chat-client.interface';
 
 // ============================================================================
 // Constants
@@ -145,11 +153,10 @@ export class BranchSuggestionService extends WorkerHost {
     private readonly thoughtNodeModel: Model<ThoughtNodeDocument>,
     @InjectModel(UsageEvent.name)
     private readonly usageEventModel: Model<UsageEventDocument>,
-    @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
+    private readonly aiKeyResolver: AiKeyResolver,
     private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
+    @Inject(AI_CHAT_CLIENT_FACTORY)
+    private readonly chatClientFactory: AiChatClientFactory,
   ) {
     super();
   }
@@ -249,6 +256,13 @@ export class BranchSuggestionService extends WorkerHost {
       userId: userIdString,
     };
 
+    // Local mode: process inline with no Redis/BullMQ, preserving the SSE
+    // contract via the shared process() path.
+    if (isLocalMode()) {
+      this.logger.log('Local mode: processing branch suggestion inline');
+      return this.processInline(jobData);
+    }
+
     const job = await this.suggestionQueue.add(
       'process-branch-suggestion',
       jobData,
@@ -333,7 +347,7 @@ export class BranchSuggestionService extends WorkerHost {
         type: 'processing',
       });
 
-      const apiKey = await this.resolveApiKey(userId, usedByok);
+      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
 
       const suggestions = await this.generateSuggestions(
@@ -488,6 +502,37 @@ export class BranchSuggestionService extends WorkerHost {
     }
   }
 
+  /** Reads the assistant text from a provider-agnostic `{ choices }` payload. */
+  private extractContent(response: unknown): string {
+    if (
+      typeof response === 'object' &&
+      response !== null &&
+      'choices' in response
+    ) {
+      const choices = (response as { choices?: unknown[] }).choices;
+      if (Array.isArray(choices) && choices.length > 0) {
+        const content = (choices[0] as { message?: { content?: unknown } })
+          ?.message?.content;
+        if (typeof content === 'string') {
+          return content;
+        }
+        if (Array.isArray(content)) {
+          return content
+            .map((item) =>
+              typeof item === 'string'
+                ? item
+                : typeof (item as { text?: unknown })?.text === 'string'
+                  ? (item as { text: string }).text
+                  : '',
+            )
+            .filter((text) => text.length > 0)
+            .join(' ');
+        }
+      }
+    }
+    return '';
+  }
+
   private fallbackSuggestions(parentNodeId: string): BranchSuggestion[] {
     return [
       {
@@ -522,37 +567,28 @@ export class BranchSuggestionService extends WorkerHost {
       existingLabels,
     );
 
-    const response = await fetch(
-      'https://openrouter.ai/api/v1/chat/completions',
+    // Route through the provider seam so the claude-code provider (local mode)
+    // and OpenRouter (hosted) are both supported without a raw fetch.
+    const client = this.chatClientFactory.create(apiKey);
+    const response = await client.chat.send(
       {
-        body: JSON.stringify({
-          messages: [
-            { content: systemPrompt, role: 'system' },
-            { content: 'Generate branch suggestions now.', role: 'user' },
-          ],
-          model,
-          temperature: 0.8,
-        }),
+        messages: [
+          { content: systemPrompt, role: 'system' },
+          { content: 'Generate branch suggestions now.', role: 'user' },
+        ],
+        model,
+        stream: false,
+        temperature: 0.8,
+      },
+      {
         headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
           'HTTP-Referer': 'https://mukti.chat',
           'X-Title': 'Mukti Thought Map',
         },
-        method: 'POST',
       },
     );
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`OpenRouter API error ${response.status}: ${body}`);
-    }
-
-    const data = (await response.json()) as {
-      choices: { message: { content: string } }[];
-    };
-
-    const content = data.choices[0]?.message?.content ?? '[]';
+    const content = this.extractContent(response) || '[]';
     return this.parseJsonSuggestions(content, parentNodeId);
   }
 
@@ -604,29 +640,37 @@ export class BranchSuggestionService extends WorkerHost {
     }
   }
 
-  private async resolveApiKey(
-    userId: string,
-    usedByok: boolean,
-  ): Promise<string> {
-    if (usedByok) {
-      const user = await this.userModel
-        .findById(userId)
-        .select('+openRouterApiKeyEncrypted')
-        .lean();
-      if (!user?.openRouterApiKeyEncrypted) {
-        throw new Error('OPENROUTER_KEY_MISSING');
-      }
-      return this.aiSecretsService.decryptString(
-        user.openRouterApiKeyEncrypted,
-      );
-    }
-
-    const serverKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-    if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-    return serverKey;
+  /**
+   * Processes a branch-suggestion request inline (local mode) instead of
+   * enqueuing to BullMQ. Runs the same {@link process} path — so the suggestion
+   * SSE sequence (processing → suggestion×N → complete | error) is identical —
+   * deferred via setImmediate, after waiting (bounded) for the client's
+   * `{mapId}:{parentNodeId}`-keyed stream.
+   */
+  private processInline(jobData: BranchSuggestionJobData): {
+    jobId: string;
+    position: number;
+  } {
+    return runJobInline({
+      jobData,
+      makeJobId: () =>
+        makeInlineJobId(`${jobData.mapId}-${jobData.parentNodeId}`),
+      process: (job) =>
+        this.process(
+          job as Job<BranchSuggestionJobData, BranchSuggestionJobResult>,
+        ),
+      waitForConnection: () =>
+        waitForStreamConnection(
+          () =>
+            (this.connections.get(
+              this.streamKey(jobData.mapId, jobData.parentNodeId),
+            )?.length ?? 0) > 0,
+          {
+            label: `branch suggestion ${jobData.mapId}:${jobData.parentNodeId}`,
+            logger: this.logger,
+          },
+        ),
+    });
   }
 
   /**

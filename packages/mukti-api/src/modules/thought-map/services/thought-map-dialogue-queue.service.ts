@@ -1,12 +1,17 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
 
+import { isLocalMode } from '../../../common/config/local-mode';
+import {
+  makeInlineJobId,
+  runJobInline,
+  waitForStreamConnection,
+} from '../../../common/queue/inline-runner';
 import {
   DialogueMessage,
   DialogueMessageDocument,
@@ -23,9 +28,8 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { User, UserDocument } from '../../../schemas/user.schema';
+import { AiKeyResolver } from '../../ai/services/ai-key-resolver.service';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
 import { DialogueAIService } from '../../dialogue/services/dialogue-ai.service';
 import { DialogueStreamService } from '../../dialogue/services/dialogue-stream.service';
 import { DialogueService } from '../../dialogue/services/dialogue.service';
@@ -115,11 +119,8 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     private readonly thoughtNodeModel: Model<ThoughtNodeDocument>,
     @InjectModel(UsageEvent.name)
     private readonly usageEventModel: Model<UsageEventDocument>,
-    @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
+    private readonly aiKeyResolver: AiKeyResolver,
     private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
     private readonly dialogueAIService: DialogueAIService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
@@ -187,6 +188,13 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
       usedByok,
       userId: userIdString,
     };
+
+    // Local mode: process inline with no Redis/BullMQ, preserving the SSE
+    // contract via the shared process() path.
+    if (isLocalMode()) {
+      this.logger.log('Local mode: processing ThoughtMap dialogue inline');
+      return this.processInline(jobData);
+    }
 
     const job = await this.thoughtMapDialogueQueue.add(
       'process-thought-map-dialogue',
@@ -381,7 +389,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         .map((m) => m.content.trim().length);
 
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.resolveApiKey(userId, usedByok);
+      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
 
       // RFC-0001: Detect knowledge gaps
       const gapResult: GapDetectionResult =
@@ -674,7 +682,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
       );
 
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.resolveApiKey(userId, usedByok);
+      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
 
       // Select technique via RFC §5.1.1 algorithm
       const techniqueCtx: ThoughtMapNodeTechniqueContext = {
@@ -810,29 +818,37 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     }
   }
 
-  private async resolveApiKey(
-    userId: string,
-    usedByok: boolean,
-  ): Promise<string> {
-    if (usedByok) {
-      const user = await this.userModel
-        .findById(userId)
-        .select('+openRouterApiKeyEncrypted')
-        .lean();
-      if (!user?.openRouterApiKeyEncrypted) {
-        throw new Error('OPENROUTER_KEY_MISSING');
-      }
-      return this.aiSecretsService.decryptString(
-        user.openRouterApiKeyEncrypted,
-      );
-    }
-
-    const serverKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-    if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-    return serverKey;
+  /**
+   * Processes a Thought Map dialogue request inline (local mode) instead of
+   * enqueuing to BullMQ. Runs the same {@link process} path — so the SSE
+   * sequence is identical — deferred via setImmediate, after waiting (bounded)
+   * for the client's `map:{mapId}` / nodeId stream so the first event isn't
+   * dropped.
+   */
+  private processInline(jobData: ThoughtMapDialogueJobData): {
+    jobId: string;
+    position: number;
+  } {
+    return runJobInline({
+      jobData,
+      makeJobId: () => makeInlineJobId(`${jobData.mapId}-${jobData.nodeId}`),
+      process: (job) =>
+        this.process(
+          job as Job<ThoughtMapDialogueJobData, ThoughtMapDialogueJobResult>,
+        ),
+      waitForConnection: () =>
+        waitForStreamConnection(
+          () =>
+            this.dialogueStreamService.getNodeDialogueConnectionCount(
+              mapStreamKey(jobData.mapId),
+              jobData.nodeId,
+            ) > 0,
+          {
+            label: `thought map dialogue ${mapStreamKey(jobData.mapId)}:${jobData.nodeId}`,
+            logger: this.logger,
+          },
+        ),
+    });
   }
 
   /**

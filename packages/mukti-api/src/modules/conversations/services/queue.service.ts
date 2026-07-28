@@ -1,6 +1,5 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
@@ -8,6 +7,11 @@ import { Model, Types } from 'mongoose';
 import type { MisconceptionResult } from '../../dialogue-quality/interfaces/quality.interface';
 
 import { isLocalMode } from '../../../common/config/local-mode';
+import {
+  makeInlineJobId,
+  runJobInline,
+  waitForStreamConnection,
+} from '../../../common/queue/inline-runner';
 import {
   Conversation,
   ConversationDocument,
@@ -21,9 +25,8 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { User, UserDocument } from '../../../schemas/user.schema';
+import { AiKeyResolver } from '../../ai/services/ai-key-resolver.service';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
 import { DialogueQualityService } from '../../dialogue-quality/services/dialogue-quality.service';
 import { PostResponseMonitorService } from '../../dialogue-quality/services/post-response-monitor.service';
 import {
@@ -92,11 +95,8 @@ export class QueueService extends WorkerHost {
     private techniqueModel: Model<TechniqueDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
-    @InjectModel(User.name)
-    private userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
+    private readonly aiKeyResolver: AiKeyResolver,
     private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
     private readonly dialogueQualityService: DialogueQualityService,
     private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
     private readonly postResponseMonitor: PostResponseMonitorService,
@@ -477,7 +477,7 @@ export class QueueService extends WorkerHost {
 
       // 3. Resolve model and API key
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.resolveApiKey(userId, usedByok);
+      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
 
       // 4. RFC-0001 + RFC-0004: Detect knowledge gaps and assess quality in parallel.
       // Use recentMessages (which carry real timestamps) so temporal signals
@@ -817,87 +817,27 @@ export class QueueService extends WorkerHost {
     jobId: string;
     position: number;
   } {
-    const jobId = `local-${jobData.conversationId}-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-
-    const job = {
-      data: jobData,
-      id: jobId,
-    } as Job<ConversationRequestJobData, ConversationRequestJobResult>;
-
-    setImmediate(() => {
+    return runJobInline({
+      jobData,
+      makeJobId: () => makeInlineJobId(jobData.conversationId),
+      process: (job) =>
+        this.process(
+          job as Job<ConversationRequestJobData, ConversationRequestJobResult>,
+        ),
       // Wait for the client's SSE stream before running, so the first
       // ('processing') event isn't dropped — emitToConversation has no buffer.
-      void this.waitForStreamConnection(jobData.conversationId)
-        .then(() => this.process(job))
-        .catch(() => {
-          // process() already emitted an SSE 'error' event before rethrowing
-          // for BullMQ retry. There is no queue here, so swallow to avoid an
-          // unhandledRejection.
-        });
+      waitForConnection: () =>
+        waitForStreamConnection(
+          () =>
+            this.streamService.getConversationConnectionCount(
+              jobData.conversationId,
+            ) > 0,
+          {
+            label: `conversation ${jobData.conversationId}`,
+            logger: this.logger,
+          },
+        ),
     });
-
-    return { jobId, position: 1 };
-  }
-
-  /**
-   * Waits (bounded) for a client to open the conversation's SSE stream. The
-   * inline path emits onto a live stream only; without this the response's
-   * jobId would race the first emitted event. Proceeds anyway on timeout.
-   */
-  private async waitForStreamConnection(
-    conversationId: string,
-    timeoutMs = 10000,
-    intervalMs = 25,
-  ): Promise<void> {
-    const start = Date.now();
-    while (
-      this.streamService.getConversationConnectionCount(conversationId) === 0
-    ) {
-      if (Date.now() - start >= timeoutMs) {
-        this.logger.warn(
-          `No SSE connection for conversation ${conversationId} after ${timeoutMs}ms; processing anyway`,
-        );
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
-    }
-  }
-
-  private async resolveApiKey(
-    userId: string,
-    usedByok: boolean,
-  ): Promise<string> {
-    // Claude Code runs on the developer's own auth; no API key is threaded
-    // through and the client ignores it.
-    if (this.aiPolicyService.isClaudeCodeProvider()) {
-      return '';
-    }
-
-    if (usedByok) {
-      const user = await this.userModel
-        .findById(userId)
-        .select('+openRouterApiKeyEncrypted')
-        .lean();
-
-      if (!user?.openRouterApiKeyEncrypted) {
-        throw new Error('OPENROUTER_KEY_MISSING');
-      }
-
-      return this.aiSecretsService.decryptString(
-        user.openRouterApiKeyEncrypted,
-      );
-    }
-
-    const serverKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-
-    return serverKey;
   }
 
   /**

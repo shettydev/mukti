@@ -5,7 +5,11 @@ import Redis from 'ioredis';
 
 import type { MisconceptionResult } from '../interfaces/quality.interface';
 
-import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
+import { AiPolicyService } from '../../ai/services/ai-policy.service';
+import {
+  AI_CHAT_CLIENT_FACTORY,
+  type AiChatClientFactory,
+} from '../../ai/types/ai-chat-client.interface';
 
 const MISCONCEPTION_DETECTION_PROMPT = `You are a misconception detector for a Socratic learning platform.
 Analyze the user's message for factual misconceptions or fundamental misunderstandings about the concepts being discussed.
@@ -36,7 +40,9 @@ export class MisconceptionDetectorService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly openRouterClientFactory: OpenRouterClientFactory,
+    @Inject(AI_CHAT_CLIENT_FACTORY)
+    private readonly chatClientFactory: AiChatClientFactory,
+    private readonly aiPolicyService: AiPolicyService,
     @Inject('QUALITY_REDIS_CLIENT') private readonly redis: Redis,
   ) {}
 
@@ -78,13 +84,19 @@ export class MisconceptionDetectorService {
     }
 
     // LLM call with 500ms timeout — fail open
-    // Always use the platform key, never the user's BYOK key (RFC-0004 OQ-3)
-    const model = this.configService.get<string>(
-      'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
-      'google/gemini-3-flash-preview',
-    );
+    // Always use the platform key, never the user's BYOK key (RFC-0004 OQ-3).
+    // Under the claude-code provider there is no OpenRouter key — the CLI runs
+    // on the developer's own auth — so use the provider's default Claude model
+    // and an empty key (the client ignores it).
+    const isClaudeCode = this.aiPolicyService.isClaudeCodeProvider();
+    const model = isClaudeCode
+      ? this.aiPolicyService.getDefaultModel()
+      : this.configService.get<string>(
+          'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
+          'google/gemini-3-flash-preview',
+        );
     const platformKey = this.configService.get<string>('OPENROUTER_API_KEY');
-    if (!platformKey) {
+    if (!isClaudeCode && !platformKey) {
       this.logger.warn(
         'Platform OPENROUTER_API_KEY not configured, skipping misconception detection',
       );
@@ -99,7 +111,9 @@ export class MisconceptionDetectorService {
 
     let timer: ReturnType<typeof setTimeout>;
     try {
-      const client = this.openRouterClientFactory.create(platformKey);
+      const client = this.chatClientFactory.create(
+        isClaudeCode ? '' : (platformKey ?? ''),
+      );
       const prompt = MISCONCEPTION_DETECTION_PROMPT.replace(
         '{concepts}',
         concepts || 'general',

@@ -1,6 +1,5 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
@@ -8,6 +7,12 @@ import { Model, Types } from 'mongoose';
 import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
 
+import { isLocalMode } from '../../../common/config/local-mode';
+import {
+  makeInlineJobId,
+  runJobInline,
+  waitForStreamConnection,
+} from '../../../common/queue/inline-runner';
 import {
   CanvasSession,
   CanvasSessionDocument,
@@ -16,9 +21,8 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { User, UserDocument } from '../../../schemas/user.schema';
+import { AiKeyResolver } from '../../ai/services/ai-key-resolver.service';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
 import { DialogueQualityService } from '../../dialogue-quality/services/dialogue-quality.service';
 import { PostResponseMonitorService } from '../../dialogue-quality/services/post-response-monitor.service';
 import {
@@ -78,11 +82,8 @@ export class DialogueQueueService extends WorkerHost {
     private canvasSessionModel: Model<CanvasSessionDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
-    @InjectModel(User.name)
-    private userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
+    private readonly aiKeyResolver: AiKeyResolver,
     private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
     private readonly dialogueAIService: DialogueAIService,
     private readonly dialogueQualityService: DialogueQualityService,
     private readonly dialogueService: DialogueService,
@@ -116,21 +117,28 @@ export class DialogueQueueService extends WorkerHost {
       `Enqueueing dialogue request for user ${userIdString}, session ${sessionId}, node ${nodeId}`,
     );
 
+    const jobData: DialogueRequestJobData = {
+      message,
+      model,
+      nodeId,
+      nodeLabel,
+      nodeType,
+      problemStructure,
+      sessionId,
+      subscriptionTier,
+      usedByok,
+      userId: userIdString,
+    };
+
+    // Local mode: process inline with no Redis/BullMQ, preserving the SSE
+    // contract via the shared process() path.
+    if (isLocalMode()) {
+      this.logger.log('Local mode: processing dialogue request inline');
+      return this.processInline(jobData);
+    }
+
     try {
       const priority = subscriptionTier === 'paid' ? 10 : 1;
-
-      const jobData: DialogueRequestJobData = {
-        message,
-        model,
-        nodeId,
-        nodeLabel,
-        nodeType,
-        problemStructure,
-        sessionId,
-        subscriptionTier,
-        usedByok,
-        userId: userIdString,
-      };
 
       const job = await this.dialogueRequestsQueue.add(
         'process-dialogue-request',
@@ -307,7 +315,7 @@ export class DialogueQueueService extends WorkerHost {
         .map((m) => m.content.trim().length);
 
       const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.resolveApiKey(userId, usedByok);
+      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
 
       // RFC-0004: Pre-evaluate user message (sync) using stored concepts so we can
       // feed demonstratesUnderstanding to quality assessment without waiting for gap detection.
@@ -570,33 +578,37 @@ export class DialogueQueueService extends WorkerHost {
     return error instanceof Error ? error.stack : undefined;
   }
 
-  private async resolveApiKey(
-    userId: string,
-    usedByok: boolean,
-  ): Promise<string> {
-    if (usedByok) {
-      const user = await this.userModel
-        .findById(userId)
-        .select('+openRouterApiKeyEncrypted')
-        .lean();
-
-      if (!user?.openRouterApiKeyEncrypted) {
-        throw new Error('OPENROUTER_KEY_MISSING');
-      }
-
-      return this.aiSecretsService.decryptString(
-        user.openRouterApiKeyEncrypted,
-      );
-    }
-
-    const serverKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!serverKey) {
-      throw new Error('OPENROUTER_API_KEY not configured');
-    }
-
-    return serverKey;
+  /**
+   * Processes a dialogue request inline (local mode) instead of enqueuing to
+   * BullMQ. Runs the same {@link process} path — so the node-dialogue SSE
+   * sequence is identical — deferred via setImmediate, after waiting (bounded)
+   * for the client's `sessionId:nodeId` stream so the first event isn't dropped.
+   */
+  private processInline(jobData: DialogueRequestJobData): {
+    jobId: string;
+    position: number;
+  } {
+    return runJobInline({
+      jobData,
+      makeJobId: () =>
+        makeInlineJobId(`${jobData.sessionId}-${jobData.nodeId}`),
+      process: (job) =>
+        this.process(
+          job as Job<DialogueRequestJobData, DialogueRequestJobResult>,
+        ),
+      waitForConnection: () =>
+        waitForStreamConnection(
+          () =>
+            this.dialogueStreamService.getNodeDialogueConnectionCount(
+              jobData.sessionId,
+              jobData.nodeId,
+            ) > 0,
+          {
+            label: `node dialogue ${jobData.sessionId}:${jobData.nodeId}`,
+            logger: this.logger,
+          },
+        ),
+    });
   }
 
   private validateEffectiveModel(model: string, usedByok: boolean): string {

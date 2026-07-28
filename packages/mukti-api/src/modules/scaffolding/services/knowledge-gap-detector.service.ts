@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -8,7 +13,10 @@ import {
   KnowledgeState,
   KnowledgeStateDocument,
 } from '../../../schemas/knowledge-state.schema';
-import { OpenRouterClientFactory } from '../../ai/services/openrouter-client.factory';
+import {
+  AI_CHAT_CLIENT_FACTORY,
+  type AiChatClientFactory,
+} from '../../ai/types/ai-chat-client.interface';
 import { BKTAlgorithmService } from '../../knowledge-tracing/services/bkt-algorithm.service';
 import {
   BEHAVIORAL_THRESHOLDS,
@@ -60,7 +68,8 @@ export class KnowledgeGapDetectorService {
     private readonly conceptModel: Model<ConceptDocument>,
     private readonly bktService: BKTAlgorithmService,
     private readonly prerequisiteChecker: PrerequisiteCheckerService,
-    private readonly openRouterClientFactory: OpenRouterClientFactory,
+    @Inject(AI_CHAT_CLIENT_FACTORY)
+    private readonly chatClientFactory: AiChatClientFactory,
     private readonly configService: ConfigService,
   ) {}
 
@@ -666,7 +675,7 @@ export class KnowledgeGapDetectorService {
     model?: string,
   ): Promise<ExtractedConcept[]> {
     const effectiveModel = model ?? 'openai/gpt-4.1-mini';
-    const client = this.openRouterClientFactory.create(apiKey);
+    const client = this.chatClientFactory.create(apiKey);
 
     const response = await client.chat.send(
       {

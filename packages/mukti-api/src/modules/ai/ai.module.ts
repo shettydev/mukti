@@ -9,6 +9,7 @@ import {
 import { User, UserSchema } from '../../schemas/user.schema';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { AiController } from './ai.controller';
+import { AiKeyResolver } from './services/ai-key-resolver.service';
 import { AiPolicyService } from './services/ai-policy.service';
 import { AiSecretsService } from './services/ai-secrets.service';
 import { ClaudeCodeClientFactory } from './services/claude-code-client.factory';
@@ -43,6 +44,7 @@ const aiChatClientFactoryProvider = {
   controllers: [AiController],
   exports: [
     AI_CHAT_CLIENT_FACTORY,
+    AiKeyResolver,
     AiPolicyService,
     AiSecretsService,
     FreeQuotaService,
@@ -60,6 +62,7 @@ const aiChatClientFactoryProvider = {
   ],
   providers: [
     aiChatClientFactoryProvider,
+    AiKeyResolver,
     AiPolicyService,
     AiSecretsService,
     ClaudeCodeClientFactory,
