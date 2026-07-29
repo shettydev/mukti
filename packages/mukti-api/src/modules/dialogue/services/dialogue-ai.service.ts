@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 
 import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
 import type { DialogueMessage } from '../../../schemas/dialogue-message.schema';
-import type { NodeType } from '../../../schemas/node-dialogue.schema';
 import type { QualityDirectives } from '../../dialogue-quality/interfaces/quality.interface';
 import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
 
+import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
@@ -73,6 +73,7 @@ export class DialogueAIService {
     private readonly configService: ConfigService,
     @Inject(AI_CHAT_CLIENT_FACTORY)
     private readonly chatClientFactory: AiChatClientFactory,
+    private readonly aiPolicyService: AiPolicyService,
   ) {}
 
   /**
@@ -96,9 +97,7 @@ export class DialogueAIService {
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
-    if (!apiKey) {
-      return this.generateFallbackResponse(nodeContext.nodeType, startTime);
-    }
+    this.assertApiKeyPresent(apiKey);
 
     try {
       // Get recommended technique for this node type
@@ -168,8 +167,10 @@ export class DialogueAIService {
         this.getErrorStack(error),
       );
 
-      // Return fallback response on error
-      return this.generateFallbackResponse(nodeContext.nodeType, startTime);
+      // Surface the real failure so the caller emits an SSE `error` event.
+      // Returning canned text here would masquerade as a genuine Socratic
+      // answer and hide provider/auth misconfiguration from the user.
+      throw this.toSurfacedError(error);
     }
   }
 
@@ -198,9 +199,7 @@ export class DialogueAIService {
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
-    if (!apiKey) {
-      return this.generateFallbackResponse(nodeContext.nodeType, startTime);
-    }
+    this.assertApiKeyPresent(apiKey);
 
     try {
       // Get recommended technique for this node type
@@ -271,8 +270,7 @@ export class DialogueAIService {
         this.getErrorStack(error),
       );
 
-      // Return fallback response on error
-      return this.generateFallbackResponse(nodeContext.nodeType, startTime);
+      throw this.toSurfacedError(error);
     }
   }
 
@@ -300,9 +298,7 @@ export class DialogueAIService {
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
-    if (!apiKey) {
-      return this.generateFallbackResponse('seed', startTime);
-    }
+    this.assertApiKeyPresent(apiKey);
 
     try {
       // Optionally augment with scaffold instructions
@@ -362,8 +358,28 @@ export class DialogueAIService {
         `Failed to generate ThoughtMap AI response: ${this.getErrorMessage(error)}`,
         this.getErrorStack(error),
       );
-      return this.generateFallbackResponse('thought', startTime);
+      throw this.toSurfacedError(error);
     }
+  }
+
+  /**
+   * Rejects an empty API key only when the active provider actually needs one.
+   *
+   * @remarks
+   * The claude-code provider runs on the developer's own CLI auth and is handed
+   * an empty key by design ({@link AiKeyResolver}), so an empty key is a
+   * misconfiguration for key-based providers (OpenRouter) only. Treating it as
+   * "AI unavailable" for every provider is what previously routed local mode
+   * into canned placeholder questions instead of the CLI.
+   */
+  private assertApiKeyPresent(apiKey: string): void {
+    if (apiKey || this.aiPolicyService.isClaudeCodeProvider()) {
+      return;
+    }
+
+    throw new Error(
+      'No AI API key is configured. Add your OpenRouter key in Settings, set OPENROUTER_API_KEY on the server, or run locally with AI_PROVIDER=claude-code.',
+    );
   }
 
   /**
@@ -465,66 +481,6 @@ export class DialogueAIService {
     return '';
   }
 
-  /**
-   * Generates a fallback response when AI is unavailable.
-   */
-  private generateFallbackResponse(
-    nodeType: NodeType,
-    startTime: number,
-  ): DialogueAIResponse {
-    const responses: Record<NodeType, string[]> = {
-      insight: [
-        'How does this insight change your understanding of the original problem?',
-        'What new questions does this discovery raise?',
-        'How might you apply this insight going forward?',
-      ],
-      question: [
-        'What draws you to explore this question?',
-        'What would answering this question unlock for you?',
-        'What do you already know that might shed light on this?',
-      ],
-      root: [
-        "That's an interesting perspective. What evidence supports this assumption?",
-        'Have you considered what might happen if this assumption were incorrect?',
-        'What led you to believe this in the first place?',
-      ],
-      seed: [
-        'What do you think is the underlying cause of this problem?',
-        'How long has this been an issue, and what has changed?',
-        'What would success look like if this problem were solved?',
-      ],
-      soil: [
-        'Is this constraint truly fixed, or might there be flexibility?',
-        'What would change if this constraint were removed?',
-        'Have you explored ways to work within or around this limitation?',
-      ],
-      thought: [
-        'What assumptions are embedded in this thought?',
-        'How does this connect to what you already know?',
-        'What would change your view on this?',
-      ],
-      topic: [
-        'What aspect of this topic feels most unresolved?',
-        'Why does this topic matter to you right now?',
-        'What do you hope to discover by exploring this?',
-      ],
-    };
-
-    const nodeResponses = responses[nodeType] || responses.seed;
-    const content =
-      nodeResponses[Math.floor(Math.random() * nodeResponses.length)];
-
-    return {
-      completionTokens: 0,
-      content,
-      cost: 0,
-      latencyMs: Date.now() - startTime,
-      model: 'fallback',
-      promptTokens: 0,
-      totalTokens: 0,
-    };
-  }
-
   private getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       return error.message;
@@ -600,19 +556,38 @@ export class DialogueAIService {
 
     const cost = 0;
 
+    // An empty completion is a provider failure, not a Socratic answer —
+    // substituting canned text here would hide it behind a plausible question.
+    if (!content.trim()) {
+      throw new Error(
+        `The AI provider returned an empty response (model: ${model}).`,
+      );
+    }
+
     this.logger.log(
       `AI response generated: ${totalTokens} tokens, ${latencyMs}ms`,
     );
 
     return {
       completionTokens,
-      content:
-        content || this.generateFallbackResponse('seed', Date.now()).content,
+      content,
       cost,
       latencyMs,
       model,
       promptTokens,
       totalTokens,
     };
+  }
+
+  /**
+   * Normalizes a provider failure into an Error whose message is safe and
+   * useful to show the user. Provider-specific errors (e.g. `ClaudeCliError`,
+   * which explains a missing CLI or `claude login`) already carry actionable
+   * text, so their message is preserved.
+   */
+  private toSurfacedError(error: unknown): Error {
+    return error instanceof Error
+      ? error
+      : new Error(`AI generation failed: ${String(error)}`);
   }
 }

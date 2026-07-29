@@ -16,6 +16,19 @@ import type {
 const DISALLOWED_TOOLS =
   'Bash Edit Write Read Glob Grep WebFetch WebSearch NotebookEdit Task';
 
+/**
+ * Minimal stdin used when a request carries no non-system turns.
+ *
+ * @remarks
+ * `claude -p` fails with "Input must be provided either through stdin or as a
+ * prompt argument" on empty input. Some surfaces legitimately send only a
+ * system prompt — notably Thought Map initial-question generation, where the
+ * whole instruction lives in the system prompt and there is no user message
+ * yet. This kickoff gives the CLI the input it requires while deferring
+ * entirely to that system prompt.
+ */
+const EMPTY_CONVERSATION_KICKOFF = 'Begin.';
+
 /** Shape of the `claude -p --output-format json` result envelope we rely on. */
 interface ClaudeResultEnvelope {
   is_error?: boolean;
@@ -186,7 +199,11 @@ export class ClaudeCodeClientFactory implements AiChatClientFactory {
       args.push('--model', request.model);
     }
 
-    const stdout = await this.runClaude(args, conversation);
+    // The CLI rejects empty stdin, so a system-prompt-only request (e.g. the
+    // Thought Map opening question) still needs a minimal kickoff turn.
+    const input = conversation.trim() || EMPTY_CONVERSATION_KICKOFF;
+
+    const stdout = await this.runClaude(args, input);
     return this.parseEnvelope(stdout);
   }
 }

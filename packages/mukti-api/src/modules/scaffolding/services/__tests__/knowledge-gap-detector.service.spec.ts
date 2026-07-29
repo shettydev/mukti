@@ -57,6 +57,7 @@ describe('KnowledgeGapDetectorService', () => {
       mockPrerequisiteChecker as any,
       mockOpenRouterClientFactory as any,
       mockConfigService as any,
+      { isClaudeCodeProvider: jest.fn().mockReturnValue(false) } as any,
     );
     jest.clearAllMocks();
   });

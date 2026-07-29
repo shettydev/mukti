@@ -13,6 +13,7 @@ import {
   KnowledgeState,
   KnowledgeStateDocument,
 } from '../../../schemas/knowledge-state.schema';
+import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
@@ -71,6 +72,7 @@ export class KnowledgeGapDetectorService {
     @Inject(AI_CHAT_CLIENT_FACTORY)
     private readonly chatClientFactory: AiChatClientFactory,
     private readonly configService: ConfigService,
+    private readonly aiPolicyService: AiPolicyService,
   ) {}
 
   /**
@@ -518,10 +520,18 @@ export class KnowledgeGapDetectorService {
       return keywordConcepts;
     }
 
-    // Phase B: LLM-based concept extraction
+    // Phase B: LLM-based concept extraction.
+    // The claude-code provider runs on the developer's own CLI auth and is
+    // handed an empty key by design, so only key-based providers need one.
+    const isClaudeCode = this.aiPolicyService.isClaudeCodeProvider();
+    // `||` (not `??`) is deliberate: the claude-code provider passes an empty
+    // string, which must fall through to the server key / empty default rather
+    // than being treated as a configured key.
+    /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
     const apiKey =
-      aiApiKey ?? this.configService.get<string>('OPENROUTER_API_KEY');
-    if (!apiKey) {
+      aiApiKey || this.configService.get<string>('OPENROUTER_API_KEY') || '';
+    /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
+    if (!apiKey && !isClaudeCode) {
       this.logger.warn('No API key available for LLM concept extraction');
       return keywordConcepts;
     }

@@ -15,6 +15,7 @@
  */
 
 import {
+  AlertCircle,
   GitBranch,
   GripVertical,
   Leaf,
@@ -134,7 +135,11 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   );
 
   // SSE stream subscription
-  const { isProcessing, processingStatus } = useThoughtMapDialogueStream(mapId, node.nodeId, true);
+  const {
+    error: streamError,
+    isProcessing,
+    processingStatus,
+  } = useThoughtMapDialogueStream(mapId, node.nodeId, true);
 
   // Flatten pages
   const messages = messagesData?.pages.flatMap((page) => page.messages) ?? [];
@@ -335,6 +340,22 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         {/* Processing indicator */}
         {showProcessingLoader && (
           <LoadingMessage status={processingStatus ?? 'Mukti is thinking...'} />
+        )}
+
+        {/* Generation failure — surfaced instead of a placeholder answer */}
+        {streamError && (
+          <div
+            className="my-3 flex gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3"
+            role="alert"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-destructive">
+                Mukti could not generate a response
+              </p>
+              <p className="mt-1 break-words text-xs text-destructive/90">{streamError.message}</p>
+            </div>
+          </div>
         )}
 
         {/* Scroll anchor */}

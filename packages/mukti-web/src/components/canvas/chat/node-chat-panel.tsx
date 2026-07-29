@@ -14,7 +14,7 @@
  * @requirements 7.3 - Canvas expands when panel closed
  */
 
-import { GripVertical, Lightbulb, Loader2, X } from 'lucide-react';
+import { AlertCircle, GripVertical, Lightbulb, Loader2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef } from 'react';
 
 import type { CanvasNode } from '@/types/canvas-visualization.types';
@@ -118,11 +118,11 @@ export function NodeChatPanel({
   const activeModel = useAiStore((state) => state.activeModel);
 
   // Subscribe to SSE stream for real-time updates
-  const { isProcessing, processingStatus } = useDialogueStream(
-    sessionId,
-    selectedNode?.id ?? '',
-    !!selectedNode
-  );
+  const {
+    error: streamError,
+    isProcessing,
+    processingStatus,
+  } = useDialogueStream(sessionId, selectedNode?.id ?? '', !!selectedNode);
 
   // Flatten paginated messages
   const messages = messagesData?.pages.flatMap((page) => page.messages) ?? [];
@@ -328,6 +328,22 @@ export function NodeChatPanel({
 
         {/* Processing indicator */}
         {isProcessing && <LoadingMessage status={processingStatus || 'Mukti is thinking...'} />}
+
+        {/* Generation failure — surfaced instead of a placeholder answer */}
+        {streamError && (
+          <div
+            className="my-3 flex gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3"
+            role="alert"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-destructive">
+                Mukti could not generate a response
+              </p>
+              <p className="mt-1 break-words text-xs text-destructive/90">{streamError.message}</p>
+            </div>
+          </div>
+        )}
 
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />
