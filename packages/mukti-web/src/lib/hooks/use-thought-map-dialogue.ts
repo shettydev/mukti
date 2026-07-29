@@ -414,8 +414,10 @@ export function useThoughtMapDialogueStream(
         }
 
         case 'processing':
+          // Clear any previous failure so a retry doesn't keep showing a stale error.
           setState((prev) => ({
             ...prev,
+            error: null,
             isProcessing: true,
             processingStatus: 'Processing...',
           }));
