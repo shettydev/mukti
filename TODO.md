@@ -1,4 +1,4 @@
-- [ ] Thinking canvas should work
+- [x] Thinking canvas should work
 - [ ] Make it lean, such that users without any deps can easily run it and use it
 - [ ] `npx mukti`
 - [ ] research and plan on how to make Mukti project aware
