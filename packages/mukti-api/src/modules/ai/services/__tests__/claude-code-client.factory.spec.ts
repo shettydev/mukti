@@ -133,6 +133,51 @@ describe('ClaudeCodeClientFactory', () => {
     expect(args).not.toContain('--model');
   });
 
+  it('writes the conversation turns to stdin', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: '{"result":"ok"}' }) as never,
+    );
+
+    await factory.create('').chat.send(baseRequest);
+
+    const spawned = spawnMock.mock.results[0].value as {
+      stdin: { write: jest.Mock };
+    };
+    expect(spawned.stdin.write).toHaveBeenCalledWith(
+      'User: How do I center a div?',
+    );
+  });
+
+  // Regression: the Thought Map opening question sends a system prompt with no
+  // user turn. Empty stdin makes `claude -p` exit 1 with "Input must be provided
+  // either through stdin or as a prompt argument when using --print".
+  it('sends a kickoff turn when the request has only a system prompt', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({
+        code: 0,
+        stdout: '{"result":"An opening question?"}',
+      }) as never,
+    );
+
+    const response = (await factory.create('').chat.send({
+      messages: [
+        { content: 'Generate the opening Socratic question.', role: 'system' },
+      ],
+      model: 'sonnet',
+    })) as { choices: { message: { content: string } }[] };
+
+    const spawned = spawnMock.mock.results[0].value as {
+      stdin: { write: jest.Mock };
+    };
+    const written = spawned.stdin.write.mock.calls[0][0] as string;
+
+    expect(written.trim().length).toBeGreaterThan(0);
+    // The system prompt still carries the instruction.
+    const [, args] = spawnMock.mock.calls[0];
+    expect(args).toContain('--system-prompt');
+    expect(response.choices[0].message.content).toBe('An opening question?');
+  });
+
   it('raises a Claude-CLI-specific error when the CLI is missing', async () => {
     spawnMock.mockReturnValue(fakeChild({ errorCode: 'ENOENT' }) as never);
 
