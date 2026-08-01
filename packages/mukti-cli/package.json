@@ -1,0 +1,52 @@
+{
+  "name": "muktiai",
+  "version": "0.1.0",
+  "description": "Run Mukti — a Socratic thinking workspace — locally with one command.",
+  "author": "Mukti",
+  "license": "MIT",
+  "homepage": "https://mukti.chat",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shettydev/mukti.git",
+    "directory": "packages/mukti-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/shettydev/mukti/issues"
+  },
+  "keywords": [
+    "mukti",
+    "socratic",
+    "thinking",
+    "claude-code"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "type": "module",
+  "bin": {
+    "muktiai": "./dist/index.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "test": "node --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mukti/api": "0.1.1-beta.0",
+    "@mukti/web": "0.2.1-beta.0",
+    "mongodb-memory-server": "^11.2.0"
+  },
+  "devDependencies": {
+    "@clack/prompts": "^1.7.0",
+    "@types/node": "^22.10.7",
+    "esbuild": "^0.25.0",
+    "picocolors": "^1.1.1",
+    "typescript": "^5.7.3"
+  }
+}
