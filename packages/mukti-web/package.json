@@ -1,10 +1,42 @@
 {
   "name": "@mukti/web",
   "version": "0.2.1-beta.0",
-  "private": true,
+  "description": "Mukti web app — the Next.js frontend behind `npx muktiai`, published as a standalone build.",
+  "author": "Mukti",
+  "license": "MIT",
+  "homepage": "https://mukti.chat",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shettydev/mukti.git",
+    "directory": "packages/mukti-web"
+  },
+  "bugs": {
+    "url": "https://github.com/shettydev/mukti/issues"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "main": "./start.mjs",
+  "types": "./start.d.mts",
+  "exports": {
+    ".": {
+      "types": "./start.d.mts",
+      "default": "./start.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "start.mjs",
+    "start.d.mts",
+    "standalone"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
+    "build:standalone": "node scripts/build-standalone.mjs",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
