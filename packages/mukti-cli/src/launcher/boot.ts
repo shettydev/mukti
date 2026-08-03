@@ -31,11 +31,6 @@ import {
   superviseAfterReady,
 } from './services.ts';
 
-type PhaseOutcome = 'exited' | 'ready' | 'timeout';
-
-/** Clack declares this interface but does not export the type. */
-type SpinnerResult = ReturnType<typeof spinner>;
-
 export interface BootPlan {
   readonly api: ServiceSpec;
   readonly apiPort: number;
@@ -47,73 +42,18 @@ export interface BootPlan {
   readonly apiWork: string;
   readonly db: ServiceSpec;
   readonly dbPort: number;
+  readonly logDir: string;
   /** Human-readable pointer to the log files, shown on the ready banner. */
   readonly logHint: string;
-  readonly logDir: string;
   readonly web: ServiceSpec;
   readonly webPort: number;
   readonly webUrl: string;
 }
 
-function openBrowser(url: string): void {
-  const cmd =
-    process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-  spawn(cmd, [url], {
-    detached: true,
-    shell: process.platform === 'win32',
-    stdio: 'ignore',
-  }).unref();
-}
+type PhaseOutcome = 'exited' | 'ready' | 'timeout';
 
-function waitForLine(service: Service, pattern: RegExp): Promise<void> {
-  return new Promise((resolveLine) => {
-    const listener = (line: string): void => {
-      if (!pattern.test(stripControl(line))) return;
-      const index = service.lineListeners.indexOf(listener);
-      if (index !== -1) service.lineListeners.splice(index, 1);
-      resolveLine();
-    };
-    service.lineListeners.push(listener);
-  });
-}
-
-/**
- * Resolves as soon as the service reports ready (log line), its port opens
- * (fallback, in case the ready-line wording drifts between versions), it exits,
- * or the phase times out.
- */
-function awaitPhase(
-  service: Service,
-  pattern: RegExp,
-  options: { readonly port?: number; readonly timeoutMs: number }
-): Promise<PhaseOutcome> {
-  const races: Array<Promise<PhaseOutcome>> = [
-    waitForLine(service, pattern).then<PhaseOutcome>(() => 'ready'),
-    service.exited.then<PhaseOutcome>(() => 'exited'),
-    sleep(options.timeoutMs).then<PhaseOutcome>(() => 'timeout'),
-  ];
-  if (options.port !== undefined) {
-    races.push(
-      waitForPort(options.port, options.timeoutMs).then<PhaseOutcome>((up) =>
-        up ? 'ready' : 'timeout'
-      )
-    );
-  }
-  return Promise.race(races);
-}
-
-/** Fails the phase's spinner, shows the held-back output, and tears down. */
-function failPhase(
-  active: SpinnerResult,
-  phase: string,
-  outcome: PhaseOutcome,
-  logHint: string
-): Promise<never> {
-  active.error(`${phase} failed — ${outcome === 'exited' ? 'the process exited' : 'timed out'}`);
-  flushBootLines();
-  log.error(`Full logs: ${logHint}`);
-  return shutdown(1);
-}
+/** Clack declares this interface but does not export the type. */
+type SpinnerResult = ReturnType<typeof spinner>;
 
 /**
  * Starts the stack and returns once the web app is reachable, having shown the
@@ -176,7 +116,10 @@ export async function boot(plan: BootPlan): Promise<void> {
     apiReady.then((outcome) => ({ outcome, what: 'API startup' })),
     dbReady.then((outcome) =>
       outcome === 'ready'
-        ? new Promise<{ outcome: PhaseOutcome; what: string }>(() => {})
+        ? // Deliberately never settles: a healthy database must not win this
+          // race, it only needs to be able to lose it by failing.
+          // eslint-disable-next-line @typescript-eslint/no-empty-function
+          new Promise<{ outcome: PhaseOutcome; what: string }>(() => {})
         : { outcome, what: 'Embedded database startup' }
     ),
   ]);
@@ -218,4 +161,68 @@ export async function boot(plan: BootPlan): Promise<void> {
   openBrowser(plan.webUrl);
 
   superviseAfterReady(pc.red);
+}
+
+/**
+ * Resolves as soon as the service reports ready (log line), its port opens
+ * (fallback, in case the ready-line wording drifts between versions), it exits,
+ * or the phase times out.
+ */
+function awaitPhase(
+  service: Service,
+  pattern: RegExp,
+  options: { readonly port?: number; readonly timeoutMs: number }
+): Promise<PhaseOutcome> {
+  const races: Promise<PhaseOutcome>[] = [
+    waitForLine(service, pattern).then<PhaseOutcome>(() => 'ready'),
+    service.exited.then<PhaseOutcome>(() => 'exited'),
+    sleep(options.timeoutMs).then<PhaseOutcome>(() => 'timeout'),
+  ];
+  if (options.port !== undefined) {
+    races.push(
+      waitForPort(options.port, options.timeoutMs).then<PhaseOutcome>((up) =>
+        up ? 'ready' : 'timeout'
+      )
+    );
+  }
+  return Promise.race(races);
+}
+
+/** Fails the phase's spinner, shows the held-back output, and tears down. */
+function failPhase(
+  active: SpinnerResult,
+  phase: string,
+  outcome: PhaseOutcome,
+  logHint: string
+): Promise<never> {
+  active.error(`${phase} failed — ${outcome === 'exited' ? 'the process exited' : 'timed out'}`);
+  flushBootLines();
+  log.error(`Full logs: ${logHint}`);
+  return shutdown(1);
+}
+
+function openBrowser(url: string): void {
+  const cmd =
+    process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+  spawn(cmd, [url], {
+    detached: true,
+    shell: process.platform === 'win32',
+    stdio: 'ignore',
+  }).unref();
+}
+
+function waitForLine(service: Service, pattern: RegExp): Promise<void> {
+  return new Promise((resolveLine) => {
+    const listener = (line: string): void => {
+      if (!pattern.test(stripControl(line))) {
+        return;
+      }
+      const index = service.lineListeners.indexOf(listener);
+      if (index !== -1) {
+        service.lineListeners.splice(index, 1);
+      }
+      resolveLine();
+    };
+    service.lineListeners.push(listener);
+  });
 }

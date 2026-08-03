@@ -19,6 +19,15 @@ import { sleep } from './net.ts';
 /** Boot-phase output held back so it cannot garble the active spinner. */
 const MAX_BUFFERED_BOOT_LINES = 400;
 
+export interface Service {
+  readonly child: ChildProcess;
+  /** Resolves when the child exits, so a boot phase can fail fast. */
+  readonly exited: Promise<null | number>;
+  readonly lineListeners: ((line: string) => void)[];
+  readonly logFile: WriteStream;
+  readonly spec: ServiceSpec;
+}
+
 export interface ServiceSpec {
   /** Args passed to the command. */
   readonly args: readonly string[];
@@ -34,26 +43,21 @@ export interface ServiceSpec {
   readonly tint: (text: string) => string;
 }
 
-export interface Service {
-  readonly child: ChildProcess;
-  /** Resolves when the child exits, so a boot phase can fail fast. */
-  readonly exited: Promise<number | null>;
-  readonly lineListeners: Array<(line: string) => void>;
-  readonly logFile: WriteStream;
-  readonly spec: ServiceSpec;
-}
-
 /**
  * Cursor-movement, erase, scroll and screen-reset sequences. SGR colour codes
  * (`ESC[…m`) are deliberately left alone so each server's own colouring survives;
  * stripping only the repaint codes is what preserves native scrollback.
  */
+// Matching control characters is the entire job here: these patterns exist to
+// strip terminal escape sequences out of child-process output.
+/* eslint-disable no-control-regex */
 const CONTROL_SEQUENCES = [
   /\u001B\[[0-9;]*[ABCDEFGHJKSTfsu]/g, // cursor move / erase / scroll / save-restore
   /\u001B\[\?[0-9;]*[hl]/g, // private modes, e.g. hide/show cursor
   /\u001B\][^\u0007\u001B]*(?:\u0007|\u001B\\)/g, // OSC, e.g. window title
   /\u001Bc/g, // full terminal reset
 ];
+/* eslint-enable no-control-regex */
 
 export function stripControl(text: string): string {
   return CONTROL_SEQUENCES.reduce((acc, pattern) => acc.replace(pattern, ''), text);
@@ -70,28 +74,20 @@ function createLineReader(onLine: (line: string) => void): (chunk: string) => vo
     buffer += chunk;
     const lines = buffer.split(/\r\n|\r|\n/);
     buffer = lines.pop() ?? '';
-    for (const line of lines) onLine(line);
+    for (const line of lines) {
+      onLine(line);
+    }
   };
 }
 
 let streaming = false;
 const bufferedBootLines: string[] = [];
 
-function emit(spec: ServiceSpec, raw: string): void {
-  const content = stripControl(raw).trimEnd();
-  if (!content.trim()) return;
-  const line = `${spec.tint(`[${spec.name}]`)} ${content}`;
-  if (streaming) {
-    process.stdout.write(`${line}\n`);
-    return;
-  }
-  bufferedBootLines.push(line);
-  if (bufferedBootLines.length > MAX_BUFFERED_BOOT_LINES) bufferedBootLines.shift();
-}
-
 /** Surfaces the output held back during boot, so a boot failure is diagnosable. */
 export function flushBootLines(): void {
-  for (const line of bufferedBootLines) process.stdout.write(`${line}\n`);
+  for (const line of bufferedBootLines) {
+    process.stdout.write(`${line}\n`);
+  }
   bufferedBootLines.length = 0;
 }
 
@@ -99,6 +95,22 @@ export function flushBootLines(): void {
 export function startStreaming(): void {
   bufferedBootLines.length = 0;
   streaming = true;
+}
+
+function emit(spec: ServiceSpec, raw: string): void {
+  const content = stripControl(raw).trimEnd();
+  if (!content.trim()) {
+    return;
+  }
+  const line = `${spec.tint(`[${spec.name}]`)} ${content}`;
+  if (streaming) {
+    process.stdout.write(`${line}\n`);
+    return;
+  }
+  bufferedBootLines.push(line);
+  if (bufferedBootLines.length > MAX_BUFFERED_BOOT_LINES) {
+    bufferedBootLines.shift();
+  }
 }
 
 /** Every service started in this process, in start order. */
@@ -118,14 +130,18 @@ export function startService(spec: ServiceSpec, logDir: string): Service {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  const lineListeners: Array<(line: string) => void> = [];
+  const lineListeners: ((line: string) => void)[] = [];
   for (const stream of [child.stdout, child.stderr]) {
-    if (!stream) continue;
+    if (!stream) {
+      continue;
+    }
     stream.setEncoding('utf8');
     const read = createLineReader((line) => {
       emit(spec, line);
       // Copy: a ready-line listener removes itself while we iterate.
-      for (const listener of [...lineListeners]) listener(line);
+      for (const listener of [...lineListeners]) {
+        listener(line);
+      }
     });
     stream.on('data', (chunk: string) => {
       logFile.write(chunk); // tee the raw output, control codes and all
@@ -133,7 +149,7 @@ export function startService(spec: ServiceSpec, logDir: string): Service {
     });
   }
 
-  const exited = new Promise<number | null>((resolveExit) => {
+  const exited = new Promise<null | number>((resolveExit) => {
     child.once('exit', (code) => resolveExit(code));
   });
 
@@ -143,43 +159,6 @@ export function startService(spec: ServiceSpec, logDir: string): Service {
 }
 
 let shuttingDown = false;
-
-/** Signals a child and everything it spawned. */
-function killTree(service: Service, signal: NodeJS.Signals): void {
-  const { pid } = service.child;
-  if (pid === undefined) return;
-  try {
-    // A negative pid targets the whole process group (see `detached` above).
-    if (process.platform === 'win32') service.child.kill(signal);
-    else process.kill(-pid, signal);
-  } catch {
-    // Already gone — nothing to signal.
-  }
-}
-
-/**
- * Stops every started service — including the embedded database, which is a
- * service like any other — and exits. Safe to call twice: a second Ctrl-C
- * while shutting down means "just get me out".
- */
-export async function shutdown(code = 0): Promise<never> {
-  if (!shuttingDown) {
-    shuttingDown = true;
-    // The banner hides the cursor while it animates; never leave it hidden.
-    if (process.stdout.isTTY) process.stdout.write(SHOW_CURSOR);
-    for (const service of services) killTree(service, 'SIGINT');
-    await Promise.race([Promise.all(services.map((s) => s.exited)), sleep(5_000)]);
-    for (const service of services) {
-      killTree(service, 'SIGKILL');
-      service.logFile.end();
-    }
-  }
-  process.exit(code);
-}
-
-function onSignal(): void {
-  void shutdown(0);
-}
 
 /**
  * (Re)arms the shutdown handlers. Clack's spinner registers its own SIGINT /
@@ -197,17 +176,65 @@ export function armSignalHandlers(): void {
 }
 
 /**
+ * Stops every started service — including the embedded database, which is a
+ * service like any other — and exits. Safe to call twice: a second Ctrl-C
+ * while shutting down means "just get me out".
+ */
+export async function shutdown(code = 0): Promise<never> {
+  if (!shuttingDown) {
+    shuttingDown = true;
+    // The banner hides the cursor while it animates; never leave it hidden.
+    if (process.stdout.isTTY) {
+      process.stdout.write(SHOW_CURSOR);
+    }
+    for (const service of services) {
+      killTree(service, 'SIGINT');
+    }
+    await Promise.race([Promise.all(services.map((s) => s.exited)), sleep(5_000)]);
+    for (const service of services) {
+      killTree(service, 'SIGKILL');
+      service.logFile.end();
+    }
+  }
+  process.exit(code);
+}
+
+/**
  * After this point a child exiting on its own tears the whole stack down,
  * rather than leaving a half-running stack that looks healthy.
  */
 export function superviseAfterReady(tint: (text: string) => string): void {
   for (const service of services) {
     service.child.once('exit', (code) => {
-      if (shuttingDown) return;
+      if (shuttingDown) {
+        return;
+      }
       process.stdout.write(
         tint(`\n${service.spec.name} exited (code ${code ?? 'unknown'}); shutting down.\n`)
       );
       void shutdown(1);
     });
   }
+}
+
+/** Signals a child and everything it spawned. */
+function killTree(service: Service, signal: NodeJS.Signals): void {
+  const { pid } = service.child;
+  if (pid === undefined) {
+    return;
+  }
+  try {
+    // A negative pid targets the whole process group (see `detached` above).
+    if (process.platform === 'win32') {
+      service.child.kill(signal);
+    } else {
+      process.kill(-pid, signal);
+    }
+  } catch {
+    // Already gone — nothing to signal.
+  }
+}
+
+function onSignal(): void {
+  void shutdown(0);
 }

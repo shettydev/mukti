@@ -52,7 +52,9 @@ process.stdout.write(`embedded MongoDB listening at ${server.getUri()}\n`);
 let stopping = false;
 
 async function stop() {
-  if (stopping) return;
+  if (stopping) {
+    return;
+  }
   stopping = true;
   try {
     await server.stop();
@@ -68,5 +70,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 
 // mongod runs as a detached child of the driver, so nothing here holds the
 // event loop open on its own. Without this the process would exit immediately
-// and take the database with it.
+// and take the database with it. The empty body is the point: the timer exists
+// only to keep the process alive until it is signalled.
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 setInterval(() => {}, 1 << 30);

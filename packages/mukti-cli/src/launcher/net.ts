@@ -10,11 +10,27 @@
  */
 import { createConnection, createServer } from 'node:net';
 
-/** Unref'd so a pending timeout never keeps the process alive on shutdown. */
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolveSleep) => {
-    setTimeout(resolveSleep, ms).unref?.();
-  });
+/**
+ * The first free port at or after `preferred`, skipping any in `taken` so two
+ * services chosen in the same pass cannot land on the same number.
+ *
+ * @returns the chosen port, or `undefined` if the whole window is occupied —
+ *   the caller decides whether that is a failure or a fallback.
+ */
+export async function findFreePort(
+  preferred: number,
+  options: { readonly taken?: readonly number[]; readonly window?: number } = {}
+): Promise<number | undefined> {
+  const { taken = [], window = 20 } = options;
+  for (let port = preferred; port < preferred + window; port++) {
+    if (taken.includes(port)) {
+      continue;
+    }
+    if (!(await isPortInUse(port))) {
+      return port;
+    }
+  }
+  return undefined;
 }
 
 /** Resolves true if something is already listening on the port. */
@@ -27,15 +43,6 @@ export function isPortInUse(port: number): Promise<boolean> {
     });
     socket.on('error', () => resolvePort(false));
   });
-}
-
-export async function waitForPort(port: number, timeoutMs: number): Promise<boolean> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if (await isPortInUse(port)) return true;
-    await sleep(500);
-  }
-  return false;
 }
 
 /**
@@ -61,21 +68,20 @@ export function reserveFreePort(): Promise<number> {
   });
 }
 
-/**
- * The first free port at or after `preferred`, skipping any in `taken` so two
- * services chosen in the same pass cannot land on the same number.
- *
- * @returns the chosen port, or `undefined` if the whole window is occupied —
- *   the caller decides whether that is a failure or a fallback.
- */
-export async function findFreePort(
-  preferred: number,
-  options: { readonly taken?: readonly number[]; readonly window?: number } = {}
-): Promise<number | undefined> {
-  const { taken = [], window = 20 } = options;
-  for (let port = preferred; port < preferred + window; port++) {
-    if (taken.includes(port)) continue;
-    if (!(await isPortInUse(port))) return port;
+/** Unref'd so a pending timeout never keeps the process alive on shutdown. */
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms).unref?.();
+  });
+}
+
+export async function waitForPort(port: number, timeoutMs: number): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await isPortInUse(port)) {
+      return true;
+    }
+    await sleep(500);
   }
-  return undefined;
+  return false;
 }

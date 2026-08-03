@@ -27,6 +27,34 @@ import type { ServiceSpec } from './services.ts';
 /** `mongodb-memory-server`'s own progress output during a first-run download. */
 export const MONGO_DOWNLOAD_PROGRESS = /Downloading MongoDB[^:]*:\s*([\d.]+)\s*%/i;
 
+export interface DatabaseSpecOptions {
+  readonly cwd: string;
+  /** Absolute path to `embedded-mongo.mjs`, which differs per mode. */
+  readonly daemon: string;
+  /** Where the data files live. Persisted, so conversations survive restarts. */
+  readonly dbPath: string;
+  readonly env: NodeJS.ProcessEnv;
+  /** Node binary — the daemon cannot run under Bun. */
+  readonly nodeBin: string;
+  readonly port: number;
+}
+
+export function createDatabaseSpec(options: DatabaseSpecOptions): ServiceSpec {
+  return {
+    args: [options.daemon],
+    command: options.nodeBin,
+    cwd: options.cwd,
+    env: {
+      ...options.env,
+      MUKTI_LOCAL_DB_PATH: options.dbPath,
+      MUKTI_LOCAL_MONGO_PORT: String(options.port),
+    },
+    name: 'db',
+    readyPattern: /embedded MongoDB listening at/i,
+    tint: pc.yellow,
+  };
+}
+
 /**
  * Whether the mongod binary is already downloaded, so the database phase can
  * say which of the two very different waits (about a second, or 141 MB) is
@@ -57,32 +85,4 @@ export function isMongoBinaryCached(): boolean {
 /** The connection URI for a database the launcher will start on `port`. */
 export function mongoUri(port: number): string {
   return `mongodb://127.0.0.1:${port}/mukti`;
-}
-
-export interface DatabaseSpecOptions {
-  /** Absolute path to `embedded-mongo.mjs`, which differs per mode. */
-  readonly daemon: string;
-  /** Where the data files live. Persisted, so conversations survive restarts. */
-  readonly dbPath: string;
-  readonly env: NodeJS.ProcessEnv;
-  /** Node binary — the daemon cannot run under Bun. */
-  readonly nodeBin: string;
-  readonly port: number;
-  readonly cwd: string;
-}
-
-export function createDatabaseSpec(options: DatabaseSpecOptions): ServiceSpec {
-  return {
-    args: [options.daemon],
-    command: options.nodeBin,
-    cwd: options.cwd,
-    env: {
-      ...options.env,
-      MUKTI_LOCAL_DB_PATH: options.dbPath,
-      MUKTI_LOCAL_MONGO_PORT: String(options.port),
-    },
-    name: 'db',
-    readyPattern: /embedded MongoDB listening at/i,
-    tint: pc.yellow,
-  };
 }

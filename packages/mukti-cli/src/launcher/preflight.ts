@@ -16,15 +16,15 @@
 import { log, spinner } from '@clack/prompts';
 import { spawnSync } from 'node:child_process';
 
-export interface PreflightFailure {
-  readonly headline: string;
-  readonly remediation: string;
-}
-
 export interface PreflightCheck {
   /** Shown on the spinner while the check runs. */
   readonly message: string;
-  readonly run: () => Promise<PreflightFailure | undefined> | PreflightFailure | undefined;
+  readonly run: () => PreflightFailure | Promise<PreflightFailure | undefined> | undefined;
+}
+
+export interface PreflightFailure {
+  readonly headline: string;
+  readonly remediation: string;
 }
 
 /**
@@ -72,7 +72,9 @@ export async function runPreflight(
   for (const check of checks) {
     active.message(check.message);
     const failure = await check.run();
-    if (failure) fail(failure);
+    if (failure) {
+      fail(failure);
+    }
   }
 
   active.stop(`Preflight passed — Claude CLI ${claudeVersion}`);
