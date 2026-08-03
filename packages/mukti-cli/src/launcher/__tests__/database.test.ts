@@ -19,7 +19,7 @@ import { test } from 'node:test';
 import { MONGO_DOWNLOAD_PROGRESS, mongoUri } from '../database.ts';
 
 test('matches mongodb-memory-server download progress and captures the percentage', () => {
-  const cases: ReadonlyArray<readonly [string, string]> = [
+  const cases: readonly (readonly [string, string])[] = [
     ['Downloading MongoDB "8.2.6": 0.4% (0.6mb / 141mb)\r', '0.4'],
     ['Downloading MongoDB "8.2.6": 57.3% (80.8mb / 141mb)\r', '57.3'],
     ['Downloading MongoDB "8.2.6": 100% (141mb / 141mb)\r', '100'],
