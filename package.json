@@ -55,6 +55,7 @@
     "affected:test": "bun nx affected --target=test",
     "affected:build": "bun nx affected --target=build",
     "graph": "bun nx graph",
+    "release": "node scripts/release.mjs",
     "docs:rfc:check": "bun scripts/check-rfc-standards.ts",
     "docs:structure:check": "bun scripts/check-docs-structure.ts",
     "docs:check": "bun run docs:rfc:check && bun run docs:structure:check",
