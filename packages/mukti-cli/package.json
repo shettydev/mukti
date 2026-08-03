@@ -34,8 +34,12 @@
   },
   "scripts": {
     "build": "node esbuild.config.mjs",
+    "format": "prettier --write \"src/**/*.{ts,mjs}\" \"*.{mjs,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,mjs}\" \"*.{mjs,json}\"",
+    "lint": "eslint \"src/**/*.{ts,mjs}\" esbuild.config.mjs",
+    "lint:fix": "eslint \"src/**/*.{ts,mjs}\" esbuild.config.mjs --fix",
     "test": "node --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@muktiai/api": "0.1.1-beta.0",
@@ -44,9 +48,17 @@
   },
   "devDependencies": {
     "@clack/prompts": "^1.7.0",
+    "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.7",
     "esbuild": "^0.25.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-perfectionist": "^4.15.0",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^16.0.0",
     "picocolors": "^1.1.1",
-    "typescript": "^5.7.3"
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
   }
 }

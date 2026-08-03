@@ -1,0 +1,65 @@
+{
+  "name": "muktiai",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/mukti-cli/src",
+  "projectType": "application",
+  "tags": ["scope:cli", "type:application"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node esbuild.config.mjs",
+        "cwd": "packages/mukti-cli"
+      },
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint \"src/**/*.{ts,mjs}\" esbuild.config.mjs",
+        "cwd": "packages/mukti-cli"
+      }
+    },
+    "lint:fix": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint \"src/**/*.{ts,mjs}\" esbuild.config.mjs --fix",
+        "cwd": "packages/mukti-cli"
+      }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prettier --write \"src/**/*.{ts,mjs}\" \"*.{mjs,json}\"",
+        "cwd": "packages/mukti-cli"
+      }
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prettier --check \"src/**/*.{ts,mjs}\" \"*.{mjs,json}\"",
+        "cwd": "packages/mukti-cli"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test \"src/**/*.test.ts\"",
+        "cwd": "packages/mukti-cli"
+      }
+    },
+    "type-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "packages/mukti-cli"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Publishing muktiai is driven by the release pipeline, not nx release'"
+      }
+    }
+  }
+}
