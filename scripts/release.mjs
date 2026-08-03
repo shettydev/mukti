@@ -39,8 +39,16 @@
  *   --skip-build  Reuse existing build output (for iterating on this script).
  *                 The artifact checks still run, so stale output is caught.
  */
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -152,6 +160,44 @@ for (const pkg of PACKAGES) {
     if (!existsSync(join(REPO_ROOT, pkg.dir, artifact))) {
       fail(`${pkg.dir}: expected build artifact ${artifact} is missing — run without --skip-build`);
     }
+  }
+}
+
+// ── Isolated smoke test ────────────────────────────────────────────────────
+//
+// Boots the assembled web standalone from a sandbox with no parent
+// node_modules, so the resolver cannot walk up into the repo and mask a
+// pruned runtime dependency. (Learned the hard way: pruning `@swc/helpers`
+// passed every repo check and crashed the published bundle on first require.)
+{
+  const sandbox = mkdtempSync(join(tmpdir(), 'mukti-web-smoke-'));
+  cpSync(join(REPO_ROOT, 'packages/mukti-web', 'standalone'), sandbox, { recursive: true });
+  const port = 4300 + Math.floor(Math.random() * 500);
+  const server = spawn(process.execPath, ['server.js'], {
+    cwd: join(sandbox, 'packages', 'mukti-web'),
+    env: { ...process.env, HOSTNAME: '127.0.0.1', PORT: String(port) },
+    stdio: 'ignore',
+  });
+  try {
+    const deadline = Date.now() + 30_000;
+    let up = false;
+    while (!up && Date.now() < deadline && server.exitCode === null) {
+      try {
+        // Any rendered route proves the module graph loaded and middleware ran.
+        up = (await fetch(`http://127.0.0.1:${port}/chat`, { redirect: 'manual' })).status === 200;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+    if (!up) {
+      fail(
+        'web standalone does not boot in isolation — a runtime dependency was likely pruned from the assembled tree'
+      );
+    }
+    process.stdout.write('\n▸ smoke test: web standalone boots in isolation\n');
+  } finally {
+    server.kill('SIGTERM');
+    rmSync(sandbox, { force: true, recursive: true });
   }
 }
 
