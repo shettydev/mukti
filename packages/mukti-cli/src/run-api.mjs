@@ -4,14 +4,14 @@
  * @remarks
  * The CLI supervises the API the same way it supervises the web app and the
  * database — separate process, log teeing, process-group teardown — so it
- * needs something spawnable. `@mukti/api` exposes `startApi()` rather than a
+ * needs something spawnable. `@muktiai/api` exposes `startApi()` rather than a
  * process entry, and it is CommonJS, hence the default-import interop below.
  *
  * Shipped alongside the bundled CLI rather than bundled into it, because
- * `@mukti/api` is deliberately kept external: it is large, changes on its own
+ * `@muktiai/api` is deliberately kept external: it is large, changes on its own
  * cadence, and npm should cache it independently of the CLI.
  */
-import api from '@mukti/api';
+import api from '@muktiai/api';
 
 const { startApi } = api;
 

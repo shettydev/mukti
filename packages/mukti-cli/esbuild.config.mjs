@@ -2,7 +2,7 @@
  * Bundles the CLI into a single file, keeping the runtime packages external.
  *
  * @remarks
- * `@mukti/api` and `@mukti/web` stay external and are resolved at runtime:
+ * `@muktiai/api` and `@muktiai/web` stay external and are resolved at runtime:
  * they are large and change on their own cadence, so npm should cache them
  * independently of the CLI, which is small and changes often. Bundling them
  * would force a full re-download on every CLI patch release — the whole reason
@@ -31,7 +31,7 @@ await build({
   // second would land on line 2 as a syntax error.
   bundle: true,
   entryPoints: [join(ROOT, 'src/index.ts')],
-  external: ['@mukti/api', '@mukti/web', 'mongodb-memory-server'],
+  external: ['@muktiai/api', '@muktiai/web', 'mongodb-memory-server'],
   format: 'esm',
   logLevel: 'info',
   minify: false, // a readable stack trace is worth more than the kilobytes

@@ -32,7 +32,7 @@ export function webServerEntry() {
   const entry = resolve(PACKAGE_ROOT, 'standalone', 'packages', 'mukti-web', 'server.js');
   if (!existsSync(entry)) {
     throw new Error(
-      `@mukti/web is missing its standalone build (looked for ${entry}). ` +
+      `@muktiai/web is missing its standalone build (looked for ${entry}). ` +
         'This package must be published with `node scripts/assemble-standalone.mjs` run after `next build`.'
     );
   }

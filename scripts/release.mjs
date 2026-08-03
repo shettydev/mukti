@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Release pipeline for the npx distribution: `muktiai`, `@mukti/api`, `@mukti/web`.
+ * Release pipeline for the npx distribution: `muktiai`, `@muktiai/api`, `@muktiai/web`.
  *
  * @remarks
  * Follows paperclip's `generate-npm-package-json.mjs` pattern: the development
@@ -11,7 +11,7 @@
  *
  * Three rewrites make a development manifest publishable:
  *
- * - The CLI's `@mukti/api` / `@mukti/web` dependencies are pinned to the exact
+ * - The CLI's `@muktiai/api` / `@muktiai/web` dependencies are pinned to the exact
  *   versions being published, sourced from those packages' own manifests — a
  *   single build, so the three cannot drift (npm caches each independently).
  * - The web app's `dependencies` become empty: its standalone tree vendors
@@ -161,8 +161,8 @@ const [api, web, cli] = PACKAGES.map((pkg) => readManifest(pkg.dir));
 
 // Exact pins from this single build — the three packages cannot drift.
 const publishableCli = JSON.parse(JSON.stringify(cli));
-publishableCli.dependencies['@mukti/api'] = api.version;
-publishableCli.dependencies['@mukti/web'] = web.version;
+publishableCli.dependencies['@muktiai/api'] = api.version;
+publishableCli.dependencies['@muktiai/web'] = web.version;
 delete publishableCli.devDependencies;
 
 // The standalone tree vendors everything; shipping the development
@@ -186,15 +186,15 @@ for (const { manifest } of publishable) {
 }
 
 if (
-  publishableCli.dependencies['@mukti/api'] !== api.version ||
-  publishableCli.dependencies['@mukti/web'] !== web.version
+  publishableCli.dependencies['@muktiai/api'] !== api.version ||
+  publishableCli.dependencies['@muktiai/web'] !== web.version
 ) {
   fail('CLI pins do not match the API/web versions being published');
 }
 
 process.stdout.write(
   `\nverified: no workspace-internal references; pins ` +
-    `@mukti/api@${api.version}, @mukti/web@${web.version}\n`
+    `@muktiai/api@${api.version}, @muktiai/web@${web.version}\n`
 );
 
 // ── Publish (or pack) with manifest backup and restore ─────────────────────

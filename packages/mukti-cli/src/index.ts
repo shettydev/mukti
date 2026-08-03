@@ -3,8 +3,8 @@
  * `npx muktiai` — the whole Mukti stack from one command, no checkout.
  *
  * @remarks
- * Starts prebuilt artifacts: `@mukti/api` compiled to JavaScript and
- * `@mukti/web` as a Next.js standalone build. Nothing is compiled on the
+ * Starts prebuilt artifacts: `@muktiai/api` compiled to JavaScript and
+ * `@muktiai/web` as a Next.js standalone build. Nothing is compiled on the
  * user's machine, and no file watcher runs — that is the entire point of the
  * published path, and it is what separates a 2.5–6 minute first try from a
  * fast one.
@@ -129,9 +129,9 @@ const dbPort = await reserveFreePort();
 const apiUrl = `http://127.0.0.1:${apiPort}/api/v1`;
 const webUrl = `http://localhost:${webPort}`;
 
-// `@mukti/web` is resolved at runtime rather than bundled: it carries the
+// `@muktiai/web` is resolved at runtime rather than bundled: it carries the
 // whole standalone tree, and npm should cache it independently of the CLI.
-const web = (await import('@mukti/web')) as {
+const web = (await import('@muktiai/web')) as {
   webServerEntry(): string;
   webServerEnv(options: {
     apiUrl?: string;

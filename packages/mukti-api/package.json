@@ -1,5 +1,5 @@
 {
-  "name": "@mukti/api",
+  "name": "@muktiai/api",
   "version": "0.1.1-beta.0",
   "description": "Mukti API — the NestJS backend behind `npx muktiai`, published prebuilt.",
   "author": "Mukti",
