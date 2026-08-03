@@ -40,10 +40,17 @@ const APP_SUBPATH = join('packages', 'mukti-web');
  * production server never runs — it compiles nothing at runtime. Removing
  * these is the difference between a ~160 MB and a ~90 MB package.
  *
+ * Scoped entries (`@swc/core`) prune inside the scope directory: `@swc/core`
+ * is the 22 MB compiler, but its scope-mate `@swc/helpers` is a RUNTIME
+ * dependency of Next's compiled server (`next/dist/shared/lib/constants.js`
+ * requires it). Pruning the whole `@swc` scope ships a server that crashes on
+ * its first require — masked in the repo by the workspace-root node_modules
+ * the resolver walks up to, fatal in an isolated install.
+ *
  * `@img/*` (sharp's platform binaries) is deliberately NOT here: image
  * optimization genuinely uses it at runtime.
  */
-const PRUNE = ['@rspack', '@swc', '@esbuild', 'esbuild', 'terser', 'uglify-js'];
+const PRUNE = ['@rspack', '@esbuild', 'esbuild', 'terser', 'uglify-js'];
 
 /** Directories under `public/` that are not referenced by the app. */
 const PRUNE_PUBLIC = ['demo'];
