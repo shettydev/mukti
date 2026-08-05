@@ -51,7 +51,9 @@ const TRUECOLOR = /truecolor|24bit/i.test(process.env.COLORTERM ?? '');
 const RESET = COLOR ? '\u001B[0m' : '';
 
 function fg(paint: Ink): string {
-  if (!COLOR) return '';
+  if (!COLOR) {
+    return '';
+  }
   const [r, g, b] = paint.rgb;
   return TRUECOLOR ? `\u001B[38;2;${r};${g};${b}m` : `\u001B[38;5;${paint.xterm}m`;
 }
@@ -130,6 +132,10 @@ const GRID: boolean[][] = Array.from({ length: PIXEL_ROWS }, (_, row) =>
 const WIDTH = GRID[0]?.length ?? 0;
 const TEXT_ROWS = PIXEL_ROWS / 2;
 
+function frame(head: number): string[] {
+  return Array.from({ length: TEXT_ROWS }, (_, row) => `${INDENT}${paintRow(row, head)}`);
+}
+
 /**
  * Colour for a column `distance` steps behind the wavefront: the leading edge
  * flares, then relaxes into the resting terracotta.
@@ -165,10 +171,6 @@ function paintRow(textRow: number, head: number): string {
   return current ? `${out}${RESET}` : out;
 }
 
-function frame(head: number): string[] {
-  return Array.from({ length: TEXT_ROWS }, (_, row) => `${INDENT}${paintRow(row, head)}`);
-}
-
 // ── Composition ────────────────────────────────────────────────────────────
 
 /**
@@ -198,26 +200,6 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
 
 const HIDE_CURSOR = '\u001B[?25l';
 export const SHOW_CURSOR = '\u001B[?25h';
-
-/** Repaints `lines` in place, over the previous frame of the same height. */
-function repaint(lines: string[], first: boolean): void {
-  const out = process.stdout;
-  if (!first) out.write(`\u001B[${lines.length}A`);
-  for (const line of lines) out.write(`\r${line}\u001B[K\n`);
-}
-
-function staticBanner(options: BannerOptions): string[] {
-  return [
-    '',
-    ...frame(WIDTH),
-    '',
-    `${INDENT}${tint(HAIRLINE, '─'.repeat(WIDTH))}`,
-    `${INDENT}${tint(SAGE, TAGLINE)}`,
-    '',
-    ...detailLines(options),
-    '',
-  ];
-}
 
 /**
  * Draws the ready banner. Animated on an interactive terminal, printed once
@@ -256,4 +238,28 @@ export async function renderReadyBanner(options: BannerOptions): Promise<void> {
   }
 
   out.write(`${SHOW_CURSOR}\n${detailLines(options).join('\n')}\n\n`);
+}
+
+/** Repaints `lines` in place, over the previous frame of the same height. */
+function repaint(lines: string[], first: boolean): void {
+  const out = process.stdout;
+  if (!first) {
+    out.write(`\u001B[${lines.length}A`);
+  }
+  for (const line of lines) {
+    out.write(`\r${line}\u001B[K\n`);
+  }
+}
+
+function staticBanner(options: BannerOptions): string[] {
+  return [
+    '',
+    ...frame(WIDTH),
+    '',
+    `${INDENT}${tint(HAIRLINE, '─'.repeat(WIDTH))}`,
+    `${INDENT}${tint(SAGE, TAGLINE)}`,
+    '',
+    ...detailLines(options),
+    '',
+  ];
 }

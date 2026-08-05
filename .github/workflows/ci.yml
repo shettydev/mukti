@@ -30,6 +30,14 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup Node
+        # Pinned rather than left to the runner image: the muktiai CLI's tests
+        # run TypeScript sources directly (`node --test "src/**/*.test.ts"`),
+        # which needs Node's type stripping — unflagged only from 22.18.
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Cache Bun dependencies
         uses: actions/cache@v4
         with:

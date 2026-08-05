@@ -3,6 +3,7 @@ const scopes = [
   'api',
   'web',
   'mcp',
+  'cli',
 
   // Infrastructure & tooling
   'config',

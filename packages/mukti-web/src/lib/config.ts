@@ -19,6 +19,8 @@
  * ```
  */
 
+import { readRuntimeApiUrl } from '@/lib/runtime-config';
+
 /**
  * Validate required environment variables
  * Throws an error if any required variables are missing
@@ -55,9 +57,20 @@ export const config = {
   api: {
     /**
      * Base URL for the Mukti API
+     *
+     * Resolved per access, in precedence order:
+     * 1. the runtime value the web server exposes via cookie (prebuilt/npx
+     *    mode — survives API port fallback without a rebuild),
+     * 2. the build-time `NEXT_PUBLIC_API_URL` (hosted deployments),
+     * 3. the local default.
+     *
      * @default 'http://localhost:3000/api/v1'
      */
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1',
+    get baseUrl(): string {
+      return (
+        readRuntimeApiUrl() ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1'
+      );
+    },
 
     /**
      * API request timeout in milliseconds

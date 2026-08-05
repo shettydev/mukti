@@ -6,48 +6,12 @@ import {
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { InjectModel, MongooseModule } from '@nestjs/mongoose';
-import { mkdirSync } from 'fs';
 import { type Connection, type Model } from 'mongoose';
-import { resolve } from 'path';
 
-import { isLocalMode, LOCAL_DB_PATH } from '../../common/config/local-mode';
+import { isLocalMode } from '../../common/config/local-mode';
 import { ALL_SCHEMAS } from '../../schemas';
 import { NodeDialogue } from '../../schemas/node-dialogue.schema';
-
-/**
- * Holds the embedded MongoDB server in local mode so it can be stopped on
- * shutdown. `unknown` avoids importing the type when the optional dependency
- * is absent (hosted builds never load it).
- */
-let localMongoServer: undefined | { stop(): Promise<boolean> };
-
-/**
- * Resolves the MongoDB connection URI. In local mode a file-backed
- * `mongodb-memory-server` is started under `.mukti/local-db/` so data survives
- * restarts with no Docker. Otherwise the configured/hosted URI is used.
- */
-async function resolveMongoUri(configService: ConfigService): Promise<string> {
-  if (isLocalMode()) {
-    // The launcher passes MUKTI_LOCAL_DB_PATH so data lands at the repo root
-    // regardless of the process cwd; fall back to cwd-relative otherwise.
-    const dbPath =
-      process.env.MUKTI_LOCAL_DB_PATH ?? resolve(process.cwd(), LOCAL_DB_PATH);
-    mkdirSync(dbPath, { recursive: true });
-
-    // Dynamic import keeps the dev-only dependency out of the hosted path.
-    const { MongoMemoryServer } = await import('mongodb-memory-server');
-    const server = await MongoMemoryServer.create({
-      instance: { dbName: 'mukti', dbPath, storageEngine: 'wiredTiger' },
-    });
-    localMongoServer = server;
-    return server.getUri();
-  }
-
-  return (
-    configService.get<string>('MONGODB_URI') ??
-    'mongodb://localhost:27017/mukti'
-  );
-}
+import { resolveMongoUri, stopEmbeddedMongoIfOwned } from './mongo-uri';
 
 @Module({
   exports: [MongooseModule],
@@ -111,8 +75,8 @@ export class DatabaseModule implements OnApplicationShutdown, OnModuleInit {
   ) {}
 
   async onApplicationShutdown(): Promise<void> {
-    if (localMongoServer) {
-      await localMongoServer.stop();
+    // Only stops a server this process started — never one the launcher owns.
+    if (await stopEmbeddedMongoIfOwned()) {
       this.logger.log('Embedded MongoDB stopped');
     }
   }

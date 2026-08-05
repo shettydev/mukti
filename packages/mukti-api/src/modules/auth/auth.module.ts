@@ -6,6 +6,7 @@ import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 
+import { isLocalMode } from '../../common/config/local-mode';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -115,7 +116,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     RateLimitService,
     OAuthService,
     JwtStrategy,
-    GoogleStrategy,
+    // Google OAuth is unreachable in local mode — auth is bypassed for a
+    // seeded user and there is no login screen. Its constructor throws when
+    // credentials are absent, which would otherwise stop the API booting on
+    // any machine without them: exactly the `npx muktiai` case.
+    ...(isLocalMode() ? [] : [GoogleStrategy]),
     JwtAuthGuard,
     RolesGuard,
     EmailVerifiedGuard,
