@@ -1,6 +1,6 @@
 {
   "name": "@muktiai/api",
-  "version": "0.1.1-beta.0",
+  "version": "0.1.1-beta.1",
   "description": "Mukti API — the NestJS backend behind `npx muktiai`, published prebuilt.",
   "author": "Mukti",
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "@muktiai/web",
-  "version": "0.2.1-beta.0",
+  "version": "0.2.1-beta.1",
   "description": "Mukti web app — the Next.js frontend behind `npx muktiai`, published as a standalone build.",
   "author": "Mukti",
   "license": "MIT",

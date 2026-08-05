@@ -1,6 +1,6 @@
 {
   "name": "muktiai",
-  "version": "0.1.0",
+  "version": "0.1.1-beta.0",
   "description": "Run Mukti — a Socratic thinking workspace — locally with one command.",
   "author": "Mukti",
   "license": "MIT",
@@ -42,8 +42,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@muktiai/api": "0.1.1-beta.0",
-    "@muktiai/web": "0.2.1-beta.0",
+    "@muktiai/api": "0.1.1-beta.1",
+    "@muktiai/web": "0.2.1-beta.1",
     "mongodb-memory-server": "^11.2.0"
   },
   "devDependencies": {
