@@ -40,17 +40,33 @@ const APP_SUBPATH = join('packages', 'mukti-web');
  * production server never runs — it compiles nothing at runtime. Removing
  * these is the difference between a ~160 MB and a ~90 MB package.
  *
- * Scoped entries (`@swc/core`) prune inside the scope directory: `@swc/core`
- * is the 22 MB compiler, but its scope-mate `@swc/helpers` is a RUNTIME
- * dependency of Next's compiled server (`next/dist/shared/lib/constants.js`
- * requires it). Pruning the whole `@swc` scope ships a server that crashes on
- * its first require — masked in the repo by the workspace-root node_modules
- * the resolver walks up to, fatal in an isolated install.
- *
  * `@img/*` (sharp's platform binaries) is deliberately NOT here: image
  * optimization genuinely uses it at runtime.
  */
 const PRUNE = ['@rspack', '@esbuild', 'esbuild', 'terser', 'uglify-js'];
+
+/**
+ * Scopes pruned selectively — everything inside except the listed keeps.
+ *
+ * `@swc` cannot be pruned or kept wholesale. It holds the compiler (`core`
+ * plus a `core-<platform>` native binary, 22 MB, which the standalone server
+ * never runs — and which is built for the *publishing* machine's platform, so
+ * shipping it sends a macOS binary to Linux users) alongside `helpers`, a
+ * RUNTIME dependency of Next's compiled server: it is required by
+ * `next/dist/shared/lib/constants.js` on first import.
+ *
+ * Dropping the whole scope ships a server that crashes immediately — masked
+ * inside the repo, where the resolver walks up into the workspace root
+ * node_modules, and fatal in an isolated install. The release pipeline's
+ * isolation smoke test exists because of exactly that failure.
+ *
+ * Listing keeps rather than removals is deliberate: the platform binary is
+ * named for whichever machine ran the build, so it cannot be enumerated ahead
+ * of time, while the runtime requirement is a fixed, known name.
+ */
+const PRUNE_SCOPE_EXCEPT = {
+  '@swc': ['helpers'],
+};
 
 /** Directories under `public/` that are not referenced by the app. */
 const PRUNE_PUBLIC = ['demo'];
@@ -96,6 +112,26 @@ cpSync(join(PACKAGE_ROOT, 'public'), join(app, 'public'), {
 
 for (const name of PRUNE) {
   rmSync(join(OUT, 'node_modules', name), { force: true, recursive: true });
+}
+
+for (const [scope, keep] of Object.entries(PRUNE_SCOPE_EXCEPT)) {
+  const scopeDir = join(OUT, 'node_modules', scope);
+  if (!existsSync(scopeDir)) {
+    continue;
+  }
+  for (const entry of readdirSync(scopeDir)) {
+    if (keep.includes(entry)) {
+      continue;
+    }
+    rmSync(join(scopeDir, entry), { force: true, recursive: true });
+  }
+  // A keep that is not there means the dependency moved or was renamed —
+  // which would otherwise ship a tree that only fails once installed.
+  for (const name of keep) {
+    if (!existsSync(join(scopeDir, name))) {
+      fail(`${scope}/${name} is missing — it is required at runtime; check the prune rules`);
+    }
+  }
 }
 
 if (!existsSync(join(app, 'server.js'))) {
