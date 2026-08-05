@@ -70,7 +70,9 @@ const PACKAGES = [
   {
     dir: 'packages/mukti-cli',
     build: ['run', 'build'],
-    typecheck: ['run', 'typecheck'],
+    // Named `type-check` to match the nx target the CI quality gate runs, so
+    // the release and CI check the same thing under the same name.
+    typecheck: ['run', 'type-check'],
     artifacts: ['dist/index.mjs', 'dist/run-api.mjs', 'dist/embedded-mongo.mjs'],
   },
 ];
