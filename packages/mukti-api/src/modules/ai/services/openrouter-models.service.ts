@@ -31,7 +31,9 @@ export class OpenRouterModelsService {
       return cached.models;
     }
 
-    const client = this.openRouterClientFactory.create(apiKey);
+    // The catalogue is an OpenRouter-only surface, so this reaches for the raw
+    // SDK client rather than the provider-agnostic chat seam.
+    const client = this.openRouterClientFactory.createSdkClient(apiKey);
     const response = await client.models.list();
 
     const models = response.data ?? [];

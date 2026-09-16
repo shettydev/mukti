@@ -7,6 +7,13 @@
  * prompt replacing Claude Code's default coding prompt. Mukti needs text
  * completions only — never file edits or shell access — so denying the tools
  * keeps `claude -p` a pure text producer.
+ *
+ * This adapter ignores the request's `responseFormat` declaration. It has no
+ * need of it: `claude -p` accepts `--system-prompt`, so Mukti's Socratic
+ * instruction is carried the same way it is on the hosted provider, and the
+ * arguments below are identical whether or not a caller declared a shape.
+ * Schema enforcement is a workaround for a CLI whose built-in prompt cannot be
+ * replaced, which is not this one.
  */
 import type { AiChatSendRequest } from '../../types/ai-chat-client.interface';
 import type { AllowedModel } from '../../types/ai-model.interface';

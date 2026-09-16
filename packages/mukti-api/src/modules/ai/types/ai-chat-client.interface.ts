@@ -9,6 +9,7 @@
  * local Claude Code CLI) can be swapped in behind the {@link AI_CHAT_CLIENT_FACTORY}
  * token without touching call sites.
  */
+import type { AiResponseFormat } from './ai-response-format.interface';
 
 /** A resolved chat client. The response is parsed leniently downstream. */
 export interface AiChatClient {
@@ -40,6 +41,7 @@ export interface AiChatSendOptions {
 export interface AiChatSendRequest {
   messages: AiChatMessage[];
   model: string;
+  responseFormat?: AiResponseFormat;
   stream?: boolean;
   temperature?: number;
 }

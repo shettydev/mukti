@@ -21,7 +21,21 @@ export interface LocalCliAdapter {
   /** Executable name, resolved from `PATH`. */
   readonly binary: string;
 
-  /** Flags for one completion. The API key is never among them. */
+  /**
+   * Flags for one completion. The API key is never among them.
+   *
+   * @remarks
+   * The request carries the calling surface's `responseFormat` declaration. An
+   * adapter whose CLI can constrain output MAY enforce a declared shape, and
+   * SHALL NOT substitute one of its own when the caller declared none — the
+   * analytical surfaces (thought-map extraction, branch suggestion, concept
+   * extraction, misconception detection) need their own structure back, and a
+   * question-shaped constraint breaks them with no error the adapter can see.
+   *
+   * An adapter that does enforce a shape by requesting structured output SHALL
+   * unwrap it in {@link LocalCliAdapter.parseEnvelope}, so callers keep
+   * receiving content as text regardless of which provider served them.
+   */
   buildArgs(request: AiChatSendRequest): string[];
 
   /** Distinguishes this CLI's failures on {@link LocalCliError.code}. */
