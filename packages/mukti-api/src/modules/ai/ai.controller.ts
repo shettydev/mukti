@@ -79,11 +79,11 @@ export class AiController {
 
     const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
 
-    // Claude Code needs no OpenRouter validation key; resolveEffectiveModel
-    // honours the requested Claude alias directly.
-    const validationApiKey = this.aiPolicyService.isClaudeCodeProvider()
-      ? ''
-      : this.getValidationApiKey({ hasByok, user });
+    // A local CLI needs no OpenRouter validation key; resolveEffectiveModel
+    // honours the requested model from the CLI's own catalogue directly.
+    const validationApiKey = this.aiPolicyService.providerRequiresApiKey()
+      ? this.getValidationApiKey({ hasByok, user })
+      : '';
 
     const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
       hasByok,
@@ -261,9 +261,9 @@ export class AiController {
       throw new NotFoundException('User not found');
     }
 
-    // Claude Code provider serves a curated Claude-alias list with no OpenRouter
-    // catalog lookup, regardless of any stored BYOK key.
-    if (this.aiPolicyService.isClaudeCodeProvider()) {
+    // A local-CLI provider serves its own curated catalogue with no OpenRouter
+    // lookup, regardless of any stored BYOK key.
+    if (this.aiPolicyService.isLocalCliProvider()) {
       return {
         mode: 'curated',
         models: this.aiPolicyService.getCuratedModels(),

@@ -521,17 +521,17 @@ export class KnowledgeGapDetectorService {
     }
 
     // Phase B: LLM-based concept extraction.
-    // The claude-code provider runs on the developer's own CLI auth and is
-    // handed an empty key by design, so only key-based providers need one.
-    const isClaudeCode = this.aiPolicyService.isClaudeCodeProvider();
-    // `||` (not `??`) is deliberate: the claude-code provider passes an empty
-    // string, which must fall through to the server key / empty default rather
-    // than being treated as a configured key.
+    // Local-CLI providers run on the user's own CLI auth and are handed an
+    // empty key by design, so only key-based providers need one.
+    const requiresApiKey = this.aiPolicyService.providerRequiresApiKey();
+    // `||` (not `??`) is deliberate: local-CLI providers pass an empty string,
+    // which must fall through to the server key / empty default rather than
+    // being treated as a configured key.
     /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
     const apiKey =
       aiApiKey || this.configService.get<string>('OPENROUTER_API_KEY') || '';
     /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
-    if (!apiKey && !isClaudeCode) {
+    if (!apiKey && requiresApiKey) {
       this.logger.warn('No API key available for LLM concept extraction');
       return keywordConcepts;
     }

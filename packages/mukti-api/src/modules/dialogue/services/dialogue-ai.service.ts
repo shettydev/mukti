@@ -366,19 +366,19 @@ export class DialogueAIService {
    * Rejects an empty API key only when the active provider actually needs one.
    *
    * @remarks
-   * The claude-code provider runs on the developer's own CLI auth and is handed
-   * an empty key by design ({@link AiKeyResolver}), so an empty key is a
+   * Local-CLI providers run on the user's own CLI auth and are handed an empty
+   * key by design ({@link AiKeyResolver}), so an empty key is a
    * misconfiguration for key-based providers (OpenRouter) only. Treating it as
    * "AI unavailable" for every provider is what previously routed local mode
    * into canned placeholder questions instead of the CLI.
    */
   private assertApiKeyPresent(apiKey: string): void {
-    if (apiKey || this.aiPolicyService.isClaudeCodeProvider()) {
+    if (apiKey || !this.aiPolicyService.providerRequiresApiKey()) {
       return;
     }
 
     throw new Error(
-      'No AI API key is configured. Add your OpenRouter key in Settings, set OPENROUTER_API_KEY on the server, or run locally with AI_PROVIDER=claude-code.',
+      'No AI API key is configured. Add your OpenRouter key in Settings, set OPENROUTER_API_KEY on the server, or run locally with a local-CLI provider (AI_PROVIDER=claude-code or antigravity).',
     );
   }
 
@@ -581,8 +581,8 @@ export class DialogueAIService {
 
   /**
    * Normalizes a provider failure into an Error whose message is safe and
-   * useful to show the user. Provider-specific errors (e.g. `ClaudeCliError`,
-   * which explains a missing CLI or `claude login`) already carry actionable
+   * useful to show the user. Provider-specific errors (e.g. `LocalCliError`,
+   * which explains a missing CLI or how to sign in) already carry actionable
    * text, so their message is preserved.
    */
   private toSurfacedError(error: unknown): Error {

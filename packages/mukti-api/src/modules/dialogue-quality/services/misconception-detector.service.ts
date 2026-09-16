@@ -85,18 +85,19 @@ export class MisconceptionDetectorService {
 
     // LLM call with 500ms timeout — fail open
     // Always use the platform key, never the user's BYOK key (RFC-0004 OQ-3).
-    // Under the claude-code provider there is no OpenRouter key — the CLI runs
-    // on the developer's own auth — so use the provider's default Claude model
-    // and an empty key (the client ignores it).
-    const isClaudeCode = this.aiPolicyService.isClaudeCodeProvider();
-    const model = isClaudeCode
-      ? this.aiPolicyService.getDefaultModel()
-      : this.configService.get<string>(
+    // Under a local-CLI provider there is no OpenRouter key — the CLI runs on
+    // the user's own auth — so use the provider's default model from its own
+    // catalogue and an empty key (the client ignores it). That catalogue is
+    // warmed at boot, so reading it here never blocks this 500ms path.
+    const requiresApiKey = this.aiPolicyService.providerRequiresApiKey();
+    const model = requiresApiKey
+      ? this.configService.get<string>(
           'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
           'google/gemini-3-flash-preview',
-        );
+        )
+      : this.aiPolicyService.getDefaultModel();
     const platformKey = this.configService.get<string>('OPENROUTER_API_KEY');
-    if (!isClaudeCode && !platformKey) {
+    if (requiresApiKey && !platformKey) {
       this.logger.warn(
         'Platform OPENROUTER_API_KEY not configured, skipping misconception detection',
       );
@@ -112,7 +113,7 @@ export class MisconceptionDetectorService {
     let timer: ReturnType<typeof setTimeout>;
     try {
       const client = this.chatClientFactory.create(
-        isClaudeCode ? '' : (platformKey ?? ''),
+        requiresApiKey ? (platformKey ?? '') : '',
       );
       const prompt = MISCONCEPTION_DETECTION_PROMPT.replace(
         '{concepts}',
