@@ -2,7 +2,9 @@ import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 
 import type { AiChatSendRequest } from '../../types/ai-chat-client.interface';
+import type { LocalCliAdapter } from '../../types/local-cli-adapter.interface';
 
+import { SOCRATIC_QUESTION_FORMAT } from '../../types/ai-response-format.interface';
 import { ClaudeCliAdapter } from '../adapters/claude-cli.adapter';
 import { LocalCliClientFactory } from '../local-cli-client.factory';
 
@@ -62,6 +64,7 @@ const baseRequest: AiChatSendRequest = {
     { content: 'How do I center a div?', role: 'user' },
   ],
   model: 'sonnet',
+  responseFormat: undefined,
 };
 
 /**
@@ -184,6 +187,7 @@ describe('LocalCliClientFactory with ClaudeCliAdapter', () => {
         { content: 'Generate the opening Socratic question.', role: 'system' },
       ],
       model: 'sonnet',
+      responseFormat: undefined,
     })) as { choices: { message: { content: string } }[] };
 
     const spawned = spawnMock.mock.results[0].value as {
@@ -252,5 +256,117 @@ describe('LocalCliClientFactory with ClaudeCliAdapter', () => {
     await expect(
       factory.create('').chat.send(baseRequest),
     ).rejects.toMatchObject({ code: 'CLAUDE_CLI_ERROR', retriable: false });
+  });
+});
+
+/**
+ * The response-shape contract, exercised through a stub adapter.
+ *
+ * @remarks
+ * No shipped adapter enforces shapes yet — `claude -p` carries the Socratic
+ * instruction in its system prompt and has no need to. These cases therefore
+ * stand in for the provider that will: they pin the guarantee the analytical
+ * surfaces depend on, so that an adapter which *does* enforce cannot quietly
+ * start constraining thought-map extraction or misconception detection.
+ *
+ * The load-bearing case is the first one. An adapter that substitutes a shape
+ * the caller did not declare breaks four surfaces at once, and does it without
+ * any error the adapter itself can observe.
+ */
+describe('LocalCliClientFactory response-shape contract', () => {
+  /** Minimal adapter that forwards a declared shape and nothing else. */
+  function enforcingAdapter(): LocalCliAdapter {
+    return {
+      binary: 'stub-cli',
+      buildArgs: (request) => {
+        const declared = request.responseFormat;
+        return declared
+          ? ['--json-schema', JSON.stringify(declared.jsonSchema.schema)]
+          : [];
+      },
+      errorCode: 'STUB_CLI_ERROR',
+      getModels: () => [],
+      installHint: 'Install the stub CLI.',
+      parseEnvelope: (stdout) => ({
+        completionTokens: 0,
+        content: stdout.trim(),
+        promptTokens: 0,
+      }),
+      providerId: 'antigravity',
+      signInHint: 'Sign in to the stub CLI.',
+    };
+  }
+
+  function argsFrom(): string[] {
+    return (spawnMock.mock.calls[0][1] ?? []) as string[];
+  }
+
+  beforeEach(() => {
+    spawnMock.mockReset();
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: 'A question?' }) as never,
+    );
+  });
+
+  it('passes no shape-constraining option when the caller declared none', async () => {
+    await new LocalCliClientFactory(enforcingAdapter())
+      .create('')
+      .chat.send({ ...baseRequest, responseFormat: undefined });
+
+    expect(argsFrom()).not.toContain('--json-schema');
+    expect(argsFrom()).toHaveLength(0);
+  });
+
+  it('applies exactly the declared shape, neither widened nor substituted', async () => {
+    await new LocalCliClientFactory(enforcingAdapter())
+      .create('')
+      .chat.send({ ...baseRequest, responseFormat: SOCRATIC_QUESTION_FORMAT });
+
+    const args = argsFrom();
+    expect(args[0]).toBe('--json-schema');
+    expect(JSON.parse(args[1])).toEqual(
+      SOCRATIC_QUESTION_FORMAT.jsonSchema.schema,
+    );
+  });
+
+  it('reaches the adapter intact when a caller declares its own schema', async () => {
+    const callerSchema = {
+      additionalProperties: false,
+      properties: { concepts: { items: { type: 'string' }, type: 'array' } },
+      type: 'object',
+    };
+
+    await new LocalCliClientFactory(enforcingAdapter()).create('').chat.send({
+      ...baseRequest,
+      responseFormat: {
+        jsonSchema: { name: 'concept_list', schema: callerSchema },
+        type: 'json_schema',
+      },
+    });
+
+    expect(JSON.parse(argsFrom()[1])).toEqual(callerSchema);
+  });
+
+  it('leaves the claude-code invocation identical whether or not a shape is declared', async () => {
+    const claude = new LocalCliClientFactory(new ClaudeCliAdapter());
+    const envelope = '{"result":"A question?"}';
+
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: envelope }) as never,
+    );
+    await claude
+      .create('')
+      .chat.send({ ...baseRequest, responseFormat: undefined });
+    const withoutShape = argsFrom();
+
+    spawnMock.mockClear();
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: envelope }) as never,
+    );
+    await claude
+      .create('')
+      .chat.send({ ...baseRequest, responseFormat: SOCRATIC_QUESTION_FORMAT });
+
+    expect(argsFrom()).toEqual(withoutShape);
   });
 });
