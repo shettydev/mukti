@@ -39,7 +39,8 @@ export interface AiJsonSchemaResponseFormat {
  *
  * @remarks
  * `undefined` is a deliberate value meaning "no shape required", not an
- * omission.
+ * omission — which is why the request field carrying this is required rather
+ * than optional. A surface that has not decided should not compile.
  */
 export type AiResponseFormat = AiJsonSchemaResponseFormat | undefined;
 

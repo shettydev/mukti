@@ -697,6 +697,9 @@ export class KnowledgeGapDetectorService {
           },
         ],
         model: effectiveModel,
+        // Internal analysis, not read by the learner: must stay free to return
+        // the concept list this service parses.
+        responseFormat: undefined,
         stream: false,
         temperature: 0.3,
       },

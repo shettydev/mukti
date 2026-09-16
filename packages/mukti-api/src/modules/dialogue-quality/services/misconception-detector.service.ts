@@ -125,6 +125,9 @@ export class MisconceptionDetectorService {
       const responsePromise = client.chat.send({
         messages: [{ content: prompt, role: 'user' }],
         model,
+        // Internal classification, not read by the learner: must stay free to
+        // return the JSON object this prompt asks for and this service parses.
+        responseFormat: undefined,
         stream: false,
         temperature: 0,
       });

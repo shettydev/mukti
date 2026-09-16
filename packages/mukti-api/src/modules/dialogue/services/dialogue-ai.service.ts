@@ -11,6 +11,7 @@ import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
 } from '../../ai/types/ai-chat-client.interface';
+import { SOCRATIC_QUESTION_FORMAT } from '../../ai/types/ai-response-format.interface';
 import {
   appendQualityGuardrails,
   buildScaffoldAwarePrompt,
@@ -130,6 +131,9 @@ export class DialogueAIService {
         {
           messages,
           model: effectiveModel,
+          // Learner-facing: rendered as the assistant message, so it must be a
+          // question.
+          responseFormat: SOCRATIC_QUESTION_FORMAT,
           stream: false,
           temperature: 0.7,
         },
@@ -235,6 +239,9 @@ export class DialogueAIService {
         {
           messages,
           model: effectiveModel,
+          // Learner-facing: rendered as the assistant message, so it must be a
+          // question.
+          responseFormat: SOCRATIC_QUESTION_FORMAT,
           stream: false,
           temperature: 0.7,
         },
@@ -326,7 +333,16 @@ export class DialogueAIService {
       const client = this.chatClientFactory.create(apiKey);
 
       const response = await client.chat.send(
-        { messages, model: effectiveModel, stream: false, temperature: 0.7 },
+        {
+          messages,
+          model: effectiveModel,
+          // Learner-facing: rendered as the assistant message, so it must be a
+          // question. This is the RFC-0002 scaffolding path — a scaffolded turn
+          // may explain more than a Level 0 one, but it is still never an answer.
+          responseFormat: SOCRATIC_QUESTION_FORMAT,
+          stream: false,
+          temperature: 0.7,
+        },
         {
           headers: {
             'HTTP-Referer':

@@ -37,11 +37,22 @@ export interface AiChatSendOptions {
   headers?: Record<string, string>;
 }
 
-/** Request payload accepted by {@link AiChatClient.chat}.send(). */
+/**
+ * Request payload accepted by {@link AiChatClient.chat}.send().
+ *
+ * @remarks
+ * `responseFormat` is required rather than optional on purpose. The two errors
+ * it guards against are not equally recoverable: an over-constrained analytical
+ * surface fails loudly at its own parse, while an unconstrained learner-facing
+ * surface returns a fluent direct answer that every provider reports as
+ * success. Requiring the field makes the compiler, rather than a reviewer,
+ * the thing that notices a new surface has not decided. Declaring `undefined`
+ * is how a surface says "no shape required".
+ */
 export interface AiChatSendRequest {
   messages: AiChatMessage[];
   model: string;
-  responseFormat?: AiResponseFormat;
+  responseFormat: AiResponseFormat;
   stream?: boolean;
   temperature?: number;
 }
