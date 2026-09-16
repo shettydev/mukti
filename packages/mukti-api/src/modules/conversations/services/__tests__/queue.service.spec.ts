@@ -130,7 +130,7 @@ describe('QueueService', () => {
       getCuratedModels: jest.fn(() => [
         { id: 'openai/gpt-5-mini', label: 'GPT-5 Mini' },
       ]),
-      isClaudeCodeProvider: jest.fn(() => false),
+      isLocalCliProvider: jest.fn(() => false),
     };
 
     const mockAiKeyResolver = {

@@ -3,10 +3,8 @@ import { EventEmitter } from 'events';
 
 import type { AiChatSendRequest } from '../../types/ai-chat-client.interface';
 
-import {
-  ClaudeCliError,
-  ClaudeCodeClientFactory,
-} from '../claude-code-client.factory';
+import { ClaudeCliAdapter } from '../adapters/claude-cli.adapter';
+import { LocalCliClientFactory } from '../local-cli-client.factory';
 
 jest.mock('child_process', () => ({
   spawn: jest.fn(),
@@ -66,11 +64,17 @@ const baseRequest: AiChatSendRequest = {
   model: 'sonnet',
 };
 
-describe('ClaudeCodeClientFactory', () => {
-  let factory: ClaudeCodeClientFactory;
+/**
+ * Guards the claude-code provider's behaviour across the extraction of
+ * {@link LocalCliClientFactory}. These cases predate the shared factory and are
+ * preserved verbatim: if the refactor changed anything observable about
+ * `claude -p`, one of them fails.
+ */
+describe('LocalCliClientFactory with ClaudeCliAdapter', () => {
+  let factory: LocalCliClientFactory;
 
   beforeEach(() => {
-    factory = new ClaudeCodeClientFactory();
+    factory = new LocalCliClientFactory(new ClaudeCliAdapter());
     spawnMock.mockReset();
   });
 
@@ -105,6 +109,22 @@ describe('ClaudeCodeClientFactory', () => {
     // apiKey is never forwarded to the CLI.
     const [, args] = spawnMock.mock.calls[0];
     expect((args as string[]).join(' ')).not.toContain('ignored-api-key');
+  });
+
+  it('denies every built-in agentic tool', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: '{"result":"ok"}' }) as never,
+    );
+
+    await factory.create('').chat.send(baseRequest);
+
+    const [, args] = spawnMock.mock.calls[0];
+    const denied = (args as string[])[
+      (args as string[]).indexOf('--disallowed-tools') + 1
+    ];
+    for (const tool of ['Bash', 'Edit', 'Write', 'Read', 'Task']) {
+      expect(denied).toContain(tool);
+    }
   });
 
   it('passes the selected model through to --model', async () => {
@@ -181,9 +201,9 @@ describe('ClaudeCodeClientFactory', () => {
   it('raises a Claude-CLI-specific error when the CLI is missing', async () => {
     spawnMock.mockReturnValue(fakeChild({ errorCode: 'ENOENT' }) as never);
 
-    await expect(factory.create('').chat.send(baseRequest)).rejects.toThrow(
-      ClaudeCliError,
-    );
+    await expect(
+      factory.create('').chat.send(baseRequest),
+    ).rejects.toMatchObject({ code: 'CLAUDE_CLI_ERROR', retriable: false });
   });
 
   it('raises a non-retriable error on a non-zero exit (e.g. unauthenticated)', async () => {
@@ -192,6 +212,41 @@ describe('ClaudeCodeClientFactory', () => {
         code: 1,
         stderr: 'Invalid API key / not logged in',
       }) as never,
+    );
+
+    await expect(
+      factory.create('').chat.send(baseRequest),
+    ).rejects.toMatchObject({ code: 'CLAUDE_CLI_ERROR', retriable: false });
+  });
+
+  it('reports an unparseable envelope as a non-retriable failure', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: 'not json at all' }) as never,
+    );
+
+    await expect(
+      factory.create('').chat.send(baseRequest),
+    ).rejects.toMatchObject({ code: 'CLAUDE_CLI_ERROR', retriable: false });
+  });
+
+  it('reports an error envelope as a non-retriable failure', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({
+        code: 0,
+        stdout: '{"is_error":true,"subtype":"rate_limit","result":"slow down"}',
+      }) as never,
+    );
+
+    await expect(factory.create('').chat.send(baseRequest)).rejects.toThrow(
+      /rate_limit/,
+    );
+  });
+
+  // An empty completion is a provider failure, not a Socratic answer: returning
+  // it would let a blank assistant message reach the user.
+  it('treats a zero-exit empty response as a failure', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: '{"result":"   "}' }) as never,
     );
 
     await expect(

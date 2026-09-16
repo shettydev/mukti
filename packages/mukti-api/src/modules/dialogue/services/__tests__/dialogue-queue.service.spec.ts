@@ -111,7 +111,7 @@ describe('DialogueQueueService — local mode (inline)', () => {
       { resolve: jest.fn().mockResolvedValue('') } as any, // aiKeyResolver
       {
         getCuratedModels: jest.fn().mockReturnValue([{ id: 'sonnet' }]),
-        isClaudeCodeProvider: jest.fn().mockReturnValue(true),
+        isLocalCliProvider: jest.fn().mockReturnValue(true),
       } as any, // aiPolicyService
       dialogueAIService as any,
       dialogueQualityService as any,

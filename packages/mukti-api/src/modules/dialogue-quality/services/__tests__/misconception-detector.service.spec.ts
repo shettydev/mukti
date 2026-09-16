@@ -45,7 +45,7 @@ describe('MisconceptionDetectorService', () => {
           provide: AiPolicyService,
           useValue: {
             getDefaultModel: jest.fn().mockReturnValue('sonnet'),
-            isClaudeCodeProvider: jest.fn().mockReturnValue(false),
+            providerRequiresApiKey: jest.fn().mockReturnValue(true),
           },
         },
         {
