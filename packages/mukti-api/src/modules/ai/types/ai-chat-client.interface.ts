@@ -59,6 +59,7 @@ export interface AiChatSendRequest {
 
 /**
  * DI token for the active chat-client factory. Resolved from `AI_PROVIDER`
- * (`claude-code | openrouter`, default `openrouter`) in {@link AiModule}.
+ * (`openrouter | claude-code | antigravity`, default `openrouter`) in
+ * {@link AiModule}.
  */
 export const AI_CHAT_CLIENT_FACTORY = Symbol('AI_CHAT_CLIENT_FACTORY');

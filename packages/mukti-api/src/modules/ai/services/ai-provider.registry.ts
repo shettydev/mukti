@@ -19,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 
 import type { LocalCliAdapter } from '../types/local-cli-adapter.interface';
 
+import { AntigravityCliAdapter } from './adapters/antigravity-cli.adapter';
 import { ClaudeCliAdapter } from './adapters/claude-cli.adapter';
 
 /** Provider that reaches an HTTP API using a key. */
@@ -28,12 +29,25 @@ const DEFAULT_PROVIDER = OPENROUTER_PROVIDER;
 
 @Injectable()
 export class AiProviderRegistry implements OnModuleInit {
-  private readonly adapters: readonly LocalCliAdapter[] = [
-    new ClaudeCliAdapter(),
-  ];
+  private readonly adapters: readonly LocalCliAdapter[];
   private readonly logger = new Logger(AiProviderRegistry.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  /**
+   * Every adapter is constructed, whichever provider is active, so construction
+   * must stay free of I/O; per-provider setup belongs in `warm()`.
+   */
+  constructor(private readonly configService: ConfigService) {
+    // `||` (not `??`) is deliberate: a blank MUKTI_AGY_WORKSPACE means "use the
+    // default", not "run agy from ''".
+    /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+    const agyWorkspace =
+      configService.get<string>('MUKTI_AGY_WORKSPACE')?.trim() || undefined;
+    /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
+    this.adapters = [
+      new ClaudeCliAdapter(),
+      new AntigravityCliAdapter({ workspaceDir: agyWorkspace }),
+    ];
+  }
 
   /** The active local-CLI adapter, or `undefined` under `openrouter`. */
   getActiveLocalCliAdapter(): LocalCliAdapter | undefined {
