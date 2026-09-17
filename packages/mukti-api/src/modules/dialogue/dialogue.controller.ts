@@ -180,27 +180,31 @@ export class DialogueController {
       subscription?.tier === 'paid' ? 'paid' : 'free';
 
     const usedByok = !!userRecord.openRouterApiKeyEncrypted;
+    // A local CLI runs on the user's own auth: no OpenRouter quota, no server
+    // key, and no validation key are involved. Mirrors the conversation gate.
+    const isLocalCli = this.aiPolicyService.isLocalCliProvider();
 
-    // Enforce daily free message quota for non-BYOK users
-    if (!usedByok) {
+    // Enforce daily free message quota for non-BYOK OpenRouter users
+    if (!usedByok && !isLocalCli) {
       await this.freeQuotaService.checkAndConsume(user._id);
     }
 
     const serverApiKey =
       this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
 
-    if (!usedByok && !serverApiKey) {
+    if (!usedByok && !isLocalCli && !serverApiKey) {
       this.logger.error('OPENROUTER_API_KEY is not configured');
       throw new InternalServerErrorException(
         'AI service is temporarily unavailable',
       );
     }
 
-    const validationApiKey = usedByok
-      ? this.aiSecretsService.decryptString(
-          userRecord.openRouterApiKeyEncrypted!,
-        )
-      : serverApiKey;
+    const validationApiKey =
+      isLocalCli || !usedByok
+        ? serverApiKey
+        : this.aiSecretsService.decryptString(
+            userRecord.openRouterApiKeyEncrypted!,
+          );
 
     const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
       hasByok: usedByok,
