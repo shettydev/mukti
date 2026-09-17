@@ -50,8 +50,14 @@ export class AiController {
       throw new NotFoundException('User not found');
     }
 
+    // Under a local CLI, report the model turns will really run on, so the
+    // picker never offers up a preference the CLI would reject.
+    const activeModel = this.aiPolicyService.isLocalCliProvider()
+      ? this.aiPolicyService.resolveLocalCliModel(user.preferences?.activeModel)
+      : user.preferences?.activeModel;
+
     return {
-      activeModel: user.preferences?.activeModel,
+      activeModel,
       geminiKeyLast4: user.geminiApiKeyLast4 ?? null,
       hasGeminiKey: !!user.geminiApiKeyUpdatedAt,
       hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,

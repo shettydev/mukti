@@ -95,13 +95,12 @@ export class AiPolicyService {
     userActiveModel?: string;
     validationApiKey: string;
   }): Promise<string> {
-    // A local CLI serves the models the user selects from its own catalogue; the
-    // OpenRouter catalog is irrelevant, so skip validation and honour the choice.
+    // A local CLI serves models from its own catalogue; the OpenRouter catalog
+    // is irrelevant, so it is never consulted.
     if (this.isLocalCliProvider()) {
-      return (
-        params.requestedModel ??
-        params.userActiveModel ??
-        this.getDefaultModel()
+      return this.resolveLocalCliModel(
+        params.requestedModel,
+        params.userActiveModel,
       );
     }
 
@@ -118,6 +117,24 @@ export class AiPolicyService {
     });
 
     return candidate;
+  }
+
+  /**
+   * The model a local CLI will actually run: the first candidate it offers,
+   * otherwise its default.
+   *
+   * @remarks
+   * A model preference can outlive the provider it was chosen under — `sonnet`
+   * saved while on claude-code, or the web app's hosted default sent before
+   * settings load — and a CLI handed a model it does not know fails every
+   * turn. So only models from the active CLI's own catalogue are passed on.
+   */
+  resolveLocalCliModel(...candidates: (string | undefined)[]): string {
+    const offered = new Set(this.getCuratedModels().map((m) => m.id));
+    return (
+      candidates.find((c): c is string => !!c && offered.has(c)) ??
+      this.getDefaultModel()
+    );
   }
 
   async validateModelOrThrow(params: {
