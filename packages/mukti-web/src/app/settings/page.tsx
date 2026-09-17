@@ -121,8 +121,8 @@ function SettingsContent() {
           </section>
 
           {/* ── OpenRouter API Key ── */}
-          {/* Hidden in local mode: AI runs on the developer's own Claude Code auth,
-              so there is no BYOK key to manage. */}
+          {/* Hidden in local mode: AI runs on the developer's own AI CLI auth
+              (Claude Code or Antigravity), so there is no BYOK key to manage. */}
           {!isLocalMode() && (
             <section>
               <div className="mb-4 flex items-center gap-2.5">
