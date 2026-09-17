@@ -60,6 +60,14 @@ export class MisconceptionDetectorService {
       return { fromCache: false, hasMisconception: false };
     }
 
+    // A local CLI cannot answer within the 500ms budget below — process start
+    // alone exceeds it — so the check would always fail open, after starting a
+    // CLI run that still completes and bills the user's own subscription. Skip
+    // it and fail open straight away: same result, no wasted run.
+    if (this.aiPolicyService.isLocalCliProvider()) {
+      return { fromCache: false, hasMisconception: false };
+    }
+
     const concepts = (input.conceptContext ?? []).join(',');
     const normalizedMsg = input.userMessage.trim().toLowerCase();
     const cacheKey = `misconception:${createHash('sha256')
@@ -85,19 +93,12 @@ export class MisconceptionDetectorService {
 
     // LLM call with 500ms timeout — fail open
     // Always use the platform key, never the user's BYOK key (RFC-0004 OQ-3).
-    // Under a local-CLI provider there is no OpenRouter key — the CLI runs on
-    // the user's own auth — so use the provider's default model from its own
-    // catalogue and an empty key (the client ignores it). That catalogue is
-    // warmed at boot, so reading it here never blocks this 500ms path.
-    const requiresApiKey = this.aiPolicyService.providerRequiresApiKey();
-    const model = requiresApiKey
-      ? this.configService.get<string>(
-          'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
-          'google/gemini-3-flash-preview',
-        )
-      : this.aiPolicyService.getDefaultModel();
+    const model = this.configService.get<string>(
+      'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
+      'google/gemini-3-flash-preview',
+    );
     const platformKey = this.configService.get<string>('OPENROUTER_API_KEY');
-    if (requiresApiKey && !platformKey) {
+    if (!platformKey) {
       this.logger.warn(
         'Platform OPENROUTER_API_KEY not configured, skipping misconception detection',
       );
@@ -112,9 +113,7 @@ export class MisconceptionDetectorService {
 
     let timer: ReturnType<typeof setTimeout>;
     try {
-      const client = this.chatClientFactory.create(
-        requiresApiKey ? (platformKey ?? '') : '',
-      );
+      const client = this.chatClientFactory.create(platformKey);
       const prompt = MISCONCEPTION_DETECTION_PROMPT.replace(
         '{concepts}',
         concepts || 'general',

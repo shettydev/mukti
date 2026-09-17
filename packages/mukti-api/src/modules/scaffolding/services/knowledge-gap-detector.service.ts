@@ -513,10 +513,14 @@ export class KnowledgeGapDetectorService {
       messageIndex > 0 &&
       messageIndex % LLM_EXTRACTION_INTERVAL === 0;
 
-    if (
-      keywordConcepts.length >= MIN_KEYWORD_CONCEPTS_THRESHOLD &&
-      !isPeriodicExtraction
-    ) {
+    // Under a local CLI every extraction is a full CLI run that the reply waits
+    // on — about 40s with agy — so too few keyword concepts is not reason
+    // enough there; only the periodic pass runs.
+    const keywordsFellShort =
+      keywordConcepts.length < MIN_KEYWORD_CONCEPTS_THRESHOLD &&
+      !this.aiPolicyService.isLocalCliProvider();
+
+    if (!keywordsFellShort && !isPeriodicExtraction) {
       return keywordConcepts;
     }
 
