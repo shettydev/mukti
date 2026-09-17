@@ -23,6 +23,7 @@ import { boot } from './launcher/boot.ts';
 import { createDatabaseSpec, mongoUri } from './launcher/database.ts';
 import { findFreePort, reserveFreePort } from './launcher/net.ts';
 import { runPreflight } from './launcher/preflight.ts';
+import { selectProvider, SUPPORTED_PROVIDERS } from './launcher/providers.ts';
 
 const DEFAULT_API_PORT = 3000;
 const DEFAULT_WEB_PORT = 3001;
@@ -33,6 +34,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 interface Options {
   readonly apiPort: number;
   readonly dataDir?: string;
+  readonly provider?: string;
   readonly webPort: number;
 }
 
@@ -40,6 +42,7 @@ function parseArgs(argv: readonly string[]): Options {
   let apiPort = DEFAULT_API_PORT;
   let webPort = DEFAULT_WEB_PORT;
   let dataDir: string | undefined;
+  let provider: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -68,13 +71,16 @@ function parseArgs(argv: readonly string[]): Options {
       case '--web-port':
         webPort = Number(value());
         break;
+      case '--provider':
+        provider = value();
+        break;
       default:
         process.stderr.write(`muktiai: unknown option ${arg}\n\n${HELP}`);
         process.exit(1);
     }
   }
 
-  return { apiPort, dataDir, webPort };
+  return { apiPort, dataDir, provider, webPort };
 }
 
 const HELP = `
@@ -88,9 +94,12 @@ const HELP = `
     --api-port <n>          Port for the API (default ${DEFAULT_API_PORT})
     --data-dir <path>       Where to keep the database and logs
                             (default ~/.mukti, or $MUKTI_HOME)
+    --provider <name>       AI CLI to run on: ${SUPPORTED_PROVIDERS.map((p) => p.id).join(' or ')}
+                            (default $AI_PROVIDER, else whichever is installed)
     -h, --help              Show this
 
-  Requires an installed and authenticated Claude Code CLI.
+  Requires an installed, signed-in AI CLI: Claude Code (\`claude\`)
+  or Antigravity (\`agy\`). No API key is needed.
 `;
 
 /**
@@ -118,7 +127,8 @@ intro(pc.inverse(pc.cyan(' mukti ')));
 
 const options = parseArgs(process.argv.slice(2));
 
-await runPreflight();
+const provider = selectProvider(options.provider);
+await runPreflight({ provider });
 
 const home = resolveMuktiHome(options.dataDir);
 
@@ -145,7 +155,10 @@ const webEntry = web.webServerEntry();
 
 const baseEnv: NodeJS.ProcessEnv = {
   ...process.env,
-  AI_PROVIDER: 'claude-code',
+  AI_PROVIDER: provider.id,
+  // agy runs from a directory Mukti owns, never a repository; its name is
+  // also the agy project Mukti's turns are filed under.
+  MUKTI_AGY_WORKSPACE: join(home.root, 'mukti-socratic'),
   MUKTI_LOCAL: '1',
   // The launcher owns the database; the API connects to this rather than
   // starting one of its own.

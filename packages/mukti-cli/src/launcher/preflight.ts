@@ -2,11 +2,12 @@
  * Preflight checks, shared by both launcher modes.
  *
  * @remarks
- * Claude Code is a hard prerequisite in both: Mukti's local runtime uses the
- * `claude` CLI as its AI provider, so starting a stack without it produces an
+ * An installed, signed-in AI CLI is a hard prerequisite in both: Mukti's local
+ * runtime uses it as its AI provider, so starting a stack without it produces an
  * app that looks fine until the first question and then fails. Checking up
  * front, with remediation, is the difference between a clear message and a
- * confusing one.
+ * confusing one. Which CLI, and how it is checked, belongs to the selected
+ * provider (see `providers.ts`) — the checks here never assume Claude Code.
  *
  * Mode-specific checks (free ports in repo mode, a usable Node for the
  * database daemon) are passed in rather than hardcoded, because the two modes
@@ -14,7 +15,10 @@
  * the published CLI falls forward to another port instead.
  */
 import { log, spinner } from '@clack/prompts';
-import { spawnSync } from 'node:child_process';
+
+import type { LocalCliProvider, RunCommand } from './providers.ts';
+
+import { runCommand } from './providers.ts';
 
 export interface PreflightCheck {
   /** Shown on the spinner while the check runs. */
@@ -27,15 +31,24 @@ export interface PreflightFailure {
   readonly remediation: string;
 }
 
+/** What preflight verified, for the launcher's success line and logs. */
+export interface PreflightResult {
+  readonly provider: LocalCliProvider;
+  /** The CLI's reported version. */
+  readonly version: string;
+}
+
 /**
- * Runs the Claude Code checks plus any mode-specific ones, and exits non-zero
- * with remediation on the first failure — before anything is started.
- *
- * @returns the reported `claude` version, for the success line.
+ * Runs the selected provider's install and sign-in probes plus any
+ * mode-specific checks, and exits non-zero with remediation on the first
+ * failure — before anything is started.
  */
-export async function runPreflight(
-  checks: readonly PreflightCheck[] = []
-): Promise<{ claudeVersion: string }> {
+export async function runPreflight(options: {
+  readonly checks?: readonly PreflightCheck[];
+  readonly provider: LocalCliProvider;
+  readonly run?: RunCommand;
+}): Promise<PreflightResult> {
+  const { checks = [], provider, run = runCommand } = options;
   const active = spinner();
   active.start('Running preflight checks');
 
@@ -45,27 +58,18 @@ export async function runPreflight(
     process.exit(1);
   };
 
-  const version = spawnSync('claude', ['--version'], { encoding: 'utf8' });
-  if (version.error || version.status !== 0) {
+  const version =
+    provider.version(run) ??
     fail({
-      headline: 'the `claude` CLI was not found on PATH',
-      remediation: 'Install Claude Code: https://docs.claude.com/en/docs/claude-code/overview',
+      headline: `the \`${provider.binary}\` CLI was not found on PATH`,
+      remediation: provider.installRemediation,
     });
-  }
-  const claudeVersion = version.stdout.trim();
 
-  active.message('Checking Claude CLI authentication');
-  const status = spawnSync('claude', ['auth', 'status'], { encoding: 'utf8' });
-  let loggedIn = false;
-  try {
-    loggedIn = (JSON.parse(status.stdout) as { loggedIn?: boolean }).loggedIn === true;
-  } catch {
-    loggedIn = false;
-  }
-  if (!loggedIn) {
+  active.message(`Checking ${provider.label} sign-in`);
+  if (!provider.isAuthenticated(run)) {
     fail({
-      headline: 'the `claude` CLI is not authenticated',
-      remediation: 'Run `claude login` and try again.',
+      headline: `the \`${provider.binary}\` CLI is not signed in`,
+      remediation: provider.signInRemediation,
     });
   }
 
@@ -77,6 +81,6 @@ export async function runPreflight(
     }
   }
 
-  active.stop(`Preflight passed — Claude CLI ${claudeVersion}`);
-  return { claudeVersion };
+  active.stop(`Preflight passed — ${provider.label} ${version}`);
+  return { provider, version };
 }
