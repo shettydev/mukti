@@ -26,6 +26,7 @@ describe('ConversationController', () => {
   let conversationService: jest.Mocked<ConversationService>;
   let messageService: jest.Mocked<MessageService>;
   let queueService: jest.Mocked<QueueService>;
+  let freeQuotaService: { checkAndConsume: jest.Mock };
 
   // Mock authenticated user
   const mockUser = {
@@ -148,6 +149,7 @@ describe('ConversationController', () => {
     conversationService = module.get(ConversationService);
     messageService = module.get(MessageService);
     queueService = module.get(QueueService);
+    freeQuotaService = module.get(FreeQuotaService);
 
     // Reset mocks before each test
     jest.clearAllMocks();
@@ -518,6 +520,55 @@ describe('ConversationController', () => {
   });
 
   describe('sendMessage', () => {
+    const conversationId = new Types.ObjectId();
+
+    function givenConversation(): void {
+      mockConversationService.findConversationById.mockResolvedValue({
+        _id: conversationId,
+        technique: 'elenchus',
+        userId: new Types.ObjectId(),
+      } as any);
+      mockQueueService.enqueueRequest.mockResolvedValue({
+        jobId: 'job-123',
+        position: 1,
+      } as any);
+    }
+
+    afterEach(() => {
+      mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
+      mockConfigService.get.mockReturnValue('mock-api-key');
+    });
+
+    it('consumes free quota for a non-BYOK OpenRouter user', async () => {
+      givenConversation();
+
+      await controller.sendMessage(
+        conversationId.toString(),
+        { content: 'Why?' },
+        mockUser as any,
+      );
+
+      expect(freeQuotaService.checkAndConsume).toHaveBeenCalledWith(
+        mockUser._id,
+      );
+    });
+
+    // Local mode has no OpenRouter key at all; the user's own CLI pays.
+    it('neither consumes quota nor requires a server key under a local-CLI provider', async () => {
+      givenConversation();
+      mockAiPolicyService.isLocalCliProvider.mockReturnValue(true);
+      mockConfigService.get.mockReturnValue('');
+
+      const result = await controller.sendMessage(
+        conversationId.toString(),
+        { content: 'Why?' },
+        mockUser as any,
+      );
+
+      expect(freeQuotaService.checkAndConsume).not.toHaveBeenCalled();
+      expect(result).toEqual({ jobId: 'job-123', position: 1 });
+    });
+
     it('should enqueue message for processing', async () => {
       // Arrange
       const conversationId = new Types.ObjectId();
