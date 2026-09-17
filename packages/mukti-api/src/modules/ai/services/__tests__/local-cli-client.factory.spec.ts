@@ -1,5 +1,4 @@
 import { spawn } from 'child_process';
-import { EventEmitter } from 'events';
 
 import type { AiChatSendRequest } from '../../types/ai-chat-client.interface';
 import type { LocalCliAdapter } from '../../types/local-cli-adapter.interface';
@@ -7,56 +6,13 @@ import type { LocalCliAdapter } from '../../types/local-cli-adapter.interface';
 import { SOCRATIC_QUESTION_FORMAT } from '../../types/ai-response-format.interface';
 import { ClaudeCliAdapter } from '../adapters/claude-cli.adapter';
 import { LocalCliClientFactory } from '../local-cli-client.factory';
+import { fakeChild } from './fake-child';
 
 jest.mock('child_process', () => ({
   spawn: jest.fn(),
 }));
 
 const spawnMock = spawn as jest.MockedFunction<typeof spawn>;
-
-/**
- * Builds a fake child process. `outcome` decides what happens after stdin ends:
- * - { stdout, code: 0 } → emits stdout data then closes successfully
- * - { code: n } → closes with a non-zero exit and optional stderr
- * - { errorCode } → emits an 'error' (e.g. ENOENT for a missing CLI)
- */
-function fakeChild(outcome: {
-  code?: number;
-  errorCode?: string;
-  stderr?: string;
-  stdout?: string;
-}) {
-  const child = new EventEmitter() as EventEmitter & {
-    stderr: EventEmitter;
-    stdin: { end: jest.Mock; on: jest.Mock; write: jest.Mock };
-    stdout: EventEmitter;
-  };
-  child.stdout = new EventEmitter();
-  child.stderr = new EventEmitter();
-  child.stdin = {
-    end: jest.fn(() => {
-      // Emit the outcome asynchronously once the input has been written.
-      setImmediate(() => {
-        if (outcome.errorCode) {
-          const err = new Error('spawn failed') as NodeJS.ErrnoException;
-          err.code = outcome.errorCode;
-          child.emit('error', err);
-          return;
-        }
-        if (outcome.stdout) {
-          child.stdout.emit('data', Buffer.from(outcome.stdout));
-        }
-        if (outcome.stderr) {
-          child.stderr.emit('data', Buffer.from(outcome.stderr));
-        }
-        child.emit('close', outcome.code ?? 0);
-      });
-    }),
-    on: jest.fn(),
-    write: jest.fn(),
-  };
-  return child;
-}
 
 const baseRequest: AiChatSendRequest = {
   messages: [
@@ -368,5 +324,133 @@ describe('LocalCliClientFactory response-shape contract', () => {
       .chat.send({ ...baseRequest, responseFormat: SOCRATIC_QUESTION_FORMAT });
 
     expect(argsFrom()).toEqual(withoutShape);
+  });
+});
+
+/**
+ * Mechanics a CLI can opt into through its adapter: taking the prompt as a
+ * flag value rather than on stdin, a hard deadline, and a readable failure
+ * extracted from its own output. None of these change the claude-code path,
+ * which opts into none of them.
+ */
+describe('LocalCliClientFactory adapter-selected mechanics', () => {
+  function stubAdapter(
+    overrides: Partial<LocalCliAdapter> = {},
+  ): LocalCliAdapter {
+    return {
+      binary: 'stub-cli',
+      buildArgs: () => ['--json'],
+      errorCode: 'STUB_CLI_ERROR',
+      getModels: () => [],
+      installHint: 'Install the stub CLI.',
+      parseEnvelope: (stdout) => ({
+        completionTokens: 0,
+        content: stdout.trim(),
+        promptTokens: 0,
+      }),
+      providerId: 'antigravity',
+      signInHint: 'Sign in to the stub CLI.',
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    spawnMock.mockReset();
+  });
+
+  it('hands the rendered input to buildArgs and writes nothing to stdin for an argument-channel CLI', async () => {
+    const child = fakeChild({ code: 0, stdout: 'A question?' });
+    spawnMock.mockReturnValue(child as never);
+    const buildArgs = jest.fn((_request: AiChatSendRequest, input: string) => [
+      `--print=${input}`,
+    ]);
+
+    await new LocalCliClientFactory(
+      stubAdapter({ buildArgs, inputChannel: 'argument' }),
+    )
+      .create('')
+      .chat.send(baseRequest);
+
+    expect(buildArgs.mock.calls[0][1]).toBe('User: How do I center a div?');
+    expect(spawnMock.mock.calls[0][1]).toEqual([
+      '--print=User: How do I center a div?',
+    ]);
+    expect(child.stdin.write).not.toHaveBeenCalled();
+    expect(child.stdin.end).toHaveBeenCalled();
+  });
+
+  it('still writes the input to stdin by default', async () => {
+    const child = fakeChild({ code: 0, stdout: 'A question?' });
+    spawnMock.mockReturnValue(child as never);
+
+    await new LocalCliClientFactory(stubAdapter())
+      .create('')
+      .chat.send(baseRequest);
+
+    expect(child.stdin.write).toHaveBeenCalledWith(
+      'User: How do I center a div?',
+    );
+  });
+
+  it('passes the request to parseEnvelope so the adapter knows what shape was declared', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: 'A question?' }) as never,
+    );
+    const parseEnvelope = jest.fn(() => ({
+      completionTokens: 0,
+      content: 'A question?',
+      promptTokens: 0,
+    }));
+    const request = {
+      ...baseRequest,
+      responseFormat: SOCRATIC_QUESTION_FORMAT,
+    };
+
+    await new LocalCliClientFactory(stubAdapter({ parseEnvelope }))
+      .create('')
+      .chat.send(request);
+
+    expect(parseEnvelope).toHaveBeenCalledWith('A question?', request);
+  });
+
+  // A CLI that loops on its own tools can outlive its own print timeout's
+  // bookkeeping; the factory must not wait forever on it.
+  it('stops a CLI that exceeds its deadline and reports it as non-retriable', async () => {
+    const child = fakeChild({ hang: true });
+    spawnMock.mockReturnValue(child as never);
+
+    await expect(
+      new LocalCliClientFactory(stubAdapter({ timeoutMs: 20 }))
+        .create('')
+        .chat.send(baseRequest),
+    ).rejects.toMatchObject({
+      code: 'STUB_CLI_ERROR',
+      message: expect.stringMatching(/did not respond/),
+      retriable: false,
+    });
+    expect(child.kill).toHaveBeenCalled();
+  });
+
+  it('reports the failure the CLI described instead of its raw output on a non-zero exit', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({
+        code: 1,
+        stdout: '{"status":"ERROR","error":"timeout waiting for response"}',
+      }) as never,
+    );
+
+    const failure = new LocalCliClientFactory(
+      stubAdapter({
+        describeFailure: (stdout) =>
+          (JSON.parse(stdout) as { error: string }).error,
+      }),
+    )
+      .create('')
+      .chat.send(baseRequest);
+
+    await expect(failure).rejects.toMatchObject({ code: 'STUB_CLI_ERROR' });
+    await expect(failure).rejects.toThrow(
+      /Detail: timeout waiting for response$/,
+    );
   });
 });
