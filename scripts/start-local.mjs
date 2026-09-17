@@ -90,9 +90,12 @@ if (stripping === 'none') {
   ]);
 }
 
+/** Options such as `--provider`, passed through as `npm run start:local -- …`. */
+const LAUNCHER_ARGS = process.argv.slice(2);
+
 const [command, args] =
   stripping === null
-    ? ['bun', [LAUNCHER]]
+    ? ['bun', [LAUNCHER, ...LAUNCHER_ARGS]]
     : [
         process.execPath,
         [
@@ -105,6 +108,7 @@ const [command, args] =
             ? ['--experimental-strip-types', '--disable-warning=ExperimentalWarning']
             : []),
           LAUNCHER,
+          ...LAUNCHER_ARGS,
         ],
       ];
 

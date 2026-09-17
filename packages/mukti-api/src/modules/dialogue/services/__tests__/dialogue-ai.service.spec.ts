@@ -27,12 +27,14 @@ describe('DialogueAIService', () => {
   };
   const configService = { get: jest.fn().mockReturnValue('https://mukti.app') };
 
-  const makeService = (isClaudeCode: boolean) =>
+  // `true` = a local CLI is active, which is exactly the case where an empty API
+  // key is expected rather than a misconfiguration.
+  const makeService = (isLocalCli: boolean) =>
     new DialogueAIService(
       configService as any,
       chatClientFactory as any,
       {
-        isClaudeCodeProvider: jest.fn().mockReturnValue(isClaudeCode),
+        providerRequiresApiKey: jest.fn().mockReturnValue(!isLocalCli),
       } as any,
     );
 
@@ -46,7 +48,7 @@ describe('DialogueAIService', () => {
     chatClientFactory.create.mockReturnValue({ chat: { send: mockSend } });
   });
 
-  describe('claude-code provider (empty API key by design)', () => {
+  describe('local-CLI provider (empty API key by design)', () => {
     it('calls the provider instead of returning a placeholder', async () => {
       mockSend.mockResolvedValue(aiPayload('What evidence supports that?'));
 

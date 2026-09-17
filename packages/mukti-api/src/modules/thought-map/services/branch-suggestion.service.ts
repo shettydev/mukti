@@ -577,6 +577,9 @@ export class BranchSuggestionService extends WorkerHost {
           { content: 'Generate branch suggestions now.', role: 'user' },
         ],
         model,
+        // Internal analysis, not read by the learner: must stay free to return
+        // the branch structure this service parses.
+        responseFormat: undefined,
         stream: false,
         temperature: 0.8,
       },

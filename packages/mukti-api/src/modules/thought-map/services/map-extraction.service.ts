@@ -539,6 +539,10 @@ export class MapExtractionService extends WorkerHost {
           { content: 'Extract the Thought Map now.', role: 'user' },
         ],
         model,
+        // Internal analysis, not read by the learner: this must stay free to
+        // return the extraction structure `parseExtractionResult` expects.
+        // Constraining it to a question would break it outright.
+        responseFormat: undefined,
         stream: false,
         temperature: 0.3,
       },

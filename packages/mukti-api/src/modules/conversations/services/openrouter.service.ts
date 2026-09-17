@@ -10,6 +10,7 @@ import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
 } from '../../ai/types/ai-chat-client.interface';
+import { SOCRATIC_QUESTION_FORMAT } from '../../ai/types/ai-response-format.interface';
 import { appendQualityGuardrails } from '../../dialogue/utils/prompt-builder';
 import { ScaffoldPromptAugmenter } from '../../scaffolding/services/scaffold-prompt-augmenter.service';
 
@@ -271,6 +272,10 @@ export class OpenRouterService {
         {
           messages,
           model,
+          // Learner-facing: this content is rendered as the assistant message,
+          // so it must be a question. Whether a provider enforces the shape is
+          // its own business — the declaration says what this surface needs.
+          responseFormat: SOCRATIC_QUESTION_FORMAT,
           stream: false,
           temperature: 0.7,
         },

@@ -77,17 +77,20 @@ Mukti responds with a compact sequence:
 3. "Can you add a guard and a focused test for that path?"
 4. "Here is a debugging reference for this exact error class."
 
-## Quickstart (one command, uses your Claude Code)
+## Quickstart (one command, uses your own AI CLI)
 
-If you already have [Claude Code](https://docs.claude.com/en/docs/claude-code/overview)
-installed and authenticated, you can run Mukti with **no Docker, no Redis, no OpenRouter
-key** — the AI runs through your own `claude` CLI.
+If you already have an AI CLI installed and signed in — [Claude Code](https://docs.claude.com/en/docs/claude-code/overview)
+or the [Antigravity CLI](https://antigravity.google/docs/cli/reference) — you can run Mukti with
+**no Docker, no Redis, no OpenRouter key**. The AI runs through that CLI, on your own
+subscription.
 
 ### Prerequisites
 
 - [Git](https://git-scm.com/), and either [Bun](https://bun.sh/) (recommended — it is what
   the rest of the workspace uses) or Node 22.18+
-- The `claude` CLI, authenticated (`claude login`)
+- One of:
+  - the `claude` CLI, signed in (`claude login`), or
+  - the `agy` CLI, signed in (run `agy` once and follow the prompts)
 
 ### Run it
 
@@ -100,13 +103,43 @@ bun run start:local
 
 Without Bun, the same two steps are `npm install` and `npm run start:local` — the launcher
 runs on Node's built-in TypeScript support. Every other workspace script assumes Bun, so
-install it before doing more than trying Mukti out.
+install it before doing more than trying Mukti out. Without a checkout, `npx muktiai` does the
+same from prebuilt packages.
 
-That's it. The launcher runs preflight checks (Claude CLI present + authenticated, ports
-free), then boots the API and web app and opens [http://localhost:3001](http://localhost:3001).
+That's it. The launcher picks your AI CLI, runs preflight checks (that CLI installed and signed
+in, ports free), then boots the API and web app and opens [http://localhost:3001](http://localhost:3001).
 No login is required — local mode signs you in as a seeded local user.
 
-**What local mode does:** sets `MUKTI_LOCAL=1` and `AI_PROVIDER=claude-code`, replaces
+### Choosing the AI CLI
+
+The launcher uses, in order: `--provider`, then the `AI_PROVIDER` environment variable, then
+whichever supported CLI it finds on your `PATH` (Claude Code first). It always says which one it
+picked. To choose explicitly:
+
+```bash
+bun run start:local -- --provider claude-code
+bun run start:local -- --provider antigravity   # or: npx muktiai --provider antigravity
+```
+
+The two are not equivalent, and the difference is worth knowing before you choose:
+
+|                           | Claude Code (`claude-code`)                               | Antigravity (`antigravity`)                                                                                                                                               |
+| ------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Time per reply (measured) | about 13–20 seconds                                       | about 30–60 seconds                                                                                                                                                       |
+| Prompt size per reply     | Mukti's own prompt and your conversation                  | about 15–25k input tokens: the same, plus agy's own ~14k-token coding-agent prompt, which cannot be replaced                                                              |
+| Stored outside Mukti      | whatever Claude Code itself records for a `claude -p` run | a conversation record (about 1 MB) per reply in your Antigravity history (`~/.gemini/antigravity-cli`), filed under a `mukti-socratic` project. Mukti never deletes these |
+
+A few more things to know about Antigravity:
+
+- Your **global** agy rules and hooks (`~/.gemini/config/`) apply to Mukti's replies too, and a
+  global rule can change what a reply says. Your project-level agy customizations do not apply:
+  agy runs from `~/.mukti/mukti-socratic`, never from your projects.
+- Each reply's full prompt, including your conversation so far, is passed to `agy` as a
+  command-line argument, so other processes on your machine can see it (for example with `ps`).
+- Every so often a reply takes two agy runs instead of one, while Mukti refreshes which concepts
+  the conversation is about.
+
+**What local mode does:** sets `MUKTI_LOCAL=1` and `AI_PROVIDER` to the chosen CLI, replaces
 MongoDB with an embedded file-backed instance under `.mukti/local-db/` (data persists
 across restarts), processes conversations inline (no Redis), and generates ephemeral
 secrets on boot.
@@ -114,8 +147,9 @@ secrets on boot.
 > **First run** downloads a one-time embedded MongoDB binary (via `mongodb-memory-server`),
 > so the first `run start:local` takes a little longer.
 >
-> Pick your Claude model in **Settings** (Sonnet / Opus / Haiku); the selection is passed
-> to `claude -p --model`.
+> Pick a model from the model picker. The list comes from the CLI you are running — Claude Code's
+> Sonnet / Opus / Haiku aliases, or whatever `agy models` reports — and the selection is passed to
+> that CLI's `--model`.
 
 For the full hosted stack (auth, subscriptions, OpenRouter), use the Docker quickstart below.
 

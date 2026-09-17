@@ -27,7 +27,10 @@ describe('KnowledgeGapDetectorService - Score Invariants (Property-Based)', () =
       { checkMultiple: jest.fn() } as any,
       { create: jest.fn() } as any,
       { get: jest.fn() } as any,
-      { isClaudeCodeProvider: jest.fn().mockReturnValue(false) } as any,
+      {
+        isLocalCliProvider: jest.fn().mockReturnValue(false),
+        providerRequiresApiKey: jest.fn().mockReturnValue(true),
+      } as any,
     );
   });
 

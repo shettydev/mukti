@@ -2,13 +2,12 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import type { User } from '../../../schemas/user.schema';
+import type { AllowedModel } from '../types/ai-model.interface';
 
+import { AiProviderRegistry } from './ai-provider.registry';
 import { OpenRouterModelsService } from './openrouter-models.service';
 
-export interface AllowedModel {
-  id: string;
-  label: string;
-}
+export type { AllowedModel };
 
 /** Model served to free (non-BYOK) users. */
 const FREE_MODEL = 'qwen/qwen3.7-max';
@@ -19,32 +18,27 @@ const CURATED_MODELS: AllowedModel[] = [
   { id: FREE_MODEL, label: 'Qwen3.7 Max' },
 ];
 
-/**
- * Claude models offered when the claude-code provider is active. Ids are Claude
- * CLI aliases passed verbatim to `claude -p --model`; the developer's selection
- * is persisted as usual on `user.activeModel`.
- */
-const CLAUDE_CODE_MODELS: AllowedModel[] = [
-  { id: 'sonnet', label: 'Claude Sonnet' },
-  { id: 'opus', label: 'Claude Opus' },
-  { id: 'haiku', label: 'Claude Haiku' },
-];
-
 @Injectable()
 export class AiPolicyService {
   constructor(
+    private readonly aiProviderRegistry: AiProviderRegistry,
     private readonly configService: ConfigService,
     private readonly openRouterModelsService: OpenRouterModelsService,
   ) {}
 
+  /**
+   * Models offered for the active provider: the local CLI's own catalogue when
+   * one is active, the OpenRouter curated list otherwise.
+   */
   getCuratedModels(): AllowedModel[] {
-    return this.isClaudeCodeProvider() ? CLAUDE_CODE_MODELS : CURATED_MODELS;
+    return (
+      this.aiProviderRegistry.getActiveLocalCliAdapter()?.getModels() ??
+      CURATED_MODELS
+    );
   }
 
   getDefaultModel(): string {
-    return this.isClaudeCodeProvider()
-      ? CLAUDE_CODE_MODELS[0].id
-      : DEFAULT_MODEL;
+    return this.getCuratedModels()[0]?.id ?? DEFAULT_MODEL;
   }
 
   getValidationApiKey(params: {
@@ -73,9 +67,26 @@ export class AiPolicyService {
     return !!user.openRouterApiKeyEncrypted;
   }
 
-  /** Whether AI completions route through the local Claude Code CLI. */
-  isClaudeCodeProvider(): boolean {
-    return this.configService.get<string>('AI_PROVIDER') === 'claude-code';
+  /**
+   * Whether AI completions route through a local, user-authenticated agent CLI
+   * (Claude Code, Antigravity) rather than an HTTP API.
+   */
+  isLocalCliProvider(): boolean {
+    return this.aiProviderRegistry.isLocalCliProvider();
+  }
+
+  /**
+   * Whether the active provider needs an API key at all.
+   *
+   * @remarks
+   * Local-CLI providers run on the user's own CLI authentication and are handed
+   * an empty key by design ({@link AiKeyResolver}), so an empty key is a
+   * misconfiguration for key-based providers only. Feature services ask this
+   * rather than re-deriving it from the provider identity, so that adding a
+   * provider does not mean revisiting every surface that tolerates an empty key.
+   */
+  providerRequiresApiKey(): boolean {
+    return !this.isLocalCliProvider();
   }
 
   async resolveEffectiveModel(params: {
@@ -84,18 +95,17 @@ export class AiPolicyService {
     userActiveModel?: string;
     validationApiKey: string;
   }): Promise<string> {
-    // Free (non-BYOK) users are always served the free-tier model, regardless
-    // of any requested or previously stored model preference.
-    // The claude-code provider serves Claude models the developer selects; the
-    // OpenRouter catalog is irrelevant, so skip validation and honour the choice.
-    if (this.isClaudeCodeProvider()) {
-      return (
-        params.requestedModel ??
-        params.userActiveModel ??
-        this.getDefaultModel()
+    // A local CLI serves models from its own catalogue; the OpenRouter catalog
+    // is irrelevant, so it is never consulted.
+    if (this.isLocalCliProvider()) {
+      return this.resolveLocalCliModel(
+        params.requestedModel,
+        params.userActiveModel,
       );
     }
 
+    // Free (non-BYOK) users are always served the free-tier model, regardless
+    // of any requested or previously stored model preference.
     const candidate = params.hasByok
       ? (params.requestedModel ?? params.userActiveModel ?? DEFAULT_MODEL)
       : FREE_MODEL;
@@ -109,12 +119,30 @@ export class AiPolicyService {
     return candidate;
   }
 
+  /**
+   * The model a local CLI will actually run: the first candidate it offers,
+   * otherwise its default.
+   *
+   * @remarks
+   * A model preference can outlive the provider it was chosen under — `sonnet`
+   * saved while on claude-code, or the web app's hosted default sent before
+   * settings load — and a CLI handed a model it does not know fails every
+   * turn. So only models from the active CLI's own catalogue are passed on.
+   */
+  resolveLocalCliModel(...candidates: (string | undefined)[]): string {
+    const offered = new Set(this.getCuratedModels().map((m) => m.id));
+    return (
+      candidates.find((c): c is string => !!c && offered.has(c)) ??
+      this.getDefaultModel()
+    );
+  }
+
   async validateModelOrThrow(params: {
     apiKey: string;
     model: string;
   }): Promise<void> {
-    // No OpenRouter catalog to validate against when using Claude Code.
-    if (this.isClaudeCodeProvider()) {
+    // No OpenRouter catalog to validate against when using a local CLI.
+    if (this.isLocalCliProvider()) {
       return;
     }
 

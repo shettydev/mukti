@@ -60,6 +60,14 @@ export class MisconceptionDetectorService {
       return { fromCache: false, hasMisconception: false };
     }
 
+    // A local CLI cannot answer within the 500ms budget below — process start
+    // alone exceeds it — so the check would always fail open, after starting a
+    // CLI run that still completes and bills the user's own subscription. Skip
+    // it and fail open straight away: same result, no wasted run.
+    if (this.aiPolicyService.isLocalCliProvider()) {
+      return { fromCache: false, hasMisconception: false };
+    }
+
     const concepts = (input.conceptContext ?? []).join(',');
     const normalizedMsg = input.userMessage.trim().toLowerCase();
     const cacheKey = `misconception:${createHash('sha256')
@@ -85,18 +93,12 @@ export class MisconceptionDetectorService {
 
     // LLM call with 500ms timeout — fail open
     // Always use the platform key, never the user's BYOK key (RFC-0004 OQ-3).
-    // Under the claude-code provider there is no OpenRouter key — the CLI runs
-    // on the developer's own auth — so use the provider's default Claude model
-    // and an empty key (the client ignores it).
-    const isClaudeCode = this.aiPolicyService.isClaudeCodeProvider();
-    const model = isClaudeCode
-      ? this.aiPolicyService.getDefaultModel()
-      : this.configService.get<string>(
-          'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
-          'google/gemini-3-flash-preview',
-        );
+    const model = this.configService.get<string>(
+      'DIALOGUE_QUALITY_MISCONCEPTION_MODEL',
+      'google/gemini-3-flash-preview',
+    );
     const platformKey = this.configService.get<string>('OPENROUTER_API_KEY');
-    if (!isClaudeCode && !platformKey) {
+    if (!platformKey) {
       this.logger.warn(
         'Platform OPENROUTER_API_KEY not configured, skipping misconception detection',
       );
@@ -111,9 +113,7 @@ export class MisconceptionDetectorService {
 
     let timer: ReturnType<typeof setTimeout>;
     try {
-      const client = this.chatClientFactory.create(
-        isClaudeCode ? '' : (platformKey ?? ''),
-      );
+      const client = this.chatClientFactory.create(platformKey);
       const prompt = MISCONCEPTION_DETECTION_PROMPT.replace(
         '{concepts}',
         concepts || 'general',
@@ -124,6 +124,9 @@ export class MisconceptionDetectorService {
       const responsePromise = client.chat.send({
         messages: [{ content: prompt, role: 'user' }],
         model,
+        // Internal classification, not read by the learner: must stay free to
+        // return the JSON object this prompt asks for and this service parses.
+        responseFormat: undefined,
         stream: false,
         temperature: 0,
       });

@@ -41,6 +41,11 @@ describe('KnowledgeGapDetectorService', () => {
     get: jest.fn(),
   };
 
+  const mockAiPolicyService = {
+    isLocalCliProvider: jest.fn(),
+    providerRequiresApiKey: jest.fn(),
+  };
+
   const selectLeanQuery = <T>(value: T) => {
     const query = {
       lean: jest.fn().mockResolvedValue(value),
@@ -57,9 +62,77 @@ describe('KnowledgeGapDetectorService', () => {
       mockPrerequisiteChecker as any,
       mockOpenRouterClientFactory as any,
       mockConfigService as any,
-      { isClaudeCodeProvider: jest.fn().mockReturnValue(false) } as any,
+      mockAiPolicyService as any,
     );
     jest.clearAllMocks();
+    mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
+    mockAiPolicyService.providerRequiresApiKey.mockReturnValue(true);
+  });
+
+  describe('LLM concept extraction trigger', () => {
+    const send = jest.fn();
+
+    beforeEach(() => {
+      // No keyword concepts, so keyword detection alone falls short.
+      mockConceptModel.find.mockReturnValue(selectLeanQuery([]));
+      send.mockResolvedValue({
+        choices: [{ message: { content: '{"concepts":[]}' } }],
+      });
+      mockOpenRouterClientFactory.create.mockReturnValue({ chat: { send } });
+    });
+
+    it('runs when keywords find too few concepts on a key-based provider', async () => {
+      mockConfigService.get.mockReturnValue(undefined);
+
+      await (service as any).detectConcepts(
+        'what is a closure',
+        [],
+        'user-1',
+        'sk-or-key',
+        'model-x',
+        3,
+      );
+
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    describe('under a local-CLI provider', () => {
+      beforeEach(() => {
+        mockAiPolicyService.isLocalCliProvider.mockReturnValue(true);
+        mockAiPolicyService.providerRequiresApiKey.mockReturnValue(false);
+        mockConfigService.get.mockReturnValue(undefined);
+      });
+
+      // Each extraction is a full CLI run the reply waits on — about 40s with
+      // agy — so too few keywords is not reason enough there.
+      it('does not run just because keywords found too few concepts', async () => {
+        await expect(
+          (service as any).detectConcepts(
+            'what is a closure',
+            [],
+            'user-1',
+            '',
+            'model-x',
+            3,
+          ),
+        ).resolves.toEqual([]);
+
+        expect(send).not.toHaveBeenCalled();
+      });
+
+      it('still runs on the periodic pass', async () => {
+        await (service as any).detectConcepts(
+          'what is a closure',
+          [],
+          'user-1',
+          '',
+          'model-x',
+          5,
+        );
+
+        expect(send).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   it('analyzes signals and returns scaffold recommendations using keyword concepts', async () => {

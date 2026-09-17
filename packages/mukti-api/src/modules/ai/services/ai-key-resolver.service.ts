@@ -30,7 +30,7 @@ export class AiKeyResolver {
   /**
    * Resolves the effective API key for a consumer request.
    *
-   * @returns `''` for the claude-code provider; the decrypted BYOK key when
+   * @returns `''` for local-CLI providers; the decrypted BYOK key when
    *   `usedByok` is set; otherwise the configured server key.
    * @throws If BYOK is requested but the user has no stored key
    *   (`OPENROUTER_KEY_MISSING`), or no server key is configured in hosted mode
@@ -40,9 +40,9 @@ export class AiKeyResolver {
     usedByok: boolean;
     userId: string;
   }): Promise<string> {
-    // Claude Code runs on the developer's own auth; no API key is threaded
-    // through and the client ignores it.
-    if (this.aiPolicyService.isClaudeCodeProvider()) {
+    // A local CLI runs on the user's own auth; no API key is threaded through
+    // and the client ignores it.
+    if (this.aiPolicyService.isLocalCliProvider()) {
       return '';
     }
 

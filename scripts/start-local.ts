@@ -2,10 +2,10 @@
 /**
  * One-command local runtime for Mukti, from a workspace checkout.
  *
- * Boots the embedded database, the API (in MUKTI_LOCAL mode, Claude Code
- * provider) and the web app with zero external services — no Docker, no Redis,
- * no OpenRouter key. Runs preflight checks first and refuses to start a partial
- * stack on failure.
+ * Boots the embedded database, the API (in MUKTI_LOCAL mode, on a local AI CLI
+ * — Claude Code or Antigravity) and the web app with zero external services —
+ * no Docker, no Redis, no OpenRouter key. Runs preflight checks first and
+ * refuses to start a partial stack on failure.
  *
  * This is the *contributor* half of the launcher: it spawns dev servers
  * (`nest start --watch`, `next dev`) so edits reload. The published CLI
@@ -26,7 +26,8 @@
  * Node's own type stripping) — hence the explicit `.ts` extensions on the local
  * imports below, which Node's ESM resolver requires.
  *
- * Usage: bun run start:local (or npm run start:local)
+ * Usage: bun run start:local [-- --provider claude-code|antigravity]
+ *        (or npm run start:local)
  */
 import { intro } from '@clack/prompts';
 import { spawnSync } from 'child_process';
@@ -38,6 +39,7 @@ import { boot } from '../packages/mukti-cli/src/launcher/boot.ts';
 import { createDatabaseSpec, mongoUri } from '../packages/mukti-cli/src/launcher/database.ts';
 import { isPortInUse, reserveFreePort } from '../packages/mukti-cli/src/launcher/net.ts';
 import { runPreflight } from '../packages/mukti-cli/src/launcher/preflight.ts';
+import { selectProvider } from '../packages/mukti-cli/src/launcher/providers.ts';
 
 const API_PORT = 3000;
 const WEB_PORT = 3001;
@@ -79,44 +81,61 @@ function resolveBin(bin: string): { args: string[]; command: string; shell: bool
       { args: ['--no-install', bin], command: 'npx', shell: isWindows };
 }
 
+/** `--provider <name>`, the only option repo mode takes. */
+function providerOption(argv: readonly string[]): string | undefined {
+  const at = argv.indexOf('--provider');
+  if (at === -1) return undefined;
+  const value = argv[at + 1];
+  if (value === undefined || value.startsWith('--')) {
+    process.stderr.write('start:local: --provider needs a value\n');
+    process.exit(1);
+  }
+  return value;
+}
+
 // ── Preflight ──────────────────────────────────────────────────────────────
 
 intro(pc.inverse(pc.cyan(' mukti ')));
 
-await runPreflight([
-  {
-    message: 'Checking Node for the database daemon',
-    run: () => {
-      // The daemon runs under Node even when the launcher itself is Bun, so a
-      // missing Node would otherwise surface only as a database phase failure.
-      if (!UNDER_BUN) return undefined;
-      const node = spawnSync(NODE_BIN, ['--version'], { encoding: 'utf8' });
-      if (!node.error && node.status === 0) return undefined;
-      return {
-        headline: 'Node was not found on PATH',
-        remediation:
-          'The embedded database runs under Node (its MongoDB driver cannot load under Bun).\n' +
-          'Install Node 20+ and try again: https://nodejs.org/en/download',
-      };
+const provider = selectProvider(providerOption(process.argv.slice(2)));
+
+await runPreflight({
+  provider,
+  checks: [
+    {
+      message: 'Checking Node for the database daemon',
+      run: () => {
+        // The daemon runs under Node even when the launcher itself is Bun, so a
+        // missing Node would otherwise surface only as a database phase failure.
+        if (!UNDER_BUN) return undefined;
+        const node = spawnSync(NODE_BIN, ['--version'], { encoding: 'utf8' });
+        if (!node.error && node.status === 0) return undefined;
+        return {
+          headline: 'Node was not found on PATH',
+          remediation:
+            'The embedded database runs under Node (its MongoDB driver cannot load under Bun).\n' +
+            'Install Node 20+ and try again: https://nodejs.org/en/download',
+        };
+      },
     },
-  },
-  {
-    message: 'Checking ports',
-    run: async () => {
-      // Repo mode refuses rather than falling forward: a contributor wants to
-      // know what is already holding their port, not to be quietly moved.
-      for (const port of [API_PORT, WEB_PORT]) {
-        if (await isPortInUse(port)) {
-          return {
-            headline: `port ${port} is already in use`,
-            remediation: `Stop the process using port ${port} (or free the port) and retry.`,
-          };
+    {
+      message: 'Checking ports',
+      run: async () => {
+        // Repo mode refuses rather than falling forward: a contributor wants to
+        // know what is already holding their port, not to be quietly moved.
+        for (const port of [API_PORT, WEB_PORT]) {
+          if (await isPortInUse(port)) {
+            return {
+              headline: `port ${port} is already in use`,
+              remediation: `Stop the process using port ${port} (or free the port) and retry.`,
+            };
+          }
         }
-      }
-      return undefined;
+        return undefined;
+      },
     },
-  },
-]);
+  ],
+});
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
@@ -126,7 +145,10 @@ const MONGO_PORT = await reserveFreePort();
 
 const env = {
   ...process.env,
-  AI_PROVIDER: 'claude-code',
+  // Repo mode leaves MUKTI_AGY_WORKSPACE unset on purpose: agy must not run from
+  // inside this repository (it is a trusted workspace with its own `.agent/`),
+  // so the API's default under ~/.mukti applies.
+  AI_PROVIDER: provider.id,
   MUKTI_LOCAL: '1',
   // The launcher owns the database; the API connects to this rather than
   // starting one of its own (see core/database/mongo-uri.ts).

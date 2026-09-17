@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { aiApi, type AiSettings } from '@/lib/api/ai';
+import { isLocalMode } from '@/lib/config';
 
 export type AiModelMode = 'curated' | 'openrouter';
 
@@ -8,6 +9,16 @@ export type AiModelOption = {
   id: string;
   label: string;
 };
+
+/**
+ * OpenRouter model shown before the hosted API reports a preference.
+ *
+ * @remarks
+ * Never used in local mode: there the catalogue belongs to whichever AI CLI the
+ * launcher picked, the API always reports a model that CLI offers, and a hosted
+ * id sent in the meantime would name a model the CLI does not know.
+ */
+const HOSTED_DEFAULT_MODEL = 'anthropic/claude-sonnet-4-6';
 
 interface AiStoreState {
   activeModel: null | string;
@@ -24,8 +35,12 @@ interface AiStoreState {
   setOpenRouterKey: (apiKey: string) => Promise<void>;
 }
 
+function fallbackModel(): null | string {
+  return isLocalMode() ? null : HOSTED_DEFAULT_MODEL;
+}
+
 export const useAiStore = create<AiStoreState>((set, get) => ({
-  activeModel: 'anthropic/claude-sonnet-4-6',
+  activeModel: fallbackModel(),
   deleteOpenRouterKey: async () => {
     await aiApi.deleteOpenRouterKey();
     await get().hydrate();
@@ -36,7 +51,7 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
       const settings = (await aiApi.getSettings()) as AiSettings;
 
       set({
-        activeModel: settings.activeModel ?? 'anthropic/claude-sonnet-4-6',
+        activeModel: settings.activeModel ?? fallbackModel(),
         hasOpenRouterKey: settings.hasOpenRouterKey,
         isHydrated: true,
         openRouterKeyLast4: settings.openRouterKeyLast4,

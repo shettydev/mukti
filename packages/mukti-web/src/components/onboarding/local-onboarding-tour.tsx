@@ -56,9 +56,9 @@ export function LocalOnboardingTour() {
             </DialogTitle>
           </div>
           <DialogDescription className="text-japandi-body text-sm leading-relaxed text-japandi-stone/70">
-            Mukti is a thinking workspace, not an answer machine. It runs on your own Claude Code —
-            and instead of handing you solutions, it asks the questions that help you reach them
-            yourself. More questions than answers, by design.
+            Mukti is a thinking workspace, not an answer machine. It runs on the AI CLI you already
+            use — and instead of handing you solutions, it asks the questions that help you reach
+            them yourself. More questions than answers, by design.
           </DialogDescription>
         </DialogHeader>
 

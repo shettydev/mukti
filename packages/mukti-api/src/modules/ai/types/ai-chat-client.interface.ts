@@ -9,6 +9,7 @@
  * local Claude Code CLI) can be swapped in behind the {@link AI_CHAT_CLIENT_FACTORY}
  * token without touching call sites.
  */
+import type { AiResponseFormat } from './ai-response-format.interface';
 
 /** A resolved chat client. The response is parsed leniently downstream. */
 export interface AiChatClient {
@@ -36,16 +37,29 @@ export interface AiChatSendOptions {
   headers?: Record<string, string>;
 }
 
-/** Request payload accepted by {@link AiChatClient.chat}.send(). */
+/**
+ * Request payload accepted by {@link AiChatClient.chat}.send().
+ *
+ * @remarks
+ * `responseFormat` is required rather than optional on purpose. The two errors
+ * it guards against are not equally recoverable: an over-constrained analytical
+ * surface fails loudly at its own parse, while an unconstrained learner-facing
+ * surface returns a fluent direct answer that every provider reports as
+ * success. Requiring the field makes the compiler, rather than a reviewer,
+ * the thing that notices a new surface has not decided. Declaring `undefined`
+ * is how a surface says "no shape required".
+ */
 export interface AiChatSendRequest {
   messages: AiChatMessage[];
   model: string;
+  responseFormat: AiResponseFormat;
   stream?: boolean;
   temperature?: number;
 }
 
 /**
  * DI token for the active chat-client factory. Resolved from `AI_PROVIDER`
- * (`claude-code | openrouter`, default `openrouter`) in {@link AiModule}.
+ * (`openrouter | claude-code | antigravity`, default `openrouter`) in
+ * {@link AiModule}.
  */
 export const AI_CHAT_CLIENT_FACTORY = Symbol('AI_CHAT_CLIENT_FACTORY');

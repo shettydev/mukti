@@ -20,7 +20,7 @@ describe('AiKeyResolver', () => {
   };
 
   const mockAiPolicyService = {
-    isClaudeCodeProvider: jest.fn(),
+    isLocalCliProvider: jest.fn(),
   };
 
   const mockAiSecretsService = {
@@ -37,8 +37,8 @@ describe('AiKeyResolver', () => {
     );
   });
 
-  it('returns an empty key for the claude-code provider (own auth)', async () => {
-    mockAiPolicyService.isClaudeCodeProvider.mockReturnValue(true);
+  it('returns an empty key for a local-CLI provider (own auth)', async () => {
+    mockAiPolicyService.isLocalCliProvider.mockReturnValue(true);
 
     await expect(
       resolver.resolve({
@@ -46,13 +46,13 @@ describe('AiKeyResolver', () => {
         userId: new Types.ObjectId().toString(),
       }),
     ).resolves.toBe('');
-    // Claude Code short-circuits before any BYOK/server-key lookup.
+    // A local CLI short-circuits before any BYOK/server-key lookup.
     expect(mockUserModel.findById).not.toHaveBeenCalled();
     expect(mockConfigService.get).not.toHaveBeenCalled();
   });
 
   it('returns the decrypted BYOK key when the user has one', async () => {
-    mockAiPolicyService.isClaudeCodeProvider.mockReturnValue(false);
+    mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
     mockUserModel.lean.mockResolvedValue({
       openRouterApiKeyEncrypted: 'encrypted-key',
     });
@@ -70,7 +70,7 @@ describe('AiKeyResolver', () => {
   });
 
   it('throws when BYOK is requested but the user has no stored key', async () => {
-    mockAiPolicyService.isClaudeCodeProvider.mockReturnValue(false);
+    mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
     mockUserModel.lean.mockResolvedValue(null);
 
     await expect(
@@ -82,7 +82,7 @@ describe('AiKeyResolver', () => {
   });
 
   it('returns the configured server key for non-BYOK requests', async () => {
-    mockAiPolicyService.isClaudeCodeProvider.mockReturnValue(false);
+    mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
     mockConfigService.get.mockReturnValue('server-key');
 
     await expect(
@@ -94,7 +94,7 @@ describe('AiKeyResolver', () => {
   });
 
   it('throws when no server key is configured in hosted mode', async () => {
-    mockAiPolicyService.isClaudeCodeProvider.mockReturnValue(false);
+    mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
     mockConfigService.get.mockReturnValue('');
 
     await expect(

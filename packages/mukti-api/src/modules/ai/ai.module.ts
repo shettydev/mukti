@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import {
@@ -11,10 +11,11 @@ import { SubscriptionModule } from '../subscription/subscription.module';
 import { AiController } from './ai.controller';
 import { AiKeyResolver } from './services/ai-key-resolver.service';
 import { AiPolicyService } from './services/ai-policy.service';
+import { AiProviderRegistry } from './services/ai-provider.registry';
 import { AiSecretsService } from './services/ai-secrets.service';
-import { ClaudeCodeClientFactory } from './services/claude-code-client.factory';
 import { FreeQuotaService } from './services/free-quota.service';
 import { GeminiClientFactory } from './services/gemini-client.factory';
+import { LocalCliClientFactory } from './services/local-cli-client.factory';
 import { OpenRouterClientFactory } from './services/openrouter-client.factory';
 import { OpenRouterModelsService } from './services/openrouter-models.service';
 import {
@@ -23,21 +24,26 @@ import {
 } from './types/ai-chat-client.interface';
 
 /**
- * Resolves the active chat-client factory from `AI_PROVIDER`.
- * Defaults to `openrouter`; `claude-code` routes completions through the local
- * `claude -p` CLI on the developer's own Claude auth.
+ * Resolves the active chat-client factory from the provider registry.
+ *
+ * @remarks
+ * Local-CLI providers (`claude-code`, `antigravity`) share
+ * {@link LocalCliClientFactory} and differ only by adapter, so a new CLI is an
+ * adapter plus a registry entry rather than another branch here. Anything else
+ * is served by OpenRouter over HTTP.
  */
 const aiChatClientFactoryProvider = {
-  inject: [ConfigService, OpenRouterClientFactory, ClaudeCodeClientFactory],
+  inject: [AiProviderRegistry, OpenRouterClientFactory],
   provide: AI_CHAT_CLIENT_FACTORY,
   useFactory: (
-    configService: ConfigService,
+    aiProviderRegistry: AiProviderRegistry,
     openRouterClientFactory: OpenRouterClientFactory,
-    claudeCodeClientFactory: ClaudeCodeClientFactory,
-  ): AiChatClientFactory =>
-    configService.get<string>('AI_PROVIDER') === 'claude-code'
-      ? claudeCodeClientFactory
-      : openRouterClientFactory,
+  ): AiChatClientFactory => {
+    const adapter = aiProviderRegistry.getActiveLocalCliAdapter();
+    return adapter
+      ? new LocalCliClientFactory(adapter)
+      : openRouterClientFactory;
+  },
 };
 
 @Module({
@@ -46,6 +52,7 @@ const aiChatClientFactoryProvider = {
     AI_CHAT_CLIENT_FACTORY,
     AiKeyResolver,
     AiPolicyService,
+    AiProviderRegistry,
     AiSecretsService,
     FreeQuotaService,
     GeminiClientFactory,
@@ -64,8 +71,8 @@ const aiChatClientFactoryProvider = {
     aiChatClientFactoryProvider,
     AiKeyResolver,
     AiPolicyService,
+    AiProviderRegistry,
     AiSecretsService,
-    ClaudeCodeClientFactory,
     FreeQuotaService,
     GeminiClientFactory,
     OpenRouterClientFactory,

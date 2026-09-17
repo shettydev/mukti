@@ -14,6 +14,7 @@ describe('MisconceptionDetectorService', () => {
   let configService: ConfigService;
   let clientFactory: { create: jest.Mock };
   let redis: { get: jest.Mock; set: jest.Mock };
+  let aiPolicyService: { isLocalCliProvider: jest.Mock };
 
   beforeEach(async () => {
     redis = { get: jest.fn(), set: jest.fn() };
@@ -44,8 +45,7 @@ describe('MisconceptionDetectorService', () => {
         {
           provide: AiPolicyService,
           useValue: {
-            getDefaultModel: jest.fn().mockReturnValue('sonnet'),
-            isClaudeCodeProvider: jest.fn().mockReturnValue(false),
+            isLocalCliProvider: jest.fn().mockReturnValue(false),
           },
         },
         {
@@ -58,6 +58,23 @@ describe('MisconceptionDetectorService', () => {
     service = module.get(MisconceptionDetectorService);
     configService = module.get(ConfigService);
     clientFactory = module.get(AI_CHAT_CLIENT_FACTORY);
+    aiPolicyService = module.get(AiPolicyService);
+  });
+
+  // A CLI cannot answer inside the 500ms budget, so under a local-CLI provider
+  // the check always failed open — after starting a CLI run that finished, and
+  // was billed, anyway. It is skipped instead, with the same result.
+  it('skips the check without starting a completion under a local-CLI provider', async () => {
+    aiPolicyService.isLocalCliProvider.mockReturnValue(true);
+
+    const result = await service.detect({
+      userId: 'user1',
+      userMessage: 'The sun revolves around the earth',
+    });
+
+    expect(result).toEqual({ fromCache: false, hasMisconception: false });
+    expect(clientFactory.create).not.toHaveBeenCalled();
+    expect(redis.get).not.toHaveBeenCalled();
   });
 
   it('should return no misconception when disabled', async () => {

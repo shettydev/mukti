@@ -11,6 +11,7 @@ import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
 } from '../../ai/types/ai-chat-client.interface';
+import { SOCRATIC_QUESTION_FORMAT } from '../../ai/types/ai-response-format.interface';
 import {
   appendQualityGuardrails,
   buildScaffoldAwarePrompt,
@@ -130,6 +131,9 @@ export class DialogueAIService {
         {
           messages,
           model: effectiveModel,
+          // Learner-facing: rendered as the assistant message, so it must be a
+          // question.
+          responseFormat: SOCRATIC_QUESTION_FORMAT,
           stream: false,
           temperature: 0.7,
         },
@@ -235,6 +239,9 @@ export class DialogueAIService {
         {
           messages,
           model: effectiveModel,
+          // Learner-facing: rendered as the assistant message, so it must be a
+          // question.
+          responseFormat: SOCRATIC_QUESTION_FORMAT,
           stream: false,
           temperature: 0.7,
         },
@@ -326,7 +333,16 @@ export class DialogueAIService {
       const client = this.chatClientFactory.create(apiKey);
 
       const response = await client.chat.send(
-        { messages, model: effectiveModel, stream: false, temperature: 0.7 },
+        {
+          messages,
+          model: effectiveModel,
+          // Learner-facing: rendered as the assistant message, so it must be a
+          // question. This is the RFC-0002 scaffolding path — a scaffolded turn
+          // may explain more than a Level 0 one, but it is still never an answer.
+          responseFormat: SOCRATIC_QUESTION_FORMAT,
+          stream: false,
+          temperature: 0.7,
+        },
         {
           headers: {
             'HTTP-Referer':
@@ -366,19 +382,19 @@ export class DialogueAIService {
    * Rejects an empty API key only when the active provider actually needs one.
    *
    * @remarks
-   * The claude-code provider runs on the developer's own CLI auth and is handed
-   * an empty key by design ({@link AiKeyResolver}), so an empty key is a
+   * Local-CLI providers run on the user's own CLI auth and are handed an empty
+   * key by design ({@link AiKeyResolver}), so an empty key is a
    * misconfiguration for key-based providers (OpenRouter) only. Treating it as
    * "AI unavailable" for every provider is what previously routed local mode
    * into canned placeholder questions instead of the CLI.
    */
   private assertApiKeyPresent(apiKey: string): void {
-    if (apiKey || this.aiPolicyService.isClaudeCodeProvider()) {
+    if (apiKey || !this.aiPolicyService.providerRequiresApiKey()) {
       return;
     }
 
     throw new Error(
-      'No AI API key is configured. Add your OpenRouter key in Settings, set OPENROUTER_API_KEY on the server, or run locally with AI_PROVIDER=claude-code.',
+      'No AI API key is configured. Add your OpenRouter key in Settings, set OPENROUTER_API_KEY on the server, or run locally with a local-CLI provider (AI_PROVIDER=claude-code or antigravity).',
     );
   }
 
@@ -581,8 +597,8 @@ export class DialogueAIService {
 
   /**
    * Normalizes a provider failure into an Error whose message is safe and
-   * useful to show the user. Provider-specific errors (e.g. `ClaudeCliError`,
-   * which explains a missing CLI or `claude login`) already carry actionable
+   * useful to show the user. Provider-specific errors (e.g. `LocalCliError`,
+   * which explains a missing CLI or how to sign in) already carry actionable
    * text, so their message is preserved.
    */
   private toSurfacedError(error: unknown): Error {
