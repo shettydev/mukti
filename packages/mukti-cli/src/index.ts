@@ -23,7 +23,10 @@ import { boot } from './launcher/boot.ts';
 import { createDatabaseSpec, mongoUri } from './launcher/database.ts';
 import { findFreePort, reserveFreePort } from './launcher/net.ts';
 import { runPreflight } from './launcher/preflight.ts';
-import { selectProvider, SUPPORTED_PROVIDERS } from './launcher/providers.ts';
+import { parseProviderOptions } from './launcher/provider-options.ts';
+import { isInteractive } from './launcher/provider-picker.ts';
+import { writeStoredProvider } from './launcher/provider-settings.ts';
+import { selectProviderOrExit, SUPPORTED_PROVIDERS } from './launcher/providers.ts';
 
 const DEFAULT_API_PORT = 3000;
 const DEFAULT_WEB_PORT = 3001;
@@ -34,7 +37,6 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 interface Options {
   readonly apiPort: number;
   readonly dataDir?: string;
-  readonly provider?: string;
   readonly webPort: number;
 }
 
@@ -42,7 +44,6 @@ function parseArgs(argv: readonly string[]): Options {
   let apiPort = DEFAULT_API_PORT;
   let webPort = DEFAULT_WEB_PORT;
   let dataDir: string | undefined;
-  let provider: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -71,16 +72,13 @@ function parseArgs(argv: readonly string[]): Options {
       case '--web-port':
         webPort = Number(value());
         break;
-      case '--provider':
-        provider = value();
-        break;
       default:
         process.stderr.write(`muktiai: unknown option ${arg}\n\n${HELP}`);
         process.exit(1);
     }
   }
 
-  return { apiPort, dataDir, provider, webPort };
+  return { apiPort, dataDir, webPort };
 }
 
 const HELP = `
@@ -95,11 +93,15 @@ const HELP = `
     --data-dir <path>       Where to keep the database and logs
                             (default ~/.mukti, or $MUKTI_HOME)
     --provider <name>       AI CLI to run on: ${SUPPORTED_PROVIDERS.map((p) => p.id).join(' or ')}
-                            (default $AI_PROVIDER, else whichever is installed)
+                            (default: your saved choice, else $AI_PROVIDER,
+                            else whichever CLI is ready)
+    --save                  Save --provider as your default for later runs
+    --choose                Ask which AI CLI to use, and offer to save it
     -h, --help              Show this
 
   Requires an installed, signed-in AI CLI: Claude Code (\`claude\`)
-  or Antigravity (\`agy\`). No API key is needed.
+  or Antigravity (\`agy\`). No API key is needed. With both ready and no
+  saved choice, Mukti asks which to use on the first run.
 `;
 
 /**
@@ -125,12 +127,33 @@ async function choosePort(
 
 intro(pc.inverse(pc.cyan(' mukti ')));
 
-const options = parseArgs(process.argv.slice(2));
+const providerFlags = parseProviderOptions(process.argv.slice(2));
+if (providerFlags.kind === 'error') {
+  log.error(providerFlags.message);
+  process.exit(1);
+}
+const options = parseArgs(providerFlags.rest);
 
-const provider = selectProvider(options.provider);
-await runPreflight({ provider });
-
+// The saved default lives beside the database, so the home is resolved before
+// the provider is chosen.
 const home = resolveMuktiHome(options.dataDir);
+
+const selection = await selectProviderOrExit({
+  choose: providerFlags.options.choose,
+  explicit: providerFlags.options.provider,
+  home: home.root,
+  interactive: isInteractive(),
+  save: providerFlags.options.save,
+});
+const provider = selection.provider;
+
+await runPreflight({ provider, status: selection.status });
+
+// Only now: a default that cannot boot is worse than no default at all.
+if (selection.remember) {
+  writeStoredProvider(home.root, provider.id);
+  log.info(`Saved ${provider.id} as your default AI provider.`);
+}
 
 const apiPort = await choosePort(options.apiPort, [], 'API');
 const webPort = await choosePort(options.webPort, [apiPort], 'web app');
