@@ -35,8 +35,19 @@ export interface LocalCliAdapter {
    * An adapter that does enforce a shape by requesting structured output SHALL
    * unwrap it in {@link LocalCliAdapter.parseEnvelope}, so callers keep
    * receiving content as text regardless of which provider served them.
+   *
+   * `input` is the rendered prompt ({@link LocalCliAdapter.renderInput}). A CLI
+   * on the default stdin channel ignores it; one that only accepts its prompt as
+   * a flag value places it here (see {@link LocalCliAdapter.inputChannel}).
    */
-  buildArgs(request: AiChatSendRequest): string[];
+  buildArgs(request: AiChatSendRequest, input: string): string[];
+
+  /**
+   * Extracts a readable reason from the CLI's output after a non-zero exit, for
+   * CLIs that report failures as a structured envelope rather than on stderr.
+   * Returning `undefined` falls back to the raw stderr/stdout.
+   */
+  describeFailure?(stdout: string): string | undefined;
 
   /** Distinguishes this CLI's failures on {@link LocalCliError.code}. */
   readonly errorCode: string;
@@ -49,6 +60,14 @@ export interface LocalCliAdapter {
    */
   getModels(): AllowedModel[];
 
+  /**
+   * Where the rendered input goes. `stdin` (the default) writes it to the
+   * child's standard input; `argument` writes nothing there and leaves it to
+   * {@link LocalCliAdapter.buildArgs}, for a CLI that only reads its prompt from
+   * a flag.
+   */
+  readonly inputChannel?: 'argument' | 'stdin';
+
   /** Shown when the binary is absent from `PATH`. */
   readonly installHint: string;
 
@@ -58,14 +77,18 @@ export interface LocalCliAdapter {
    * @throws {LocalCliError} when the envelope reports failure, cannot be
    * parsed, or carries no content — an empty Socratic question is worse than a
    * visible error.
+   *
+   * `request` is the one the envelope answers, so an adapter that enforced a
+   * declared shape knows to unwrap it.
    */
-  parseEnvelope(stdout: string): LocalCliCompletion;
+  parseEnvelope(stdout: string, request: AiChatSendRequest): LocalCliCompletion;
 
   readonly providerId: LocalCliProviderId;
 
   /**
-   * Renders the request into the CLI's stdin payload. Defaults to a
-   * `Role: content` transcript of the non-system turns when omitted.
+   * Renders the request into the CLI's input — its stdin payload or flag value,
+   * per {@link LocalCliAdapter.inputChannel}. Defaults to a `Role: content`
+   * transcript of the non-system turns (`renderTranscript`) when omitted.
    */
   renderInput?(request: AiChatSendRequest): string;
 
@@ -77,6 +100,13 @@ export interface LocalCliAdapter {
    * from its working directory to a Mukti-owned one.
    */
   spawnOptions?(): { cwd?: string };
+
+  /**
+   * Hard deadline for one invocation, after which the process is stopped and
+   * the completion fails. A backstop for CLIs whose own timeout cannot be
+   * trusted to cover every way they can stall; omitted means no deadline.
+   */
+  readonly timeoutMs?: number;
 
   /**
    * One-time async setup at module init — catalogue discovery, workspace
