@@ -21,7 +21,7 @@ You do not need to run commands locally. Everything is handled via GitHub Action
 3.  Click the **Run workflow** button.
 4.  Configure the inputs:
     - **Dry Run:** (Default: `false`)
-      - ✅ **Check this box** to simulate the release. It will show you the new version numbers and the changelog in the logs, but _will not_ push changes or create tags.
+      - ✅ **Check this box** to simulate the release. It will show you the new version numbers and the changelog in the logs, and builds and packs the packages, but _will not_ push changes, create tags or publish.
       - ❌ **Uncheck this box** to perform the actual release.
 
     - **Release Type:** (Default: `stable`)
@@ -29,17 +29,12 @@ You do not need to run commands locally. Everything is handled via GitHub Action
       - `beta`: Creates a beta prerelease (e.g., `1.0.0-beta.0`).
       - `alpha`: Creates an alpha prerelease (e.g., `1.0.0-alpha.0`).
 
-    - **First Release:** (Default: `false`)
-      - ✅ Check this only when a package has no previous release tag (e.g., after a rename). Changelogs are then generated from the full history.
+    - **Publish only:** (Default: `false`)
+      - ✅ Check this only to retry a publish that failed after the versions were already bumped and pushed. It skips versioning and publishes the versions on `main`.
 
-5.  Once the workflow has pushed the release commit, publish to npm locally:
+The workflow publishes `@muktiai/api`, `@muktiai/web` and `muktiai` through `scripts/release.mjs`, which rewrites the manifests into their publishable shape and publishes them in dependency order. Prereleases go under their own dist-tag (`beta`, `alpha`); stable versions go under `next` and are promoted with `npm dist-tag add <pkg>@<version> latest`.
 
-    ```bash
-    git pull
-    bun run release
-    ```
-
-    The workflow only versions `@muktiai/api`, `@muktiai/web` and `muktiai`; it never publishes. `scripts/release.mjs` rewrites the manifests into their publishable shape and publishes them in dependency order.
+It needs two repository secrets: `RELEASE_TOKEN` (GitHub, to push and create releases) and `NPM_TOKEN` (an npm automation token with publish access to `@muktiai/*` and `muktiai`).
 
 ## 📦 What Happens During a Release?
 
@@ -49,6 +44,7 @@ When you run the workflow (with `dryRun: false`):
 2.  **Changelog:** Updates `CHANGELOG.md` in each project root with the new features/fixes.
 3.  **Git:** Creates a release commit (e.g., `chore(release): publish`) and creates a git tag (e.g., `@mukti/api@1.0.0`).
 4.  **GitHub Release:** Creates an official entry in the repository's "Releases" section with the changelog.
+5.  **npm:** Builds, type-checks and smoke-tests the packages, then publishes them. A dry run packs them instead.
 
 ## 🔍 FAQ
 

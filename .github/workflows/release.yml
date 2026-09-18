@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       dryRun:
-        description: 'Dry Run (skip git push and publish)'
+        description: 'Dry Run (preview versions, build and pack — no push, no publish)'
         required: true
         type: boolean
         default: false
@@ -20,15 +20,15 @@ on:
           - patch
           - minor
           - major
-      firstRelease:
-        description: 'First release (no previous tag to diff against — generates changelogs from full history)'
+      publishOnly:
+        description: 'Publish only (skip versioning — retry a publish that failed after the bump)'
         required: true
         type: boolean
         default: false
 
 # Only the packages scripts/release.mjs publishes. Nx bumps versions, writes
-# changelogs, tags and creates the GitHub releases; publishing to npm stays with
-# `bun run release`, which rewrites the manifests into their publishable shape.
+# changelogs, tags and creates the GitHub releases; scripts/release.mjs then
+# rewrites the manifests into their publishable shape and publishes to npm.
 env:
   RELEASE_PROJECTS: '@mukti/api,@mukti/web,muktiai'
 
@@ -57,14 +57,21 @@ jobs:
         with:
           bun-version: latest
 
+      # scripts/release.mjs needs Node >= 20.11; registry-url writes the .npmrc
+      # that reads NODE_AUTH_TOKEN.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
       - name: Install Dependencies
         run: bun install
 
-      - name: Run Release (Dry Run)
-        if: ${{ inputs.dryRun }}
+      - name: Version (Dry Run)
+        if: ${{ inputs.dryRun && !inputs.publishOnly }}
         run: |
           FLAGS="--projects=$RELEASE_PROJECTS --skip-publish --dry-run"
-          if [[ "${{ inputs.firstRelease }}" == "true" ]]; then FLAGS="$FLAGS --first-release"; fi
           case "${{ inputs.releaseType }}" in
             stable)
               bun nx release $FLAGS
@@ -79,11 +86,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Release
-        if: ${{ !inputs.dryRun }}
+      - name: Version
+        if: ${{ !inputs.dryRun && !inputs.publishOnly }}
         run: |
           FLAGS="--projects=$RELEASE_PROJECTS --skip-publish"
-          if [[ "${{ inputs.firstRelease }}" == "true" ]]; then FLAGS="$FLAGS --first-release"; fi
           case "${{ inputs.releaseType }}" in
             stable)
               bun nx release $FLAGS
@@ -99,8 +105,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Push Changes
-        if: ${{ !inputs.dryRun }}
+        if: ${{ !inputs.dryRun && !inputs.publishOnly }}
         run: |
           git push origin main --follow-tags
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      # Prereleases publish under their own dist-tag. scripts/release.mjs never
+      # publishes under `latest` — stable versions go to `next` and are promoted
+      # with `npm dist-tag add <pkg>@<version> latest`.
+      - name: Publish to npm
+        run: |
+          case "${{ inputs.releaseType }}" in
+            beta|alpha) DIST_TAG="${{ inputs.releaseType }}" ;;
+            *) DIST_TAG="next" ;;
+          esac
+          FLAGS="--tag $DIST_TAG"
+          if [[ "${{ inputs.dryRun }}" == "true" ]]; then FLAGS="$FLAGS --dry-run"; fi
+          node scripts/release.mjs $FLAGS
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
