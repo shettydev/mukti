@@ -29,6 +29,18 @@ You do not need to run commands locally. Everything is handled via GitHub Action
       - `beta`: Creates a beta prerelease (e.g., `1.0.0-beta.0`).
       - `alpha`: Creates an alpha prerelease (e.g., `1.0.0-alpha.0`).
 
+    - **First Release:** (Default: `false`)
+      - ✅ Check this only when a package has no previous release tag (e.g., after a rename). Changelogs are then generated from the full history.
+
+5.  Once the workflow has pushed the release commit, publish to npm locally:
+
+    ```bash
+    git pull
+    bun run release
+    ```
+
+    The workflow only versions `@muktiai/api`, `@muktiai/web` and `muktiai`; it never publishes. `scripts/release.mjs` rewrites the manifests into their publishable shape and publishes them in dependency order.
+
 ## 📦 What Happens During a Release?
 
 When you run the workflow (with `dryRun: false`):
