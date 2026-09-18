@@ -16,7 +16,7 @@
  */
 import { log, spinner } from '@clack/prompts';
 
-import type { LocalCliProvider, RunCommand } from './providers.ts';
+import type { LocalCliProvider, ProviderStatus, RunCommand } from './providers.ts';
 
 import { runCommand } from './providers.ts';
 
@@ -47,8 +47,14 @@ export async function runPreflight(options: {
   readonly checks?: readonly PreflightCheck[];
   readonly provider: LocalCliProvider;
   readonly run?: RunCommand;
+  /**
+   * Readiness the launcher already established while choosing this provider.
+   * Given it, preflight verifies nothing twice — agy's sign-in probe alone
+   * costs 5-7 seconds.
+   */
+  readonly status?: ProviderStatus;
 }): Promise<PreflightResult> {
-  const { checks = [], provider, run = runCommand } = options;
+  const { checks = [], provider, run = runCommand, status } = options;
   const active = spinner();
   active.start('Running preflight checks');
 
@@ -58,19 +64,30 @@ export async function runPreflight(options: {
     process.exit(1);
   };
 
-  const version =
-    provider.version(run) ??
-    fail({
-      headline: `the \`${provider.binary}\` CLI was not found on PATH`,
-      remediation: provider.installRemediation,
-    });
+  const missing = {
+    headline: `the \`${provider.binary}\` CLI was not found on PATH`,
+    remediation: provider.installRemediation,
+  };
+  const signedOut = {
+    headline: `the \`${provider.binary}\` CLI is not signed in`,
+    remediation: provider.signInRemediation,
+  };
 
-  active.message(`Checking ${provider.label} sign-in`);
-  if (!provider.isAuthenticated(run)) {
-    fail({
-      headline: `the \`${provider.binary}\` CLI is not signed in`,
-      remediation: provider.signInRemediation,
-    });
+  let version: string;
+  if (status) {
+    if (status.readiness === 'missing') {
+      fail(missing);
+    }
+    if (status.readiness === 'signed-out') {
+      fail(signedOut);
+    }
+    version = status.version ?? 'unknown version';
+  } else {
+    version = (await provider.version(run)) ?? fail(missing);
+    active.message(`Checking ${provider.label} sign-in`);
+    if (!(await provider.isAuthenticated(run))) {
+      fail(signedOut);
+    }
   }
 
   for (const check of checks) {

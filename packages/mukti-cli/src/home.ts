@@ -25,19 +25,11 @@ export interface MuktiHome {
 }
 
 /**
- * Resolves the Mukti home directory and creates it.
- *
- * Precedence: an explicit `--data-dir`, then `MUKTI_HOME`, then `~/.mukti`.
- * A relative override is resolved against the current directory, since that is
- * what someone typing one would mean.
+ * Resolves the Mukti home directory and creates the database and log
+ * directories inside it.
  */
 export function resolveMuktiHome(override?: string): MuktiHome {
-  const chosen = override ?? process.env[MUKTI_HOME_ENV];
-  const root = chosen
-    ? isAbsolute(chosen)
-      ? chosen
-      : resolve(process.cwd(), chosen)
-    : join(homedir(), '.mukti');
+  const root = resolveMuktiRoot(override);
 
   const home: MuktiHome = {
     dbPath: join(root, 'local-db'),
@@ -49,4 +41,26 @@ export function resolveMuktiHome(override?: string): MuktiHome {
   mkdirSync(home.logDir, { recursive: true });
 
   return home;
+}
+
+/**
+ * Resolves the Mukti home directory, creating nothing.
+ *
+ * Precedence: an explicit `--data-dir`, then `MUKTI_HOME`, then `~/.mukti`.
+ * A relative override is resolved against the current directory, since that is
+ * what someone typing one would mean.
+ *
+ * @remarks
+ * Separate from {@link resolveMuktiHome} because the launcher reads its saved
+ * settings from this directory on every start, including starts that never
+ * touch the database — asking where the home is must not bring a database
+ * directory into existence.
+ */
+export function resolveMuktiRoot(override?: string): string {
+  const chosen = override ?? process.env[MUKTI_HOME_ENV];
+  return chosen
+    ? isAbsolute(chosen)
+      ? chosen
+      : resolve(process.cwd(), chosen)
+    : join(homedir(), '.mukti');
 }

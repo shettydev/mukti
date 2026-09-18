@@ -112,14 +112,35 @@ No login is required — local mode signs you in as a seeded local user.
 
 ### Choosing the AI CLI
 
-The launcher uses, in order: `--provider`, then the `AI_PROVIDER` environment variable, then
-whichever supported CLI it finds on your `PATH` (Claude Code first). It always says which one it
-picked. To choose explicitly:
+The first time you start Mukti with both CLIs ready, it asks which to use and offers to remember
+your answer:
+
+```
+◇  Which AI CLI should Mukti use?
+│  ● Claude CLI       ready · about 13-20 seconds per reply
+│  ○ Antigravity CLI  ready · about 30-60 seconds and 15-25k tokens per reply
+│
+◇  Use Claude CLI by default from now on?  Yes
+```
+
+Every supported CLI is listed, including ones you have not installed or signed in to, so you can
+see what the alternatives are. After that, launches use your saved choice without asking, and say
+so. To change it, or to decide without being asked:
 
 ```bash
-bun run start:local -- --provider claude-code
-bun run start:local -- --provider antigravity   # or: npx muktiai --provider antigravity
+bun run start:local -- --choose                    # ask again, and offer to remember
+bun run start:local -- --provider antigravity      # just this once
+npx muktiai --provider antigravity --save          # set the default, no prompt
 ```
+
+The launcher decides in this order: `--provider`, then the `AI_PROVIDER` environment variable,
+then your saved choice, then whichever CLIs are ready — installed _and_ signed in. A CLI you have
+not signed in to is never chosen for you. It always reports which provider it used and why.
+
+Your choice is saved in `~/.mukti/config.json` (or under `--data-dir`/`MUKTI_HOME`), and the same
+choice is used whether you run from a checkout or through `npx`. Delete that file to forget it.
+Without a terminal — piped output, or CI — Mukti never asks: it uses the first ready CLI and tells
+you how to choose another.
 
 The two are not equivalent, and the difference is worth knowing before you choose:
 

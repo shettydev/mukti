@@ -27,9 +27,11 @@
  * imports below, which Node's ESM resolver requires.
  *
  * Usage: bun run start:local [-- --provider claude-code|antigravity]
- *        (or npm run start:local)
+ *        bun run start:local -- --choose        (ask, and offer to remember)
+ *        bun run start:local -- --provider agy --save
+ *        (or npm run start:local -- …)
  */
-import { intro } from '@clack/prompts';
+import { intro, log } from '@clack/prompts';
 import { spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join, relative, resolve } from 'path';
@@ -38,8 +40,12 @@ import pc from 'picocolors';
 import { boot } from '../packages/mukti-cli/src/launcher/boot.ts';
 import { createDatabaseSpec, mongoUri } from '../packages/mukti-cli/src/launcher/database.ts';
 import { isPortInUse, reserveFreePort } from '../packages/mukti-cli/src/launcher/net.ts';
+import { resolveMuktiRoot } from '../packages/mukti-cli/src/home.ts';
 import { runPreflight } from '../packages/mukti-cli/src/launcher/preflight.ts';
-import { selectProvider } from '../packages/mukti-cli/src/launcher/providers.ts';
+import { isInteractive } from '../packages/mukti-cli/src/launcher/provider-picker.ts';
+import { parseProviderOptions } from '../packages/mukti-cli/src/launcher/provider-options.ts';
+import { writeStoredProvider } from '../packages/mukti-cli/src/launcher/provider-settings.ts';
+import { selectProviderOrExit } from '../packages/mukti-cli/src/launcher/providers.ts';
 
 const API_PORT = 3000;
 const WEB_PORT = 3001;
@@ -81,26 +87,37 @@ function resolveBin(bin: string): { args: string[]; command: string; shell: bool
       { args: ['--no-install', bin], command: 'npx', shell: isWindows };
 }
 
-/** `--provider <name>`, the only option repo mode takes. */
-function providerOption(argv: readonly string[]): string | undefined {
-  const at = argv.indexOf('--provider');
-  if (at === -1) return undefined;
-  const value = argv[at + 1];
-  if (value === undefined || value.startsWith('--')) {
-    process.stderr.write('start:local: --provider needs a value\n');
-    process.exit(1);
-  }
-  return value;
-}
-
 // ── Preflight ──────────────────────────────────────────────────────────────
 
 intro(pc.inverse(pc.cyan(' mukti ')));
 
-const provider = selectProvider(providerOption(process.argv.slice(2)));
+const providerFlags = parseProviderOptions(process.argv.slice(2));
+if (providerFlags.kind === 'error') {
+  process.stderr.write(`start:local: ${providerFlags.message}\n`);
+  process.exit(1);
+}
+if (providerFlags.rest.length > 0) {
+  process.stderr.write(`start:local: unknown option ${providerFlags.rest[0]}\n`);
+  process.exit(1);
+}
+
+// Repo mode keeps its database and logs in the checkout, but the provider
+// default is a fact about this machine, so it lives in the user-level home and
+// holds across checkouts.
+const PROVIDER_HOME = resolveMuktiRoot();
+
+const selection = await selectProviderOrExit({
+  choose: providerFlags.options.choose,
+  explicit: providerFlags.options.provider,
+  home: PROVIDER_HOME,
+  interactive: isInteractive(),
+  save: providerFlags.options.save,
+});
+const provider = selection.provider;
 
 await runPreflight({
   provider,
+  status: selection.status,
   checks: [
     {
       message: 'Checking Node for the database daemon',
@@ -136,6 +153,12 @@ await runPreflight({
     },
   ],
 });
+
+// Only now: a default that cannot boot is worse than no default at all.
+if (selection.remember) {
+  writeStoredProvider(PROVIDER_HOME, provider.id);
+  log.info(`Saved ${provider.id} as your default AI provider.`);
+}
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
