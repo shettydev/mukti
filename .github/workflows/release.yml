@@ -20,6 +20,17 @@ on:
           - patch
           - minor
           - major
+      firstRelease:
+        description: 'First release (no previous tag to diff against — generates changelogs from full history)'
+        required: true
+        type: boolean
+        default: false
+
+# Only the packages scripts/release.mjs publishes. Nx bumps versions, writes
+# changelogs, tags and creates the GitHub releases; publishing to npm stays with
+# `bun run release`, which rewrites the manifests into their publishable shape.
+env:
+  RELEASE_PROJECTS: '@mukti/api,@mukti/web,muktiai'
 
 jobs:
   release:
@@ -52,15 +63,17 @@ jobs:
       - name: Run Release (Dry Run)
         if: ${{ inputs.dryRun }}
         run: |
+          FLAGS="--projects=$RELEASE_PROJECTS --skip-publish --dry-run"
+          if [[ "${{ inputs.firstRelease }}" == "true" ]]; then FLAGS="$FLAGS --first-release"; fi
           case "${{ inputs.releaseType }}" in
             stable)
-              bun nx release --dry-run --yes
+              bun nx release $FLAGS
               ;;
             beta|alpha)
-              bun nx release prerelease --preid=${{ inputs.releaseType }} --dry-run --yes
+              bun nx release prerelease --preid=${{ inputs.releaseType }} $FLAGS
               ;;
             patch|minor|major)
-              bun nx release ${{ inputs.releaseType }} --dry-run --yes
+              bun nx release ${{ inputs.releaseType }} $FLAGS
               ;;
           esac
         env:
@@ -69,15 +82,17 @@ jobs:
       - name: Run Release
         if: ${{ !inputs.dryRun }}
         run: |
+          FLAGS="--projects=$RELEASE_PROJECTS --skip-publish"
+          if [[ "${{ inputs.firstRelease }}" == "true" ]]; then FLAGS="$FLAGS --first-release"; fi
           case "${{ inputs.releaseType }}" in
             stable)
-              bun nx release --yes
+              bun nx release $FLAGS
               ;;
             beta|alpha)
-              bun nx release prerelease --preid=${{ inputs.releaseType }} --yes
+              bun nx release prerelease --preid=${{ inputs.releaseType }} $FLAGS
               ;;
             patch|minor|major)
-              bun nx release ${{ inputs.releaseType }} --yes
+              bun nx release ${{ inputs.releaseType }} $FLAGS
               ;;
           esac
         env:
@@ -89,21 +104,3 @@ jobs:
           git push origin main --follow-tags
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-      - name: Create GitHub Release
-        if: ${{ !inputs.dryRun }}
-        run: |
-          TAG=$(git describe --tags --abbrev=0)
-          echo "Creating release for tag: $TAG"
-
-          PRERELEASE_FLAG=""
-          if [[ "${{ inputs.releaseType }}" == "beta" || "${{ inputs.releaseType }}" == "alpha" ]]; then
-            PRERELEASE_FLAG="--prerelease"
-          fi
-
-          gh release create "$TAG" \
-            $PRERELEASE_FLAG \
-            --generate-notes \
-            --title "$TAG"
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
