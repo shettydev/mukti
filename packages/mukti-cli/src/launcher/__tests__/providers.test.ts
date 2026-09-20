@@ -143,11 +143,27 @@ test('choosing again without a terminal asks for the flag instead', async () => 
 });
 
 test('an unknown explicit provider is refused', async () => {
-  assert.deepEqual(await resolve({ explicit: 'agy', run: scripted(BOTH_READY_ANSWERS).run }), {
-    kind: 'unsupported',
-    source: 'option',
-    value: 'agy',
-  });
+  assert.deepEqual(
+    await resolve({ explicit: 'gemini-cli', run: scripted(BOTH_READY_ANSWERS).run }),
+    {
+      kind: 'unsupported',
+      source: 'option',
+      value: 'gemini-cli',
+    }
+  );
+});
+
+test('a provider can be named by the command it runs as', async () => {
+  for (const [name, id] of [
+    ['agy', 'antigravity'],
+    ['claude', 'claude-code'],
+  ]) {
+    const explicit = await resolve({ explicit: name, run: scripted(BOTH_READY_ANSWERS).run });
+    assert.equal(explicit.kind === 'chosen' && explicit.provider.id, id);
+
+    const env = await resolve({ env: name, run: scripted(BOTH_READY_ANSWERS).run });
+    assert.equal(env.kind === 'chosen' && env.provider.id, id);
+  }
 });
 
 test('an unknown AI_PROVIDER is refused', async () => {
@@ -251,6 +267,7 @@ test('an unsupported value is explained with every supported id', () => {
   assert.match(message, /gemini-cli/);
   for (const provider of SUPPORTED_PROVIDERS) {
     assert.ok(message.includes(provider.id));
+    assert.ok(message.includes(provider.binary));
   }
 });
 
