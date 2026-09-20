@@ -1,3 +1,22 @@
+## 0.1.1 (2026-09-20)
+
+### 🚀 Features
+
+- **cli:** Add changelog for mukti-cli 0.1.1-beta.1 ([7906091](https://github.com/shettydev/mukti/commit/7906091))
+
+### 🩹 Fixes
+
+- **cli:** Accept the command name when naming a provider ([1dd23a7](https://github.com/shettydev/mukti/commit/1dd23a7))
+
+### 🧱 Updated Dependencies
+
+- Updated @mukti/api to 0.1.1
+- Updated @mukti/web to 0.2.1
+
+### ❤️ Thank You
+
+- Prathik Shetty
+
 ## 0.1.1-beta.1 (2026-09-18)
 
 ### 🚀 Features
