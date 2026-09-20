@@ -37,7 +37,7 @@ export interface LocalCliProvider {
    * leaves on their machine, told before they discover it.
    */
   readonly disclosure?: string;
-  /** The `AI_PROVIDER` value, and what `--provider` accepts. */
+  /** The `AI_PROVIDER` value, and what `--provider` accepts alongside {@link LocalCliProvider.binary}. */
   readonly id: LocalCliProviderId;
   readonly installRemediation: string;
   /** Signed in and usable. Must not consume model tokens. */
@@ -236,7 +236,7 @@ export function describeUnsupportedProvider(options: {
   readonly value: string;
 }): string {
   const origin = options.source === 'option' ? '--provider' : 'AI_PROVIDER';
-  const ids = SUPPORTED_PROVIDERS.map((p) => p.id).join(', ');
+  const ids = SUPPORTED_PROVIDERS.map((p) => `${p.id} (or ${p.binary})`).join(', ');
   return `${origin} is "${options.value}", which is not a supported local AI CLI. Use one of: ${ids}.`;
 }
 
@@ -254,8 +254,12 @@ export async function probeProvider(
   return { provider, readiness: signedIn ? 'ready' : 'signed-out', version };
 }
 
+/**
+ * The provider a `--provider` or `AI_PROVIDER` value names: its id, or the
+ * command it runs as (`agy`, `claude`) — the name people know the CLI by.
+ */
 export function providerById(id: string): LocalCliProvider | undefined {
-  return SUPPORTED_PROVIDERS.find((p) => p.id === id);
+  return SUPPORTED_PROVIDERS.find((p) => p.id === id || p.binary === id);
 }
 
 /**
