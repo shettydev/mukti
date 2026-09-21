@@ -92,7 +92,7 @@ const HELP = `
     --api-port <n>          Port for the API (default ${DEFAULT_API_PORT})
     --data-dir <path>       Where to keep the database and logs
                             (default ~/.mukti, or $MUKTI_HOME)
-    --provider <name>       AI CLI to run on: ${SUPPORTED_PROVIDERS.map((p) => `${p.id} (${p.binary})`).join(' or ')}
+    --provider <name>       AI CLI to run on: ${SUPPORTED_PROVIDERS.map((p) => p.id).join(' or ')}
                             (default: your saved choice, else $AI_PROVIDER,
                             else whichever CLI is ready)
     --save                  Save --provider as your default for later runs
