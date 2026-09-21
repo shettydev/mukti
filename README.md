@@ -42,11 +42,11 @@ Mukti is a thinking workspace powered by a Socratic assistant. Instead of giving
 > [!IMPORTANT]
 > Mukti is not a shortcut machine. If you want final answers without reflection, this product will feel uncomfortable — by design.
 
-## Demo
+<!--## Demo
 
 <video src="https://github.com/shettydev/mukti/releases/download/assets-v1/demo-01.mp4" width="100%" controls></video>
 
-<video src="https://github.com/shettydev/mukti/releases/download/assets-v1/demo-02.mp4" width="100%" controls></video>
+<video src="https://github.com/shettydev/mukti/releases/download/assets-v1/demo-02.mp4" width="100%" controls></video>-->
 
 ## Why?
 
