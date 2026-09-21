@@ -99,7 +99,7 @@ To override:
 
 ```bash
 npx muktiai --choose                          # ask again
-npx muktiai --provider antigravity --save     # set the default, no prompt
+npx muktiai --provider agy --save     # set the default, no prompt
 ```
 
 |                | Claude Code                   | Antigravity                                                   |
