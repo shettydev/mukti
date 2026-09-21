@@ -46,8 +46,16 @@ function scripted(answers: Record<string, Partial<CommandResult>>) {
 test('supports Claude Code and Antigravity, in that detection order', () => {
   assert.deepEqual(
     SUPPORTED_PROVIDERS.map((p) => p.id),
-    ['claude-code', 'antigravity']
+    ['claude', 'agy']
   );
+});
+
+// `--provider claude` is the whole point of the id: it is what the user types
+// to run the CLI, so it cannot drift from the command being run.
+test('each provider is named after the command it runs', () => {
+  for (const provider of SUPPORTED_PROVIDERS) {
+    assert.equal(provider.id, provider.binary);
+  }
 });
 
 const BOTH_READY_ANSWERS = {
@@ -80,34 +88,34 @@ function resolve(
 
 test('an explicit provider wins over AI_PROVIDER, the saved default and what is ready', async () => {
   const result = await resolve({
-    env: 'claude-code',
-    explicit: 'antigravity',
+    env: 'claude',
+    explicit: 'agy',
     run: scripted(BOTH_READY_ANSWERS).run,
-    saved: 'claude-code',
+    saved: 'claude',
   });
 
   assert.equal(result.kind, 'chosen');
-  assert.equal(result.kind === 'chosen' && result.provider.id, 'antigravity');
+  assert.equal(result.kind === 'chosen' && result.provider.id, 'agy');
   assert.equal(result.kind === 'chosen' && result.source, 'option');
 });
 
 test('AI_PROVIDER wins over the saved default', async () => {
   const result = await resolve({
-    env: 'antigravity',
+    env: 'agy',
     run: scripted(BOTH_READY_ANSWERS).run,
-    saved: 'claude-code',
+    saved: 'claude',
   });
 
-  assert.equal(result.kind === 'chosen' && result.provider.id, 'antigravity');
+  assert.equal(result.kind === 'chosen' && result.provider.id, 'agy');
   assert.equal(result.kind === 'chosen' && result.source, 'env');
 });
 
 test('the saved default is used when nothing is named, and only it is probed', async () => {
   const probes = scripted(BOTH_READY_ANSWERS);
 
-  const result = await resolve({ run: probes.run, saved: 'antigravity' });
+  const result = await resolve({ run: probes.run, saved: 'agy' });
 
-  assert.equal(result.kind === 'chosen' && result.provider.id, 'antigravity');
+  assert.equal(result.kind === 'chosen' && result.provider.id, 'agy');
   assert.equal(result.kind === 'chosen' && result.source, 'saved');
   assert.equal(result.kind === 'chosen' && result.status?.readiness, 'ready');
   assert.deepEqual(probes.calls, ['agy --version', 'agy models']);
@@ -117,16 +125,16 @@ test('AI_PROVIDER=openrouter is set aside and the ready CLIs decide', async () =
   const result = await resolve({ env: 'openrouter', run: scripted(ONLY_AGY_READY).run });
 
   assert.equal(result.kind, 'detected');
-  assert.equal(result.kind === 'detected' && result.provider.id, 'antigravity');
+  assert.equal(result.kind === 'detected' && result.provider.id, 'agy');
   assert.equal(result.kind === 'detected' && result.ignoredEnv, 'openrouter');
 });
 
 test('choosing again skips AI_PROVIDER and the saved default', async () => {
   const result = await resolve({
     choose: true,
-    env: 'claude-code',
+    env: 'claude',
     run: scripted(BOTH_READY_ANSWERS).run,
-    saved: 'claude-code',
+    saved: 'claude',
   });
 
   assert.equal(result.kind, 'pick');
@@ -153,16 +161,22 @@ test('an unknown explicit provider is refused', async () => {
   );
 });
 
-test('a provider can be named by the command it runs as', async () => {
+// Providers are named after the commands they run, but were called
+// `claude-code` and `antigravity` first: scripts and saved defaults written
+// then must keep resolving to the same CLI.
+test('a provider can still be named by the name it used to go by', async () => {
   for (const [name, id] of [
-    ['agy', 'antigravity'],
-    ['claude', 'claude-code'],
+    ['antigravity', 'agy'],
+    ['claude-code', 'claude'],
   ]) {
     const explicit = await resolve({ explicit: name, run: scripted(BOTH_READY_ANSWERS).run });
     assert.equal(explicit.kind === 'chosen' && explicit.provider.id, id);
 
     const env = await resolve({ env: name, run: scripted(BOTH_READY_ANSWERS).run });
     assert.equal(env.kind === 'chosen' && env.provider.id, id);
+
+    const saved = await resolve({ run: scripted(BOTH_READY_ANSWERS).run, saved: name });
+    assert.equal(saved.kind === 'chosen' && saved.provider.id, id);
   }
 });
 
@@ -175,18 +189,18 @@ test('an unknown AI_PROVIDER is refused', async () => {
 });
 
 test('a saved default that is signed out is reported, and resolution moves on', async () => {
-  const result = await resolve({ run: scripted(CLAUDE_SIGNED_OUT).run, saved: 'claude-code' });
+  const result = await resolve({ run: scripted(CLAUDE_SIGNED_OUT).run, saved: 'claude' });
 
   assert.equal(result.kind, 'detected');
-  assert.equal(result.kind === 'detected' && result.provider.id, 'antigravity');
+  assert.equal(result.kind === 'detected' && result.provider.id, 'agy');
   assert.equal(result.kind === 'detected' && result.stale?.readiness, 'signed-out');
-  assert.equal(result.kind === 'detected' && result.stale?.provider.id, 'claude-code');
+  assert.equal(result.kind === 'detected' && result.stale?.provider.id, 'claude');
 });
 
 test('a saved default that is no longer installed is reported, and resolution moves on', async () => {
-  const result = await resolve({ run: scripted(ONLY_AGY_READY).run, saved: 'claude-code' });
+  const result = await resolve({ run: scripted(ONLY_AGY_READY).run, saved: 'claude' });
 
-  assert.equal(result.kind === 'detected' && result.provider.id, 'antigravity');
+  assert.equal(result.kind === 'detected' && result.provider.id, 'agy');
   assert.equal(result.kind === 'detected' && result.stale?.readiness, 'missing');
 });
 
@@ -198,7 +212,7 @@ test('nothing ready, but something installed, reports which CLI to sign in to', 
     result.kind === 'none' ? result.statuses.filter((x) => x.readiness === 'signed-out') : [];
   assert.deepEqual(
     signedOut.map((x) => x.provider.id),
-    ['claude-code']
+    ['claude']
   );
 });
 
@@ -216,7 +230,7 @@ test('a single ready CLI is used without asking', async () => {
   const result = await resolve({ run: scripted(ONLY_AGY_READY).run });
 
   assert.equal(result.kind, 'detected');
-  assert.equal(result.kind === 'detected' && result.provider.id, 'antigravity');
+  assert.equal(result.kind === 'detected' && result.provider.id, 'agy');
   assert.deepEqual(result.kind === 'detected' ? result.others : null, []);
   assert.equal(result.kind === 'detected' && result.status.readiness, 'ready');
 });
@@ -226,8 +240,8 @@ test('several ready CLIs are picked between when a terminal is available', async
 
   assert.equal(result.kind, 'pick');
   assert.deepEqual(result.kind === 'pick' ? result.statuses.map((x) => x.provider.id) : null, [
-    'claude-code',
-    'antigravity',
+    'claude',
+    'agy',
   ]);
 });
 
@@ -238,9 +252,9 @@ test('several ready CLIs without a terminal use the first and say how to choose'
   });
 
   assert.equal(result.kind, 'detected');
-  assert.equal(result.kind === 'detected' && result.provider.id, 'claude-code');
+  assert.equal(result.kind === 'detected' && result.provider.id, 'claude');
   assert.deepEqual(result.kind === 'detected' ? result.others.map((x) => x.provider.id) : null, [
-    'antigravity',
+    'agy',
   ]);
   assert.equal(result.kind === 'detected' && result.canChoose, true);
 });
@@ -250,7 +264,7 @@ test('several ready CLIs without a terminal use the first and say how to choose'
 test('a signed-out CLI is never chosen automatically', async () => {
   const result = await resolve({ interactive: false, run: scripted(CLAUDE_SIGNED_OUT).run });
 
-  assert.equal(result.kind === 'detected' && result.provider.id, 'antigravity');
+  assert.equal(result.kind === 'detected' && result.provider.id, 'agy');
 });
 
 test('the no-provider remediation names every supported option', () => {
@@ -272,7 +286,7 @@ test('an unsupported value is explained with every supported id', () => {
 });
 
 test('the Antigravity sign-in probe lists models and never runs a completion', async () => {
-  const agy = providerById('antigravity')!;
+  const agy = providerById('agy')!;
   const signedIn = scripted({ 'agy models': { stdout: 'gemini-3.8-flash-high\tGemini\n' } });
   const signedOut = scripted({ 'agy models': { status: 1, stderr: 'not signed in' } });
 
@@ -285,7 +299,7 @@ test('the Antigravity sign-in probe lists models and never runs a completion', a
 });
 
 test('the Claude sign-in probe reads `claude auth status`', async () => {
-  const claude = providerById('claude-code')!;
+  const claude = providerById('claude')!;
 
   assert.equal(
     await claude.isAuthenticated(
@@ -306,7 +320,7 @@ test('the Claude sign-in probe reads `claude auth status`', async () => {
 });
 
 test('a CLI that cannot run or exits non-zero reports no version', async () => {
-  const agy = providerById('antigravity')!;
+  const agy = providerById('agy')!;
 
   assert.equal(await agy.version(scripted({}).run), undefined);
   assert.equal(await agy.version(scripted({ 'agy --version': { status: 2 } }).run), undefined);
@@ -317,19 +331,19 @@ test('a CLI that cannot run or exits non-zero reports no version', async () => {
 });
 
 test('each provider names its own sign-in step', () => {
-  assert.match(providerById('claude-code')!.signInRemediation, /claude login/);
-  assert.match(providerById('antigravity')!.signInRemediation, /`agy`/);
-  assert.doesNotMatch(providerById('antigravity')!.signInRemediation, /claude/);
+  assert.match(providerById('claude')!.signInRemediation, /claude login/);
+  assert.match(providerById('agy')!.signInRemediation, /`agy`/);
+  assert.doesNotMatch(providerById('agy')!.signInRemediation, /claude/);
 });
 
 test('Antigravity discloses its cost, its latency, what it leaves behind and what can reach it', () => {
-  const disclosure = providerById('antigravity')!.disclosure ?? '';
+  const disclosure = providerById('agy')!.disclosure ?? '';
 
   assert.match(disclosure, /15–25k input tokens/);
   assert.match(disclosure, /30–60 seconds/);
   assert.match(disclosure, /Antigravity history/);
   assert.match(disclosure, /global agy rules and hooks/);
-  assert.equal(providerById('claude-code')!.disclosure, undefined);
+  assert.equal(providerById('claude')!.disclosure, undefined);
 });
 
 const BOTH_READY = {
@@ -340,7 +354,7 @@ const BOTH_READY = {
 };
 
 test('readiness tells missing, signed out and ready apart', async () => {
-  const claude = providerById('claude-code')!;
+  const claude = providerById('claude')!;
 
   assert.equal((await probeProvider(claude, scripted({}).run)).readiness, 'missing');
   assert.equal(
@@ -359,7 +373,7 @@ test('readiness tells missing, signed out and ready apart', async () => {
 test('a CLI that is not installed is not asked about sign-in', async () => {
   const probes = scripted({});
 
-  await probeProvider(providerById('antigravity')!, probes.run);
+  await probeProvider(providerById('agy')!, probes.run);
 
   assert.deepEqual(probes.calls, ['agy --version']);
 });
@@ -369,7 +383,7 @@ test('scanning covers every supported provider, in registry order', async () => 
 
   assert.deepEqual(
     statuses.map((s) => s.provider.id),
-    ['claude-code', 'antigravity']
+    ['claude', 'agy']
   );
   assert.deepEqual(
     statuses.map((s) => s.readiness),

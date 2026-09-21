@@ -27,7 +27,7 @@ import {
   writeStoredProvider,
 } from '../provider-settings.ts';
 
-const SUPPORTED = ['claude-code', 'antigravity'] as const;
+const SUPPORTED = ['claude', 'agy'] as const;
 
 let root: string;
 
@@ -57,9 +57,9 @@ test('a missing file means no default, and says nothing', () => {
 });
 
 test('a valid file yields its provider', () => {
-  write({ provider: 'antigravity', version: 1 });
+  write({ provider: 'agy', version: 1 });
 
-  assert.deepEqual(readStoredProvider(root, SUPPORTED), { provider: 'antigravity' });
+  assert.deepEqual(readStoredProvider(root, SUPPORTED), { provider: 'agy' });
 });
 
 test('malformed JSON means no default, and names the file', () => {
@@ -72,7 +72,7 @@ test('malformed JSON means no default, and names the file', () => {
 });
 
 test('a version this launcher does not know means no default', () => {
-  write({ provider: 'antigravity', version: 99 });
+  write({ provider: 'agy', version: 99 });
 
   const result = readStoredProvider(root, SUPPORTED);
 
@@ -96,36 +96,36 @@ test('a file with no provider means no default', () => {
 });
 
 test('writing records the provider and the format version', () => {
-  writeStoredProvider(root, 'antigravity');
+  writeStoredProvider(root, 'agy');
 
   assert.deepEqual(JSON.parse(readFileSync(providerSettingsPath(root), 'utf8')), {
-    provider: 'antigravity',
+    provider: 'agy',
     version: 1,
   });
-  assert.deepEqual(readStoredProvider(root, SUPPORTED), { provider: 'antigravity' });
+  assert.deepEqual(readStoredProvider(root, SUPPORTED), { provider: 'agy' });
 });
 
 test('writing creates the home directory but nothing else', () => {
   const fresh = join(root, 'not-yet');
 
-  writeStoredProvider(fresh, 'claude-code');
+  writeStoredProvider(fresh, 'claude');
 
   assert.deepEqual(readdirSync(fresh), ['config.json']);
 });
 
 test('writing leaves no temporary file behind', () => {
-  writeStoredProvider(root, 'claude-code');
+  writeStoredProvider(root, 'claude');
 
   assert.deepEqual(readdirSync(root), ['config.json']);
 });
 
 test('writing preserves settings this launcher does not know about', () => {
-  write({ provider: 'claude-code', somethingLater: { kept: true }, version: 1 });
+  write({ provider: 'claude', somethingLater: { kept: true }, version: 1 });
 
-  writeStoredProvider(root, 'antigravity');
+  writeStoredProvider(root, 'agy');
 
   assert.deepEqual(JSON.parse(readFileSync(providerSettingsPath(root), 'utf8')), {
-    provider: 'antigravity',
+    provider: 'agy',
     somethingLater: { kept: true },
     version: 1,
   });
@@ -134,9 +134,9 @@ test('writing preserves settings this launcher does not know about', () => {
 test('writing over a malformed file replaces it rather than failing', () => {
   write('{not json');
 
-  writeStoredProvider(root, 'antigravity');
+  writeStoredProvider(root, 'agy');
 
-  assert.deepEqual(readStoredProvider(root, SUPPORTED), { provider: 'antigravity' });
+  assert.deepEqual(readStoredProvider(root, SUPPORTED), { provider: 'agy' });
 });
 
 test('an unreadable settings path is reported, not thrown', () => {

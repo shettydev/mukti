@@ -17,8 +17,8 @@ import type { ProviderStatus } from '../providers.ts';
 import { isInteractive, pickProvider } from '../provider-picker.ts';
 import { providerById } from '../providers.ts';
 
-const CLAUDE = providerById('claude-code')!;
-const ANTIGRAVITY = providerById('antigravity')!;
+const CLAUDE = providerById('claude')!;
+const ANTIGRAVITY = providerById('agy')!;
 
 const ready = (provider = CLAUDE): ProviderStatus => ({
   provider,
@@ -65,7 +65,7 @@ test('every supported CLI is offered, with its status and its trade-off', async 
 
   assert.deepEqual(
     harness.offered.map((option) => option.value),
-    ['claude-code', 'antigravity']
+    ['claude', 'agy']
   );
   const [claude, antigravity] = harness.offered;
   assert.match(claude.hint ?? '', new RegExp(CLAUDE.tradeOff));
@@ -97,26 +97,26 @@ test('the first ready CLI is selected to begin with', async () => {
 
   const picked = await pickProvider(statuses, harness.prompts);
 
-  assert.equal(picked?.provider.id, 'antigravity');
+  assert.equal(picked?.provider.id, 'agy');
 });
 
 test('keeping the pick asks to remember it', async () => {
-  const harness = prompts({ confirm: true, select: 'antigravity' });
+  const harness = prompts({ confirm: true, select: 'agy' });
 
   const picked = await pickProvider([ready(CLAUDE), ready(ANTIGRAVITY)], harness.prompts);
 
-  assert.equal(picked?.provider.id, 'antigravity');
+  assert.equal(picked?.provider.id, 'agy');
   assert.equal(picked?.remember, true);
   assert.equal(harness.asked.length, 2);
   assert.match(harness.asked[1], /confirm:/);
 });
 
 test('declining to remember still uses the pick for this launch', async () => {
-  const harness = prompts({ confirm: false, select: 'antigravity' });
+  const harness = prompts({ confirm: false, select: 'agy' });
 
   const picked = await pickProvider([ready(CLAUDE), ready(ANTIGRAVITY)], harness.prompts);
 
-  assert.equal(picked?.provider.id, 'antigravity');
+  assert.equal(picked?.provider.id, 'agy');
   assert.equal(picked?.remember, false);
 });
 
@@ -128,7 +128,7 @@ test('cancelling the choice picks nothing', async () => {
 });
 
 test('cancelling the remember question picks nothing', async () => {
-  const harness = prompts({ confirm: CANCELLED, select: 'antigravity' });
+  const harness = prompts({ confirm: CANCELLED, select: 'agy' });
 
   assert.equal(await pickProvider([ready(CLAUDE), ready(ANTIGRAVITY)], harness.prompts), undefined);
 });

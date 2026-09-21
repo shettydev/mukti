@@ -79,37 +79,46 @@ function select(options: {
 }
 
 test('a named provider is used, reported as such, and not saved', async () => {
-  const selection = await select({ explicit: 'antigravity' });
+  const selection = await select({ explicit: 'agy' });
 
   assert.equal(selection.kind, 'ready');
-  assert.equal(selection.kind === 'ready' && selection.provider.id, 'antigravity');
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.equal(selection.kind === 'ready' && selection.remember, false);
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /--provider/);
 });
 
 test('a named provider with --save is remembered only once preflight has passed', async () => {
-  const selection = await select({ explicit: 'antigravity', save: true });
+  const selection = await select({ explicit: 'agy', save: true });
 
   assert.equal(selection.kind === 'ready' && selection.remember, true);
   // Selection itself writes nothing: the launcher saves after preflight.
-  assert.equal(readStoredProvider(home, ['antigravity', 'claude-code']).provider, undefined);
+  assert.equal(readStoredProvider(home, ['agy', 'claude']).provider, undefined);
 });
 
 test('AI_PROVIDER is reported as the source', async () => {
-  process.env.AI_PROVIDER = 'antigravity';
+  process.env.AI_PROVIDER = 'agy';
 
   const selection = await select({});
 
-  assert.equal(selection.kind === 'ready' && selection.provider.id, 'antigravity');
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /AI_PROVIDER/);
 });
 
-test('a saved default is used, and the report says how to change it', async () => {
+test('a saved default under a provider’s former name is still used', async () => {
   writeStoredProvider(home, 'antigravity');
 
   const selection = await select({});
 
-  assert.equal(selection.kind === 'ready' && selection.provider.id, 'antigravity');
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
+  assert.equal(selection.kind === 'ready' && selection.status?.readiness, 'ready');
+});
+
+test('a saved default is used, and the report says how to change it', async () => {
+  writeStoredProvider(home, 'agy');
+
+  const selection = await select({});
+
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.equal(selection.kind === 'ready' && selection.status?.readiness, 'ready');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /--choose/);
 });
@@ -118,7 +127,7 @@ test('a saved default is used, and the report says how to change it', async () =
 // there is nothing to pick: the remaining one is used and nothing is saved.
 // The picker's stale notice matters once a third provider exists.
 test('a saved default that is signed out is explained, and the ready CLI is used', async () => {
-  writeStoredProvider(home, 'claude-code');
+  writeStoredProvider(home, 'claude');
 
   const selection = await select({
     answers: { ...ONLY_AGY_READY, ...CLAUDE_SIGNED_OUT },
@@ -127,7 +136,7 @@ test('a saved default that is signed out is explained, and the ready CLI is used
 
   const notices = selection.kind === 'ready' ? selection.notices.join('\n') : '';
   assert.match(notices, /not signed in/);
-  assert.equal(selection.kind === 'ready' && selection.provider.id, 'antigravity');
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.equal(selection.kind === 'ready' && selection.remember, false);
 });
 
@@ -136,7 +145,7 @@ test('a pick that is kept is remembered', async () => {
     pick: (statuses) => Promise.resolve({ provider: statuses[1].provider, remember: true }),
   });
 
-  assert.equal(selection.kind === 'ready' && selection.provider.id, 'antigravity');
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.equal(selection.kind === 'ready' && selection.remember, true);
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /chosen just now/);
 });
@@ -144,14 +153,14 @@ test('a pick that is kept is remembered', async () => {
 test('the only ready CLI is used and reported as the only one', async () => {
   const selection = await select({ answers: ONLY_AGY_READY });
 
-  assert.equal(selection.kind === 'ready' && selection.provider.id, 'antigravity');
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /only/i);
 });
 
 test('several ready CLIs without a terminal take the first and say how to choose', async () => {
   const selection = await select({ interactive: false });
 
-  assert.equal(selection.kind === 'ready' && selection.provider.id, 'claude-code');
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'claude');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /--choose/);
 });
 
