@@ -27,6 +27,18 @@ const OPENROUTER_PROVIDER = 'openrouter';
 
 const DEFAULT_PROVIDER = OPENROUTER_PROVIDER;
 
+/**
+ * Local CLIs named after the commands they run. The launcher asks for them
+ * this way (`--provider claude`, `--provider agy`) and passes the name
+ * straight through as `AI_PROVIDER`, while the adapters were first registered
+ * under longer names. Both are accepted so neither a saved launcher default
+ * nor an older `.env` has to be rewritten.
+ */
+const PROVIDER_ALIASES: Readonly<Record<string, string>> = {
+  agy: 'antigravity',
+  claude: 'claude-code',
+};
+
 @Injectable()
 export class AiProviderRegistry implements OnModuleInit {
   private readonly adapters: readonly LocalCliAdapter[];
@@ -55,16 +67,19 @@ export class AiProviderRegistry implements OnModuleInit {
     return this.adapters.find((a) => a.providerId === provider);
   }
 
-  /** Raw `AI_PROVIDER` value, defaulting to `openrouter` when unset. */
+  /**
+   * The configured `AI_PROVIDER` with any alias resolved, defaulting to
+   * `openrouter` when unset.
+   */
   getProviderId(): string {
     // `||` (not `??`) is deliberate: an empty or whitespace-only AI_PROVIDER is
     // an unset one, and must fall through to the default rather than being
     // treated as a configured provider name.
     /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-    return (
-      this.configService.get<string>('AI_PROVIDER')?.trim() || DEFAULT_PROVIDER
-    );
+    const configured =
+      this.configService.get<string>('AI_PROVIDER')?.trim() || DEFAULT_PROVIDER;
     /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
+    return PROVIDER_ALIASES[configured] ?? configured;
   }
 
   /** Whether completions route through a local, user-authenticated CLI. */
@@ -103,7 +118,10 @@ export class AiProviderRegistry implements OnModuleInit {
 
     if (!supported.includes(provider)) {
       throw new Error(
-        `Unsupported AI_PROVIDER "${provider}". Supported values: ${supported.join(', ')}.`,
+        `Unsupported AI_PROVIDER "${provider}". Supported values: ${[
+          ...supported,
+          ...Object.keys(PROVIDER_ALIASES),
+        ].join(', ')}.`,
       );
     }
   }

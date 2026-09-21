@@ -394,7 +394,7 @@ export class DialogueAIService {
     }
 
     throw new Error(
-      'No AI API key is configured. Add your OpenRouter key in Settings, set OPENROUTER_API_KEY on the server, or run locally with a local-CLI provider (AI_PROVIDER=claude-code or antigravity).',
+      'No AI API key is configured. Add your OpenRouter key in Settings, set OPENROUTER_API_KEY on the server, or run locally with a local-CLI provider (AI_PROVIDER=claude or agy).',
     );
   }
 
