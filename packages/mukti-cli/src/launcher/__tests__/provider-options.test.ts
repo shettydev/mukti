@@ -23,14 +23,14 @@ test('no flags means nothing chosen, nothing saved', () => {
 });
 
 test('a provider can be named, with or without saving it', () => {
-  assert.deepEqual(parseProviderOptions(['--provider', 'antigravity']), {
+  assert.deepEqual(parseProviderOptions(['--provider', 'agy']), {
     kind: 'ok',
-    options: { choose: false, provider: 'antigravity', save: false },
+    options: { choose: false, provider: 'agy', save: false },
     rest: [],
   });
-  assert.deepEqual(parseProviderOptions(['--provider', 'antigravity', '--save']), {
+  assert.deepEqual(parseProviderOptions(['--provider', 'agy', '--save']), {
     kind: 'ok',
-    options: { choose: false, provider: 'antigravity', save: true },
+    options: { choose: false, provider: 'agy', save: true },
     rest: [],
   });
 });
@@ -78,7 +78,7 @@ test('saving without naming a provider is refused', () => {
 });
 
 test('naming a provider and asking to choose one is refused', () => {
-  const result = parseProviderOptions(['--provider', 'antigravity', '--choose']);
+  const result = parseProviderOptions(['--provider', 'agy', '--choose']);
 
   assert.equal(result.kind, 'error');
   assert.match(result.kind === 'error' ? result.message : '', /--choose/);

@@ -14,11 +14,15 @@ Both share the same launcher, preflight checks, and saved settings.
 
 ## Supported AI CLIs
 
-| CLI                                                                            | Provider id   | Status      |
-| ------------------------------------------------------------------------------ | ------------- | ----------- |
-| [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) (`claude`) | `claude-code` | Supported   |
-| [Antigravity](https://antigravity.google/docs/cli/reference) (`agy`)           | `antigravity` | Supported   |
-| Codex, OpenCode, Pi, Grok, and more                                            | —             | Coming soon |
+| CLI                                                                            | Provider id | Status      |
+| ------------------------------------------------------------------------------ | ----------- | ----------- |
+| [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) (`claude`) | `claude`    | Supported   |
+| [Antigravity](https://antigravity.google/docs/cli/reference) (`agy`)           | `agy`       | Supported   |
+| Codex, OpenCode, Pi, Grok, and more                                            | —           | Coming soon |
+
+Each provider is named after the command it runs, so `--provider claude` and `--provider agy` are
+all you have to remember. The older names `claude-code` and `antigravity` still work everywhere a
+provider can be named.
 
 Sign in first: `claude login`, or run `agy` once and follow the prompts.
 
@@ -41,8 +45,8 @@ so. To change it, or to decide without being asked:
 
 ```bash
 npx muktiai --choose                          # ask again, and offer to remember
-npx muktiai --provider antigravity            # just this once
-npx muktiai --provider antigravity --save     # set the default, no prompt
+npx muktiai --provider agy                    # just this once
+npx muktiai --provider agy --save             # set the default, no prompt
 ```
 
 From a checkout, pass the same flags after `--`: `bun run start:local -- --choose`.
@@ -60,7 +64,7 @@ you how to choose another.
 
 The two are not equivalent, and the difference is worth knowing before you choose:
 
-|                           | Claude Code (`claude-code`)                               | Antigravity (`antigravity`)                                                                                                                                               |
+|                           | Claude Code (`claude`)                                    | Antigravity (`agy`)                                                                                                                                                       |
 | ------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Time per reply (measured) | about 13–20 seconds                                       | about 30–60 seconds                                                                                                                                                       |
 | Prompt size per reply     | Mukti's own prompt and your conversation                  | about 15–25k input tokens: the same, plus agy's own ~14k-token coding-agent prompt, which cannot be replaced                                                              |
@@ -108,7 +112,7 @@ npx muktiai [options]
   --port, --web-port <n>  Port for the web app (default 3001)
   --api-port <n>          Port for the API (default 3000)
   --data-dir <path>       Where to keep the database and logs (default ~/.mukti, or $MUKTI_HOME)
-  --provider <name>       AI CLI to run on: claude-code or antigravity
+  --provider <name>       AI CLI to run on: claude or agy
   --save                  Save --provider as your default for later runs
   --choose                Ask which AI CLI to use, and offer to save it
   -h, --help              Show help

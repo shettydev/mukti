@@ -38,18 +38,18 @@ function probes() {
 }
 
 test('preflight probes the provider when it is given no readiness', async () => {
-  const antigravity = providerById('antigravity')!;
+  const antigravity = providerById('agy')!;
   const { calls, run } = probes();
 
   const result = await runPreflight({ provider: antigravity, run });
 
-  assert.equal(result.provider.id, 'antigravity');
+  assert.equal(result.provider.id, 'agy');
   assert.equal(result.version, '1.1.22');
   assert.deepEqual(calls, ['agy --version', 'agy models']);
 });
 
 test('preflight reuses readiness the launcher already established', async () => {
-  const antigravity = providerById('antigravity')!;
+  const antigravity = providerById('agy')!;
   const { calls, run } = probes();
   const status: ProviderStatus = {
     provider: antigravity,
@@ -64,7 +64,7 @@ test('preflight reuses readiness the launcher already established', async () => 
 });
 
 test('preflight still runs the mode-specific checks it is given', async () => {
-  const antigravity = providerById('antigravity')!;
+  const antigravity = providerById('agy')!;
   const { run } = probes();
   let ran = false;
 

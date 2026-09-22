@@ -26,7 +26,7 @@
  * Node's own type stripping) — hence the explicit `.ts` extensions on the local
  * imports below, which Node's ESM resolver requires.
  *
- * Usage: bun run start:local [-- --provider claude-code|antigravity]
+ * Usage: bun run start:local [-- --provider claude|agy]
  *        bun run start:local -- --choose        (ask, and offer to remember)
  *        bun run start:local -- --provider agy --save
  *        (or npm run start:local -- …)

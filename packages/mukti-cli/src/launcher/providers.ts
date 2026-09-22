@@ -30,6 +30,12 @@ export interface CommandResult {
 export type ExplicitSource = 'env' | 'option';
 
 export interface LocalCliProvider {
+  /**
+   * Names this provider used to answer to. Still accepted from `--provider`,
+   * `AI_PROVIDER` and a saved default, so commands and config files written
+   * before the providers were named after their commands keep working.
+   */
+  readonly aliases: readonly string[];
   /** Executable looked up on PATH. */
   readonly binary: string;
   /**
@@ -37,7 +43,10 @@ export interface LocalCliProvider {
    * leaves on their machine, told before they discover it.
    */
   readonly disclosure?: string;
-  /** The `AI_PROVIDER` value, and what `--provider` accepts alongside {@link LocalCliProvider.binary}. */
+  /**
+   * The `AI_PROVIDER` value, and what `--provider` takes: the command the CLI
+   * runs as, which is the name its users already know it by.
+   */
   readonly id: LocalCliProviderId;
   readonly installRemediation: string;
   /** Signed in and usable. Must not consume model tokens. */
@@ -55,7 +64,7 @@ export interface LocalCliProvider {
   version(run: RunCommand): Promise<string | undefined>;
 }
 
-export type LocalCliProviderId = 'antigravity' | 'claude-code';
+export type LocalCliProviderId = 'agy' | 'claude';
 
 /** How usable a provider is on this machine. */
 export type ProviderReadiness = 'missing' | 'ready' | 'signed-out';
@@ -131,8 +140,9 @@ async function versionOf(run: RunCommand, binary: string): Promise<string | unde
 }
 
 const CLAUDE_CODE: LocalCliProvider = {
+  aliases: ['claude-code'],
   binary: 'claude',
-  id: 'claude-code',
+  id: 'claude',
   installRemediation: 'Install Claude Code: https://docs.claude.com/en/docs/claude-code/overview',
   async isAuthenticated(run) {
     const status = await run('claude', ['auth', 'status']);
@@ -149,6 +159,7 @@ const CLAUDE_CODE: LocalCliProvider = {
 };
 
 const ANTIGRAVITY: LocalCliProvider = {
+  aliases: ['antigravity'],
   binary: 'agy',
   // Measured end to end on agy 1.1.22 (design.md Decisions 12–13).
   disclosure: [
@@ -158,7 +169,7 @@ const ANTIGRAVITY: LocalCliProvider = {
     'under a "mukti-socratic" project, at about 1 MB per reply. Mukti never deletes it.',
     'Your global agy rules and hooks (~/.gemini/config) also apply, and can change the replies.',
   ].join('\n'),
-  id: 'antigravity',
+  id: 'agy',
   installRemediation:
     'Install the Antigravity CLI (`agy`): https://antigravity.google/docs/cli/reference',
   // agy has no auth subcommand. Listing models needs a valid session and runs
@@ -172,6 +183,12 @@ const ANTIGRAVITY: LocalCliProvider = {
 
 /** In detection order: the cheaper, faster provider first. */
 export const SUPPORTED_PROVIDERS: readonly LocalCliProvider[] = [CLAUDE_CODE, ANTIGRAVITY];
+
+/** Every name a supported provider answers to, current and former. */
+export const PROVIDER_NAMES: readonly string[] = SUPPORTED_PROVIDERS.flatMap((provider) => [
+  provider.id,
+  ...provider.aliases,
+]);
 
 export const NO_PROVIDER_REMEDIATION = [
   'Mukti runs on an AI CLI you have installed and signed in to. Install one of:',
@@ -236,7 +253,7 @@ export function describeUnsupportedProvider(options: {
   readonly value: string;
 }): string {
   const origin = options.source === 'option' ? '--provider' : 'AI_PROVIDER';
-  const ids = SUPPORTED_PROVIDERS.map((p) => `${p.id} (or ${p.binary})`).join(', ');
+  const ids = SUPPORTED_PROVIDERS.map((p) => p.id).join(', ');
   return `${origin} is "${options.value}", which is not a supported local AI CLI. Use one of: ${ids}.`;
 }
 
@@ -255,11 +272,11 @@ export async function probeProvider(
 }
 
 /**
- * The provider a `--provider` or `AI_PROVIDER` value names: its id, or the
- * command it runs as (`agy`, `claude`) — the name people know the CLI by.
+ * The provider a `--provider` or `AI_PROVIDER` value names: its id, or one of
+ * the names it used to go by.
  */
 export function providerById(id: string): LocalCliProvider | undefined {
-  return SUPPORTED_PROVIDERS.find((p) => p.id === id || p.binary === id);
+  return SUPPORTED_PROVIDERS.find((p) => p.id === id || p.aliases.includes(id));
 }
 
 /**
@@ -384,10 +401,7 @@ export async function selectProvider(options: {
   const { home, interactive, pick = pickProvider, run = runCommand } = options;
   const notices: string[] = [];
 
-  const stored = readStoredProvider(
-    home,
-    SUPPORTED_PROVIDERS.map((provider) => provider.id)
-  );
+  const stored = readStoredProvider(home, PROVIDER_NAMES);
   if (stored.warning) {
     notices.push(stored.warning);
   }

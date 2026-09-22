@@ -60,6 +60,18 @@ describe('AiProviderRegistry', () => {
     expect(r.isLocalCliProvider()).toBe(true);
   });
 
+  // The launcher asks for these CLIs by the command they run and passes that
+  // name straight through, so both spellings have to reach the same adapter.
+  it.each([
+    ['claude', ClaudeCliAdapter],
+    ['agy', AntigravityCliAdapter],
+  ])('resolves %s, the command name, to its adapter', (provider, adapter) => {
+    const r = registry({ AI_PROVIDER: provider });
+
+    expect(r.getActiveLocalCliAdapter()).toBeInstanceOf(adapter);
+    expect(r.isLocalCliProvider()).toBe(true);
+  });
+
   it('runs agy from the workspace named by MUKTI_AGY_WORKSPACE', () => {
     const workspace = join(root, 'custom-workspace');
     const adapter = registry({
@@ -74,7 +86,7 @@ describe('AiProviderRegistry', () => {
     const r = registry({ AI_PROVIDER: 'gemini-cli' });
 
     await expect(r.onModuleInit()).rejects.toThrow(
-      'Unsupported AI_PROVIDER "gemini-cli". Supported values: openrouter, claude-code, antigravity.',
+      'Unsupported AI_PROVIDER "gemini-cli". Supported values: openrouter, claude-code, antigravity, agy, claude.',
     );
     expect(r.isLocalCliProvider()).toBe(false);
   });
