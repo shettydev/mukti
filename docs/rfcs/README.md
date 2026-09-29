@@ -12,13 +12,14 @@ This directory contains major technical design proposals for Mukti.
 
 ### Active RFCs
 
-| RFC #                                                                        | Title                                   | Status    | Author                                         | Date       |
-| ---------------------------------------------------------------------------- | --------------------------------------- | --------- | ---------------------------------------------- | ---------- |
-| [RFC-0001](./active/rfc-0001-knowledge-gap-detection/index.md)               | Knowledge Gap Detection System          | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
-| [RFC-0002](./active/rfc-0002-adaptive-scaffolding-framework/index.md)        | Adaptive Scaffolding Framework          | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
-| [RFC-0004](./active/rfc-0004-socratic-dialogue-quality-guardrails/index.md)  | Socratic Dialogue Quality Guardrails    | Draft     | [Prathik Shetty](https://github.com/shettydev) | 2026-03-17 |
-| [RFC-0005](./active/rfc-0005-session-continuity-temporal-awareness/index.md) | Session Continuity & Temporal Awareness | Draft     | [Prathik Shetty](https://github.com/shettydev) | 2026-03-17 |
-| [RFC-0006](./active/rfc-0006-mukti-api-architecture-restructure/index.md)    | Mukti API Architecture Restructure      | Draft     | [Prathik Shetty](https://github.com/shettydev) | 2026-03-26 |
+| RFC #                                                                        | Title                                           | Status    | Author                                         | Date       |
+| ---------------------------------------------------------------------------- | ----------------------------------------------- | --------- | ---------------------------------------------- | ---------- |
+| [RFC-0001](./active/rfc-0001-knowledge-gap-detection/index.md)               | Knowledge Gap Detection System                  | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
+| [RFC-0002](./active/rfc-0002-adaptive-scaffolding-framework/index.md)        | Adaptive Scaffolding Framework                  | In Review | [Prathik Shetty](https://github.com/shettydev) | 2026-02-28 |
+| [RFC-0004](./active/rfc-0004-socratic-dialogue-quality-guardrails/index.md)  | Socratic Dialogue Quality Guardrails            | Draft     | [Prathik Shetty](https://github.com/shettydev) | 2026-03-17 |
+| [RFC-0005](./active/rfc-0005-session-continuity-temporal-awareness/index.md) | Session Continuity & Temporal Awareness         | Draft     | [Prathik Shetty](https://github.com/shettydev) | 2026-03-17 |
+| [RFC-0006](./active/rfc-0006-mukti-api-architecture-restructure/index.md)    | Mukti API Architecture Restructure              | Draft     | [Prathik Shetty](https://github.com/shettydev) | 2026-03-26 |
+| [RFC-0007](./active/rfc-0007-semantic-learner-signals/index.md)              | Semantic Learner Signals via TypeSafe Judgments | Draft     | [Prathik Shetty](https://github.com/shettydev) | 2026-09-29 |
 
 ### Implemented RFCs
 
