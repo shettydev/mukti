@@ -5,6 +5,7 @@
     "sessionUrl": false
   },
   "enabledPlugins": {
-    "oac@oac-marketplace": true
+    "oac@oac-marketplace": true,
+    "typesafe@typesafe-ai": true
   }
 }
