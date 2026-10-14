@@ -1,5 +1,3 @@
-import { ConfigService } from '@nestjs/config';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 import { Types } from 'mongoose';
@@ -8,9 +6,7 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
-import { User } from '../../../../schemas/user.schema';
-import { AiPolicyService } from '../../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
+import { AiRequestGate } from '../../../ai/services/ai-request-gate.service';
 import { BranchSuggestionService } from '../../services/branch-suggestion.service';
 import { MapExtractionService } from '../../services/map-extraction.service';
 import { ThoughtMapShareService } from '../../services/thought-map-share.service';
@@ -35,32 +31,13 @@ describe('ThoughtMapController - Query Parsing (Property-Based)', () => {
     updateSettings: jest.fn(),
   };
 
-  const mockUserModel = {
-    findById: jest.fn().mockReturnThis(),
-    lean: jest.fn(),
-    select: jest.fn().mockReturnThis(),
-    updateOne: jest.fn(),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ThoughtMapController],
       providers: [
         {
-          provide: getModelToken(User.name),
-          useValue: mockUserModel,
-        },
-        {
-          provide: ConfigService,
-          useValue: { get: jest.fn() },
-        },
-        {
-          provide: AiPolicyService,
-          useValue: { resolveEffectiveModel: jest.fn() },
-        },
-        {
-          provide: AiSecretsService,
-          useValue: { decryptString: jest.fn() },
+          provide: AiRequestGate,
+          useValue: { authorize: jest.fn() },
         },
         {
           provide: ThoughtMapService,

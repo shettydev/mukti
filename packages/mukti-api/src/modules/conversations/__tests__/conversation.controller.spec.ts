@@ -1,13 +1,7 @@
-import { ConfigService } from '@nestjs/config';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
-import { Subscription } from '../../../schemas/subscription.schema';
-import { User } from '../../../schemas/user.schema';
-import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { AiSecretsService } from '../../ai/services/ai-secrets.service';
-import { FreeQuotaService } from '../../ai/services/free-quota.service';
+import { AiRequestGate } from '../../ai/services/ai-request-gate.service';
 import { ConversationController } from '../conversation.controller';
 import { ConversationService } from '../services/conversation.service';
 import { MessageService } from '../services/message.service';
@@ -26,7 +20,7 @@ describe('ConversationController', () => {
   let conversationService: jest.Mocked<ConversationService>;
   let messageService: jest.Mocked<MessageService>;
   let queueService: jest.Mocked<QueueService>;
-  let freeQuotaService: { checkAndConsume: jest.Mock };
+  let aiRequestGate: { authorize: jest.Mock };
 
   // Mock authenticated user
   const mockUser = {
@@ -70,28 +64,8 @@ describe('ConversationController', () => {
     removeConnection: jest.fn(),
   };
 
-  const mockConfigService = {
-    get: jest.fn().mockReturnValue('mock-api-key'),
-  };
-
-  const mockAiPolicyService = {
-    isLocalCliProvider: jest.fn().mockReturnValue(false),
-    resolveEffectiveModel: jest.fn().mockResolvedValue(undefined),
-  };
-
-  const mockAiSecretsService = {
-    decryptString: jest.fn(),
-  };
-
-  const mockUserModel = {
-    findById: jest.fn().mockReturnThis(),
-    lean: jest.fn().mockResolvedValue({
-      _id: new Types.ObjectId('507f1f77bcf86cd799439012'),
-      email: 'test@example.com',
-      preferences: { activeModel: 'test-model' },
-    }),
-    select: jest.fn().mockReturnThis(),
-    updateOne: jest.fn(),
+  const mockAiRequestGate = {
+    authorize: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -99,32 +73,8 @@ describe('ConversationController', () => {
       controllers: [ConversationController],
       providers: [
         {
-          provide: getModelToken(User.name),
-          useValue: mockUserModel,
-        },
-        {
-          provide: getModelToken(Subscription.name),
-          useValue: {
-            findOne: jest.fn().mockReturnValue({
-              lean: jest.fn().mockResolvedValue(null),
-            }),
-          },
-        },
-        {
-          provide: FreeQuotaService,
-          useValue: { checkAndConsume: jest.fn() },
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-        {
-          provide: AiPolicyService,
-          useValue: mockAiPolicyService,
-        },
-        {
-          provide: AiSecretsService,
-          useValue: mockAiSecretsService,
+          provide: AiRequestGate,
+          useValue: mockAiRequestGate,
         },
         {
           provide: ConversationService,
@@ -149,10 +99,15 @@ describe('ConversationController', () => {
     conversationService = module.get(ConversationService);
     messageService = module.get(MessageService);
     queueService = module.get(QueueService);
-    freeQuotaService = module.get(FreeQuotaService);
+    aiRequestGate = module.get(AiRequestGate);
 
     // Reset mocks before each test
     jest.clearAllMocks();
+    mockAiRequestGate.authorize.mockResolvedValue({
+      model: undefined,
+      subscriptionTier: 'free',
+      usedByok: false,
+    });
   });
 
   it('should be defined', () => {
@@ -534,39 +489,33 @@ describe('ConversationController', () => {
       } as any);
     }
 
-    afterEach(() => {
-      mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
-      mockConfigService.get.mockReturnValue('mock-api-key');
-    });
-
-    it('consumes free quota for a non-BYOK OpenRouter user', async () => {
+    it('authorizes through the AI request gate with the requested model', async () => {
       givenConversation();
 
       await controller.sendMessage(
         conversationId.toString(),
-        { content: 'Why?' },
+        { content: 'Why?', model: 'picked/model' },
         mockUser as any,
       );
 
-      expect(freeQuotaService.checkAndConsume).toHaveBeenCalledWith(
+      expect(aiRequestGate.authorize).toHaveBeenCalledWith(
         mockUser._id,
+        'picked/model',
       );
     });
 
-    // Local mode has no OpenRouter key at all; the user's own CLI pays.
-    it('neither consumes quota nor requires a server key under a local-CLI provider', async () => {
+    it('enqueues nothing when the gate rejects the request', async () => {
       givenConversation();
-      mockAiPolicyService.isLocalCliProvider.mockReturnValue(true);
-      mockConfigService.get.mockReturnValue('');
+      mockAiRequestGate.authorize.mockRejectedValue(new Error('limit'));
 
-      const result = await controller.sendMessage(
-        conversationId.toString(),
-        { content: 'Why?' },
-        mockUser as any,
-      );
-
-      expect(freeQuotaService.checkAndConsume).not.toHaveBeenCalled();
-      expect(result).toEqual({ jobId: 'job-123', position: 1 });
+      await expect(
+        controller.sendMessage(
+          conversationId.toString(),
+          { content: 'Why?' },
+          mockUser as any,
+        ),
+      ).rejects.toThrow('limit');
+      expect(mockQueueService.enqueueRequest).not.toHaveBeenCalled();
     });
 
     it('should enqueue message for processing', async () => {

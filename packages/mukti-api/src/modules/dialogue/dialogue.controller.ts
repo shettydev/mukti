@@ -6,8 +6,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  InternalServerErrorException,
-  Logger,
   MessageEvent,
   NotFoundException,
   Param,
@@ -16,10 +14,7 @@ import {
   Sse,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
-import { Model } from 'mongoose';
 import { Observable } from 'rxjs';
 
 import type { NodeType } from '../../schemas/node-dialogue.schema';
@@ -27,14 +22,8 @@ import type { NodeType } from '../../schemas/node-dialogue.schema';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import {
-  Subscription,
-  type SubscriptionDocument,
-} from '../../schemas/subscription.schema';
-import { User, type UserDocument } from '../../schemas/user.schema';
-import { AiPolicyService } from '../ai/services/ai-policy.service';
-import { AiSecretsService } from '../ai/services/ai-secrets.service';
-import { FreeQuotaService } from '../ai/services/free-quota.service';
+import { User } from '../../schemas/user.schema';
+import { AiRequestGate } from '../ai/services/ai-request-gate.service';
 import {
   DialogueMessageResponseDto,
   NodeDialogueResponseDto,
@@ -64,17 +53,8 @@ import { generateInitialQuestion } from './utils/prompt-builder';
 @Controller('canvas')
 @UseGuards(JwtAuthGuard)
 export class DialogueController {
-  private readonly logger = new Logger(DialogueController.name);
-
   constructor(
-    @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
-    @InjectModel(Subscription.name)
-    private readonly subscriptionModel: Model<SubscriptionDocument>,
-    private readonly configService: ConfigService,
-    private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
-    private readonly freeQuotaService: FreeQuotaService,
+    private readonly aiRequestGate: AiRequestGate,
     private readonly dialogueQueueService: DialogueQueueService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
@@ -164,64 +144,11 @@ export class DialogueController {
       session.problemStructure,
     );
 
-    const userRecord = await this.userModel
-      .findById(user._id)
-      .select('+openRouterApiKeyEncrypted preferences')
-      .lean();
-
-    if (!userRecord) {
-      throw new NotFoundException('User not found');
-    }
-
-    const subscription = await this.subscriptionModel
-      .findOne({ userId: user._id })
-      .lean();
-    const subscriptionTier: 'free' | 'paid' =
-      subscription?.tier === 'paid' ? 'paid' : 'free';
-
-    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
-    // A local CLI runs on the user's own auth: no OpenRouter quota, no server
-    // key, and no validation key are involved. Mirrors the conversation gate.
-    const isLocalCli = this.aiPolicyService.isLocalCliProvider();
-
-    // Enforce daily free message quota for non-BYOK OpenRouter users
-    if (!usedByok && !isLocalCli) {
-      await this.freeQuotaService.checkAndConsume(user._id);
-    }
-
-    const serverApiKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-
-    if (!usedByok && !isLocalCli && !serverApiKey) {
-      this.logger.error('OPENROUTER_API_KEY is not configured');
-      throw new InternalServerErrorException(
-        'AI service is temporarily unavailable',
-      );
-    }
-
-    const validationApiKey =
-      isLocalCli || !usedByok
-        ? serverApiKey
-        : this.aiSecretsService.decryptString(
-            userRecord.openRouterApiKeyEncrypted!,
-          );
-
-    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok: usedByok,
-      requestedModel: sendMessageDto.model,
-      userActiveModel: userRecord.preferences?.activeModel,
-      validationApiKey,
-    });
-
-    const shouldPersistModel =
-      !!sendMessageDto.model || !userRecord.preferences?.activeModel;
-
-    if (shouldPersistModel) {
-      await this.userModel.updateOne(
-        { _id: user._id },
-        { $set: { 'preferences.activeModel': effectiveModel } },
-      );
-    }
+    const {
+      model: effectiveModel,
+      subscriptionTier,
+      usedByok,
+    } = await this.aiRequestGate.authorize(user._id, sendMessageDto.model);
 
     // Enqueue request for processing
     const result = await this.dialogueQueueService.enqueueRequest(

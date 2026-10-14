@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  InternalServerErrorException,
   MessageEvent,
   NotFoundException,
   Param,
@@ -14,14 +13,12 @@ import {
   Sse,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model, Types } from 'mongoose';
 import { Observable } from 'rxjs';
 
 import type { NodeType } from '../../schemas/node-dialogue.schema';
-import type { Subscription } from '../../schemas/subscription.schema';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
@@ -30,9 +27,8 @@ import {
   ThoughtNode,
   ThoughtNodeDocument,
 } from '../../schemas/thought-node.schema';
-import { User, type UserDocument } from '../../schemas/user.schema';
-import { AiPolicyService } from '../ai/services/ai-policy.service';
-import { AiSecretsService } from '../ai/services/ai-secrets.service';
+import { User } from '../../schemas/user.schema';
+import { AiRequestGate } from '../ai/services/ai-request-gate.service';
 import {
   DialogueMessageResponseDto,
   NodeDialogueResponseDto,
@@ -63,13 +59,9 @@ import { ThoughtMapService } from './services/thought-map.service';
 @UseGuards(JwtAuthGuard)
 export class ThoughtMapDialogueController {
   constructor(
-    @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
     @InjectModel(ThoughtNode.name)
     private readonly thoughtNodeModel: Model<ThoughtNodeDocument>,
-    private readonly configService: ConfigService,
-    private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
+    private readonly aiRequestGate: AiRequestGate,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
     private readonly thoughtMapService: ThoughtMapService,
@@ -136,38 +128,11 @@ export class ThoughtMapDialogueController {
 
     // First open: enqueue an AI job to generate the initial Socratic question.
     // The user will see this response — use BYOK if available, fall back to server key.
-    const userRecord = await this.userModel
-      .findById(user._id)
-      .select('+openRouterApiKeyEncrypted preferences')
-      .lean();
-    if (!userRecord) {
-      throw new NotFoundException('User not found');
-    }
-
-    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
-    const serverApiKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-    if (!usedByok && !serverApiKey) {
-      throw new InternalServerErrorException(
-        'OPENROUTER_API_KEY not configured',
-      );
-    }
-
-    const validationApiKey = usedByok
-      ? this.aiSecretsService.decryptString(
-          userRecord.openRouterApiKeyEncrypted!,
-        )
-      : serverApiKey;
-
-    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok: usedByok,
-      userActiveModel: userRecord.preferences?.activeModel,
-      validationApiKey,
-    });
-
-    const userWithSubscription = user as User & { subscription?: Subscription };
-    const subscriptionTier: 'free' | 'paid' =
-      userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
+    const {
+      model: effectiveModel,
+      subscriptionTier,
+      usedByok,
+    } = await this.aiRequestGate.authorize(user._id);
 
     const result =
       await this.thoughtMapDialogueQueueService.enqueueMapNodeRequest(
@@ -259,48 +224,11 @@ export class ThoughtMapDialogueController {
     const { depth, fromSuggestion, nodeLabel, nodeType, parentType, siblings } =
       await this.resolveNodeContext(mapId, nodeId);
 
-    const userWithSubscription = user as User & { subscription?: Subscription };
-    const subscriptionTier: 'free' | 'paid' =
-      userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
-
-    const userRecord = await this.userModel
-      .findById(user._id)
-      .select('+openRouterApiKeyEncrypted preferences')
-      .lean();
-    if (!userRecord) {
-      throw new NotFoundException('User not found');
-    }
-
-    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
-    const serverApiKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-    if (!usedByok && !serverApiKey) {
-      throw new InternalServerErrorException(
-        'OPENROUTER_API_KEY not configured',
-      );
-    }
-
-    const validationApiKey = usedByok
-      ? this.aiSecretsService.decryptString(
-          userRecord.openRouterApiKeyEncrypted!,
-        )
-      : serverApiKey;
-
-    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok: usedByok,
-      requestedModel: dto.model,
-      userActiveModel: userRecord.preferences?.activeModel,
-      validationApiKey,
-    });
-
-    const shouldPersistModel =
-      !!dto.model || !userRecord.preferences?.activeModel;
-    if (shouldPersistModel) {
-      await this.userModel.updateOne(
-        { _id: user._id },
-        { $set: { 'preferences.activeModel': effectiveModel } },
-      );
-    }
+    const {
+      model: effectiveModel,
+      subscriptionTier,
+      usedByok,
+    } = await this.aiRequestGate.authorize(user._id, dto.model);
 
     const result =
       await this.thoughtMapDialogueQueueService.enqueueMapNodeRequest(

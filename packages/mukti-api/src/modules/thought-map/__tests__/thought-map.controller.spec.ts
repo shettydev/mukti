@@ -1,4 +1,9 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -8,9 +13,12 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
+import { Subscription } from '../../../schemas/subscription.schema';
 import { User } from '../../../schemas/user.schema';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
+import { AiRequestGate } from '../../ai/services/ai-request-gate.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import { FreeQuotaService } from '../../ai/services/free-quota.service';
 import { BranchSuggestionService } from '../services/branch-suggestion.service';
 import { MapExtractionService } from '../services/map-extraction.service';
 import { ThoughtMapShareService } from '../services/thought-map-share.service';
@@ -64,7 +72,16 @@ describe('ThoughtMapController', () => {
     get: jest.fn().mockReturnValue('server-openrouter-key'),
   };
 
+  const mockFreeQuotaService = {
+    checkAndConsume: jest.fn(),
+  };
+
+  const mockSubscriptionModel = {
+    findOne: jest.fn(),
+  };
+
   const mockAiPolicyService = {
+    isLocalCliProvider: jest.fn().mockReturnValue(false),
     resolveEffectiveModel: jest.fn().mockResolvedValue('resolved-model'),
   };
 
@@ -86,6 +103,17 @@ describe('ThoughtMapController', () => {
         {
           provide: getModelToken(User.name),
           useValue: mockUserModel,
+        },
+        // The real gate, so these specs prove every thought-map AI entry
+        // point spends free quota. Only its collaborators are mocked.
+        AiRequestGate,
+        {
+          provide: getModelToken(Subscription.name),
+          useValue: mockSubscriptionModel,
+        },
+        {
+          provide: FreeQuotaService,
+          useValue: mockFreeQuotaService,
         },
         {
           provide: ConfigService,
@@ -120,6 +148,11 @@ describe('ThoughtMapController', () => {
 
     controller = module.get<ThoughtMapController>(ThoughtMapController);
     jest.clearAllMocks();
+    mockConfigService.get.mockReturnValue('server-openrouter-key');
+    mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
+    mockSubscriptionModel.findOne.mockReturnValue({
+      lean: jest.fn().mockResolvedValue({ tier: 'free' }),
+    });
     jest.useRealTimers();
   });
 
@@ -277,6 +310,7 @@ describe('ThoughtMapController', () => {
       mockUser as any,
     );
 
+    expect(mockFreeQuotaService.checkAndConsume).not.toHaveBeenCalled();
     expect(mockAiSecretsService.decryptString).toHaveBeenCalledWith(
       'encrypted-key',
     );
@@ -325,6 +359,9 @@ describe('ThoughtMapController', () => {
       userActiveModel: undefined,
       validationApiKey: 'server-openrouter-key',
     });
+    expect(mockFreeQuotaService.checkAndConsume).toHaveBeenCalledWith(
+      mockUser._id,
+    );
     expect(mockUserModel.updateOne).toHaveBeenCalledWith(
       { _id: mockUser._id },
       { $set: { 'preferences.activeModel': 'resolved-model' } },
@@ -337,6 +374,28 @@ describe('ThoughtMapController', () => {
       'free',
     );
     expect(result).toEqual({ jobId: 'job-2', position: 1 });
+  });
+
+  it('enqueues no branch suggestion once the daily free allowance is used up', async () => {
+    setUserRecord({
+      openRouterApiKeyEncrypted: undefined,
+      preferences: { activeModel: 'saved-model' },
+    });
+    mockThoughtMapService.findMapById.mockResolvedValue({ _id: 'map-1' });
+    mockFreeQuotaService.checkAndConsume.mockRejectedValueOnce(
+      new HttpException('limit', HttpStatus.TOO_MANY_REQUESTS),
+    );
+
+    await expect(
+      controller.requestSuggestions(
+        'map-1',
+        { parentNodeId: 'topic-0' },
+        mockUser as any,
+      ),
+    ).rejects.toThrow(HttpException);
+    expect(
+      mockBranchSuggestionService.enqueueSuggestion,
+    ).not.toHaveBeenCalled();
   });
 
   it('throws when the AI execution context user record is missing', async () => {
@@ -366,7 +425,7 @@ describe('ThoughtMapController', () => {
         { parentNodeId: 'topic-0' },
         mockUser as any,
       ),
-    ).rejects.toThrow('OPENROUTER_API_KEY not configured');
+    ).rejects.toThrow('AI service is temporarily unavailable');
   });
 
   it('returns suggestion job status for the owning user and map', async () => {

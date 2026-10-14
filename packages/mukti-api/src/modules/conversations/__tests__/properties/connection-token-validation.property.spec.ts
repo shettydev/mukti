@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { Subscription } from '../../../../schemas/subscription.schema';
 import { User } from '../../../../schemas/user.schema';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
+import { AiRequestGate } from '../../../ai/services/ai-request-gate.service';
 import { AiSecretsService } from '../../../ai/services/ai-secrets.service';
 import { FreeQuotaService } from '../../../ai/services/free-quota.service';
 import { ConversationController } from '../../conversation.controller';
@@ -84,6 +85,10 @@ describe('ConversationController - SSE Authentication Validation (Property-Based
         {
           provide: getModelToken(Subscription.name),
           useValue: {},
+        },
+        {
+          provide: AiRequestGate,
+          useValue: { authorize: jest.fn() },
         },
         {
           provide: FreeQuotaService,

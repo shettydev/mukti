@@ -6,7 +6,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  InternalServerErrorException,
   MessageEvent,
   NotFoundException,
   Param,
@@ -16,21 +15,18 @@ import {
   Sse,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
-import { Model } from 'mongoose';
 import { Observable } from 'rxjs';
-
-import type { Subscription } from '../../schemas/subscription.schema';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { User, type UserDocument } from '../../schemas/user.schema';
-import { AiPolicyService } from '../ai/services/ai-policy.service';
-import { AiSecretsService } from '../ai/services/ai-secrets.service';
+import { User } from '../../schemas/user.schema';
+import {
+  type AiRequestContext,
+  AiRequestGate,
+} from '../ai/services/ai-request-gate.service';
 import { ConvertCanvasDto } from './dto/convert-canvas.dto';
 import { CreateShareLinkDto } from './dto/create-share-link.dto';
 import { CreateThoughtMapDto } from './dto/create-thought-map.dto';
@@ -76,11 +72,7 @@ import { ThoughtMapService } from './services/thought-map.service';
 @UseGuards(JwtAuthGuard)
 export class ThoughtMapController {
   constructor(
-    @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
-    private readonly configService: ConfigService,
-    private readonly aiPolicyService: AiPolicyService,
-    private readonly aiSecretsService: AiSecretsService,
+    private readonly aiRequestGate: AiRequestGate,
     private readonly thoughtMapService: ThoughtMapService,
     private readonly branchSuggestionService: BranchSuggestionService,
     private readonly mapExtractionService: MapExtractionService,
@@ -700,54 +692,7 @@ export class ThoughtMapController {
   private async resolveAiExecutionContext(
     user: User,
     requestedModel?: string,
-  ): Promise<{
-    model: string;
-    subscriptionTier: 'free' | 'paid';
-    usedByok: boolean;
-  }> {
-    const userWithSubscription = user as User & { subscription?: Subscription };
-    const subscriptionTier: 'free' | 'paid' =
-      userWithSubscription.subscription?.tier === 'paid' ? 'paid' : 'free';
-
-    const userRecord = await this.userModel
-      .findById(user._id)
-      .select('+openRouterApiKeyEncrypted preferences')
-      .lean();
-    if (!userRecord) {
-      throw new NotFoundException('User not found');
-    }
-
-    const usedByok = !!userRecord.openRouterApiKeyEncrypted;
-    const serverApiKey =
-      this.configService.get<string>('OPENROUTER_API_KEY') ?? '';
-    if (!usedByok && !serverApiKey) {
-      throw new InternalServerErrorException(
-        'OPENROUTER_API_KEY not configured',
-      );
-    }
-
-    const validationApiKey = usedByok
-      ? this.aiSecretsService.decryptString(
-          userRecord.openRouterApiKeyEncrypted!,
-        )
-      : serverApiKey;
-
-    const model = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok: usedByok,
-      requestedModel,
-      userActiveModel: userRecord.preferences?.activeModel,
-      validationApiKey,
-    });
-
-    const shouldPersistModel =
-      !!requestedModel || !userRecord.preferences?.activeModel;
-    if (shouldPersistModel) {
-      await this.userModel.updateOne(
-        { _id: user._id },
-        { $set: { 'preferences.activeModel': model } },
-      );
-    }
-
-    return { model, subscriptionTier, usedByok };
+  ): Promise<AiRequestContext> {
+    return this.aiRequestGate.authorize(user._id, requestedModel);
   }
 }

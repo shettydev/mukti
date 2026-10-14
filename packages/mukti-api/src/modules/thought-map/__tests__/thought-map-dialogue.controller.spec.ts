@@ -1,3 +1,4 @@
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -7,10 +8,13 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
+import { Subscription } from '../../../schemas/subscription.schema';
 import { ThoughtNode } from '../../../schemas/thought-node.schema';
 import { User } from '../../../schemas/user.schema';
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
+import { AiRequestGate } from '../../ai/services/ai-request-gate.service';
 import { AiSecretsService } from '../../ai/services/ai-secrets.service';
+import { FreeQuotaService } from '../../ai/services/free-quota.service';
 import { DialogueStreamService } from '../../dialogue/services/dialogue-stream.service';
 import { DialogueService } from '../../dialogue/services/dialogue.service';
 import { ThoughtMapDialogueQueueService } from '../services/thought-map-dialogue-queue.service';
@@ -50,8 +54,17 @@ describe('ThoughtMapDialogueController', () => {
     get: jest.fn().mockReturnValue('server-openrouter-key'),
   };
 
+  const mockFreeQuotaService = {
+    checkAndConsume: jest.fn(),
+  };
+
+  const mockSubscriptionModel = {
+    findOne: jest.fn(),
+  };
+
   const mockAiPolicyService = {
     getDefaultModel: jest.fn().mockReturnValue('openai/gpt-5-mini'),
+    isLocalCliProvider: jest.fn().mockReturnValue(false),
     resolveEffectiveModel: jest.fn().mockResolvedValue('resolved-model'),
   };
 
@@ -83,6 +96,17 @@ describe('ThoughtMapDialogueController', () => {
         {
           provide: getModelToken(ThoughtNode.name),
           useValue: mockThoughtNodeModel,
+        },
+        // The real gate, so these specs prove every thought-map AI entry
+        // point spends free quota. Only its collaborators are mocked.
+        AiRequestGate,
+        {
+          provide: getModelToken(Subscription.name),
+          useValue: mockSubscriptionModel,
+        },
+        {
+          provide: FreeQuotaService,
+          useValue: mockFreeQuotaService,
         },
         {
           provide: ConfigService,
@@ -119,6 +143,11 @@ describe('ThoughtMapDialogueController', () => {
       ThoughtMapDialogueController,
     );
     jest.clearAllMocks();
+    mockConfigService.get.mockReturnValue('server-openrouter-key');
+    mockAiPolicyService.isLocalCliProvider.mockReturnValue(false);
+    mockSubscriptionModel.findOne.mockReturnValue({
+      lean: jest.fn().mockResolvedValue({ tier: 'free' }),
+    });
   });
 
   const setUserRecord = (overrides: Record<string, unknown> = {}) => {
@@ -224,6 +253,11 @@ describe('ThoughtMapDialogueController', () => {
     // Should NOT create a message synchronously — the queue worker does that
     expect(mockDialogueService.addMessage).not.toHaveBeenCalled();
 
+    // Runs on the server key, so it must spend one free message
+    expect(mockFreeQuotaService.checkAndConsume).toHaveBeenCalledWith(
+      mockUser._id,
+    );
+
     // Should resolve model via policy service (no requestedModel for initial question)
     expect(mockAiPolicyService.resolveEffectiveModel).toHaveBeenCalledWith({
       hasByok: false,
@@ -295,6 +329,7 @@ describe('ThoughtMapDialogueController', () => {
 
     await controller.startDialogue(mapId, 'thought-0', mockUser as any);
 
+    expect(mockFreeQuotaService.checkAndConsume).not.toHaveBeenCalled();
     expect(mockAiSecretsService.decryptString).toHaveBeenCalledWith(
       'encrypted-key',
     );
@@ -352,7 +387,7 @@ describe('ThoughtMapDialogueController', () => {
 
     await expect(
       controller.startDialogue(mapId, 'thought-0', mockUser as any),
-    ).rejects.toThrow('OPENROUTER_API_KEY not configured');
+    ).rejects.toThrow('AI service is temporarily unavailable');
   });
 
   it('throws when the user record is missing during startDialogue', async () => {
@@ -493,6 +528,9 @@ describe('ThoughtMapDialogueController', () => {
       userActiveModel: undefined,
       validationApiKey: 'server-openrouter-key',
     });
+    expect(mockFreeQuotaService.checkAndConsume).toHaveBeenCalledWith(
+      mockUser._id,
+    );
     expect(mockUserModel.updateOne).toHaveBeenCalledWith(
       { _id: mockUser._id },
       { $set: { 'preferences.activeModel': 'resolved-model' } },
@@ -567,6 +605,36 @@ describe('ThoughtMapDialogueController', () => {
     );
   });
 
+  it('enqueues nothing once the daily free allowance is used up', async () => {
+    const mapId = new Types.ObjectId().toString();
+    setUserRecord({
+      openRouterApiKeyEncrypted: undefined,
+      preferences: { activeModel: 'saved-model' },
+    });
+    mockThoughtMapService.findMapById.mockResolvedValue({ _id: mapId });
+    mockThoughtNodeModel.findOne.mockResolvedValueOnce({
+      depth: 0,
+      fromSuggestion: false,
+      label: 'Topic',
+      type: 'topic',
+    });
+    mockFreeQuotaService.checkAndConsume.mockRejectedValueOnce(
+      new HttpException('limit', HttpStatus.TOO_MANY_REQUESTS),
+    );
+
+    await expect(
+      controller.sendMessage(
+        mapId,
+        'topic-0',
+        { content: 'Start here' },
+        mockUser as any,
+      ),
+    ).rejects.toThrow(HttpException);
+    expect(
+      mockThoughtMapDialogueQueueService.enqueueMapNodeRequest,
+    ).not.toHaveBeenCalled();
+  });
+
   it('throws when the current user record is missing during sendMessage', async () => {
     const mapId = new Types.ObjectId().toString();
     mockThoughtMapService.findMapById.mockResolvedValue({ _id: mapId });
@@ -625,7 +693,7 @@ describe('ThoughtMapDialogueController', () => {
         { content: 'Start here' },
         mockUser as any,
       ),
-    ).rejects.toThrow('OPENROUTER_API_KEY not configured');
+    ).rejects.toThrow('AI service is temporarily unavailable');
   });
 
   it('registers map-scoped dialogue streams and removes them on unsubscribe', async () => {
