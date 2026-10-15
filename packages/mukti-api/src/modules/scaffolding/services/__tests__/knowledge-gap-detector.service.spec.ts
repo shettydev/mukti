@@ -25,8 +25,8 @@ describe('KnowledgeGapDetectorService', () => {
     findOne: jest.fn(),
   };
 
-  const mockBktService = {
-    updateKnowledgeState: jest.fn(),
+  const mockKnowledgeStateStore = {
+    applyObservation: jest.fn(),
   };
 
   const mockPrerequisiteChecker = {
@@ -58,7 +58,7 @@ describe('KnowledgeGapDetectorService', () => {
     service = new KnowledgeGapDetectorService(
       mockKnowledgeStateModel as any,
       mockConceptModel as any,
-      mockBktService as any,
+      mockKnowledgeStateStore as any,
       mockPrerequisiteChecker as any,
       mockOpenRouterClientFactory as any,
       mockConfigService as any,
@@ -190,63 +190,19 @@ describe('KnowledgeGapDetectorService', () => {
     );
   });
 
-  it('creates an initial knowledge state before persisting BKT updates', async () => {
+  it('records knowledge updates through the atomic knowledge-state store', async () => {
     const userId = new Types.ObjectId().toString();
-    const createdState = {
-      _id: new Types.ObjectId(),
-      attempts: 0,
-      conceptId: 'recursion',
-      correctAttempts: 0,
-      currentProbability: 0.3,
-      lastAssessed: new Date('2026-03-15T00:00:00.000Z'),
-      parameters: {
-        pGuess: 0.25,
-        pInit: 0.3,
-        pLearn: 0.15,
-        pSlip: 0.1,
-      },
-      userId: new Types.ObjectId(userId),
-    };
-
-    mockKnowledgeStateModel.findOne.mockResolvedValue(null);
-    mockKnowledgeStateModel.create.mockResolvedValue(createdState);
-    mockBktService.updateKnowledgeState.mockReturnValue({
-      state: {
-        attempts: 1,
-        correctAttempts: 1,
-        currentProbability: 0.62,
-        lastAssessed: new Date('2026-03-15T00:05:00.000Z'),
-      },
-    });
 
     await service.updateKnowledgeState(userId, 'recursion', true);
 
-    expect(mockKnowledgeStateModel.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attempts: 0,
-        conceptId: 'recursion',
-        correctAttempts: 0,
-        currentProbability: 0.3,
-        userId: expect.any(Types.ObjectId),
-      }),
-    );
-    expect(mockBktService.updateKnowledgeState).toHaveBeenCalledWith(
-      expect.objectContaining({
-        conceptId: 'recursion',
-        userId,
-      }),
+    expect(mockKnowledgeStateStore.applyObservation).toHaveBeenCalledWith(
+      new Types.ObjectId(userId),
+      'recursion',
       true,
     );
-    expect(mockKnowledgeStateModel.updateOne).toHaveBeenCalledWith(
-      { _id: createdState._id },
-      {
-        $set: expect.objectContaining({
-          attempts: 1,
-          correctAttempts: 1,
-          currentProbability: 0.62,
-        }),
-      },
-    );
+    // The detector never writes knowledge state itself any more
+    expect(mockKnowledgeStateModel.create).not.toHaveBeenCalled();
+    expect(mockKnowledgeStateModel.updateOne).not.toHaveBeenCalled();
   });
 
   it('returns keyword concepts when LLM extraction cannot run without an API key', async () => {

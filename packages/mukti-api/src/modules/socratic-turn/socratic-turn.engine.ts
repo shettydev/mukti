@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import type {
   MisconceptionResult,
@@ -76,7 +76,32 @@ export interface TurnOutcome {
    */
   scaffoldUpdate?: {
     demonstratedUnderstanding: boolean;
+    /**
+     * Mongo filter fragment matching the scaffold state this turn read.
+     * Surfaces add it to their update filter so a concurrent turn on the
+     * same dialogue cannot be silently overwritten (see
+     * {@link scaffoldStateGuard}).
+     */
+    guard: Record<string, unknown>;
     transition: TransitionResult;
+  };
+}
+
+/**
+ * Builds a filter that matches a dialogue only if its scaffold level and
+ * counters are still what a turn read. Zero also matches a missing field,
+ * because older documents predate the schema defaults.
+ */
+export function scaffoldStateGuard(
+  state: LearnerTurnState,
+): Record<string, unknown> {
+  const stored = (value: number | undefined) =>
+    (value ?? 0) === 0 ? { $in: [0, null] } : value;
+
+  return {
+    consecutiveFailures: stored(state.consecutiveFailures),
+    consecutiveSuccesses: stored(state.consecutiveSuccesses),
+    currentScaffoldLevel: stored(state.currentScaffoldLevel),
   };
 }
 
@@ -100,6 +125,8 @@ export interface TurnOutcome {
  */
 @Injectable()
 export class SocraticTurnEngine {
+  private readonly logger = new Logger(SocraticTurnEngine.name);
+
   constructor(
     private readonly aiKeyResolver: AiKeyResolver,
     private readonly aiPolicyService: AiPolicyService,
@@ -261,7 +288,10 @@ export class SocraticTurnEngine {
     if (gapResult.rootGap) {
       conceptsToUpdate.add(gapResult.rootGap);
     }
-    await Promise.all(
+    // Knowledge writes run after the reply is already saved. A failure here
+    // must not fail the job: a BullMQ retry would store and bill the reply
+    // twice. Log it and keep the turn.
+    const writes = await Promise.allSettled(
       Array.from(conceptsToUpdate).map((conceptId) =>
         this.knowledgeGapDetector.updateKnowledgeState(
           input.userId,
@@ -270,8 +300,19 @@ export class SocraticTurnEngine {
         ),
       ),
     );
+    for (const write of writes) {
+      if (write.status === 'rejected') {
+        this.logger.error(
+          `Knowledge update failed for user ${input.userId}: ${String(write.reason)}`,
+        );
+      }
+    }
 
-    outcome.scaffoldUpdate = { demonstratedUnderstanding, transition };
+    outcome.scaffoldUpdate = {
+      demonstratedUnderstanding,
+      guard: scaffoldStateGuard(state),
+      transition,
+    };
     return outcome;
   }
 }

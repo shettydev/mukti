@@ -453,6 +453,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
           outcome.scaffoldUpdate.transition,
           gapResult,
           outcome.scaffoldUpdate.demonstratedUnderstanding,
+          outcome.scaffoldUpdate.guard,
         );
       }
 

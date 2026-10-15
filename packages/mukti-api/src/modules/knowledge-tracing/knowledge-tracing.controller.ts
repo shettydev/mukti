@@ -103,19 +103,6 @@ export class KnowledgeTracingController {
   }
 
   /**
-   * Get cache statistics (for debugging/monitoring).
-   * Restricted to admins — cache keys embed userId:conceptId pairs.
-   *
-   * GET /knowledge-tracing/admin/cache-stats
-   */
-  @Get('admin/cache-stats')
-  @Roles('admin')
-  @UseGuards(RolesGuard)
-  getCacheStats() {
-    return this.knowledgeStateTracker.getCacheStats();
-  }
-
-  /**
    * Get count of users struggling with a specific concept.
    * Restricted to admins — aggregate only, no raw userIds exposed.
    *

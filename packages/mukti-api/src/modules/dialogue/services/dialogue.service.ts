@@ -354,6 +354,9 @@ export class DialogueService {
    * @param transition - Transition evaluation result from ScaffoldFadeService
    * @param gapResult - Gap detection result
    * @param isSuccess - Whether the user's response demonstrated understanding
+   * @param guard - Filter matching the scaffold state the turn read. When
+   *   given, the write is skipped if another turn changed it first.
+   * @returns false when the guard did not match and nothing was written
    */
   async updateScaffoldState(
     dialogueId: string | Types.ObjectId,
@@ -361,7 +364,8 @@ export class DialogueService {
     transition: TransitionResult,
     gapResult: GapDetectionResult,
     isSuccess: boolean,
-  ): Promise<void> {
+    guard: Record<string, unknown> = {},
+  ): Promise<boolean> {
     const dialogueObjectId =
       typeof dialogueId === 'string'
         ? new Types.ObjectId(dialogueId)
@@ -413,11 +417,22 @@ export class DialogueService {
       };
     }
 
-    await this.nodeDialogueModel.findByIdAndUpdate(dialogueObjectId, updateDoc);
+    const write = await this.nodeDialogueModel.updateOne(
+      { _id: dialogueObjectId, ...guard },
+      updateDoc,
+    );
+
+    if (write.matchedCount === 0) {
+      this.logger.warn(
+        `Scaffold state for dialogue ${dialogueObjectId.toString()} changed during this turn; keeping the newer state`,
+      );
+      return false;
+    }
 
     this.logger.debug(
       `Scaffold state updated for dialogue ${dialogueObjectId.toString()}`,
     );
+    return true;
   }
 
   /**

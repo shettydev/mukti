@@ -558,6 +558,7 @@ export class QueueService extends WorkerHost {
           outcome.scaffoldUpdate.transition,
           gapResult,
           outcome.scaffoldUpdate.demonstratedUnderstanding,
+          outcome.scaffoldUpdate.guard,
         );
       } else {
         // First exchange — just persist detected concepts and initial level
@@ -804,6 +805,7 @@ export class QueueService extends WorkerHost {
     transition: TransitionResult,
     gapResult: GapDetectionResult,
     isSuccess: boolean,
+    guard: Record<string, unknown>,
   ): Promise<void> {
     const updateDoc: Record<string, unknown> = {
       $set: {
@@ -827,6 +829,16 @@ export class QueueService extends WorkerHost {
       }
     }
 
-    await this.conversationModel.updateOne({ _id: conversationId }, updateDoc);
+    // Only write if no other turn moved the scaffold state since we read it;
+    // otherwise keep the newer state rather than overwrite it with a stale one.
+    const write = await this.conversationModel.updateOne(
+      { _id: conversationId, ...guard },
+      updateDoc,
+    );
+    if (write.matchedCount === 0) {
+      this.logger.warn(
+        `Scaffold state for conversation ${conversationId} changed during this turn; keeping the newer state`,
+      );
+    }
   }
 }

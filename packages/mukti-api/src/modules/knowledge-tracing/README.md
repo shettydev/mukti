@@ -220,20 +220,9 @@ Resets knowledge state (useful for re-teaching or error correction).
 
 ---
 
-### Cache Statistics (Admin)
+### Concurrency
 
-**Endpoint**: `GET /knowledge-tracing/admin/cache-stats`
-
-Returns cache performance metrics.
-
-**Response**:
-
-```json
-{
-  "size": 42,
-  "keys": ["user_123:algebra_linear_equations", "user_456:calculus_derivatives"]
-}
-```
+Knowledge state is read straight from MongoDB (there is no in-process cache), and every BKT update goes through `KnowledgeStateStore`, a compare-and-set on `attempts`. Overlapping turns on the same concept, retries, and multiple API instances therefore never lose an observation.
 
 ## Usage Examples
 

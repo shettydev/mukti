@@ -360,6 +360,7 @@ export class DialogueQueueService extends WorkerHost {
           outcome.scaffoldUpdate.transition,
           gapResult,
           outcome.scaffoldUpdate.demonstratedUnderstanding,
+          outcome.scaffoldUpdate.guard,
         );
       } else {
         this.logger.debug(

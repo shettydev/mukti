@@ -188,6 +188,39 @@ describe('SocraticTurnEngine', () => {
       expect(noStruggle.isBreakthrough).toBe(false);
     });
 
+    it('keeps the turn when a knowledge write fails, so the job is not retried', async () => {
+      knowledgeGapDetector.updateKnowledgeState.mockRejectedValueOnce(
+        new Error('kept changing'),
+      );
+
+      const outcome = await engine.settle(await engine.prepare(input()), {
+        hasPriorAssistantMessage: true,
+      });
+
+      expect(outcome.scaffoldUpdate).toBeDefined();
+    });
+
+    it('guards the scaffold write on the state the turn read', async () => {
+      const outcome = await engine.settle(
+        await engine.prepare(
+          input({
+            state: {
+              consecutiveFailures: 0,
+              consecutiveSuccesses: 1,
+              currentScaffoldLevel: 2,
+            },
+          }),
+        ),
+        { hasPriorAssistantMessage: true },
+      );
+
+      expect(outcome.scaffoldUpdate?.guard).toEqual({
+        consecutiveFailures: { $in: [0, null] },
+        consecutiveSuccesses: 1,
+        currentScaffoldLevel: 2,
+      });
+    });
+
     it('passes a detected misconception through for the surface to store', async () => {
       const misconception = {
         conceptName: 'recursion',

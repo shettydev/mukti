@@ -9,6 +9,7 @@ import {
 } from '../../schemas/knowledge-state.schema';
 import { KnowledgeTracingController } from './knowledge-tracing.controller';
 import { BKTAlgorithmService } from './services/bkt-algorithm.service';
+import { KnowledgeStateStore } from './services/knowledge-state-store.service';
 import { KnowledgeStateTrackerService } from './services/knowledge-state-tracker.service';
 
 /**
@@ -29,7 +30,11 @@ import { KnowledgeStateTrackerService } from './services/knowledge-state-tracker
  */
 @Module({
   controllers: [KnowledgeTracingController],
-  exports: [BKTAlgorithmService, KnowledgeStateTrackerService],
+  exports: [
+    BKTAlgorithmService,
+    KnowledgeStateStore,
+    KnowledgeStateTrackerService,
+  ],
   imports: [
     MongooseModule.forFeature([
       { name: KnowledgeState.name, schema: KnowledgeStateSchema },
@@ -37,6 +42,10 @@ import { KnowledgeStateTrackerService } from './services/knowledge-state-tracker
     ]),
     EventEmitterModule.forRoot(),
   ],
-  providers: [BKTAlgorithmService, KnowledgeStateTrackerService],
+  providers: [
+    BKTAlgorithmService,
+    KnowledgeStateStore,
+    KnowledgeStateTrackerService,
+  ],
 })
 export class KnowledgeTracingModule {}

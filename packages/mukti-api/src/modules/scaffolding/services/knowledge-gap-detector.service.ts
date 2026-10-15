@@ -18,7 +18,7 @@ import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
 } from '../../ai/types/ai-chat-client.interface';
-import { BKTAlgorithmService } from '../../knowledge-tracing/services/bkt-algorithm.service';
+import { KnowledgeStateStore } from '../../knowledge-tracing/services/knowledge-state-store.service';
 import {
   BEHAVIORAL_THRESHOLDS,
   CONFUSION_MARKERS,
@@ -67,7 +67,7 @@ export class KnowledgeGapDetectorService {
     private readonly knowledgeStateModel: Model<KnowledgeStateDocument>,
     @InjectModel(Concept.name)
     private readonly conceptModel: Model<ConceptDocument>,
-    private readonly bktService: BKTAlgorithmService,
+    private readonly knowledgeStateStore: KnowledgeStateStore,
     private readonly prerequisiteChecker: PrerequisiteCheckerService,
     @Inject(AI_CHAT_CLIENT_FACTORY)
     private readonly chatClientFactory: AiChatClientFactory,
@@ -181,54 +181,10 @@ export class KnowledgeGapDetectorService {
     conceptId: string,
     isCorrect: boolean,
   ): Promise<void> {
-    const userObjectId = this.toObjectId(userId);
-
-    let state = await this.knowledgeStateModel.findOne({
+    await this.knowledgeStateStore.applyObservation(
+      this.toObjectId(userId),
       conceptId,
-      userId: userObjectId,
-    });
-
-    // Create new state with default parameters if none exists
-    state ??= await this.knowledgeStateModel.create({
-      attempts: 0,
-      conceptId,
-      correctAttempts: 0,
-      currentProbability: 0.3,
-      lastAssessed: new Date(),
-      parameters: {
-        pGuess: 0.25,
-        pInit: 0.3,
-        pLearn: 0.15,
-        pSlip: 0.1,
-      },
-      userId: userObjectId,
-    });
-
-    // Use BKT service to update
-    const result = this.bktService.updateKnowledgeState(
-      {
-        attempts: state.attempts,
-        conceptId,
-        correctAttempts: state.correctAttempts,
-        currentProbability: state.currentProbability,
-        lastAssessed: state.lastAssessed,
-        parameters: state.parameters,
-        userId,
-      },
       isCorrect,
-    );
-
-    // Persist updated state
-    await this.knowledgeStateModel.updateOne(
-      { _id: state._id },
-      {
-        $set: {
-          attempts: result.state.attempts,
-          correctAttempts: result.state.correctAttempts,
-          currentProbability: result.state.currentProbability,
-          lastAssessed: result.state.lastAssessed,
-        },
-      },
     );
   }
 

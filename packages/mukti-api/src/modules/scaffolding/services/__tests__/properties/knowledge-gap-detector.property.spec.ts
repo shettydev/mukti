@@ -23,7 +23,7 @@ describe('KnowledgeGapDetectorService - Score Invariants (Property-Based)', () =
         find: jest.fn(),
         findOne: jest.fn(),
       } as any,
-      { updateKnowledgeState: jest.fn() } as any,
+      { applyObservation: jest.fn() } as any,
       { checkMultiple: jest.fn() } as any,
       { create: jest.fn() } as any,
       { get: jest.fn() } as any,
