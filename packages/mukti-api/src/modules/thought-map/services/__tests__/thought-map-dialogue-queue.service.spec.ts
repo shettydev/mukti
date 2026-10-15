@@ -5,6 +5,7 @@ jest.mock('@openrouter/sdk', () => ({
 }));
 
 import { ScaffoldLevel } from '../../../scaffolding/interfaces/scaffolding.interface';
+import { SocraticTurnEngine } from '../../../socratic-turn/socratic-turn.engine';
 import { ThoughtMapDialogueQueueService } from '../thought-map-dialogue-queue.service';
 
 describe('ThoughtMapDialogueQueueService', () => {
@@ -41,6 +42,16 @@ describe('ThoughtMapDialogueQueueService', () => {
     getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
   };
 
+  // Thought-map node chat now runs the same reply-quality checks as chat and
+  // canvas (RFC-0004). It used to skip them.
+  const mockDialogueQualityService = {
+    assess: jest.fn(),
+  };
+
+  const mockPostResponseMonitor = {
+    monitor: jest.fn(),
+  };
+
   const mockDialogueAIService = {
     generateScaffoldedResponseWithPrompt: jest.fn(),
   };
@@ -48,6 +59,7 @@ describe('ThoughtMapDialogueQueueService', () => {
   const mockDialogueService = {
     addMessage: jest.fn(),
     getMessages: jest.fn(),
+    updateQualityState: jest.fn(),
     updateScaffoldState: jest.fn(),
   };
 
@@ -76,16 +88,27 @@ describe('ThoughtMapDialogueQueueService', () => {
       mockDialogueMessageModel as any,
       mockThoughtNodeModel as any,
       mockUsageEventModel as any,
-      mockAiKeyResolver as any,
-      mockAiPolicyService as any,
       mockDialogueAIService as any,
       mockDialogueService as any,
       mockDialogueStreamService as any,
-      mockKnowledgeGapDetector as any,
-      mockScaffoldFadeService as any,
-      mockResponseEvaluator as any,
+      new SocraticTurnEngine(
+        mockAiKeyResolver as any,
+        mockAiPolicyService as any,
+        mockDialogueQualityService as any,
+        mockKnowledgeGapDetector as any,
+        mockPostResponseMonitor as any,
+        mockResponseEvaluator as any,
+        mockScaffoldFadeService as any,
+      ),
     );
     jest.clearAllMocks();
+    mockDialogueQualityService.assess.mockResolvedValue({
+      directives: [],
+      misconception: { fromCache: false, hasMisconception: false },
+    });
+    mockResponseEvaluator.evaluate.mockReturnValue({
+      quality: { demonstratesUnderstanding: false },
+    });
   });
 
   const leanQuery = <T>(value: T) => ({
@@ -363,7 +386,16 @@ describe('ThoughtMapDialogueQueueService', () => {
           ([, , , event]) => event.type,
         ),
       ).toEqual(['processing', 'message', 'progress', 'message', 'complete']);
-      expect(mockResponseEvaluator.evaluate).not.toHaveBeenCalled();
+      // First exchange: the message is pre-read for the quality checks, but
+      // nothing is graded against a prior turn, so no scaffold or knowledge write.
+      expect(mockResponseEvaluator.evaluate).toHaveBeenCalledTimes(1);
+      expect(mockDialogueQualityService.assess).toHaveBeenCalledTimes(1);
+      expect(mockPostResponseMonitor.monitor).toHaveBeenCalledTimes(1);
+      expect(mockDialogueService.updateQualityState).toHaveBeenCalledWith(
+        dialogue._id,
+        expect.objectContaining({ hasMisconception: false }),
+        false,
+      );
       expect(mockDialogueService.updateScaffoldState).not.toHaveBeenCalled();
       expect(
         mockKnowledgeGapDetector.updateKnowledgeState,

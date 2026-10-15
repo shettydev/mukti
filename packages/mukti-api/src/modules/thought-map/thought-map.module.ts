@@ -31,7 +31,7 @@ import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { AiModule } from '../ai/ai.module';
 import { DialogueModule } from '../dialogue/dialogue.module';
-import { ScaffoldingModule } from '../scaffolding/scaffolding.module';
+import { SocraticTurnModule } from '../socratic-turn/socratic-turn.module';
 import { BranchSuggestionService } from './services/branch-suggestion.service';
 import { MapExtractionService } from './services/map-extraction.service';
 import { ThoughtMapDialogueQueueService } from './services/thought-map-dialogue-queue.service';
@@ -58,7 +58,7 @@ import { ThoughtMapController } from './thought-map.controller';
   imports: [
     AiModule,
     DialogueModule,
-    ScaffoldingModule,
+    SocraticTurnModule,
     MongooseModule.forFeature([
       { name: ThoughtMap.name, schema: ThoughtMapSchema },
       { name: ThoughtNode.name, schema: ThoughtNodeSchema },

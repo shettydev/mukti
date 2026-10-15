@@ -5,6 +5,10 @@ import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
 import type { MisconceptionResult } from '../../dialogue-quality/interfaces/quality.interface';
+import type {
+  GapDetectionResult,
+  TransitionResult,
+} from '../../scaffolding/interfaces/scaffolding.interface';
 
 import { isLocalMode } from '../../../common/config/local-mode';
 import {
@@ -25,19 +29,7 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { AiKeyResolver } from '../../ai/services/ai-key-resolver.service';
-import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { DialogueQualityService } from '../../dialogue-quality/services/dialogue-quality.service';
-import { PostResponseMonitorService } from '../../dialogue-quality/services/post-response-monitor.service';
-import {
-  type GapDetectionResult,
-  type ScaffoldContext,
-  ScaffoldLevel,
-  type TransitionResult,
-} from '../../scaffolding/interfaces/scaffolding.interface';
-import { KnowledgeGapDetectorService } from '../../scaffolding/services/knowledge-gap-detector.service';
-import { ResponseEvaluatorService } from '../../scaffolding/services/response-evaluator.service';
-import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
+import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
 import { MessageService } from './message.service';
 import { OpenRouterService } from './openrouter.service';
 import { StreamService } from './stream.service';
@@ -95,13 +87,7 @@ export class QueueService extends WorkerHost {
     private techniqueModel: Model<TechniqueDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
-    private readonly aiKeyResolver: AiKeyResolver,
-    private readonly aiPolicyService: AiPolicyService,
-    private readonly dialogueQualityService: DialogueQualityService,
-    private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
-    private readonly postResponseMonitor: PostResponseMonitorService,
-    private readonly scaffoldFadeService: ScaffoldFadeService,
-    private readonly responseEvaluator: ResponseEvaluatorService,
+    private readonly socraticTurnEngine: SocraticTurnEngine,
     private readonly messageService: MessageService,
     private readonly openRouterService: OpenRouterService,
     private readonly streamService: StreamService,
@@ -475,86 +461,38 @@ export class QueueService extends WorkerHost {
         type: 'progress',
       });
 
-      // 3. Resolve model and API key
-      const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
-
-      // 4. RFC-0001 + RFC-0004: Detect knowledge gaps and assess quality in parallel.
+      // 3-4. Shared Socratic turn: model/key, gap detection, quality, scaffold.
       // Use recentMessages (which carry real timestamps) so temporal signals
       // (abandonment, long pauses) are accurate. Fall back to new Date() only
       // when a message has no stored timestamp.
-      const conversationHistory = conversation.recentMessages.map((m) => ({
-        content: m.content,
-        role: m.role as 'assistant' | 'user',
-        // RecentMessage.timestamp is the canonical field; createdAt may exist
-        // at runtime if the sub-document is returned by Mongoose with timestamps.
-        timestamp:
-          (m as RecentMessage & { createdAt?: Date }).createdAt ??
-          m.timestamp ??
-          new Date(),
-      }));
-
-      const previousResponseLengths = conversation.recentMessages
-        .filter((m) => m.role === 'user')
-        .map((m) => m.content.trim().length);
-
-      // RFC-0004: Pre-evaluate user message (sync) using stored concepts so we can
-      // feed demonstratesUnderstanding to quality assessment without waiting for gap detection.
-      const storedLevel =
-        conversation.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
-
-      const preEvaluation = this.responseEvaluator.evaluate({
-        conceptKeywords: conversation.detectedConcepts ?? [],
-        scaffoldLevel: storedLevel,
-        userResponse: message,
+      const turn = await this.socraticTurnEngine.prepare({
+        conversationHistory: conversation.recentMessages.map((m) => ({
+          content: m.content,
+          role: m.role as 'assistant' | 'user',
+          // RecentMessage.timestamp is the canonical field; createdAt may exist
+          // at runtime if the sub-document is returned by Mongoose with timestamps.
+          timestamp:
+            (m as RecentMessage & { createdAt?: Date }).createdAt ??
+            m.timestamp ??
+            new Date(),
+        })),
+        model,
+        previousResponseLengths: conversation.recentMessages
+          .filter((m) => m.role === 'user')
+          .map((m) => m.content.trim().length),
+        state: conversation,
+        usedByok,
+        userId,
+        userMessage: message,
+        wrapUpRequested,
       });
-
-      // Run gap detection and quality assessment in parallel.
-      // Quality assessment uses stored concepts (from previous turn) — accurate enough
-      // for misconception context and avoids serialising the two async operations.
-      const [gapResult, qualityDirectives] = await Promise.all([
-        this.knowledgeGapDetector.analyze({
-          aiApiKey: apiKey,
-          aiModel: effectiveModel,
-          conceptContext: conversation.detectedConcepts,
-          conversationHistory,
-          previousResponseLengths,
-          userId,
-          userMessage: message,
-        }),
-        this.dialogueQualityService.assess({
-          conceptContext: conversation.detectedConcepts ?? [],
-          conclusionOffered: conversation.conclusionOffered ?? false,
-          consecutiveFailures: conversation.consecutiveFailures ?? 0,
-          conversationHistory: conversationHistory.map((m) => ({
-            content: m.content,
-            role: m.role,
-          })),
-          demonstratesUnderstanding:
-            preEvaluation.quality.demonstratesUnderstanding,
-          scaffoldLevel: storedLevel,
-          totalMessageCount: conversation.totalMessageCount ?? 0,
-          userId,
-          userMessage: message,
-          wrapUpRequested,
-        }),
-      ]);
-
-      // Build scaffold context from gap result + stored state
-      // Gap detection can only ESCALATE the level; the fade controller (2-success rule) is
-      // the only mechanism that REDUCES. This prevents jarring level drops mid-conversation.
-      const effectiveLevel = Math.max(
-        gapResult.scaffoldLevel,
-        storedLevel,
-      ) as ScaffoldLevel;
-
-      const scaffoldContext: ScaffoldContext = {
-        conceptContext: gapResult.detectedConcepts,
-        consecutiveFailures: conversation.consecutiveFailures ?? 0,
-        consecutiveSuccesses: conversation.consecutiveSuccesses ?? 0,
-        level: effectiveLevel,
-        rootGap: gapResult.rootGap ?? undefined,
-      };
+      const {
+        apiKey,
+        gapResult,
+        model: effectiveModel,
+        qualityDirectives,
+        scaffoldContext,
+      } = turn;
 
       // 5. Build prompt with scaffold-augmented system prompt + quality guardrails
       const messages = this.openRouterService.buildPrompt(
@@ -586,7 +524,7 @@ export class QueueService extends WorkerHost {
       );
 
       // RFC-0004: Post-response monitoring
-      this.postResponseMonitor.monitor(response.content);
+      this.socraticTurnEngine.inspectReply(response.content);
 
       // 6. Add messages to conversation
       const updatedConversation =
@@ -609,61 +547,17 @@ export class QueueService extends WorkerHost {
         (m) => m.role === 'assistant',
       );
 
-      if (hasPriorAssistantMessage) {
-        // Evaluate the user's response against the scaffold level that was active when the
-        // *previous* assistant message was generated (storedLevel), not the newly-escalated
-        // effectiveLevel. The user was responding to the prior assistant turn, so thresholds
-        // must match what the AI was instructed to provide at that time.
-        const evaluationLevel = storedLevel;
-        const responseQuality = this.responseEvaluator.evaluate({
-          conceptKeywords:
-            conversation.detectedConcepts ?? gapResult.detectedConcepts,
-          scaffoldLevel: evaluationLevel,
-          userResponse: message,
-        });
+      const outcome = await this.socraticTurnEngine.settle(turn, {
+        hasPriorAssistantMessage,
+      });
 
-        const fadeState = {
-          consecutiveFailures: conversation.consecutiveFailures ?? 0,
-          consecutiveSuccesses: conversation.consecutiveSuccesses ?? 0,
-          currentLevel: evaluationLevel,
-          transitionHistory: [] as {
-            from: number;
-            reason: string;
-            timestamp: Date;
-            to: number;
-          }[],
-        };
-        const transition = this.scaffoldFadeService.evaluateAndTransition(
-          fadeState,
-          responseQuality.quality,
-        );
-
-        const demonstratedUnderstanding =
-          responseQuality.quality.demonstratesUnderstanding;
-
-        // Update BKT knowledge state for detected concepts
-        const conceptsToUpdate = new Set(gapResult.detectedConcepts);
-        if (gapResult.rootGap) {
-          conceptsToUpdate.add(gapResult.rootGap);
-        }
-        if (conceptsToUpdate.size > 0) {
-          await Promise.all(
-            Array.from(conceptsToUpdate).map((conceptId) =>
-              this.knowledgeGapDetector.updateKnowledgeState(
-                userId,
-                conceptId,
-                demonstratedUnderstanding,
-              ),
-            ),
-          );
-        }
-
+      if (outcome.scaffoldUpdate) {
         // Persist scaffold state to conversation
         await this.updateConversationScaffoldState(
           conversationId,
-          transition,
+          outcome.scaffoldUpdate.transition,
           gapResult,
-          demonstratedUnderstanding,
+          outcome.scaffoldUpdate.demonstratedUnderstanding,
         );
       } else {
         // First exchange — just persist detected concepts and initial level
@@ -681,11 +575,8 @@ export class QueueService extends WorkerHost {
       // RFC-0004: Persist quality state (always, even on first exchange)
       await this.updateConversationQualityState(
         conversationId,
-        qualityDirectives.misconception,
-        hasPriorAssistantMessage
-          ? preEvaluation.quality.demonstratesUnderstanding &&
-              (conversation.consecutiveFailures ?? 0) >= 2
-          : false,
+        outcome.misconception,
+        outcome.isBreakthrough,
         wrapUpRequested &&
           qualityDirectives.directives.some((d) => d.source === 'conclusion'),
       );
@@ -937,25 +828,5 @@ export class QueueService extends WorkerHost {
     }
 
     await this.conversationModel.updateOne({ _id: conversationId }, updateDoc);
-  }
-
-  private validateEffectiveModel(model: string, usedByok: boolean): string {
-    const trimmed = model.trim();
-
-    if (!trimmed) {
-      throw new Error('Model is required');
-    }
-
-    if (!usedByok) {
-      const isCurated = this.aiPolicyService
-        .getCuratedModels()
-        .some((allowed) => allowed.id === trimmed);
-
-      if (!isCurated) {
-        throw new Error('MODEL_NOT_ALLOWED');
-      }
-    }
-
-    return trimmed;
   }
 }

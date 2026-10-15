@@ -19,6 +19,7 @@ import { PostResponseMonitorService } from '../../../dialogue-quality/services/p
 import { KnowledgeGapDetectorService } from '../../../scaffolding/services/knowledge-gap-detector.service';
 import { ResponseEvaluatorService } from '../../../scaffolding/services/response-evaluator.service';
 import { ScaffoldFadeService } from '../../../scaffolding/services/scaffold-fade.service';
+import { SocraticTurnEngine } from '../../../socratic-turn/socratic-turn.engine';
 import { MessageService } from '../message.service';
 import { OpenRouterService } from '../openrouter.service';
 import { QueueService } from '../queue.service';
@@ -164,6 +165,8 @@ describe('QueueService', () => {
       imports: [],
       providers: [
         QueueService,
+        // The real turn engine, built from the mocked collaborators below
+        SocraticTurnEngine,
         {
           provide: getModelToken(Conversation.name),
           useValue: mockConversationModel,

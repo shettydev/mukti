@@ -21,17 +21,7 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { AiKeyResolver } from '../../ai/services/ai-key-resolver.service';
-import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { DialogueQualityService } from '../../dialogue-quality/services/dialogue-quality.service';
-import { PostResponseMonitorService } from '../../dialogue-quality/services/post-response-monitor.service';
-import {
-  type ScaffoldContext,
-  ScaffoldLevel,
-} from '../../scaffolding/interfaces/scaffolding.interface';
-import { KnowledgeGapDetectorService } from '../../scaffolding/services/knowledge-gap-detector.service';
-import { ResponseEvaluatorService } from '../../scaffolding/services/response-evaluator.service';
-import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
+import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
 import { DialogueAIService } from './dialogue-ai.service';
 import { DialogueStreamService } from './dialogue-stream.service';
 import { DialogueService } from './dialogue.service';
@@ -82,16 +72,10 @@ export class DialogueQueueService extends WorkerHost {
     private canvasSessionModel: Model<CanvasSessionDocument>,
     @InjectModel(UsageEvent.name)
     private usageEventModel: Model<UsageEventDocument>,
-    private readonly aiKeyResolver: AiKeyResolver,
-    private readonly aiPolicyService: AiPolicyService,
     private readonly dialogueAIService: DialogueAIService,
-    private readonly dialogueQualityService: DialogueQualityService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
-    private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
-    private readonly postResponseMonitor: PostResponseMonitorService,
-    private readonly scaffoldFadeService: ScaffoldFadeService,
-    private readonly responseEvaluator: ResponseEvaluatorService,
+    private readonly socraticTurnEngine: SocraticTurnEngine,
   ) {
     super();
   }
@@ -314,66 +298,25 @@ export class DialogueQueueService extends WorkerHost {
         .filter((m) => m.role === 'user' && m.sequence < userMessage.sequence)
         .map((m) => m.content.trim().length);
 
-      const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
-
-      // RFC-0004: Pre-evaluate user message (sync) using stored concepts so we can
-      // feed demonstratesUnderstanding to quality assessment without waiting for gap detection.
-      const storedLevel =
-        dialogue.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
-
-      const preEvaluation = this.responseEvaluator.evaluate({
-        conceptKeywords: dialogue.detectedConcepts ?? [],
-        scaffoldLevel: storedLevel,
-        userResponse: message,
+      const turn = await this.socraticTurnEngine.prepare({
+        conversationHistory,
+        model,
+        previousResponseLengths,
+        state: dialogue,
+        timeOnProblem: dialogue.lastMessageAt
+          ? Date.now() - dialogue.lastMessageAt.getTime()
+          : undefined,
+        usedByok,
+        userId,
+        userMessage: message,
       });
-
-      // RFC-0001 + RFC-0004: Run gap detection and quality assessment in parallel.
-      // Quality assessment uses stored concepts (from previous turn) — accurate enough
-      // for misconception context and avoids serialising the two async operations.
-      const [gapResult, qualityDirectives] = await Promise.all([
-        this.knowledgeGapDetector.analyze({
-          aiApiKey: apiKey,
-          aiModel: effectiveModel,
-          conceptContext: dialogue.detectedConcepts,
-          conversationHistory,
-          previousResponseLengths,
-          timeOnProblem: dialogue.lastMessageAt
-            ? Date.now() - dialogue.lastMessageAt.getTime()
-            : undefined,
-          userId,
-          userMessage: message,
-        }),
-        this.dialogueQualityService.assess({
-          conceptContext: dialogue.detectedConcepts ?? [],
-          consecutiveFailures: dialogue.consecutiveFailures ?? 0,
-          conversationHistory: conversationHistory.map((m) => ({
-            content: m.content,
-            role: m.role,
-          })),
-          demonstratesUnderstanding:
-            preEvaluation.quality.demonstratesUnderstanding,
-          scaffoldLevel: storedLevel,
-          userId,
-          userMessage: message,
-        }),
-      ]);
-
-      // Build scaffold context from gap detection
-      // Gap detection can only ESCALATE the level; the fade controller (2-success rule) is
-      // the only mechanism that REDUCES. This prevents jarring level drops mid-conversation.
-      const effectiveLevel = Math.max(
-        gapResult.scaffoldLevel,
-        storedLevel,
-      ) as ScaffoldLevel;
-
-      const scaffoldContext: ScaffoldContext = {
-        conceptContext: gapResult.detectedConcepts,
-        consecutiveFailures: dialogue.consecutiveFailures ?? 0,
-        consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
-        level: effectiveLevel,
-        rootGap: gapResult.rootGap ?? undefined,
-      };
+      const {
+        apiKey,
+        gapResult,
+        model: effectiveModel,
+        qualityDirectives,
+        scaffoldContext,
+      } = turn;
 
       // RFC-0002: Generate scaffolded AI response
       const aiResponse =
@@ -389,7 +332,7 @@ export class DialogueQueueService extends WorkerHost {
         );
 
       // RFC-0004: Post-response monitoring
-      this.postResponseMonitor.monitor(aiResponse.content);
+      this.socraticTurnEngine.inspectReply(aiResponse.content);
 
       // Add AI response to dialogue
       const aiMessage = await this.dialogueService.addMessage(
@@ -406,58 +349,17 @@ export class DialogueQueueService extends WorkerHost {
       const hasPriorAssistantMessage = historyResult.messages.some(
         (m) => m.role === 'assistant' && m.sequence < userMessage.sequence,
       );
-      if (hasPriorAssistantMessage) {
-        // RFC-0002: Evaluate the current user response against the scaffold level that was
-        // active when the *previous* assistant message was generated (storedLevel), not the
-        // newly-escalated effectiveLevel. The user was responding to the prior assistant turn,
-        // so thresholds must match what the AI was instructed to provide at that time.
-        const evaluationLevel = storedLevel as number;
-        const responseQuality = this.responseEvaluator.evaluate({
-          conceptKeywords:
-            dialogue.detectedConcepts ?? gapResult.detectedConcepts,
-          scaffoldLevel: evaluationLevel,
-          userResponse: message,
-        });
+      const outcome = await this.socraticTurnEngine.settle(turn, {
+        hasPriorAssistantMessage,
+      });
 
-        // Determine scaffold transition based on response quality
-        const fadeState = {
-          consecutiveFailures: dialogue.consecutiveFailures ?? 0,
-          consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
-          currentLevel: evaluationLevel,
-          transitionHistory: [],
-        };
-        const transition = this.scaffoldFadeService.evaluateAndTransition(
-          fadeState,
-          responseQuality.quality,
-        );
-
-        const demonstratedUnderstanding =
-          responseQuality.quality.demonstratesUnderstanding;
-
-        // RFC-0001: Persist per-user knowledge updates for detected concepts
-        const conceptsToUpdate = new Set(gapResult.detectedConcepts);
-        if (gapResult.rootGap) {
-          conceptsToUpdate.add(gapResult.rootGap);
-        }
-        if (conceptsToUpdate.size > 0) {
-          await Promise.all(
-            Array.from(conceptsToUpdate).map((conceptId) =>
-              this.knowledgeGapDetector.updateKnowledgeState(
-                userId,
-                conceptId,
-                demonstratedUnderstanding,
-              ),
-            ),
-          );
-        }
-
-        // Update dialogue scaffold state
+      if (outcome.scaffoldUpdate) {
         await this.dialogueService.updateScaffoldState(
           dialogue._id,
-          fadeState.currentLevel,
-          transition,
+          turn.storedLevel,
+          outcome.scaffoldUpdate.transition,
           gapResult,
-          demonstratedUnderstanding,
+          outcome.scaffoldUpdate.demonstratedUnderstanding,
         );
       } else {
         this.logger.debug(
@@ -468,11 +370,8 @@ export class DialogueQueueService extends WorkerHost {
       // RFC-0004: Persist quality state (always, even on first exchange)
       await this.dialogueService.updateQualityState(
         dialogue._id,
-        qualityDirectives.misconception,
-        hasPriorAssistantMessage
-          ? preEvaluation.quality.demonstratesUnderstanding &&
-              (dialogue.consecutiveFailures ?? 0) >= 2
-          : false,
+        outcome.misconception,
+        outcome.isBreakthrough,
       );
 
       // Emit AI message event
@@ -609,25 +508,5 @@ export class DialogueQueueService extends WorkerHost {
           },
         ),
     });
-  }
-
-  private validateEffectiveModel(model: string, usedByok: boolean): string {
-    const trimmed = model.trim();
-
-    if (!trimmed) {
-      throw new Error('Model is required');
-    }
-
-    if (!usedByok) {
-      const isCurated = this.aiPolicyService
-        .getCuratedModels()
-        .some((allowed) => allowed.id === trimmed);
-
-      if (!isCurated) {
-        throw new Error('MODEL_NOT_ALLOWED');
-      }
-    }
-
-    return trimmed;
   }
 }

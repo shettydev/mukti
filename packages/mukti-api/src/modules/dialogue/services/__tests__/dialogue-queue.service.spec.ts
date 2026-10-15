@@ -6,6 +6,7 @@ jest.mock('@openrouter/sdk', () => ({
 
 import type { ProblemStructure } from '../../../../schemas/canvas-session.schema';
 
+import { SocraticTurnEngine } from '../../../socratic-turn/socratic-turn.engine';
 import { DialogueQueueService } from '../dialogue-queue.service';
 
 /**
@@ -104,31 +105,36 @@ describe('DialogueQueueService — local mode (inline)', () => {
       }),
     };
 
-    service = new DialogueQueueService(
-      queue as any,
-      { create: jest.fn() } as any, // canvasSessionModel
-      { create: jest.fn().mockResolvedValue({}) } as any, // usageEventModel
+    // The real turn engine, built from mocked collaborators
+    const socraticTurnEngine = new SocraticTurnEngine(
       { resolve: jest.fn().mockResolvedValue('') } as any, // aiKeyResolver
       {
         getCuratedModels: jest.fn().mockReturnValue([{ id: 'sonnet' }]),
         isLocalCliProvider: jest.fn().mockReturnValue(true),
       } as any, // aiPolicyService
-      dialogueAIService as any,
       dialogueQualityService as any,
-      dialogueService as any,
-      dialogueStreamService as any,
       knowledgeGapDetector as any,
       { monitor: jest.fn() } as any, // postResponseMonitor
-      {
-        evaluateAndTransition: jest
-          .fn()
-          .mockReturnValue({ newLevel: 0, resetCounters: false }),
-      } as any, // scaffoldFadeService
       {
         evaluate: jest.fn().mockReturnValue({
           quality: { demonstratesUnderstanding: false },
         }),
       } as any, // responseEvaluator
+      {
+        evaluateAndTransition: jest
+          .fn()
+          .mockReturnValue({ newLevel: 0, resetCounters: false }),
+      } as any, // scaffoldFadeService
+    );
+
+    service = new DialogueQueueService(
+      queue as any,
+      { create: jest.fn() } as any, // canvasSessionModel
+      { create: jest.fn().mockResolvedValue({}) } as any, // usageEventModel
+      dialogueAIService as any,
+      dialogueService as any,
+      dialogueStreamService as any,
+      socraticTurnEngine,
     );
   });
 

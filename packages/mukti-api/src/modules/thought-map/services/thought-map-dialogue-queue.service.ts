@@ -28,8 +28,6 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
-import { AiKeyResolver } from '../../ai/services/ai-key-resolver.service';
-import { AiPolicyService } from '../../ai/services/ai-policy.service';
 import { DialogueAIService } from '../../dialogue/services/dialogue-ai.service';
 import { DialogueStreamService } from '../../dialogue/services/dialogue-stream.service';
 import { DialogueService } from '../../dialogue/services/dialogue.service';
@@ -39,14 +37,7 @@ import {
   selectTechniqueForNode,
   type ThoughtMapNodeTechniqueContext,
 } from '../../dialogue/utils/prompt-builder';
-import {
-  type GapDetectionResult,
-  type ScaffoldContext,
-  ScaffoldLevel,
-} from '../../scaffolding/interfaces/scaffolding.interface';
-import { KnowledgeGapDetectorService } from '../../scaffolding/services/knowledge-gap-detector.service';
-import { ResponseEvaluatorService } from '../../scaffolding/services/response-evaluator.service';
-import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
+import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
 
 /**
  * Job data for a Thought Map dialogue request.
@@ -119,14 +110,10 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     private readonly thoughtNodeModel: Model<ThoughtNodeDocument>,
     @InjectModel(UsageEvent.name)
     private readonly usageEventModel: Model<UsageEventDocument>,
-    private readonly aiKeyResolver: AiKeyResolver,
-    private readonly aiPolicyService: AiPolicyService,
     private readonly dialogueAIService: DialogueAIService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
-    private readonly knowledgeGapDetector: KnowledgeGapDetectorService,
-    private readonly scaffoldFadeService: ScaffoldFadeService,
-    private readonly responseEvaluator: ResponseEvaluatorService,
+    private readonly socraticTurnEngine: SocraticTurnEngine,
   ) {
     super();
   }
@@ -388,39 +375,20 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         .filter((m) => m.role === 'user' && m.sequence < userMessage.sequence)
         .map((m) => m.content.trim().length);
 
-      const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
-
-      // RFC-0001: Detect knowledge gaps
-      const gapResult: GapDetectionResult =
-        await this.knowledgeGapDetector.analyze({
-          aiApiKey: apiKey,
-          aiModel: effectiveModel,
-          conceptContext: dialogue.detectedConcepts,
-          conversationHistory,
-          previousResponseLengths,
-          timeOnProblem: dialogue.lastMessageAt
-            ? Date.now() - dialogue.lastMessageAt.getTime()
-            : undefined,
-          userId,
-          userMessage: message,
-        });
-
-      // RFC-0002: Build scaffold context
-      const storedLevel =
-        dialogue.currentScaffoldLevel ?? ScaffoldLevel.PURE_SOCRATIC;
-      const effectiveLevel = Math.max(
-        gapResult.scaffoldLevel,
-        storedLevel,
-      ) as ScaffoldLevel;
-
-      const scaffoldContext: ScaffoldContext = {
-        conceptContext: gapResult.detectedConcepts,
-        consecutiveFailures: dialogue.consecutiveFailures ?? 0,
-        consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
-        level: effectiveLevel,
-        rootGap: gapResult.rootGap ?? undefined,
-      };
+      const turn = await this.socraticTurnEngine.prepare({
+        conversationHistory,
+        model,
+        previousResponseLengths,
+        state: dialogue,
+        timeOnProblem: dialogue.lastMessageAt
+          ? Date.now() - dialogue.lastMessageAt.getTime()
+          : undefined,
+        usedByok,
+        userId,
+        userMessage: message,
+      });
+      const { apiKey, gapResult, qualityDirectives, scaffoldContext } = turn;
+      const effectiveModel = turn.model;
 
       // Select technique via RFC §5.1.1 algorithm
       const techniqueCtx: ThoughtMapNodeTechniqueContext = {
@@ -452,7 +420,11 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
           effectiveModel,
           apiKey,
           scaffoldContext,
+          qualityDirectives,
         );
+
+      // RFC-0004: Post-response monitoring
+      this.socraticTurnEngine.inspectReply(aiResponse.content);
 
       const aiMessage = await this.dialogueService.addMessage(
         dialogue._id,
@@ -470,54 +442,26 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         (m) => m.role === 'assistant' && m.sequence < userMessage.sequence,
       );
 
-      if (hasPriorAssistantMessage) {
-        const responseQuality = this.responseEvaluator.evaluate({
-          conceptKeywords:
-            dialogue.detectedConcepts ?? gapResult.detectedConcepts,
-          scaffoldLevel: storedLevel as number,
-          userResponse: message,
-        });
+      const outcome = await this.socraticTurnEngine.settle(turn, {
+        hasPriorAssistantMessage,
+      });
 
-        const fadeState = {
-          consecutiveFailures: dialogue.consecutiveFailures ?? 0,
-          consecutiveSuccesses: dialogue.consecutiveSuccesses ?? 0,
-          currentLevel: storedLevel as number,
-          transitionHistory: [],
-        };
-        const transition = this.scaffoldFadeService.evaluateAndTransition(
-          fadeState,
-          responseQuality.quality,
-        );
-
-        const demonstratedUnderstanding =
-          responseQuality.quality.demonstratesUnderstanding;
-
-        // RFC-0001: Update per-user knowledge state
-        const conceptsToUpdate = new Set(gapResult.detectedConcepts);
-        if (gapResult.rootGap) {
-          conceptsToUpdate.add(gapResult.rootGap);
-        }
-
-        if (conceptsToUpdate.size > 0) {
-          await Promise.all(
-            Array.from(conceptsToUpdate).map((conceptId) =>
-              this.knowledgeGapDetector.updateKnowledgeState(
-                userId,
-                conceptId,
-                demonstratedUnderstanding,
-              ),
-            ),
-          );
-        }
-
+      if (outcome.scaffoldUpdate) {
         await this.dialogueService.updateScaffoldState(
           dialogue._id,
-          fadeState.currentLevel,
-          transition,
+          turn.storedLevel,
+          outcome.scaffoldUpdate.transition,
           gapResult,
-          demonstratedUnderstanding,
+          outcome.scaffoldUpdate.demonstratedUnderstanding,
         );
       }
+
+      // RFC-0004: Persist quality state (always, even on first exchange)
+      await this.dialogueService.updateQualityState(
+        dialogue._id,
+        outcome.misconception,
+        outcome.isBreakthrough,
+      );
 
       this.dialogueStreamService.emitToNodeDialogue(
         streamKey,
@@ -681,8 +625,8 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         },
       );
 
-      const effectiveModel = this.validateEffectiveModel(model, usedByok);
-      const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
+      const { apiKey, model: effectiveModel } =
+        await this.socraticTurnEngine.resolveAi(model, usedByok, userId);
 
       // Select technique via RFC §5.1.1 algorithm
       const techniqueCtx: ThoughtMapNodeTechniqueContext = {
@@ -892,23 +836,5 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
       .lean();
 
     return siblings.map((s) => s.label);
-  }
-
-  private validateEffectiveModel(model: string, usedByok: boolean): string {
-    const trimmed = model.trim();
-    if (!trimmed) {
-      throw new Error('Model is required');
-    }
-
-    if (!usedByok) {
-      const isCurated = this.aiPolicyService
-        .getCuratedModels()
-        .some((allowed) => allowed.id === trimmed);
-      if (!isCurated) {
-        throw new Error('MODEL_NOT_ALLOWED');
-      }
-    }
-
-    return trimmed;
   }
 }
