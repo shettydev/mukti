@@ -4,6 +4,7 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
+import { InProcessStreamBus } from '../../../../core/stream-bus/stream-bus';
 import { MapExtractionService } from '../map-extraction.service';
 
 describe('MapExtractionService', () => {
@@ -53,6 +54,8 @@ describe('MapExtractionService', () => {
       mockAiKeyResolver as any,
       mockAiPolicyService as any,
       mockChatClientFactory as any,
+      // Real in-process bus, so emitted events reach registered connections
+      new InProcessStreamBus(),
     );
     jest.clearAllMocks();
     mockChatClientFactory.create.mockReturnValue({ chat: { send: mockSend } });

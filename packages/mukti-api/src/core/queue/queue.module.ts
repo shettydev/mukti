@@ -3,6 +3,7 @@ import { type DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { isLocalMode } from '../../common/config/local-mode';
+import { redisConnectionOptions } from '../redis/redis-options';
 
 /**
  * Default job options applied to all queues unless overridden.
@@ -65,10 +66,6 @@ export class QueueModule {
           imports: [ConfigModule],
           inject: [ConfigService],
           useFactory: (configService: ConfigService) => {
-            const password = configService
-              .get<string>('REDIS_PASSWORD')
-              ?.trim();
-
             // Local mode processes conversations inline and never uses the
             // queue. Give up connecting rather than spamming reconnects, so
             // Redis is not required to boot.
@@ -78,10 +75,7 @@ export class QueueModule {
 
             return {
               connection: {
-                db: configService.get<number>('REDIS_DB', 0),
-                host: configService.get<string>('REDIS_HOST', 'localhost'),
-                port: configService.get<number>('REDIS_PORT', 6379),
-                ...(password ? { password } : {}),
+                ...redisConnectionOptions(configService),
                 ...localOverrides,
               },
             };

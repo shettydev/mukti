@@ -1,4 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+
+import {
+  InProcessStreamBus,
+  StreamBus,
+} from '../../../core/stream-bus/stream-bus';
+
+/** Stream bus namespace for chat conversation events. */
+const BUS_NAMESPACE = 'conversation';
 
 /**
  * Union type of all possible stream events.
@@ -37,6 +45,12 @@ interface CompleteEvent extends BaseStreamEvent {
     tokens: number;
   };
   type: 'complete';
+}
+
+/** What travels over the bus: the event, plus an optional target user. */
+interface ConversationBusMessage {
+  event: StreamEvent;
+  userId?: string;
 }
 
 /**
@@ -117,9 +131,15 @@ interface StreamConnection {
  *
  * The service uses a Map<conversationId, StreamConnection[]> structure to efficiently
  * manage multiple connections per conversation while maintaining O(1) lookup performance.
+ *
+ * Emitting publishes to the {@link StreamBus}; every instance delivers the
+ * event to the connections it holds. So a job may run on any worker and the
+ * client may be connected to any API instance.
  */
 @Injectable()
 export class StreamService {
+  private readonly bus: StreamBus;
+
   /**
    * Map of conversation IDs to arrays of active connections.
    * Key: conversationId
@@ -128,6 +148,14 @@ export class StreamService {
   private readonly connections = new Map<string, StreamConnection[]>();
 
   private readonly logger = new Logger(StreamService.name);
+
+  constructor(@Optional() bus?: StreamBus) {
+    this.bus = bus ?? new InProcessStreamBus();
+    this.bus.listen(BUS_NAMESPACE, (conversationId, message) => {
+      const { event, userId } = message as ConversationBusMessage;
+      this.deliver(conversationId, event, userId);
+    });
+  }
 
   /**
    * Registers a new SSE connection for a conversation.
@@ -263,46 +291,7 @@ export class StreamService {
     conversationId: string,
     event: Omit<StreamEvent, 'conversationId' | 'timestamp'>,
   ): void {
-    const connections = this.connections.get(conversationId);
-
-    if (!connections || connections.length === 0) {
-      this.logger.debug(
-        `No active connections for conversation ${conversationId}. Event not emitted.`,
-      );
-      return;
-    }
-
-    // Add timestamp and conversationId to the event
-    const fullEvent: StreamEvent = {
-      ...event,
-      conversationId,
-      timestamp: new Date().toISOString(),
-    } as StreamEvent;
-
-    this.logger.log(
-      `Emitting event to conversation ${conversationId}: type=${event.type}, connections=${connections.length}`,
-    );
-
-    // Emit to all connections for this conversation
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const connection of connections) {
-      try {
-        connection.emitFn(fullEvent);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        this.logger.error(
-          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
-          this.getErrorStack(error),
-        );
-      }
-    }
-
-    this.logger.log(
-      `Event emitted to conversation ${conversationId}: success=${successCount}, errors=${errorCount}`,
-    );
+    this.publish(conversationId, event);
   }
 
   /**
@@ -342,58 +331,7 @@ export class StreamService {
     userId: string,
     event: Omit<StreamEvent, 'conversationId' | 'timestamp'>,
   ): void {
-    const connections = this.connections.get(conversationId);
-
-    if (!connections || connections.length === 0) {
-      this.logger.debug(
-        `No active connections for conversation ${conversationId}. Event not emitted.`,
-      );
-      return;
-    }
-
-    // Filter connections for the specific user
-    const userConnections = connections.filter(
-      (conn) => conn.userId === userId,
-    );
-
-    if (userConnections.length === 0) {
-      this.logger.debug(
-        `No active connections for user ${userId} in conversation ${conversationId}. Event not emitted.`,
-      );
-      return;
-    }
-
-    // Add timestamp and conversationId to the event
-    const fullEvent: StreamEvent = {
-      ...event,
-      conversationId,
-      timestamp: new Date().toISOString(),
-    } as StreamEvent;
-
-    this.logger.log(
-      `Emitting event to user ${userId} in conversation ${conversationId}: type=${event.type}, connections=${userConnections.length}`,
-    );
-
-    // Emit to all of the user's connections
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const connection of userConnections) {
-      try {
-        connection.emitFn(fullEvent);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        this.logger.error(
-          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
-          this.getErrorStack(error),
-        );
-      }
-    }
-
-    this.logger.log(
-      `Event emitted to user ${userId}: success=${successCount}, errors=${errorCount}`,
-    );
+    this.publish(conversationId, event, userId);
   }
 
   /**
@@ -495,6 +433,41 @@ export class StreamService {
     }
   }
 
+  /**
+   * Delivers an event to the connections this instance holds for a
+   * conversation (optionally only one user's). Called for every bus message.
+   */
+  private deliver(
+    conversationId: string,
+    event: StreamEvent,
+    userId?: string,
+  ): void {
+    const connections = (this.connections.get(conversationId) ?? []).filter(
+      (conn) => userId === undefined || conn.userId === userId,
+    );
+
+    if (connections.length === 0) {
+      return;
+    }
+
+    let errorCount = 0;
+    for (const connection of connections) {
+      try {
+        connection.emitFn(event);
+      } catch (error) {
+        errorCount++;
+        this.logger.error(
+          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
+          this.getErrorStack(error),
+        );
+      }
+    }
+
+    this.logger.debug(
+      `Delivered ${event.type} to conversation ${conversationId}: success=${connections.length - errorCount}, errors=${errorCount}`,
+    );
+  }
+
   private getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       return error.message;
@@ -504,5 +477,23 @@ export class StreamService {
 
   private getErrorStack(error: unknown): string | undefined {
     return error instanceof Error ? error.stack : undefined;
+  }
+
+  /** Stamps the event and hands it to the bus for every instance. */
+  private publish(
+    conversationId: string,
+    event: Omit<StreamEvent, 'conversationId' | 'timestamp'>,
+    userId?: string,
+  ): void {
+    const fullEvent = {
+      ...event,
+      conversationId,
+      timestamp: new Date().toISOString(),
+    } as StreamEvent;
+
+    this.bus.publish(BUS_NAMESPACE, conversationId, {
+      event: fullEvent,
+      userId,
+    } satisfies ConversationBusMessage);
   }
 }

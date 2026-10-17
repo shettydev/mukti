@@ -4,6 +4,7 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
+import { InProcessStreamBus } from '../../../../../core/stream-bus/stream-bus';
 import { MapExtractionService } from '../../map-extraction.service';
 
 describe('MapExtractionService - Parser Invariants (Property-Based)', () => {
@@ -21,6 +22,7 @@ describe('MapExtractionService - Parser Invariants (Property-Based)', () => {
         getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
       } as any,
       { create: jest.fn() } as any,
+      new InProcessStreamBus(),
     );
   });
 

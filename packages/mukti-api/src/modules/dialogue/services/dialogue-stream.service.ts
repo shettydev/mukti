@@ -1,4 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+
+import {
+  InProcessStreamBus,
+  StreamBus,
+} from '../../../core/stream-bus/stream-bus';
+
+/** Stream bus namespace for canvas and thought-map node dialogue events. */
+const BUS_NAMESPACE = 'dialogue';
 
 /**
  * Union type of all possible dialogue stream events.
@@ -100,15 +108,26 @@ interface DialogueStreamConnection {
  *
  * @remarks
  * Uses a composite key of sessionId:nodeId to manage connections per node dialogue.
+ * Emitting publishes to the {@link StreamBus}, so the instance holding the
+ * client's connection delivers the event wherever the job ran.
  */
 @Injectable()
 export class DialogueStreamService {
+  private readonly bus: StreamBus;
+
   /**
    * Map of composite keys (sessionId:nodeId) to arrays of active connections.
    */
   private readonly connections = new Map<string, DialogueStreamConnection[]>();
 
   private readonly logger = new Logger(DialogueStreamService.name);
+
+  constructor(@Optional() bus?: StreamBus) {
+    this.bus = bus ?? new InProcessStreamBus();
+    this.bus.listen(BUS_NAMESPACE, (key, event) =>
+      this.deliver(key, event as DialogueStreamEvent),
+    );
+  }
 
   /**
    * Registers a new SSE connection for a node dialogue.
@@ -173,13 +192,6 @@ export class DialogueStreamService {
     >,
   ): void {
     const key = this.getKey(sessionId, nodeId);
-    const connections = this.connections.get(key);
-
-    if (!connections || connections.length === 0) {
-      this.logger.debug(`No active connections for ${key}. Event not emitted.`);
-      return;
-    }
-
     const fullEvent: DialogueStreamEvent = {
       ...event,
       dialogueId,
@@ -188,28 +200,7 @@ export class DialogueStreamService {
       timestamp: new Date().toISOString(),
     } as DialogueStreamEvent;
 
-    this.logger.log(
-      `Emitting event to ${key}: type=${event.type}, connections=${connections.length}`,
-    );
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const connection of connections) {
-      try {
-        connection.emitFn(fullEvent);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        this.logger.error(
-          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
-        );
-      }
-    }
-
-    this.logger.log(
-      `Event emitted to ${key}: success=${successCount}, errors=${errorCount}`,
-    );
+    this.bus.publish(BUS_NAMESPACE, key, fullEvent);
   }
 
   /**
@@ -263,6 +254,34 @@ export class DialogueStreamService {
         `Remaining connections for ${key}: ${updatedConnections.length}`,
       );
     }
+  }
+
+  /** Delivers a bus event to the connections this instance holds. */
+  private deliver(key: string, fullEvent: DialogueStreamEvent): void {
+    const connections = this.connections.get(key);
+
+    if (!connections || connections.length === 0) {
+      return;
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const connection of connections) {
+      try {
+        connection.emitFn(fullEvent);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        this.logger.error(
+          `Failed to emit event to connection ${connection.connectionId}: ${this.getErrorMessage(error)}`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Event emitted to ${key}: success=${successCount}, errors=${errorCount}`,
+    );
   }
 
   private getErrorMessage(error: unknown): string {

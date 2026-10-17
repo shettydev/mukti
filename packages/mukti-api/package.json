@@ -71,6 +71,7 @@
     "csurf": "^1.11.0",
     "fast-check": "^4.3.0",
     "helmet": "^8.1.0",
+    "ioredis": "^5.8.2",
     "mongoose": "^8.19.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

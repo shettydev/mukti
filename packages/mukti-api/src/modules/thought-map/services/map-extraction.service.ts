@@ -10,6 +10,7 @@ import {
   runJobInline,
   waitForStreamConnection,
 } from '../../../common/queue/inline-runner';
+import { StreamBus } from '../../../core/stream-bus/stream-bus';
 import {
   Conversation,
   ConversationDocument,
@@ -131,6 +132,9 @@ interface ExtractionStreamConnection {
   jobId: string;
 }
 
+/** Stream bus namespace for conversation-to-map extraction events. */
+const EXTRACTION_BUS_NAMESPACE = 'extraction';
+
 // ============================================================================
 // Service
 // ============================================================================
@@ -177,8 +181,14 @@ export class MapExtractionService extends WorkerHost {
     private readonly aiPolicyService: AiPolicyService,
     @Inject(AI_CHAT_CLIENT_FACTORY)
     private readonly chatClientFactory: AiChatClientFactory,
+    private readonly streamBus: StreamBus,
   ) {
     super();
+    // Extraction may run on a worker other than the API instance holding the
+    // client's stream; every instance delivers to the connections it holds.
+    this.streamBus.listen(EXTRACTION_BUS_NAMESPACE, (jobId, event) =>
+      this.deliver(jobId, event as ExtractionStreamEvent),
+    );
   }
 
   // ============================================================================
@@ -471,11 +481,10 @@ export class MapExtractionService extends WorkerHost {
     ].join('\n');
   }
 
-  private emit(jobId: string, event: ExtractionStreamEvent): void {
+  private deliver(jobId: string, event: ExtractionStreamEvent): void {
     const conns = this.connections.get(jobId) ?? [];
 
     if (conns.length === 0) {
-      this.logger.debug(`No extraction SSE connections for jobId=${jobId}`);
       return;
     }
 
@@ -488,6 +497,11 @@ export class MapExtractionService extends WorkerHost {
         );
       }
     }
+  }
+
+  /** Publishes an extraction event to every instance via the stream bus. */
+  private emit(jobId: string, event: ExtractionStreamEvent): void {
+    this.streamBus.publish(EXTRACTION_BUS_NAMESPACE, jobId, event);
   }
 
   /** Reads the assistant text from a provider-agnostic `{ choices }` payload. */
