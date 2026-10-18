@@ -4,6 +4,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
+import type { RecentMessage } from '../../../schemas/conversation.schema';
+
 import { isLocalMode } from '../../../common/config/local-mode';
 import {
   makeInlineJobId,
@@ -11,11 +13,6 @@ import {
   waitForStreamConnection,
 } from '../../../common/queue/inline-runner';
 import { StreamBus } from '../../../core/stream-bus/stream-bus';
-import {
-  Conversation,
-  ConversationDocument,
-  RecentMessage,
-} from '../../../schemas/conversation.schema';
 import {
   ThoughtMap,
   ThoughtMapDocument,
@@ -34,6 +31,7 @@ import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
 } from '../../ai/types/ai-chat-client.interface';
+import { ConversationService } from '../../conversations/services/conversation.service';
 
 // ============================================================================
 // AI extraction types
@@ -173,8 +171,8 @@ export class MapExtractionService extends WorkerHost {
     private readonly thoughtMapModel: Model<ThoughtMapDocument>,
     @InjectModel(ThoughtNode.name)
     private readonly thoughtNodeModel: Model<ThoughtNodeDocument>,
-    @InjectModel(Conversation.name)
-    private readonly conversationModel: Model<ConversationDocument>,
+    // Conversations are read through the chat domain, which owns them.
+    private readonly conversationService: ConversationService,
     @InjectModel(UsageEvent.name)
     private readonly usageEventModel: Model<UsageEventDocument>,
     private readonly aiKeyResolver: AiKeyResolver,
@@ -325,13 +323,10 @@ export class MapExtractionService extends WorkerHost {
         type: 'processing',
       });
 
-      // Load the conversation
-      const conversation = await this.conversationModel
-        .findOne({
-          _id: new Types.ObjectId(conversationId),
-          userId: new Types.ObjectId(userId),
-        })
-        .lean();
+      // Load the conversation (throws if missing or not owned by this user)
+      const conversation = await this.conversationService
+        .findConversationById(conversationId, userId)
+        .catch(() => null);
 
       if (!conversation) {
         throw new Error(

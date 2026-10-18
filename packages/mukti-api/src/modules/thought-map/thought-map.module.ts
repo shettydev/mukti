@@ -3,14 +3,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { QueueModule } from '../../core/queue/queue.module';
 import {
-  CanvasSession,
-  CanvasSessionSchema,
-} from '../../schemas/canvas-session.schema';
-import {
-  Conversation,
-  ConversationSchema,
-} from '../../schemas/conversation.schema';
-import {
   DialogueMessage,
   DialogueMessageSchema,
 } from '../../schemas/dialogue-message.schema';
@@ -30,6 +22,8 @@ import {
 import { UsageEvent, UsageEventSchema } from '../../schemas/usage-event.schema';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { AiModule } from '../ai/ai.module';
+import { CanvasModule } from '../canvas/canvas.module';
+import { ConversationsModule } from '../conversations/conversations.module';
 import { DialogueModule } from '../dialogue/dialogue.module';
 import { SocraticTurnModule } from '../socratic-turn/socratic-turn.module';
 import { BranchSuggestionService } from './services/branch-suggestion.service';
@@ -57,6 +51,9 @@ import { ThoughtMapController } from './thought-map.controller';
   exports: [ThoughtMapService],
   imports: [
     AiModule,
+    // Read conversations and canvas sessions through their owning modules
+    CanvasModule,
+    ConversationsModule,
     DialogueModule,
     SocraticTurnModule,
     MongooseModule.forFeature([
@@ -66,8 +63,6 @@ import { ThoughtMapController } from './thought-map.controller';
       { name: DialogueMessage.name, schema: DialogueMessageSchema },
       { name: UsageEvent.name, schema: UsageEventSchema },
       { name: User.name, schema: UserSchema },
-      { name: Conversation.name, schema: ConversationSchema },
-      { name: CanvasSession.name, schema: CanvasSessionSchema },
       { name: ThoughtMapShareLink.name, schema: ThoughtMapShareLinkSchema },
     ]),
     // Register thought-map queues (Redis connection provided by CoreModule)

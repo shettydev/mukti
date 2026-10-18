@@ -23,8 +23,23 @@ describe('MapExtractionService', () => {
     create: jest.fn(),
   };
 
+  // Extraction reads conversations through ConversationService. Tests keep
+  // setting `findOne` (null = missing or not owned), which the service mock
+  // turns into the service's resolve/reject behaviour.
   const mockConversationModel = {
     findOne: jest.fn(),
+  };
+  const mockConversationService = {
+    findConversationById: jest.fn(async () => {
+      const query = mockConversationModel.findOne() as
+        | undefined
+        | { lean: () => Promise<unknown> };
+      const conversation = await query?.lean();
+      if (!conversation) {
+        throw new Error('Conversation not found');
+      }
+      return conversation;
+    }),
   };
 
   const mockUsageEventModel = {
@@ -49,7 +64,7 @@ describe('MapExtractionService', () => {
       mockQueue as any,
       mockThoughtMapModel as any,
       mockThoughtNodeModel as any,
-      mockConversationModel as any,
+      mockConversationService as any,
       mockUsageEventModel as any,
       mockAiKeyResolver as any,
       mockAiPolicyService as any,

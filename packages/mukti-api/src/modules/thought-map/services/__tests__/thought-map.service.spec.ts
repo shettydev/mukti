@@ -8,10 +8,10 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
-import { CanvasSession } from '../../../../schemas/canvas-session.schema';
 import { ThoughtMapShareLink } from '../../../../schemas/thought-map-share-link.schema';
 import { ThoughtMap } from '../../../../schemas/thought-map.schema';
 import { ThoughtNode } from '../../../../schemas/thought-node.schema';
+import { CanvasService } from '../../../canvas/canvas.service';
 import { ThoughtMapService } from '../thought-map.service';
 
 describe('ThoughtMapService', () => {
@@ -36,8 +36,8 @@ describe('ThoughtMapService', () => {
     insertMany: jest.fn(),
   };
 
-  const mockCanvasSessionModel = {
-    findById: jest.fn(),
+  const mockCanvasService = {
+    findSessionById: jest.fn(),
   };
 
   const mockShareLinkModel = {
@@ -57,8 +57,8 @@ describe('ThoughtMapService', () => {
           useValue: mockThoughtNodeModel,
         },
         {
-          provide: getModelToken(CanvasSession.name),
-          useValue: mockCanvasSessionModel,
+          provide: CanvasService,
+          useValue: mockCanvasService,
         },
         {
           provide: getModelToken(ThoughtMapShareLink.name),
@@ -379,7 +379,7 @@ describe('ThoughtMapService', () => {
         { nodeId: 'thought-2' },
       ];
 
-      mockCanvasSessionModel.findById.mockReturnValue(createLeanQuery(session));
+      mockCanvasService.findSessionById.mockResolvedValue(session);
       mockThoughtMapModel.create.mockResolvedValue(map);
       mockThoughtNodeModel.insertMany.mockResolvedValue(nodes);
 
@@ -453,7 +453,7 @@ describe('ThoughtMapService', () => {
       };
       const map = { _id: new Types.ObjectId() };
 
-      mockCanvasSessionModel.findById.mockReturnValue(createLeanQuery(session));
+      mockCanvasService.findSessionById.mockResolvedValue(session);
       mockThoughtMapModel.create.mockResolvedValue(map);
       mockThoughtNodeModel.insertMany.mockResolvedValue([]);
 
@@ -475,8 +475,10 @@ describe('ThoughtMapService', () => {
       ]);
     });
 
-    it('throws when the canvas session is missing', async () => {
-      mockCanvasSessionModel.findById.mockReturnValue(createLeanQuery(null));
+    it('propagates the canvas domain’s not-found error', async () => {
+      mockCanvasService.findSessionById.mockRejectedValue(
+        new NotFoundException('missing'),
+      );
 
       await expect(
         service.convertFromCanvas(
@@ -486,25 +488,20 @@ describe('ThoughtMapService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('throws when the canvas session belongs to another user', async () => {
-      const ownerId = new Types.ObjectId();
+    it('propagates the canvas domain’s ownership error', async () => {
+      const sessionId = new Types.ObjectId().toString();
       const userId = new Types.ObjectId();
-
-      mockCanvasSessionModel.findById.mockReturnValue(
-        createLeanQuery({
-          _id: new Types.ObjectId(),
-          problemStructure: {
-            roots: [],
-            seed: 'Seed',
-            soil: [],
-          },
-          userId: ownerId,
-        }),
+      mockCanvasService.findSessionById.mockRejectedValue(
+        new ForbiddenException('not yours'),
       );
 
       await expect(
-        service.convertFromCanvas(new Types.ObjectId().toString(), userId),
+        service.convertFromCanvas(sessionId, userId),
       ).rejects.toThrow(ForbiddenException);
+      expect(mockCanvasService.findSessionById).toHaveBeenCalledWith(
+        sessionId,
+        userId,
+      );
     });
   });
 

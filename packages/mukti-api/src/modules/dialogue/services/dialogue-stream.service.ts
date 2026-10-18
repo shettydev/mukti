@@ -1,5 +1,7 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 
+import type { NodeDialogueStreamEventContract } from '../../../contracts/stream-events';
+
 import {
   InProcessStreamBus,
   StreamBus,
@@ -9,88 +11,10 @@ import {
 const BUS_NAMESPACE = 'dialogue';
 
 /**
- * Union type of all possible dialogue stream events.
+ * Any canvas or thought-map node-dialogue stream event. Defined once in the
+ * shared wire contract so the web client is type-checked against it.
  */
-export type DialogueStreamEvent =
-  | DialogueCompleteEvent
-  | DialogueErrorEvent
-  | DialogueMessageEvent
-  | DialogueProcessingEvent
-  | DialogueProgressEvent;
-
-/**
- * Base structure for all dialogue SSE events.
- */
-interface BaseDialogueStreamEvent {
-  data: unknown;
-  dialogueId: string;
-  nodeId: string;
-  sessionId: string;
-  timestamp: string;
-  type: string;
-}
-
-/**
- * Processing complete event.
- */
-interface DialogueCompleteEvent extends BaseDialogueStreamEvent {
-  data: {
-    cost: number;
-    jobId: string;
-    latency: number;
-    tokens: number;
-  };
-  type: 'complete';
-}
-
-/**
- * Error occurred event.
- */
-interface DialogueErrorEvent extends BaseDialogueStreamEvent {
-  data: {
-    code: string;
-    message: string;
-    retriable: boolean;
-  };
-  type: 'error';
-}
-
-/**
- * New message received event.
- */
-interface DialogueMessageEvent extends BaseDialogueStreamEvent {
-  data: {
-    content: string;
-    role: 'assistant' | 'user';
-    sequence: number;
-    timestamp: string;
-    tokens?: number;
-  };
-  type: 'message';
-}
-
-/**
- * Processing started event.
- */
-interface DialogueProcessingEvent extends BaseDialogueStreamEvent {
-  data: {
-    jobId: string;
-    status: 'started';
-  };
-  type: 'processing';
-}
-
-/**
- * Progress update event.
- */
-interface DialogueProgressEvent extends BaseDialogueStreamEvent {
-  data: {
-    jobId: string;
-    position?: number;
-    status: string;
-  };
-  type: 'progress';
-}
+export type DialogueStreamEvent = NodeDialogueStreamEventContract;
 
 /**
  * Represents an active SSE connection for a node dialogue.

@@ -1,4 +1,4 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -61,7 +61,9 @@ import { ScaffoldPromptAugmenter } from './services/scaffold-prompt-augmenter.se
       { name: KnowledgeState.name, schema: KnowledgeStateSchema },
       { name: Concept.name, schema: ConceptSchema },
     ]),
-    forwardRef(() => KnowledgeTracingModule),
+    // One-way dependency: knowledge-tracing owns knowledge-state writes
+    // (KnowledgeStateStore) and never imports scaffolding back.
+    KnowledgeTracingModule,
   ],
   providers: [
     KnowledgeGapDetectorService,

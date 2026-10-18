@@ -10,10 +10,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import {
-  CanvasSession,
-  CanvasSessionDocument,
-} from '../../../schemas/canvas-session.schema';
-import {
   ThoughtMapShareLink,
   ThoughtMapShareLinkDocument,
 } from '../../../schemas/thought-map-share-link.schema';
@@ -26,6 +22,7 @@ import {
   ThoughtNodeDocument,
   ThoughtNodeType,
 } from '../../../schemas/thought-node.schema';
+import { CanvasService } from '../../canvas/canvas.service';
 import { CreateThoughtMapDto } from '../dto/create-thought-map.dto';
 import { CreateThoughtNodeDto } from '../dto/create-thought-node.dto';
 import { UpdateThoughtMapSettingsDto } from '../dto/update-thought-map-settings.dto';
@@ -50,10 +47,10 @@ export class ThoughtMapService {
     private readonly thoughtMapModel: Model<ThoughtMapDocument>,
     @InjectModel(ThoughtNode.name)
     private readonly thoughtNodeModel: Model<ThoughtNodeDocument>,
-    @InjectModel(CanvasSession.name)
-    private readonly canvasSessionModel: Model<CanvasSessionDocument>,
     @InjectModel(ThoughtMapShareLink.name)
     private readonly shareLinkModel: Model<ThoughtMapShareLinkDocument>,
+    // Canvas sessions are read through the canvas domain, which owns them.
+    private readonly canvasService: CanvasService,
   ) {}
 
   /**
@@ -214,19 +211,7 @@ export class ThoughtMapService {
       `Converting canvas session ${sessionId} to Thought Map for user ${userIdStr}`,
     );
 
-    const session = await this.canvasSessionModel.findById(sessionId).lean();
-
-    if (!session) {
-      throw new NotFoundException(
-        `Canvas session with ID ${sessionId} not found`,
-      );
-    }
-
-    if (session.userId.toString() !== userIdStr) {
-      throw new ForbiddenException(
-        'You do not have permission to convert this canvas session',
-      );
-    }
+    const session = await this.canvasService.findSessionById(sessionId, userId);
 
     const { roots, seed, soil } = session.problemStructure;
     // Intentional || — empty/whitespace-only titleOverride must fall back to seed

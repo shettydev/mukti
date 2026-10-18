@@ -1,5 +1,7 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 
+import type { ConversationStreamEventContract } from '../../../contracts/stream-events';
+
 import {
   InProcessStreamBus,
   StreamBus,
@@ -9,97 +11,15 @@ import {
 const BUS_NAMESPACE = 'conversation';
 
 /**
- * Union type of all possible stream events.
+ * Any chat conversation stream event. Defined once in the shared wire
+ * contract so the web client is type-checked against the same shape.
  */
-export type StreamEvent =
-  | CompleteEvent
-  | ErrorEvent
-  | MessageEvent
-  | ProcessingEvent
-  | ProgressEvent;
-
-/**
- * Base structure for all SSE events.
- *
- * @property conversationId - The conversation this event relates to
- * @property data - Event-specific payload data
- * @property timestamp - ISO 8601 timestamp when the event was created
- * @property type - The type of event being emitted
- */
-interface BaseStreamEvent {
-  conversationId: string;
-  data: unknown;
-  timestamp: string;
-  type: string;
-}
-
-/**
- * Processing complete event.
- */
-interface CompleteEvent extends BaseStreamEvent {
-  data: {
-    conclusionReady?: boolean;
-    cost: number;
-    jobId: string;
-    latency: number;
-    tokens: number;
-  };
-  type: 'complete';
-}
+export type StreamEvent = ConversationStreamEventContract;
 
 /** What travels over the bus: the event, plus an optional target user. */
 interface ConversationBusMessage {
   event: StreamEvent;
   userId?: string;
-}
-
-/**
- * Error occurred event.
- */
-interface ErrorEvent extends BaseStreamEvent {
-  data: {
-    code: string;
-    message: string;
-    retriable: boolean;
-  };
-  type: 'error';
-}
-
-/**
- * New message received event.
- */
-interface MessageEvent extends BaseStreamEvent {
-  data: {
-    content: string;
-    role: 'assistant' | 'user';
-    sequence: number;
-    timestamp: string;
-    tokens?: number;
-  };
-  type: 'message';
-}
-
-/**
- * Processing started event.
- */
-interface ProcessingEvent extends BaseStreamEvent {
-  data: {
-    jobId: string;
-    status: 'started';
-  };
-  type: 'processing';
-}
-
-/**
- * Progress update event.
- */
-interface ProgressEvent extends BaseStreamEvent {
-  data: {
-    jobId: string;
-    position?: number;
-    status: string;
-  };
-  type: 'progress';
 }
 
 /**
