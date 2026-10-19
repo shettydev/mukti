@@ -37,7 +37,7 @@
     },
     "packages/mukti-api": {
       "name": "@muktiai/api",
-      "version": "0.1.1-beta.1",
+      "version": "0.1.1",
       "dependencies": {
         "@google/generative-ai": "^0.24.1",
         "@nestjs/bullmq": "^11.0.4",
@@ -63,6 +63,7 @@
         "csurf": "^1.11.0",
         "fast-check": "^4.3.0",
         "helmet": "^8.1.0",
+        "ioredis": "^5.8.2",
         "mongoose": "^8.19.1",
         "passport": "^0.7.0",
         "passport-google-oauth20": "^2.0.0",
@@ -113,7 +114,7 @@
     },
     "packages/mukti-cli": {
       "name": "muktiai",
-      "version": "0.1.1-beta.0",
+      "version": "0.1.1",
       "bin": {
         "muktiai": "./dist/index.mjs",
       },
@@ -154,7 +155,7 @@
     },
     "packages/mukti-web": {
       "name": "@muktiai/web",
-      "version": "0.2.1-beta.1",
+      "version": "0.2.1",
       "dependencies": {
         "@hookform/resolvers": "^5.1.1",
         "@radix-ui/react-accordion": "^1.2.12",
