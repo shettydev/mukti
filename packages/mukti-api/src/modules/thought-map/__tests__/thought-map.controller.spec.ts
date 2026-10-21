@@ -25,6 +25,9 @@ import { ThoughtMapShareService } from '../services/thought-map-share.service';
 import { ThoughtMapService } from '../services/thought-map.service';
 import { ThoughtMapController } from '../thought-map.controller';
 
+/** Lets chained promise callbacks (several hops) settle. */
+const flushPromises = () => new Promise((resolve) => setImmediate(resolve));
+
 describe('ThoughtMapController', () => {
   let controller: ThoughtMapController;
 
@@ -665,7 +668,7 @@ describe('ThoughtMapController', () => {
     mockMapExtractionService.addConnection.mockImplementation(
       (_jobId: string, _connectionId: string, cb: (event: unknown) => void) => {
         emitFn = cb;
-        return cleanup;
+        return { close: cleanup, ready: Promise.resolve() };
       },
     );
 
@@ -674,6 +677,7 @@ describe('ThoughtMapController', () => {
     const subscription = stream.subscribe((event) => events.push(event));
 
     emitFn({ data: { status: 'started' }, type: 'processing' });
+    await flushPromises();
     subscription.unsubscribe();
 
     expect(events).toEqual([
@@ -683,6 +687,118 @@ describe('ThoughtMapController', () => {
       },
     ]);
     expect(cleanup).toHaveBeenCalled();
+  });
+
+  describe('extraction stream subscribe race', () => {
+    const draftMap = {
+      map: { _id: 'map-1', status: 'draft' },
+      nodes: [{ nodeId: 'topic-0' }],
+    };
+    const result = { conversationId: 'c-1', mapId: 'map-1', nodeCount: 1 };
+    const job = (state: string, extra: Record<string, unknown> = {}) => ({
+      data: { userId: mockUser._id.toString() },
+      getState: jest.fn().mockResolvedValue(state),
+      ...extra,
+    });
+
+    /** Subscribes, holding `ready` until `subscribed()` is called. */
+    const open = async () => {
+      let emitFn!: (event: unknown) => void;
+      let subscribed!: () => void;
+      mockMapExtractionService.addConnection.mockImplementation(
+        (_j: string, _c: string, cb: (event: unknown) => void) => {
+          emitFn = cb;
+          return {
+            close: jest.fn(),
+            ready: new Promise<void>((resolve) => (subscribed = resolve)),
+          };
+        },
+      );
+      const stream = await controller.streamExtraction(
+        'job-1',
+        mockUser as any,
+      );
+      const types: string[] = [];
+      stream.subscribe((event) => types.push((event.data as any).type));
+      return { emit: (e: unknown) => emitFn(e), subscribed, types };
+    };
+
+    beforeEach(() => {
+      mockMapExtractionService.getExtractionJob.mockReset();
+      mockMapExtractionService.addConnection.mockReset();
+      mockThoughtMapService.getMap.mockResolvedValue(draftMap);
+    });
+
+    it('replays the result when the job completed while subscribing', async () => {
+      mockMapExtractionService.getExtractionJob
+        .mockResolvedValueOnce(job('active'))
+        .mockResolvedValueOnce(job('completed', { returnvalue: result }));
+
+      const s = await open();
+      s.subscribed();
+      await flushPromises();
+
+      expect(s.types).toEqual(['preview', 'complete']);
+    });
+
+    it('replays the failure when the job failed while subscribing', async () => {
+      mockMapExtractionService.getExtractionJob
+        .mockResolvedValueOnce(job('active'))
+        .mockResolvedValueOnce(job('failed', { failedReason: 'model down' }));
+
+      const s = await open();
+      s.subscribed();
+      await flushPromises();
+
+      expect(s.types).toEqual(['error']);
+    });
+
+    it('does nothing extra when the job is still running after subscribing', async () => {
+      mockMapExtractionService.getExtractionJob.mockResolvedValue(
+        job('active'),
+      );
+
+      const s = await open();
+      s.subscribed();
+      await flushPromises();
+      s.emit({ data: draftMap, type: 'preview' });
+      s.emit({ data: { jobId: 'job-1' }, type: 'complete' });
+
+      expect(s.types).toEqual(['preview', 'complete']);
+      expect(mockThoughtMapService.getMap).not.toHaveBeenCalled();
+    });
+
+    it('skips the re-check once the live stream already completed', async () => {
+      mockMapExtractionService.getExtractionJob.mockResolvedValueOnce(
+        job('active'),
+      );
+
+      const s = await open();
+      s.emit({ data: draftMap, type: 'preview' });
+      s.emit({ data: { jobId: 'job-1' }, type: 'complete' });
+      s.subscribed();
+      await flushPromises();
+
+      expect(s.types).toEqual(['preview', 'complete']);
+      expect(mockMapExtractionService.getExtractionJob).toHaveBeenCalledTimes(
+        1,
+      );
+    });
+
+    it('does not repeat a live preview when the replay arrives after it', async () => {
+      mockMapExtractionService.getExtractionJob
+        .mockResolvedValueOnce(job('active'))
+        .mockResolvedValueOnce(job('completed', { returnvalue: result }));
+
+      const s = await open();
+      s.emit({ data: draftMap, type: 'preview' });
+      s.subscribed();
+      await flushPromises();
+      // A late live `complete` after the replay is dropped too.
+      s.emit({ data: { jobId: 'job-1' }, type: 'complete' });
+
+      expect(s.types).toEqual(['preview', 'complete']);
+    });
   });
 
   it('replays completed extraction jobs for late subscribers', async () => {

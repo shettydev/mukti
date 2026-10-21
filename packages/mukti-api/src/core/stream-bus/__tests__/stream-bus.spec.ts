@@ -269,8 +269,8 @@ describe('StreamBus', () => {
         workerInstance,
       );
       const emitFn = jest.fn();
-      const close = api.addConnection('job-1', 'conn-1', emitFn);
-      await flush();
+      const connection = api.addConnection('job-1', 'conn-1', emitFn);
+      await connection.ready;
 
       (
         worker as unknown as {
@@ -282,11 +282,77 @@ describe('StreamBus', () => {
       expect(emitFn).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'complete' }),
       );
-      close();
+      connection.close();
       await flush();
       expect(server.subscriberCount(streamChannel('extraction', 'job-1'))).toBe(
         0,
       );
+    });
+
+    it('resolves track only once the channel is subscribed, sharing one subscribe per stream', async () => {
+      const clients = server.clients();
+      let finishSubscribe!: () => void;
+      (clients.subscriber.subscribe as jest.Mock).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishSubscribe = () => resolve(1);
+          }),
+      );
+      const bus = new RedisStreamBus(clients);
+
+      let firstReady = false;
+      let secondReady = false;
+      void bus.track('extraction', 'job-1').then(() => (firstReady = true));
+      void bus.track('extraction', 'job-1').then(() => (secondReady = true));
+      await flush();
+
+      expect(clients.subscriber.subscribe).toHaveBeenCalledTimes(1);
+      expect([firstReady, secondReady]).toEqual([false, false]);
+
+      finishSubscribe();
+      await flush();
+      expect([firstReady, secondReady]).toEqual([true, true]);
+    });
+
+    it('resolves track even when the subscribe fails, so callers can fall back', async () => {
+      const clients = server.clients();
+      (clients.subscriber.subscribe as jest.Mock).mockRejectedValueOnce(
+        new Error('NOPERM'),
+      );
+      const bus = new RedisStreamBus(clients);
+      const errorSpy = jest
+        .spyOn(
+          (bus as unknown as { logger: { error: () => void } }).logger,
+          'error',
+        )
+        .mockImplementation(() => undefined);
+
+      await expect(bus.track('extraction', 'job-1')).resolves.toBeUndefined();
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('could not subscribe'),
+      );
+    });
+
+    it('holds the subscription while any of several extraction connections is open', async () => {
+      const deps = Array.from({ length: 8 }, () => ({}) as never);
+      const api = new MapExtractionService(
+        ...(deps as [never, never, never, never, never, never, never, never]),
+        apiInstance,
+      );
+      const channel = streamChannel('extraction', 'job-1');
+      const a = api.addConnection('job-1', 'a', jest.fn());
+      const b = api.addConnection('job-1', 'b', jest.fn());
+      await Promise.all([a.ready, b.ready]);
+      expect(server.subscriberCount(channel)).toBe(1);
+
+      a.close();
+      a.close();
+      await flush();
+      expect(server.subscriberCount(channel)).toBe(1);
+
+      b.close();
+      await flush();
+      expect(server.subscriberCount(channel)).toBe(0);
     });
 
     it('releases the subscription when a stream is cleaned up wholesale', async () => {

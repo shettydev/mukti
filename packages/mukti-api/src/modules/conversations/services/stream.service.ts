@@ -125,7 +125,7 @@ export class StreamService {
 
     // First local connection for this stream: start receiving its events.
     if (existingConnections.length === 0) {
-      this.bus.track(BUS_NAMESPACE, conversationId);
+      void this.bus.track(BUS_NAMESPACE, conversationId);
     }
 
     // Add new connection to the array

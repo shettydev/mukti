@@ -79,7 +79,7 @@ export class DialogueStreamService {
     const existingConnections = this.connections.get(key) ?? [];
     // First local connection for this stream: start receiving its events.
     if (existingConnections.length === 0) {
-      this.bus.track(BUS_NAMESPACE, key);
+      void this.bus.track(BUS_NAMESPACE, key);
     }
     existingConnections.push(connection);
     this.connections.set(key, existingConnections);

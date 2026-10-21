@@ -115,6 +115,12 @@ unsubscribes when it loses its last, so events reach only the instances that hol
 the stream. Order within a job is preserved because Redis keeps per-publisher,
 per-channel order.
 
+Pub/sub does not buffer, so a stream only receives what is published after its
+subscription lands. `StreamBus.track` resolves at that point. Map extraction is the
+one stream whose job is enqueued before the client connects, so its SSE endpoint
+waits for `track` and then re-checks the job. If the job finished during that gap,
+the endpoint replays the stored result and skips anything already sent live.
+
 ## Contracts between web and API
 
 Every SSE stream's event shapes (chat, canvas and map node chat, branch suggestions,

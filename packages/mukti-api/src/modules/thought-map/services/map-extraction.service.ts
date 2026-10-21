@@ -184,13 +184,15 @@ export class MapExtractionService extends WorkerHost {
    * @param jobId - BullMQ job ID
    * @param connectionId - Unique connection identifier
    * @param emitFn - Callback to push events to the client
-   * @returns Cleanup function to call on disconnect
+   * @returns `close` to call on disconnect, and `ready`, which resolves once
+   * events published from now on will reach this connection. The job may have
+   * started before the client connected, so callers re-check it after `ready`.
    */
   addConnection(
     jobId: string,
     connectionId: string,
     emitFn: (event: ExtractionStreamEvent) => void,
-  ): () => void {
+  ): { close: () => void; ready: Promise<void> } {
     const connection: ExtractionStreamConnection = {
       connectionId,
       emitFn,
@@ -198,10 +200,9 @@ export class MapExtractionService extends WorkerHost {
     };
 
     const existing = this.connections.get(jobId) ?? [];
-    // First local connection for this stream: start receiving its events.
-    if (existing.length === 0) {
-      this.streamBus.track(EXTRACTION_BUS_NAMESPACE, jobId);
-    }
+    // Each connection holds one bus reference; the bus subscribes once per
+    // stream and every caller can wait for that subscription.
+    const ready = this.streamBus.track(EXTRACTION_BUS_NAMESPACE, jobId);
     existing.push(connection);
     this.connections.set(jobId, existing);
 
@@ -209,8 +210,11 @@ export class MapExtractionService extends WorkerHost {
       `Extraction SSE connection added: jobId=${jobId} (connectionId=${connectionId})`,
     );
 
-    return () => {
-      this.removeConnection(jobId, connectionId);
+    return {
+      close: () => {
+        this.removeConnection(jobId, connectionId);
+      },
+      ready,
     };
   }
 
@@ -404,10 +408,13 @@ export class MapExtractionService extends WorkerHost {
       return;
     }
     const filtered = existing.filter((c) => c.connectionId !== connectionId);
+    if (filtered.length === existing.length) {
+      return;
+    }
+    this.streamBus.untrack(EXTRACTION_BUS_NAMESPACE, jobId);
 
     if (filtered.length === 0) {
       this.connections.delete(jobId);
-      this.streamBus.untrack(EXTRACTION_BUS_NAMESPACE, jobId);
     } else {
       this.connections.set(jobId, filtered);
     }

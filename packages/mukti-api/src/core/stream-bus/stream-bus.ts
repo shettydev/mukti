@@ -37,8 +37,14 @@ export abstract class StreamBus {
   /** Sends an event to the instances holding this stream. */
   abstract publish(namespace: string, key: string, event: unknown): void;
 
-  /** This instance now holds a connection for the stream. Reference counted. */
-  abstract track(namespace: string, key: string): void;
+  /**
+   * This instance now holds a connection for the stream. Reference counted.
+   *
+   * @returns Resolves once events published from now on will be delivered
+   * here. Never rejects; a failed subscribe is logged and resolves, so callers
+   * that re-check state afterwards still make progress.
+   */
+  abstract track(namespace: string, key: string): Promise<void>;
 
   /** Releases one {@link track}. */
   abstract untrack(namespace: string, key: string): void;
@@ -65,8 +71,8 @@ export class InProcessStreamBus extends StreamBus {
   }
 
   /** One process sees every stream, so there is nothing to subscribe to. */
-  track(): void {
-    return;
+  track(): Promise<void> {
+    return Promise.resolve();
   }
 
   /** See {@link track}. */
@@ -113,13 +119,19 @@ interface Envelope {
  *
  * Pub/sub is fire-and-forget: a client gets only events published after its
  * instance has subscribed to the stream, which is one Redis round trip after
- * the connection opens. Ioredis re-subscribes tracked channels on reconnect.
+ * the connection opens. {@link track} resolves at that point, so a stream
+ * whose job may already be running can re-check the job afterwards (the
+ * extraction stream does). Ioredis re-subscribes tracked channels on
+ * reconnect.
  */
 @Injectable()
 export class RedisStreamBus extends StreamBus implements OnModuleDestroy {
   private readonly handlers = new Map<string, Set<StreamBusHandler>>();
 
   private readonly logger = new Logger(RedisStreamBus.name);
+
+  /** The subscribe in flight (or done) for each tracked channel. */
+  private readonly subscribed = new Map<string, Promise<void>>();
 
   /** Local connection count per subscribed channel. */
   private readonly tracked = new Map<string, number>();
@@ -160,20 +172,26 @@ export class RedisStreamBus extends StreamBus implements OnModuleDestroy {
       );
   }
 
-  track(namespace: string, key: string): void {
+  track(namespace: string, key: string): Promise<void> {
     const channel = streamChannel(namespace, key);
     const count = this.tracked.get(channel) ?? 0;
     this.tracked.set(channel, count + 1);
 
-    if (count === 0) {
-      void this.redis.subscriber
-        .subscribe(channel)
-        .catch((error: unknown) =>
-          this.logger.error(
-            `Stream bus could not subscribe to ${channel}; this client will miss live updates: ${String(error)}`,
-          ),
-        );
+    const pending = this.subscribed.get(channel);
+    if (count > 0 && pending) {
+      return pending;
     }
+
+    const ready = this.redis.subscriber.subscribe(channel).then(
+      () => undefined,
+      (error: unknown) => {
+        this.logger.error(
+          `Stream bus could not subscribe to ${channel}; this client will miss live updates: ${String(error)}`,
+        );
+      },
+    );
+    this.subscribed.set(channel, ready);
+    return ready;
   }
 
   untrack(namespace: string, key: string): void {
@@ -189,6 +207,7 @@ export class RedisStreamBus extends StreamBus implements OnModuleDestroy {
     }
 
     this.tracked.delete(channel);
+    this.subscribed.delete(channel);
     void this.redis.subscriber
       .unsubscribe(channel)
       .catch((error: unknown) =>
