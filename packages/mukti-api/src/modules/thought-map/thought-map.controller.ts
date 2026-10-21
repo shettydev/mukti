@@ -564,14 +564,24 @@ export class ThoughtMapController {
     });
 
     const state = await job.getState();
-    if (state === 'failed') {
-      return [error(job.failedReason || 'Extraction job failed')];
-    }
-    if (state !== 'completed') {
+    if (state !== 'completed' && state !== 'failed') {
       return null;
     }
 
-    const result = job.returnvalue;
+    // `getState()` asks Redis live, but `returnvalue` and `failedReason` are
+    // whatever was loaded with `job`. If the job finished after that load,
+    // the snapshot is stale (no result yet), so reload it once.
+    const settled =
+      (state === 'completed' && !job.returnvalue) ||
+      (state === 'failed' && !job.failedReason)
+        ? ((await this.mapExtractionService.getExtractionJob(jobId)) ?? job)
+        : job;
+
+    if (state === 'failed') {
+      return [error(settled.failedReason || 'Extraction job failed')];
+    }
+
+    const result = settled.returnvalue;
     if (!result?.mapId) {
       return [error('Extraction job result missing mapId')];
     }

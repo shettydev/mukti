@@ -799,6 +799,32 @@ describe('ThoughtMapController', () => {
 
       expect(s.types).toEqual(['preview', 'complete']);
     });
+
+    it('reloads a job that finished after it was loaded instead of reporting a missing result', async () => {
+      // BullMQ: getState() reads Redis live, but returnvalue is the snapshot
+      // taken by getJob(). A job that completes in between reports
+      // `completed` with no returnvalue yet.
+      mockMapExtractionService.getExtractionJob
+        .mockResolvedValueOnce(job('completed'))
+        .mockResolvedValueOnce(job('completed', { returnvalue: result }));
+
+      const stream = await controller.streamExtraction(
+        'job-1',
+        mockUser as any,
+      );
+      const types: string[] = [];
+      await new Promise<void>((resolve) =>
+        stream.subscribe({
+          complete: () => resolve(),
+          next: (event) => types.push((event.data as any).type),
+        }),
+      );
+
+      expect(types).toEqual(['preview', 'complete']);
+      expect(mockMapExtractionService.getExtractionJob).toHaveBeenCalledTimes(
+        2,
+      );
+    });
   });
 
   it('replays completed extraction jobs for late subscribers', async () => {
