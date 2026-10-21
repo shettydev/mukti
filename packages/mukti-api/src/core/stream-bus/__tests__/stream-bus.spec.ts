@@ -1,40 +1,71 @@
+jest.mock('@openrouter/sdk', () => ({
+  OpenRouter: jest.fn(() => ({})),
+}));
+
 import { StreamService } from '../../../modules/conversations/services/stream.service';
 import { DialogueStreamService } from '../../../modules/dialogue/services/dialogue-stream.service';
+import { MapExtractionService } from '../../../modules/thought-map/services/map-extraction.service';
 import {
   InProcessStreamBus,
   RedisStreamBus,
-  STREAM_BUS_CHANNEL,
   type StreamBusRedisClients,
+  streamChannel,
 } from '../stream-bus';
 
 /**
- * A stand-in for one Redis server: every subscriber registered on it gets
- * every message any publisher sends, like real pub/sub across processes.
+ * A stand-in for one Redis server with real channel semantics: a published
+ * message reaches only subscribers that subscribed to that channel.
  */
 class FakeRedisServer {
-  private readonly listeners: ((channel: string, raw: string) => void)[] = [];
+  /** Every publish, in order, for asserting where traffic went. */
+  readonly published: string[] = [];
+
+  private readonly subscribers: {
+    channels: Set<string>;
+    listener?: (channel: string, raw: string) => void;
+  }[] = [];
 
   clients(): StreamBusRedisClients {
+    const sub: (typeof this.subscribers)[number] = { channels: new Set() };
+    this.subscribers.push(sub);
+
     return {
       publisher: {
         publish: jest.fn((channel: string, raw: string) => {
-          for (const listener of this.listeners) {
-            listener(channel, raw);
+          this.published.push(channel);
+          let receivers = 0;
+          for (const s of this.subscribers) {
+            if (s.channels.has(channel) && s.listener) {
+              s.listener(channel, raw);
+              receivers++;
+            }
           }
-          return Promise.resolve(this.listeners.length);
+          return Promise.resolve(receivers);
         }) as never,
         quit: jest.fn(() => Promise.resolve('OK')) as never,
       },
       subscriber: {
         on: jest.fn((event: string, listener: never) => {
           if (event === 'message') {
-            this.listeners.push(listener);
+            sub.listener = listener;
           }
         }) as never,
         quit: jest.fn(() => Promise.resolve('OK')) as never,
-        subscribe: jest.fn(() => Promise.resolve(1)) as never,
+        subscribe: jest.fn((channel: string) => {
+          sub.channels.add(channel);
+          return Promise.resolve(sub.channels.size);
+        }) as never,
+        unsubscribe: jest.fn((channel: string) => {
+          sub.channels.delete(channel);
+          return Promise.resolve(sub.channels.size);
+        }) as never,
       },
     };
+  }
+
+  /** How many instances are subscribed to a channel right now. */
+  subscriberCount(channel: string): number {
+    return this.subscribers.filter((s) => s.channels.has(channel)).length;
   }
 }
 
@@ -163,16 +194,140 @@ describe('StreamBus', () => {
       expect(handler).not.toHaveBeenCalled();
     });
 
-    it('subscribes on the shared channel and closes both connections on shutdown', async () => {
+    it('subscribes to nothing until a connection arrives, and closes both connections on shutdown', async () => {
       const clients = server.clients();
       const bus = new RedisStreamBus(clients);
 
-      expect(clients.subscriber.subscribe).toHaveBeenCalledWith(
-        STREAM_BUS_CHANNEL,
-      );
+      expect(clients.subscriber.subscribe).not.toHaveBeenCalled();
       await bus.onModuleDestroy();
       expect(clients.publisher.quit).toHaveBeenCalled();
       expect(clients.subscriber.quit).toHaveBeenCalled();
+    });
+
+    it('publishes each stream on its own channel and only holders receive it', async () => {
+      const otherInstance = new RedisStreamBus(server.clients());
+      const api = new StreamService(apiInstance);
+      const other = new StreamService(otherInstance);
+      const worker = new StreamService(workerInstance);
+      const apiEmit = jest.fn();
+      const otherEmit = jest.fn();
+      api.addConnection('conv-1', 'user-1', 'conn-1', apiEmit);
+      other.addConnection('conv-2', 'user-2', 'conn-2', otherEmit);
+      const otherDispatch = jest.spyOn(
+        otherInstance as unknown as { dispatch: (raw: string) => void },
+        'dispatch',
+      );
+
+      worker.emitToConversation('conv-1', {
+        data: { jobId: 'j', status: 'started' },
+        type: 'processing',
+      });
+      await flush();
+
+      expect(server.published).toEqual([
+        streamChannel('conversation', 'conv-1'),
+      ]);
+      expect(apiEmit).toHaveBeenCalledTimes(1);
+      // The instance holding only conv-2 never even sees conv-1's traffic.
+      expect(otherDispatch).not.toHaveBeenCalled();
+      expect(otherEmit).not.toHaveBeenCalled();
+    });
+
+    it('keeps one subscription per stream across connections and drops it with the last one', async () => {
+      const api = new StreamService(apiInstance);
+      const channel = streamChannel('conversation', 'conv-1');
+      api.addConnection('conv-1', 'user-1', 'tab-1', jest.fn());
+      api.addConnection('conv-1', 'user-1', 'tab-2', jest.fn());
+      await flush();
+
+      expect(server.subscriberCount(channel)).toBe(1);
+
+      api.removeConnection('conv-1', 'tab-1');
+      await flush();
+      expect(server.subscriberCount(channel)).toBe(1);
+
+      api.removeConnection('conv-1', 'tab-2');
+      await flush();
+      expect(server.subscriberCount(channel)).toBe(0);
+
+      // Removing again, or cleaning up an already-empty stream, is harmless.
+      api.removeConnection('conv-1', 'tab-2');
+      api.cleanupConversation('conv-1');
+      api.addConnection('conv-1', 'user-1', 'tab-3', jest.fn());
+      await flush();
+      expect(server.subscriberCount(channel)).toBe(1);
+    });
+
+    it('delivers extraction events from the worker to the instance holding the job stream', async () => {
+      const deps = Array.from({ length: 8 }, () => ({}) as never);
+      const api = new MapExtractionService(
+        ...(deps as [never, never, never, never, never, never, never, never]),
+        apiInstance,
+      );
+      const worker = new MapExtractionService(
+        ...(deps as [never, never, never, never, never, never, never, never]),
+        workerInstance,
+      );
+      const emitFn = jest.fn();
+      const close = api.addConnection('job-1', 'conn-1', emitFn);
+      await flush();
+
+      (
+        worker as unknown as {
+          emit: (jobId: string, event: { type: string }) => void;
+        }
+      ).emit('job-1', { type: 'complete' });
+      await flush();
+
+      expect(emitFn).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'complete' }),
+      );
+      close();
+      await flush();
+      expect(server.subscriberCount(streamChannel('extraction', 'job-1'))).toBe(
+        0,
+      );
+    });
+
+    it('releases the subscription when a stream is cleaned up wholesale', async () => {
+      const dialogue = new DialogueStreamService(apiInstance);
+      const channel = streamChannel('dialogue', 'session-1:node-1');
+      dialogue.addConnection('session-1', 'node-1', 'user-1', 'a', jest.fn());
+      dialogue.addConnection('session-1', 'node-1', 'user-1', 'b', jest.fn());
+      await flush();
+      expect(server.subscriberCount(channel)).toBe(1);
+
+      dialogue.cleanupNodeDialogue('session-1', 'node-1');
+      await flush();
+      expect(server.subscriberCount(channel)).toBe(0);
+    });
+
+    it('keeps a job’s events in order on the receiving instance', async () => {
+      const api = new StreamService(apiInstance);
+      const worker = new StreamService(workerInstance);
+      const emitFn = jest.fn();
+      api.addConnection('conv-1', 'user-1', 'conn-1', emitFn);
+      await flush();
+
+      worker.emitToConversation('conv-1', {
+        data: { jobId: 'j', status: 'started' },
+        type: 'processing',
+      });
+      worker.emitToConversation('conv-1', {
+        data: { jobId: 'j', status: 'completed' },
+        type: 'progress',
+      } as never);
+      worker.emitToConversation('conv-1', {
+        data: { jobId: 'j' },
+        type: 'complete',
+      } as never);
+      await flush();
+
+      expect(emitFn.mock.calls.map(([event]) => event.type)).toEqual([
+        'processing',
+        'progress',
+        'complete',
+      ]);
     });
 
     it('logs instead of throwing when Redis rejects a publish', async () => {

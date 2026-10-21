@@ -123,6 +123,11 @@ export class StreamService {
     // Get existing connections for this conversation or create new array
     const existingConnections = this.connections.get(conversationId) ?? [];
 
+    // First local connection for this stream: start receiving its events.
+    if (existingConnections.length === 0) {
+      this.bus.track(BUS_NAMESPACE, conversationId);
+    }
+
     // Add new connection to the array
     existingConnections.push(connection);
 
@@ -174,6 +179,7 @@ export class StreamService {
 
     // Remove all connections for this conversation
     this.connections.delete(conversationId);
+    this.bus.untrack(BUS_NAMESPACE, conversationId);
 
     this.logger.log(
       `Cleaned up ${connectionCount} connection(s) for conversation ${conversationId}`,
@@ -342,6 +348,7 @@ export class StreamService {
     // Update or remove the conversation entry
     if (updatedConnections.length === 0) {
       this.connections.delete(conversationId);
+      this.bus.untrack(BUS_NAMESPACE, conversationId);
       this.logger.log(
         `All connections removed for conversation ${conversationId}. Entry deleted from map.`,
       );

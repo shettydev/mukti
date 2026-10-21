@@ -198,6 +198,10 @@ export class MapExtractionService extends WorkerHost {
     };
 
     const existing = this.connections.get(jobId) ?? [];
+    // First local connection for this stream: start receiving its events.
+    if (existing.length === 0) {
+      this.streamBus.track(EXTRACTION_BUS_NAMESPACE, jobId);
+    }
     existing.push(connection);
     this.connections.set(jobId, existing);
 
@@ -395,11 +399,15 @@ export class MapExtractionService extends WorkerHost {
    * Removes a specific SSE connection.
    */
   removeConnection(jobId: string, connectionId: string): void {
-    const existing = this.connections.get(jobId) ?? [];
+    const existing = this.connections.get(jobId);
+    if (!existing) {
+      return;
+    }
     const filtered = existing.filter((c) => c.connectionId !== connectionId);
 
     if (filtered.length === 0) {
       this.connections.delete(jobId);
+      this.streamBus.untrack(EXTRACTION_BUS_NAMESPACE, jobId);
     } else {
       this.connections.set(jobId, filtered);
     }
@@ -479,7 +487,7 @@ export class MapExtractionService extends WorkerHost {
     }
   }
 
-  /** Publishes an extraction event to every instance via the stream bus. */
+  /** Publishes an extraction event to the instances holding the job's stream. */
   private emit(jobId: string, event: ExtractionStreamEvent): void {
     this.streamBus.publish(EXTRACTION_BUS_NAMESPACE, jobId, event);
   }

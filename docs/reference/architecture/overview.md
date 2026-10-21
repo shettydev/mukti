@@ -94,6 +94,7 @@ sequenceDiagram
     participant Bus as StreamBus (Redis pub/sub)
 
     B->>API: GET .../stream (SSE, stays open)
+    API->>Bus: subscribe mukti:stream:conversation:<id>
     B->>API: POST .../messages
     API->>API: AiRequestGate.authorize
     API->>Q: enqueue job
@@ -107,7 +108,12 @@ sequenceDiagram
 
 Jobs may run on a different process than the one holding the browser's stream, so
 stream services publish through the global `StreamBus` (Redis pub/sub when hosted,
-in-process when local). Every instance delivers to the connections it holds.
+in-process when local). Each stream has its own Redis channel
+(`mukti:stream:{namespace}:{key}`, e.g. `mukti:stream:conversation:<id>`). An instance
+subscribes to a channel when it gains its first connection for that stream and
+unsubscribes when it loses its last, so events reach only the instances that hold
+the stream. Order within a job is preserved because Redis keeps per-publisher,
+per-channel order.
 
 ## Contracts between web and API
 

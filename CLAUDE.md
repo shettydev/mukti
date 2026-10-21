@@ -104,7 +104,7 @@ SocraticTurnModule → ScaffoldingModule → KnowledgeTracingModule, DialogueQua
 - **Every AI request passes `AiRequestGate.authorize()`** before it is enqueued. It resolves key, model and plan, and consumes a free message on the server key. New AI endpoints must call it.
 - **Every Socratic turn runs `SocraticTurnEngine`** (`prepare` → model call → `inspectReply` → `settle`). Do not reimplement gap detection, quality checks or scaffold fade in a processor.
 - **Only `KnowledgeStateStore` writes `knowledge_states`** (compare-and-set on `attempts`). Scaffold writes pass the `guard` from `settle` so concurrent turns cannot overwrite each other.
-- **Emit SSE events through the stream services**, never to a connection directly; they publish via `StreamBus` so jobs on any instance reach the client.
+- **Emit SSE events through the stream services**, never to a connection directly; they publish via `StreamBus` so jobs on any instance reach the client. Each stream has its own Redis channel, and a stream service must call `bus.track` on its first local connection for a key and `bus.untrack` when the last one goes, or that instance never receives the stream.
 - **Read another domain's data through its service**, not its model (e.g. thought maps use `ConversationService`, `CanvasService`).
 - **SSE event shapes live in `@muktiai/contracts`** (`packages/mukti-contracts`, private, type-only). Import with `import type`. The web type-checks against it; change both sides together.
 
