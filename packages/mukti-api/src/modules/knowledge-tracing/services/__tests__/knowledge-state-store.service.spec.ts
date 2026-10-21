@@ -138,7 +138,8 @@ describe('KnowledgeStateStore', () => {
   });
 
   it('gives up after repeated conflicts instead of looping forever', async () => {
-    for (let i = 0; i < 5; i++) {
+    const cap = 20;
+    for (let i = 0; i < cap; i++) {
       reads(stored(i, 0.4));
       writes(0);
     }
@@ -146,6 +147,23 @@ describe('KnowledgeStateStore', () => {
     await expect(
       store.applyObservation(userId, 'recursion', true),
     ).rejects.toThrow('kept changing');
-    expect(model.updateOne).toHaveBeenCalledTimes(5);
+    expect(model.updateOne).toHaveBeenCalledTimes(cap);
+  });
+
+  it('does not count creating the record against the retry budget', async () => {
+    // A missing record, then 19 conflicts, then success: still within the cap.
+    reads(null);
+    for (let i = 0; i < 20; i++) {
+      reads(stored(i, 0.4));
+    }
+    for (let i = 0; i < 19; i++) {
+      writes(0);
+    }
+    writes(1);
+
+    await expect(
+      store.applyObservation(userId, 'recursion', true),
+    ).resolves.toBeDefined();
+    expect(model.create).toHaveBeenCalledTimes(1);
   });
 });

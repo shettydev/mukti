@@ -68,6 +68,11 @@ jobs:
         # Run tests for affected projects
         run: bun nx affected --target=test --parallel=3
 
+      - name: API End-to-End
+        # Boots the real API (startApi) in local mode on an embedded MongoDB and
+        # drives it over HTTP; catches wiring a mocked unit test cannot.
+        run: bun nx affected --target=test:e2e --parallel=1
+
       - name: Build
         # Run build for affected projects
         run: bun nx affected --target=build --parallel=3

@@ -51,7 +51,7 @@ flowchart TD
 ### Consistency Strategy
 
 - **No in-process cache.** Reads go to MongoDB, so every API instance and the reply pipeline see the same value. An earlier per-process cache served stale P(L) across instances and was removed.
-- **One writer.** `KnowledgeStateStore.applyObservation` reads the record, applies BKT, and writes only if `attempts` is unchanged. If another turn wrote first it re-reads and re-applies, up to 5 times.
+- **One writer.** `KnowledgeStateStore.applyObservation` reads the record, applies BKT, and writes only if `attempts` is unchanged. If another turn wrote first it waits a few random milliseconds, re-reads and re-applies, up to 20 times.
 - **Creation race.** When two first observations arrive together, the loser hits the unique index and then updates the winner's record.
 - **Parameters are fixed at creation.** BKT parameters sent to `POST /knowledge-tracing/update` only apply when the record is first created. An existing record keeps its stored parameters.
 - **Failure isolation.** In the Socratic turn a failed knowledge write is logged, not thrown: the reply is already saved, and a job retry would store and bill it twice.
