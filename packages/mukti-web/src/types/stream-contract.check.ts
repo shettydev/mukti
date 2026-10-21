@@ -3,16 +3,21 @@
  * wire contract. This file has no runtime code; it only fails `tsc` (the web
  * `type-check` target) if the two sides drift apart.
  *
- * The contract lives in the API package
- * (`mukti-api/src/contracts/stream-events.ts`) and is type-only, so importing
- * it here pulls nothing into the bundle.
+ * The contract lives in the `@muktiai/contracts` workspace package and is
+ * type-only, so importing it here pulls nothing into the bundle.
  */
 import type {
+  BranchSuggestionPayload,
   ConversationStreamEventContract,
+  ExtractionStreamEventContract,
   NodeDialogueStreamEventContract,
-} from '../../../mukti-api/src/contracts/stream-events';
+  SuggestionStreamEventContract,
+} from '@muktiai/contracts';
+
+import type { BranchSuggestionEvent } from '../lib/api/thought-map';
 import type { StreamEvent } from '../lib/hooks/use-conversation-stream';
 import type { DialogueStreamEvent } from './dialogue.types';
+import type { ExtractionStreamEvent, ThoughtMapWithNodes } from './thought-map';
 
 export type ConversationStreamHasNoExtraTypes = Assert<
   Same<StreamEvent['type'], ConversationStreamEventContract['type']>
@@ -24,12 +29,29 @@ export type ConversationStreamMatchesApi = Assert<
   AllTrue<SameByType<StreamEvent, ConversationStreamEventContract>>
 >;
 
+// The web reshapes the extraction preview (`_id` → `id`), so the contract is
+// instantiated with the client's own preview type; every other event must match.
+export type ExtractionStreamMatchesApi = Assert<
+  Same<ExtractionStreamEvent, ExtractionStreamEventContract<ThoughtMapWithNodes>>
+>;
+
 export type NodeDialogueStreamHasNoExtraTypes = Assert<
   Same<DialogueStreamEvent['type'], NodeDialogueStreamEventContract['type']>
 >;
 
 export type NodeDialogueStreamMatchesApi = Assert<
   AllTrue<SameByType<DialogueStreamEvent, NodeDialogueStreamEventContract>>
+>;
+
+// The web derives its suggestion types from the contract, so the check above
+// cannot see the API widening or narrowing `suggestedType`. Pin it to the node
+// types the client knows how to render and create.
+export type SuggestedTypeIsRenderable = Assert<
+  Same<BranchSuggestionPayload['suggestedType'], 'question' | 'thought'>
+>;
+
+export type SuggestionStreamMatchesApi = Assert<
+  Same<BranchSuggestionEvent, SuggestionStreamEventContract>
 >;
 
 type AllTrue<R> = R[keyof R] extends true ? true : false;

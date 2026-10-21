@@ -111,8 +111,10 @@ in-process when local). Every instance delivers to the connections it holds.
 
 ## Contracts between web and API
 
-The SSE event shapes for chat and node chat are defined once in
-`packages/mukti-api/src/contracts/stream-events.ts`. The API's stream services use it
-directly, and the web compiles a two-way equality check against it
+Every SSE stream's event shapes (chat, canvas and map node chat, branch suggestions,
+conversation-to-map extraction) are defined once in the private, type-only workspace
+package `@muktiai/contracts` (`packages/mukti-contracts`). The API's stream services
+alias those types, and the web compiles a two-way equality check against them
 (`packages/mukti-web/src/types/stream-contract.check.ts`), so drift fails `tsc` and
-`next build`.
+`next build`. The package is never published: imports are `import type`, so they
+vanish from the API's runtime JavaScript.

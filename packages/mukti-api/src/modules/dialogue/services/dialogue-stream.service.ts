@@ -1,6 +1,6 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import type { NodeDialogueStreamEventContract } from '@muktiai/contracts';
 
-import type { NodeDialogueStreamEventContract } from '../../../contracts/stream-events';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 
 import {
   InProcessStreamBus,

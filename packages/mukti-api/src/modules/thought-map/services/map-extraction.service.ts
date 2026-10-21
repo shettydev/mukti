@@ -1,3 +1,5 @@
+import type { ExtractionStreamEventContract } from '@muktiai/contracts';
+
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -42,27 +44,10 @@ import { ConversationService } from '../../conversations/services/conversation.s
  *
  * SSE sequence: processing → preview → complete | error
  */
-export type ExtractionStreamEvent =
-  | {
-      /** The full draft ThoughtMap + nodes ready for client review */
-      data: {
-        map: ThoughtMap;
-        nodes: ThoughtNode[];
-      };
-      type: 'preview';
-    }
-  | {
-      data: { code: string; message: string; retriable: boolean };
-      type: 'error';
-    }
-  | {
-      data: { jobId: string; mapId: string; nodeCount: number };
-      type: 'complete';
-    }
-  | {
-      data: { jobId: string; status: 'started' };
-      type: 'processing';
-    };
+export type ExtractionStreamEvent = ExtractionStreamEventContract<{
+  map: ThoughtMap;
+  nodes: ThoughtNode[];
+}>;
 
 /**
  * Job data for a map extraction request.

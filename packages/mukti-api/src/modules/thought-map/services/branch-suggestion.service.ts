@@ -1,3 +1,8 @@
+import type {
+  BranchSuggestionPayload,
+  SuggestionStreamEventContract,
+} from '@muktiai/contracts';
+
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -39,16 +44,9 @@ const SUGGESTION_COUNT = 3;
 // ============================================================================
 
 /**
- * A single AI-generated branch suggestion.
+ * A single AI-generated branch suggestion. Wire shape from the shared contract.
  */
-export interface BranchSuggestion {
-  /** Question text — always phrased as a question */
-  label: string;
-  /** nodeId of the parent this should branch from */
-  parentId: string;
-  /** Suggested type for the new node */
-  suggestedType: 'question' | 'thought';
-}
+export type BranchSuggestion = BranchSuggestionPayload;
 
 /**
  * Job data for a branch suggestion request.
@@ -85,25 +83,9 @@ export interface BranchSuggestionJobResult {
 // ============================================================================
 
 /**
- * Union of all suggestion SSE event payloads.
+ * Union of all suggestion SSE event payloads (shared wire contract).
  */
-export type SuggestionStreamEvent =
-  | {
-      data: BranchSuggestion;
-      type: 'suggestion';
-    }
-  | {
-      data: { code: string; message: string; retriable: boolean };
-      type: 'error';
-    }
-  | {
-      data: { jobId: string; status: 'started' };
-      type: 'processing';
-    }
-  | {
-      data: { jobId: string; suggestionCount: number };
-      type: 'complete';
-    };
+export type SuggestionStreamEvent = SuggestionStreamEventContract;
 
 /**
  * An active SSE listener registered for a suggestion job.

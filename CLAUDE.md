@@ -25,6 +25,7 @@ Key features:
 ├── packages/mukti-api/        # @mukti/api — NestJS 11 backend (npm: @muktiai/api)
 ├── packages/mukti-web/        # @mukti/web — Next.js 15 frontend (npm: @muktiai/web)
 ├── packages/mukti-cli/        # `npx muktiai` local launcher (npm: muktiai)
+├── packages/mukti-contracts/  # @muktiai/contracts — private, type-only web/API wire contracts
 ├── packages/mukti-mcp/        # Standalone MCP server (Bun workspace, not an Nx project)
 ├── docs/reference/            # Architecture overview and technical docs
 ├── docs/rfcs/                 # Design documents (RFC-0001 to RFC-0007)
@@ -105,7 +106,7 @@ SocraticTurnModule → ScaffoldingModule → KnowledgeTracingModule, DialogueQua
 - **Only `KnowledgeStateStore` writes `knowledge_states`** (compare-and-set on `attempts`). Scaffold writes pass the `guard` from `settle` so concurrent turns cannot overwrite each other.
 - **Emit SSE events through the stream services**, never to a connection directly; they publish via `StreamBus` so jobs on any instance reach the client.
 - **Read another domain's data through its service**, not its model (e.g. thought maps use `ConversationService`, `CanvasService`).
-- **SSE event shapes live in `src/contracts/stream-events.ts`.** The web type-checks against it; change both sides together.
+- **SSE event shapes live in `@muktiai/contracts`** (`packages/mukti-contracts`, private, type-only). Import with `import type`. The web type-checks against it; change both sides together.
 
 ### Key Patterns
 

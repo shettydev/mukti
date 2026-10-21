@@ -139,6 +139,10 @@
         "typescript-eslint": "^8.20.0",
       },
     },
+    "packages/mukti-contracts": {
+      "name": "@muktiai/contracts",
+      "version": "0.0.0",
+    },
     "packages/mukti-mcp": {
       "name": "@mukti/mcp",
       "version": "1.0.0",
@@ -889,6 +893,8 @@
     "@mukti/mcp": ["@mukti/mcp@workspace:packages/mukti-mcp"],
 
     "@muktiai/api": ["@muktiai/api@workspace:packages/mukti-api"],
+
+    "@muktiai/contracts": ["@muktiai/contracts@workspace:packages/mukti-contracts"],
 
     "@muktiai/web": ["@muktiai/web@workspace:packages/mukti-web"],
 

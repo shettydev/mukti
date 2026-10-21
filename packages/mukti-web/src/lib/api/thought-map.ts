@@ -11,6 +11,8 @@
  * - Response transformation from backend format to frontend types (_id → id)
  */
 
+import type { BranchSuggestionPayload, SuggestionStreamEventContract } from '@muktiai/contracts';
+
 import { config } from '@/lib/config';
 import {
   type ConvertCanvasRequest,
@@ -35,16 +37,10 @@ import { apiClient } from './client';
 // ============================================================================
 
 /**
- * A single AI-generated branch suggestion delivered via SSE.
+ * A branch-suggestion SSE event. The wire shape is the API's shared contract,
+ * so `event.type` narrows `event.data` without casts.
  */
-export interface BranchSuggestionEvent {
-  data:
-    | { code: string; message: string; retriable: boolean }
-    | { jobId: string; status: string }
-    | { jobId: string; suggestionCount: number }
-    | { label: string; parentId: string; suggestedType: 'question' | 'thought' };
-  type: 'complete' | 'error' | 'processing' | 'suggestion';
-}
+export type BranchSuggestionEvent = SuggestionStreamEventContract;
 
 /**
  * Request body for POST /thought-maps/:id/suggest
@@ -67,7 +63,7 @@ export interface SuggestionJobStatusResponse {
     count: number;
     mapId: string;
     parentNodeId: string;
-    suggestions: { label: string; parentId: string; suggestedType: 'question' | 'thought' }[];
+    suggestions: BranchSuggestionPayload[];
   };
   state: string;
 }

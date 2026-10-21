@@ -6,6 +6,7 @@ FROM base AS deps
 COPY package.json bun.lock ./
 COPY packages/mukti-api/package.json packages/mukti-api/
 COPY packages/mukti-web/package.json packages/mukti-web/
+COPY packages/mukti-contracts/package.json packages/mukti-contracts/
 RUN bun install
 
 # Stage 2: Build
@@ -21,6 +22,7 @@ FROM base AS prod-deps
 COPY package.json bun.lock ./
 COPY packages/mukti-api/package.json packages/mukti-api/
 COPY packages/mukti-web/package.json packages/mukti-web/
+COPY packages/mukti-contracts/package.json packages/mukti-contracts/
 RUN bun install
 
 # Stage 4: Runner

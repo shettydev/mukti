@@ -1,0 +1,14 @@
+{
+  "name": "@muktiai/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Type-only wire contracts shared by the Mukti API and web app. No runtime code.",
+  "license": "MIT",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts"
+    }
+  },
+  "sideEffects": false
+}
