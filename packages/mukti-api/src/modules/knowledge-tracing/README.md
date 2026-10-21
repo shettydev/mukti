@@ -8,7 +8,7 @@ This module tracks user mastery of concepts using the 4-parameter BKT probabilis
 
 - **Real-time knowledge state updates** based on user responses
 - **Intelligent recommendations** for next learning actions
-- **Performance-optimized architecture** with in-memory caching
+- **Concurrency-safe writes**: overlapping turns, job retries and multiple API instances never lose an observation
 - **Event-driven integration** for analytics and adaptive learning systems
 
 ## BKT Model
@@ -38,41 +38,23 @@ P(L_n + 1) = posterior + (1 - posterior) * P(T);
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    REST API Layer                        │
-│              (KnowledgeTracingController)                │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│              Business Logic Layer                        │
-│          (KnowledgeStateTrackerService)                  │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │  In-Memory Cache (Map<string, KnowledgeState>)   │   │
-│  └──────────────────────────────────────────────────┘   │
-│                     │                                     │
-│         ┌───────────┴───────────┐                        │
-│         ▼                       ▼                        │
-│  ┌──────────────┐        ┌──────────────┐               │
-│  │ BKT Algorithm│        │ Event Emitter│               │
-│  │   Service    │        │   (Updates)  │               │
-│  └──────────────┘        └──────────────┘               │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│                Persistence Layer                         │
-│        MongoDB (KnowledgeState Collection)               │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    API["REST API<br/>KnowledgeTracingController"] --> Tracker["KnowledgeStateTrackerService<br/>reads + knowledge-state.updated events"]
+    Turn["Socratic turn<br/>(every chat, canvas and map reply)"] --> Gap["KnowledgeGapDetectorService"]
+    Tracker -->|writes| Store["KnowledgeStateStore<br/>the only writer"]
+    Gap -->|writes| Store
+    Store -->|"read, BKT update,<br/>compare-and-set on attempts"| DB[("MongoDB knowledge_states<br/>unique { conceptId, userId }")]
+    Tracker -->|reads| DB
 ```
 
-### Performance Strategy
+### Consistency Strategy
 
-- **Hot Path**: In-memory Map cache for active knowledge states
-- **Cold Path**: MongoDB persistence for long-term storage
-- **Cache Key**: `${userId}:${conceptId}`
-- **Cache Invalidation**: TTL-based (1 hour for inactive states)
+- **No in-process cache.** Reads go to MongoDB, so every API instance and the reply pipeline see the same value. An earlier per-process cache served stale P(L) across instances and was removed.
+- **One writer.** `KnowledgeStateStore.applyObservation` reads the record, applies BKT, and writes only if `attempts` is unchanged. If another turn wrote first it re-reads and re-applies, up to 5 times.
+- **Creation race.** When two first observations arrive together, the loser hits the unique index and then updates the winner's record.
+- **Parameters are fixed at creation.** BKT parameters sent to `POST /knowledge-tracing/update` only apply when the record is first created. An existing record keeps its stored parameters.
+- **Failure isolation.** In the Socratic turn a failed knowledge write is logged, not thrown: the reply is already saved, and a job retry would store and bill it twice.
 
 ## API Reference
 
@@ -407,7 +389,7 @@ When contributing to this module:
 1. **Preserve mathematical correctness** - BKT is a proven algorithm
 2. **Add tests for new features** - maintain >90% coverage
 3. **Document parameter changes** - educational implications matter
-4. **Benchmark performance** - cache is critical for scale
+4. **Keep writes in `KnowledgeStateStore`** - never write `knowledge_states` directly
 
 ## License
 

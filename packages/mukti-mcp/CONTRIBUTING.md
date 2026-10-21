@@ -29,7 +29,7 @@ Mukti is a Model Context Protocol (MCP) server that implements Socratic question
 
    ```bash
    git clone https://github.com/shettydev/mukti.git
-   cd mukti/mukti-mcp-server
+   cd mukti/packages/mukti-mcp
    ```
 
 2. **Install Dependencies**
@@ -58,7 +58,7 @@ Mukti is a Model Context Protocol (MCP) server that implements Socratic question
 ### Project Structure
 
 ```
-mukti-mcp-server/
+packages/mukti-mcp/
 ├── src/
 │   ├── index.ts              # Main MCP server implementation
 │   ├── types.ts              # Type definitions

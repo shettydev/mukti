@@ -25,7 +25,7 @@
     <a href="DEVELOPMENT.md">Development</a> |
     <a href="docs/reference/architecture/overview.md">Architecture</a> |
     <a href="packages/mukti-api/README.md">API</a> |
-    <a href="mukti-mcp-server/README.md">MCP Server</a>
+    <a href="packages/mukti-mcp/README.md">MCP Server</a>
   </p>
 </div>
 
@@ -222,7 +222,7 @@ Mukti uses dialogue to push thinking forward without taking control of your work
 ## MCP Server
 
 Mukti's Socratic reasoning is also available as MCP tools (`socratic_inquiry`, `explore_paths`,
-`explain_approach`) for any MCP-compatible client. See [mukti-mcp-server](mukti-mcp-server/README.md).
+`explain_approach`) for any MCP-compatible client. See [packages/mukti-mcp](packages/mukti-mcp/README.md).
 
 ## Repo Structure
 
@@ -231,9 +231,11 @@ Mukti's Socratic reasoning is also available as MCP tools (`socratic_inquiry`, `
 ├── packages/mukti-cli        # `npx muktiai` launcher
 ├── packages/mukti-web        # Next.js frontend
 ├── packages/mukti-api        # NestJS backend
-├── mukti-mcp-server          # MCP server (standalone)
+├── packages/mukti-mcp        # MCP server (standalone)
 └── docs/                     # Local mode, RFCs, and technical docs
 ```
+
+How the pieces fit together: [docs/reference/architecture/overview.md](docs/reference/architecture/overview.md).
 
 ## Contributing
 

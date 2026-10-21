@@ -74,7 +74,7 @@ Mukti's MCP server already has partial detection (`stuckIndicators` in `response
 
 | Reference                                           | Relevance                                                                  |
 | --------------------------------------------------- | -------------------------------------------------------------------------- |
-| `mukti-mcp-server/src/response-strategies.ts`       | Existing `stuckIndicators` detection (disconnected from API)               |
+| `packages/mukti-mcp/src/response-strategies.ts`     | Existing `stuckIndicators` detection (disconnected from API)               |
 | `docs/reference/planning/unified-thinking-model.md` | Documents "Anti-Resolution Signals" and frustration patterns               |
 | GitHub Issue #3                                     | "Implement dynamic resource suggestion engine" — related but unimplemented |
 | Carnegie Learning BKT                               | Production-validated probabilistic knowledge tracking                      |
@@ -420,7 +420,6 @@ Implemented base route: `knowledge-tracing`
 - `DELETE /knowledge-tracing/state/:userId/:conceptId/reset`
 - `GET /knowledge-tracing/concept/:conceptId/struggling`
 - `GET /knowledge-tracing/concept/:conceptId/mastered`
-- `GET /knowledge-tracing/admin/cache-stats`
 - `POST /knowledge-tracing/concepts`
 - `GET /knowledge-tracing/concepts`
 - `GET /knowledge-tracing/concepts/:conceptId`
@@ -692,7 +691,7 @@ Ask users to rate their own knowledge before each topic.
 - [Carnegie Learning BKT Paper](https://www.cs.cmu.edu/~ggordon/yudelson-koedinger-gordon-individualized-bkt.pdf)
 - [ALEKS Knowledge Space Theory](https://www.aleks.com/about_aleks/knowledge_space_theory)
 - [RPKT: Recursive Prerequisite Knowledge Tracing (2025)](https://arxiv.org/abs/2501.xxxxx)
-- [Mukti MCP Server Response Strategies](../../../../mukti-mcp-server/src/response-strategies.ts)
+- [Mukti MCP Server Response Strategies](../../../../packages/mukti-mcp/src/response-strategies.ts)
 - [Unified Thinking Model](../../../reference/planning/unified-thinking-model.md)
 - [GitHub Issue #3: Dynamic Resource Suggestion](https://github.com/mukti/mukti/issues/3)
 

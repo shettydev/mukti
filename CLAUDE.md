@@ -15,19 +15,23 @@ Key features:
 - **Thinking Canvas** — visual problem-solving with Seed (problem), Soil (constraints), and Root (assumptions) nodes
 - **Socratic Conversations** — text-based dialogue using 6 techniques: elenchus, dialectic, maieutics, definitional, analogical, counterfactual
 - **Node Dialogues** — per-node Socratic chat within canvases (technique auto-selected by node type)
-- **Knowledge Gap Detection** (RFC-0001, in progress) — Bayesian Knowledge Tracing to detect when Socratic questioning fails
-- **Adaptive Scaffolding** (RFC-0002, in progress) — 5-level scaffold system that never gives direct answers
+- **Knowledge Gap Detection** (RFC-0001) — Bayesian Knowledge Tracing to detect when Socratic questioning fails; runs on every chat, canvas and map turn
+- **Adaptive Scaffolding** (RFC-0002) — 5-level scaffold system that never gives direct answers; runs on every turn
+- **Thought Maps** (RFC-0003) — free-form maps with per-node chat, suggested branches, and extraction from a conversation
 
 ## Repo Structure
 
 ```
-├── packages/mukti-api/        # @mukti/api — NestJS 11 backend
-├── packages/mukti-web/        # @mukti/web — Next.js 15 frontend
-├── docs/reference/            # Technical documentation assets
-├── mukti-mcp-server/          # Standalone MCP server (not in Nx workspace)
-├── docs/rfcs/                 # Design documents (RFC-0001, RFC-0002)
-└── scripts/                   # AI commit, deploy scripts
+├── packages/mukti-api/        # @mukti/api — NestJS 11 backend (npm: @muktiai/api)
+├── packages/mukti-web/        # @mukti/web — Next.js 15 frontend (npm: @muktiai/web)
+├── packages/mukti-cli/        # `npx muktiai` local launcher (npm: muktiai)
+├── packages/mukti-mcp/        # Standalone MCP server (Bun workspace, not an Nx project)
+├── docs/reference/            # Architecture overview and technical docs
+├── docs/rfcs/                 # Design documents (RFC-0001 to RFC-0007)
+└── scripts/                   # AI commit, deploy, release, local start scripts
 ```
+
+Architecture overview (current): `docs/reference/architecture/overview.md`.
 
 ## Package Manager & Runtime
 
@@ -54,7 +58,7 @@ bun run affected:lint / affected:test / affected:build
 
 ## Infrastructure
 
-Docker Compose provides: **MongoDB 7** (port 27017, db: `mukti`), **Redis 7** (port 6379). API runs on port 3000, Web on port 3001.
+Docker Compose provides: **MongoDB 7** (port 27017, db: `mukti`), **Redis 7** (port 6379, BullMQ queues and the cross-instance SSE stream bus). API runs on port 3000, Web on port 3001. Local mode (`MUKTI_LOCAL=1`) needs neither: embedded MongoDB, inline jobs, in-process streams.
 
 Key env vars: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `OPENROUTER_API_KEY`, `SESSION_SECRET`, `CORS_ORIGINS`, `COOKIE_DOMAIN` (defaults to `mukti.chat` in production).
 
@@ -78,21 +82,35 @@ Key env vars: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `OPENROUTER_API_KEY`, `SESSION
 
 ```
 AppModule
-├── DatabaseModule       — MongoDB connection, registers ALL_SCHEMAS from src/schemas/index.ts
-├── AuthModule           — JWT + Google OAuth, email verification, refresh token rotation
-├── AiModule             — OpenRouter/Gemini clients, BYOK key encryption, model resolution
-├── CanvasModule         — Thinking Canvas CRUD (Seed/Soil/Root/Insight nodes, relationships)
-├── ConversationsModule  — Text-based Socratic sessions, BullMQ queue, SSE streaming
-├── DialogueModule       — Per-node canvas dialogue, BullMQ queue, SSE streaming
-├── KnowledgeTracingModule — Bayesian Knowledge Tracing (RFC-0001, partially implemented)
-├── HealthModule         — Health check endpoint
-└── WaitlistModule       — Pre-launch waitlist
+├── CoreModule             — MongoDB (ALL_SCHEMAS), BullMQ (QueueModule), StreamBus (Redis pub/sub or in-process)
+├── AuthModule             — JWT + Google OAuth, email verification, refresh tokens
+├── AiModule               — provider clients, BYOK key encryption, model policy, AiRequestGate, free quota
+├── CanvasModule           — Thinking Canvas CRUD (Seed/Soil/Root/Insight nodes, relationships)
+├── ConversationsModule    — Text-based Socratic sessions, BullMQ queue, SSE streaming
+├── DialogueModule         — Per-node canvas dialogue, BullMQ queue, SSE streaming
+├── ThoughtMapModule       — Thought maps, node dialogue, branch suggestions, conversation extraction
+├── KnowledgeTracingModule — BKT; KnowledgeStateStore is the only writer of knowledge_states
+├── LocalModeModule        — MUKTI_LOCAL runtime wiring
+├── HealthModule           — Health check endpoint
+└── WaitlistModule         — Pre-launch waitlist
+
+Imported by the surfaces (not in AppModule directly):
+SocraticTurnModule → ScaffoldingModule → KnowledgeTracingModule, DialogueQualityModule
 ```
+
+### Architecture Rules
+
+- **Every AI request passes `AiRequestGate.authorize()`** before it is enqueued. It resolves key, model and plan, and consumes a free message on the server key. New AI endpoints must call it.
+- **Every Socratic turn runs `SocraticTurnEngine`** (`prepare` → model call → `inspectReply` → `settle`). Do not reimplement gap detection, quality checks or scaffold fade in a processor.
+- **Only `KnowledgeStateStore` writes `knowledge_states`** (compare-and-set on `attempts`). Scaffold writes pass the `guard` from `settle` so concurrent turns cannot overwrite each other.
+- **Emit SSE events through the stream services**, never to a connection directly; they publish via `StreamBus` so jobs on any instance reach the client.
+- **Read another domain's data through its service**, not its model (e.g. thought maps use `ConversationService`, `CanvasService`).
+- **SSE event shapes live in `src/contracts/stream-events.ts`.** The web type-checks against it; change both sides together.
 
 ### Key Patterns
 
-- **Queue-based AI**: POST message → `{ jobId, position }` (202 Accepted) → SSE stream for real-time response. Both ConversationsModule and DialogueModule use this pattern.
-- **SSE events**: `processing → message → complete | error`. Connections keyed by `sessionId:nodeId`.
+- **Queue-based AI**: POST message → `{ jobId, position }` (202 Accepted) → SSE stream for real-time response. Chat, canvas node dialogue and thought-map node dialogue all use this pattern.
+- **SSE events**: `processing → message → complete | error`. Chat streams are keyed by `conversationId`; node dialogue by `sessionId:nodeId` (thought maps use `map:{mapId}` as the session).
 - **BYOK**: Users store encrypted OpenRouter/Gemini API keys. `AiPolicyService.resolveEffectiveModel()` resolves which key/model to use. Default model: `openai/gpt-5-mini`.
 - **Canvas node IDs**: `seed` (singleton), `soil-{index}`, `root-{index}`, `insight-{index}`. Services parse these to determine node type.
 - **Dialogue technique mapping**: seed → maieutics, root → elenchus, soil → counterfactual, insight → dialectic.
@@ -116,7 +134,7 @@ All schemas registered via `ALL_SCHEMAS` array in `src/schemas/index.ts`.
 
 ### Auth Flow
 
-Email/password + Google OAuth. Access tokens in memory, refresh tokens in httpOnly cookies + DB. Refresh token rotation on use. Email verification on signup.
+Email/password + Google OAuth. Access tokens in memory, refresh tokens in httpOnly cookies + DB. Refreshing returns a new access token; the refresh token itself is not rotated yet. Email verification on signup.
 
 Guards: `JwtAuthGuard` (global), `EmailVerifiedGuard`, `LoginRateLimitGuard`, `RolesGuard`
 Decorators: `@CurrentUser()`, `@Public()`, `@Roles()`
@@ -133,26 +151,25 @@ Roles: `user`, `moderator`, `admin`
 ```
 app/
 ├── (auth)/auth/          # Login, forgot/reset password, verify email, OAuth callbacks
-├── dashboard/            # Authenticated app (catch-all [[...slug]])
-│   ├── canvas/[id]/      # Thinking Canvas session
-│   ├── conversations/[id]/ # Text conversation
-│   ├── community/        # Technique community
-│   ├── settings/         # User settings
-│   └── ...               # help, messages, reports, resources, security, sessions
-├── canvas/[id]/          # Public canvas viewer
-├── chat/[id]/            # Public chat viewer
-└── api/waitlist/         # Next.js API route
+├── chat/                 # Text conversations
+├── canvas/               # Thinking Canvas sessions
+├── maps/                 # Thought maps (list, new, [id])
+├── map/[token]/          # Public read-only shared thought map
+├── settings/             # User settings (model, API key)
+└── dashboard/[[...slug]] # Redirects old /dashboard/* links
 ```
 
 ### State Management (Zustand Stores)
 
-| Store          | Purpose                                                                      |
-| -------------- | ---------------------------------------------------------------------------- |
-| `auth-store`   | User (persisted to localStorage), accessToken (memory-only), isAuthenticated |
-| `canvas-store` | React Flow nodes/edges, **optimistic updates with rollback** on API failure  |
-| `ai-store`     | Active model, AI settings                                                    |
-| `chat-store`   | Chat/conversation state                                                      |
-| `wizard-store` | Canvas setup wizard state                                                    |
+| Store               | Purpose                                                                      |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `auth-store`        | User (persisted to localStorage), accessToken (memory-only), isAuthenticated |
+| `canvas-store`      | React Flow nodes/edges, **optimistic updates with rollback** on API failure  |
+| `ai-store`          | Active model, AI settings                                                    |
+| `chat-store`        | Chat/conversation state                                                      |
+| `wizard-store`      | Canvas setup wizard state                                                    |
+| `thought-map-store` | Thought map nodes/edges and selection                                        |
+| `onboarding-store`  | First-run local onboarding state                                             |
 
 **Auth pattern:** Access token in memory only (cleared on reload). User object in localStorage. On hydration, `useAuth` hook restores session via refresh token cookie.
 
@@ -177,7 +194,7 @@ app/
 
 ## MCP Server
 
-**Location:** `mukti-mcp-server/` (standalone, not in Nx workspace)
+**Location:** `packages/mukti-mcp/` (Bun workspace package, not an Nx project, so CI and releases skip it)
 
 Exposes Socratic reasoning as MCP tools via stdio transport:
 

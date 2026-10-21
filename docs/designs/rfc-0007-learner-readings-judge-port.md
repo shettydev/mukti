@@ -6,6 +6,24 @@ Repo: shettydev/mukti
 Status: APPROVED
 Mode: Builder
 
+> **Code has moved since this was approved (2026-10-14 to 2026-10-18).** The file:line
+> citations below describe the code as reviewed and are kept as the record. Before
+> implementing, map them onto the current layout:
+>
+> - The turn block the plan moves into `TurnSettlementService` no longer lives in three
+>   processors. All three call `SocraticTurnEngine` (`modules/socratic-turn/`):
+>   `prepare` (gap detection, quality, scaffold context), `inspectReply`, and `settle`
+>   (grading, fade, knowledge write). `TurnSettlementService` should extend or replace
+>   `settle`, and the "all three processors" milestones now touch one call site each.
+> - Every `KnowledgeState` write goes through `KnowledgeStateStore.applyObservation`
+>   (compare-and-set on `attempts`). The `KNOWLEDGE_WRITES` flag has one place to gate
+>   both writers (the turn and `POST /knowledge-tracing/update`).
+> - Thought-map node chat now runs the RFC-0004 quality checks and reply monitor like
+>   the other two surfaces, which removes one of this plan's per-surface differences.
+> - Scaffold-state writes are guarded on the state the turn read, and a failed
+>   knowledge write no longer fails the job (relevant to R2-24 and the M2 snapshot
+>   failure question).
+
 ## Problem Statement
 
 Mukti reads each learner message with regex and substring lists, and the verdicts are
@@ -868,7 +886,7 @@ B) Leave it writable and document the exception (human: ~10 min / CC: ~2 min)
 ❌ P1 becomes "nothing writes, except this route", which is easy to forget later
 C) Restrict it to admins and leave it writable (human: ~1 hour / CC: ~5 min)
 ✅ Closes the any-user write path while keeping an operator escape hatch
-✅ Matches the admin-only pattern the cache-stats route in the same controller already uses
+✅ Matches the admin-only pattern the struggling/mastered routes in the same controller already use
 ❌ The freeze still has a hole, and the flag no longer tells the whole story
 Net: make the freeze complete, or keep a manual write path and accept the exception.
 Header: Tracing endpoint
@@ -878,7 +896,7 @@ While `KNOWLEDGE_WRITES=off`, `POST /knowledge-tracing/update` returns 409 with 
 B) Leave writable, document
 The endpoint keeps writing as today. P1's text gains a note naming this route as the one exception. ✅ No behaviour change. ✅ Keeps a manual seeding path. ❌ The freeze has an exception that is easy to forget.
 C) Admin only, still writable
-The endpoint requires the admin role and keeps writing regardless of the flag. ✅ Closes the any-user path. ✅ Matches the cache-stats route's pattern. ❌ The freeze still has a hole.
+The endpoint requires the admin role and keeps writing regardless of the flag. ✅ Closes the any-user path. ✅ Matches the struggling/mastered routes' pattern. ❌ The freeze still has a hole.
 
 State: approved
 Actual answer: A) Reject with 409 (recommended), answer to D4
