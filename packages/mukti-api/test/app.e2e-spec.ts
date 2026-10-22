@@ -7,8 +7,6 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import * as request from 'supertest';
 
-import { startApi } from '../src/start';
-
 /**
  * Boots the real API the way `npx muktiai` does (`startApi`, local mode, an
  * embedded MongoDB, no Redis) and drives it over HTTP. These checks cover the
@@ -31,6 +29,9 @@ describe('API (e2e, local mode)', () => {
     process.env.NODE_ENV = 'test';
     process.env.FRONTEND_URL = 'http://localhost:3001';
     delete process.env.CORS_ORIGINS;
+    // Import after the env is set: module decorators (e.g. AuthModule's
+    // isLocalMode() provider list) are evaluated at import time.
+    const { startApi } = await import('../src/start');
 
     app = await startApi({ host: '127.0.0.1', port: 0 });
     http = request(app.getHttpServer());
