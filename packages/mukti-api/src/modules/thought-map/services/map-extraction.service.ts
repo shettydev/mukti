@@ -1,3 +1,5 @@
+import type { ExtractionStreamEventContract } from '@muktiai/contracts';
+
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -42,27 +44,10 @@ import { ConversationService } from '../../conversations/services/conversation.s
  *
  * SSE sequence: processing → preview → complete | error
  */
-export type ExtractionStreamEvent =
-  | {
-      /** The full draft ThoughtMap + nodes ready for client review */
-      data: {
-        map: ThoughtMap;
-        nodes: ThoughtNode[];
-      };
-      type: 'preview';
-    }
-  | {
-      data: { code: string; message: string; retriable: boolean };
-      type: 'error';
-    }
-  | {
-      data: { jobId: string; mapId: string; nodeCount: number };
-      type: 'complete';
-    }
-  | {
-      data: { jobId: string; status: 'started' };
-      type: 'processing';
-    };
+export type ExtractionStreamEvent = ExtractionStreamEventContract<{
+  map: ThoughtMap;
+  nodes: ThoughtNode[];
+}>;
 
 /**
  * Job data for a map extraction request.
@@ -199,13 +184,15 @@ export class MapExtractionService extends WorkerHost {
    * @param jobId - BullMQ job ID
    * @param connectionId - Unique connection identifier
    * @param emitFn - Callback to push events to the client
-   * @returns Cleanup function to call on disconnect
+   * @returns `close` to call on disconnect, and `ready`, which resolves once
+   * events published from now on will reach this connection. The job may have
+   * started before the client connected, so callers re-check it after `ready`.
    */
   addConnection(
     jobId: string,
     connectionId: string,
     emitFn: (event: ExtractionStreamEvent) => void,
-  ): () => void {
+  ): { close: () => void; ready: Promise<void> } {
     const connection: ExtractionStreamConnection = {
       connectionId,
       emitFn,
@@ -213,6 +200,9 @@ export class MapExtractionService extends WorkerHost {
     };
 
     const existing = this.connections.get(jobId) ?? [];
+    // Each connection holds one bus reference; the bus subscribes once per
+    // stream and every caller can wait for that subscription.
+    const ready = this.streamBus.track(EXTRACTION_BUS_NAMESPACE, jobId);
     existing.push(connection);
     this.connections.set(jobId, existing);
 
@@ -220,8 +210,11 @@ export class MapExtractionService extends WorkerHost {
       `Extraction SSE connection added: jobId=${jobId} (connectionId=${connectionId})`,
     );
 
-    return () => {
-      this.removeConnection(jobId, connectionId);
+    return {
+      close: () => {
+        this.removeConnection(jobId, connectionId);
+      },
+      ready,
     };
   }
 
@@ -410,8 +403,15 @@ export class MapExtractionService extends WorkerHost {
    * Removes a specific SSE connection.
    */
   removeConnection(jobId: string, connectionId: string): void {
-    const existing = this.connections.get(jobId) ?? [];
+    const existing = this.connections.get(jobId);
+    if (!existing) {
+      return;
+    }
     const filtered = existing.filter((c) => c.connectionId !== connectionId);
+    if (filtered.length === existing.length) {
+      return;
+    }
+    this.streamBus.untrack(EXTRACTION_BUS_NAMESPACE, jobId);
 
     if (filtered.length === 0) {
       this.connections.delete(jobId);
@@ -494,7 +494,7 @@ export class MapExtractionService extends WorkerHost {
     }
   }
 
-  /** Publishes an extraction event to every instance via the stream bus. */
+  /** Publishes an extraction event to the instances holding the job's stream. */
   private emit(jobId: string, event: ExtractionStreamEvent): void {
     this.streamBus.publish(EXTRACTION_BUS_NAMESPACE, jobId, event);
   }

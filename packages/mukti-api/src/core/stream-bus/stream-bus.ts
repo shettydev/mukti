@@ -25,13 +25,29 @@ export type StreamBusHandler = (key: string, event: unknown) => void;
  * Namespaces separate surfaces (`conversation`, `dialogue`, `extraction`);
  * the key identifies the stream within one (a conversation id, a
  * `session:node` pair, a job id).
+ *
+ * Stream services call {@link track} when an instance gains its first local
+ * connection for a stream and {@link untrack} when it loses its last, so a
+ * transport can deliver each stream only to instances that hold it.
  */
 export abstract class StreamBus {
   /** Subscribes to a namespace. Returns a function that unsubscribes. */
   abstract listen(namespace: string, handler: StreamBusHandler): () => void;
 
-  /** Sends an event to every listener of the namespace on every instance. */
+  /** Sends an event to the instances holding this stream. */
   abstract publish(namespace: string, key: string, event: unknown): void;
+
+  /**
+   * This instance now holds a connection for the stream. Reference counted.
+   *
+   * @returns Resolves once events published from now on will be delivered
+   * here. Never rejects; a failed subscribe is logged and resolves, so callers
+   * that re-check state afterwards still make progress.
+   */
+  abstract track(namespace: string, key: string): Promise<void>;
+
+  /** Releases one {@link track}. */
+  abstract untrack(namespace: string, key: string): void;
 }
 
 /**
@@ -53,17 +69,32 @@ export class InProcessStreamBus extends StreamBus {
       handler(key, event);
     }
   }
+
+  /** One process sees every stream, so there is nothing to subscribe to. */
+  track(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  /** See {@link track}. */
+  untrack(): void {
+    return;
+  }
 }
 
-/** Redis channel every instance publishes to and subscribes on. */
-export const STREAM_BUS_CHANNEL = 'mukti:stream-events';
+/** Prefix of every per-stream Redis channel: `mukti:stream:{namespace}:{key}`. */
+export const STREAM_BUS_CHANNEL_PREFIX = 'mukti:stream:';
+
+/** Builds the Redis channel name for one stream. */
+export function streamChannel(namespace: string, key: string): string {
+  return `${STREAM_BUS_CHANNEL_PREFIX}${namespace}:${key}`;
+}
 
 /** Token for the Redis clients, so tests can inject fakes. */
 export const STREAM_BUS_REDIS = Symbol('STREAM_BUS_REDIS');
 
 export interface StreamBusRedisClients {
   publisher: Pick<Redis, 'publish' | 'quit'>;
-  subscriber: Pick<Redis, 'on' | 'quit' | 'subscribe'>;
+  subscriber: Pick<Redis, 'on' | 'quit' | 'subscribe' | 'unsubscribe'>;
 }
 
 interface Envelope {
@@ -73,18 +104,25 @@ interface Envelope {
 }
 
 /**
- * Fans events out across instances with Redis pub/sub on one channel.
+ * Fans events out across instances with one Redis pub/sub channel per stream.
  *
  * @remarks
- * Every instance receives every event and drops the ones it holds no
- * connection for, which is fine at this scale and keeps ordering simple: one
- * publisher connection per process, and Redis preserves order per publisher,
- * so a job's `processing → message → complete` sequence arrives in order. An
- * instance's own events also come back through Redis, so nothing is
- * delivered twice.
+ * An instance subscribes to a stream's channel only while it holds at least
+ * one connection for that stream, so each event reaches only the instances
+ * that can deliver it and Redis traffic grows with active streams, not with
+ * instances times total traffic.
  *
- * Pub/sub is fire-and-forget like the in-memory emit it replaces: a client
- * that is not connected when an event is published does not get it.
+ * Ordering: each process has one publisher connection, and Redis preserves
+ * order per publisher and channel, so a job's `processing → message →
+ * complete` sequence arrives in order. An instance's own events reach it
+ * through Redis like everyone else's, so nothing is delivered twice.
+ *
+ * Pub/sub is fire-and-forget: a client gets only events published after its
+ * instance has subscribed to the stream, which is one Redis round trip after
+ * the connection opens. {@link track} resolves at that point, so a stream
+ * whose job may already be running can re-check the job afterwards (the
+ * extraction stream does). Ioredis re-subscribes tracked channels on
+ * reconnect.
  */
 @Injectable()
 export class RedisStreamBus extends StreamBus implements OnModuleDestroy {
@@ -92,22 +130,21 @@ export class RedisStreamBus extends StreamBus implements OnModuleDestroy {
 
   private readonly logger = new Logger(RedisStreamBus.name);
 
+  /** The subscribe in flight (or done) for each tracked channel. */
+  private readonly subscribed = new Map<string, Promise<void>>();
+
+  /** Local connection count per subscribed channel. */
+  private readonly tracked = new Map<string, number>();
+
   constructor(
     @Inject(STREAM_BUS_REDIS) private readonly redis: StreamBusRedisClients,
   ) {
     super();
     this.redis.subscriber.on('message', (channel: string, raw: string) => {
-      if (channel === STREAM_BUS_CHANNEL) {
+      if (channel.startsWith(STREAM_BUS_CHANNEL_PREFIX)) {
         this.dispatch(raw);
       }
     });
-    void this.redis.subscriber
-      .subscribe(STREAM_BUS_CHANNEL)
-      .catch((error: unknown) =>
-        this.logger.error(
-          `Stream bus could not subscribe; live updates from other instances will be missed: ${String(error)}`,
-        ),
-      );
   }
 
   listen(namespace: string, handler: StreamBusHandler): () => void {
@@ -127,10 +164,55 @@ export class RedisStreamBus extends StreamBus implements OnModuleDestroy {
   publish(namespace: string, key: string, event: unknown): void {
     const envelope: Envelope = { event, key, namespace };
     void this.redis.publisher
-      .publish(STREAM_BUS_CHANNEL, JSON.stringify(envelope))
+      .publish(streamChannel(namespace, key), JSON.stringify(envelope))
       .catch((error: unknown) =>
         this.logger.error(
           `Stream event ${namespace}/${key} not published: ${String(error)}`,
+        ),
+      );
+  }
+
+  track(namespace: string, key: string): Promise<void> {
+    const channel = streamChannel(namespace, key);
+    const count = this.tracked.get(channel) ?? 0;
+    this.tracked.set(channel, count + 1);
+
+    const pending = this.subscribed.get(channel);
+    if (count > 0 && pending) {
+      return pending;
+    }
+
+    const ready = this.redis.subscriber.subscribe(channel).then(
+      () => undefined,
+      (error: unknown) => {
+        this.logger.error(
+          `Stream bus could not subscribe to ${channel}; this client will miss live updates: ${String(error)}`,
+        );
+      },
+    );
+    this.subscribed.set(channel, ready);
+    return ready;
+  }
+
+  untrack(namespace: string, key: string): void {
+    const channel = streamChannel(namespace, key);
+    const count = this.tracked.get(channel) ?? 0;
+
+    if (count > 1) {
+      this.tracked.set(channel, count - 1);
+      return;
+    }
+    if (count === 0) {
+      return;
+    }
+
+    this.tracked.delete(channel);
+    this.subscribed.delete(channel);
+    void this.redis.subscriber
+      .unsubscribe(channel)
+      .catch((error: unknown) =>
+        this.logger.warn(
+          `Stream bus could not unsubscribe from ${channel}: ${String(error)}`,
         ),
       );
   }

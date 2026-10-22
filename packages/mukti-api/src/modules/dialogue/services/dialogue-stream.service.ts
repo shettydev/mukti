@@ -1,6 +1,6 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import type { NodeDialogueStreamEventContract } from '@muktiai/contracts';
 
-import type { NodeDialogueStreamEventContract } from '../../../contracts/stream-events';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 
 import {
   InProcessStreamBus,
@@ -77,6 +77,10 @@ export class DialogueStreamService {
     };
 
     const existingConnections = this.connections.get(key) ?? [];
+    // First local connection for this stream: start receiving its events.
+    if (existingConnections.length === 0) {
+      void this.bus.track(BUS_NAMESPACE, key);
+    }
     existingConnections.push(connection);
     this.connections.set(key, existingConnections);
 
@@ -98,6 +102,7 @@ export class DialogueStreamService {
     }
 
     this.connections.delete(key);
+    this.bus.untrack(BUS_NAMESPACE, key);
     this.logger.log(
       `Cleaned up ${connections.length} connection(s) for ${key}`,
     );
@@ -171,6 +176,7 @@ export class DialogueStreamService {
 
     if (updatedConnections.length === 0) {
       this.connections.delete(key);
+      this.bus.untrack(BUS_NAMESPACE, key);
       this.logger.log(`All connections removed for ${key}`);
     } else {
       this.connections.set(key, updatedConnections);

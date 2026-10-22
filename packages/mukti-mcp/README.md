@@ -38,7 +38,7 @@ The Mukti MCP Server is designed around a core belief: **the process of inquiry 
 2. **Install dependencies**:
 
    ```bash
-   cd mukti-mcp-server
+   cd packages/mukti-mcp
    npm install
    ```
 

@@ -14,11 +14,21 @@ import {
 } from '../interfaces/bkt.interface';
 import { BKTAlgorithmService } from './bkt-algorithm.service';
 
-/** How many times to re-read and retry when another writer got in first. */
-const MAX_ATTEMPTS = 5;
+/**
+ * How many times to re-read and retry when another writer got in first.
+ * Each conflict means some other observation succeeded, so the loop always
+ * makes progress; the cap only bounds pathological contention.
+ */
+const MAX_ATTEMPTS = 20;
+
+/** Upper bound of the random pause between conflicting attempts, in ms. */
+const MAX_BACKOFF_MS = 25;
 
 /** MongoDB duplicate-key error (the unique `{ conceptId, userId }` index). */
 const DUPLICATE_KEY = 11000;
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export interface AppliedObservation {
   previousProbability: number;
@@ -63,16 +73,19 @@ export class KnowledgeStateStore {
     correct: boolean,
     initialParameters: BKTParameters = DEFAULT_BKT_PARAMS,
   ): Promise<AppliedObservation> {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    let attempt = 0;
+    while (attempt < MAX_ATTEMPTS) {
       const doc = await this.knowledgeStateModel
         .findOne({ conceptId, userId })
         .lean<KnowledgeStateDoc>()
         .exec();
 
       if (!doc) {
+        // Creating is not a conflict; whoever wins, the next read finds it.
         await this.createIfAbsent(userId, conceptId, initialParameters);
         continue;
       }
+      attempt++;
 
       const current: KnowledgeState = {
         attempts: doc.attempts,
@@ -106,6 +119,8 @@ export class KnowledgeStateStore {
       this.logger.debug(
         `Knowledge state ${userId.toString()}:${conceptId} changed concurrently, retrying (${attempt}/${MAX_ATTEMPTS})`,
       );
+      // Jitter so writers that collided do not collide again in lockstep.
+      await sleep(Math.random() * MAX_BACKOFF_MS);
     }
 
     throw new Error(

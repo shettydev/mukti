@@ -83,13 +83,13 @@ describe('MapExtractionService', () => {
   describe('connection management', () => {
     it('adds extraction connections and removes them via cleanup', () => {
       const emitFn = jest.fn();
-      const cleanup = service.addConnection('job-1', 'conn-1', emitFn);
+      const { close } = service.addConnection('job-1', 'conn-1', emitFn);
 
       (service as any).emit('job-1', {
         data: { jobId: 'job-1', status: 'started' },
         type: 'processing',
       });
-      cleanup();
+      close();
       (service as any).emit('job-1', {
         data: { jobId: 'job-1', status: 'started' },
         type: 'processing',

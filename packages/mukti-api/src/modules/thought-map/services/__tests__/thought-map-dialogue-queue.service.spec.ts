@@ -512,6 +512,12 @@ describe('ThoughtMapDialogueQueueService', () => {
           rootGap: 'gap-root',
         }),
         true,
+        // Guarded on the counters this turn read (failures 1, successes 2)
+        {
+          consecutiveFailures: 1,
+          consecutiveSuccesses: 2,
+          currentScaffoldLevel: { $in: [0, null] },
+        },
       );
     });
 
@@ -942,13 +948,42 @@ describe('ThoughtMapDialogueQueueService', () => {
   });
 
   describe('private helpers', () => {
-    it('validates curated models when BYOK is not used', () => {
-      expect(() =>
-        (service as any).validateEffectiveModel('blocked-model', false),
-      ).toThrow('MODEL_NOT_ALLOWED');
+    it('rejects a non-curated model for a user without their own key before calling the AI', async () => {
+      jest.spyOn(service as any, 'getOrCreateMapDialogue').mockResolvedValue({
+        _id: new Types.ObjectId(),
+      });
+      mockDialogueService.addMessage.mockResolvedValue({
+        _id: new Types.ObjectId(),
+        createdAt: new Date(),
+        sequence: 1,
+      });
+      mockDialogueService.getMessages.mockResolvedValue({
+        messages: [],
+        pagination: { total: 0 },
+      });
+
+      await expect(
+        service.process({
+          data: {
+            depth: 0,
+            fromSuggestion: false,
+            mapId: validMapId(),
+            message: 'Hi',
+            model: 'blocked-model',
+            nodeId: 'node-1',
+            nodeLabel: 'Node',
+            nodeType: 'thought',
+            siblings: 0,
+            subscriptionTier: 'free',
+            usedByok: false,
+            userId: new Types.ObjectId().toString(),
+          },
+          id: 'job-1',
+        } as any),
+      ).rejects.toThrow('MODEL_NOT_ALLOWED');
       expect(
-        (service as any).validateEffectiveModel('allowed-model', false),
-      ).toBe('allowed-model');
+        mockDialogueAIService.generateScaffoldedResponseWithPrompt,
+      ).not.toHaveBeenCalled();
     });
 
     it('falls back to "Unknown topic" when the root node cannot be found', async () => {

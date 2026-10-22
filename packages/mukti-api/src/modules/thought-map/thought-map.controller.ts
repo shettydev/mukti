@@ -1,3 +1,5 @@
+import type { Job } from 'bullmq';
+
 import {
   Body,
   Controller,
@@ -6,6 +8,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   MessageEvent,
   NotFoundException,
   Param,
@@ -56,7 +59,12 @@ import {
 import { UpdateThoughtMapSettingsDto } from './dto/update-thought-map-settings.dto';
 import { UpdateThoughtNodeDto } from './dto/update-thought-node.dto';
 import { BranchSuggestionService } from './services/branch-suggestion.service';
-import { MapExtractionService } from './services/map-extraction.service';
+import {
+  type ExtractionStreamEvent,
+  type MapExtractionJobData,
+  type MapExtractionJobResult,
+  MapExtractionService,
+} from './services/map-extraction.service';
 import { ThoughtMapShareService } from './services/thought-map-share.service';
 import { ThoughtMapService } from './services/thought-map.service';
 
@@ -71,6 +79,8 @@ import { ThoughtMapService } from './services/thought-map.service';
 @Controller('thought-maps')
 @UseGuards(JwtAuthGuard)
 export class ThoughtMapController {
+  private readonly logger = new Logger(ThoughtMapController.name);
+
   constructor(
     private readonly aiRequestGate: AiRequestGate,
     private readonly thoughtMapService: ThoughtMapService,
@@ -473,106 +483,128 @@ export class ThoughtMapController {
       );
     }
 
-    const jobState = await job.getState();
-
-    if (jobState === 'completed') {
+    const replay = await this.finishedExtractionEvents(job, jobId, user);
+    if (replay) {
       return new Observable<MessageEvent>((observer) => {
-        void (async () => {
-          try {
-            const result = job.returnvalue;
-            if (!result?.mapId) {
-              observer.next({
-                data: {
-                  data: {
-                    code: 'EXTRACTION_ERROR',
-                    message: 'Extraction job result missing mapId',
-                    retriable: false,
-                  },
-                  type: 'error',
-                },
-                type: 'message',
-              } as MessageEvent);
-              observer.complete();
-              return;
-            }
-
-            const draftMap = await this.thoughtMapService.getMap(
-              result.mapId,
-              user._id,
-            );
-
-            observer.next({
-              data: {
-                data: draftMap,
-                type: 'preview',
-              },
-              type: 'message',
-            } as MessageEvent);
-            observer.next({
-              data: {
-                data: {
-                  jobId,
-                  mapId: result.mapId,
-                  nodeCount: result.nodeCount,
-                },
-                type: 'complete',
-              },
-              type: 'message',
-            } as MessageEvent);
-          } catch (error: unknown) {
-            observer.next({
-              data: {
-                data: {
-                  code: 'EXTRACTION_ERROR',
-                  message:
-                    error instanceof Error
-                      ? error.message
-                      : 'Extraction stream failed',
-                  retriable: false,
-                },
-                type: 'error',
-              },
-              type: 'message',
-            } as MessageEvent);
-          } finally {
-            observer.complete();
-          }
-        })();
-      });
-    }
-
-    if (jobState === 'failed') {
-      return new Observable<MessageEvent>((observer) => {
-        observer.next({
-          data: {
-            data: {
-              code: 'EXTRACTION_ERROR',
-              message: job.failedReason || 'Extraction job failed',
-              retriable: false,
-            },
-            type: 'error',
-          },
-          type: 'message',
-        } as MessageEvent);
+        for (const event of replay) {
+          observer.next({ data: event, type: 'message' } as MessageEvent);
+        }
         observer.complete();
       });
     }
 
     return new Observable<MessageEvent>((observer) => {
       const connectionId = `conn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const seen = new Set<ExtractionStreamEvent['type']>();
+      // Set by a live `complete` or by a replay, which is the final state.
+      let ended = false;
+      const deliver = (event: ExtractionStreamEvent) => {
+        seen.add(event.type);
+        observer.next({ data: event, type: 'message' } as MessageEvent);
+      };
 
-      const cleanup = this.mapExtractionService.addConnection(
+      const connection = this.mapExtractionService.addConnection(
         jobId,
         connectionId,
         (event) => {
-          observer.next({ data: event, type: 'message' } as MessageEvent);
+          if (ended) {
+            return;
+          }
+          deliver(event);
+          ended = event.type === 'complete';
         },
       );
 
+      // The job was queued before this stream opened. If it finished while
+      // this instance was subscribing, its live events are gone, so replay
+      // the stored result once the subscription is in place, skipping
+      // anything the live stream already delivered.
+      void connection.ready
+        .then(() =>
+          ended ? null : this.mapExtractionService.getExtractionJob(jobId),
+        )
+        .then((fresh) =>
+          fresh ? this.finishedExtractionEvents(fresh, jobId, user) : null,
+        )
+        .then((events) => {
+          if (!events || ended) {
+            return;
+          }
+          ended = true;
+          for (const event of events) {
+            if (!seen.has(event.type)) {
+              deliver(event);
+            }
+          }
+        })
+        .catch((error: unknown) =>
+          this.logger.warn(
+            `Could not re-check extraction job ${jobId} after subscribing: ${String(error)}`,
+          ),
+        );
+
       return () => {
-        cleanup();
+        connection.close();
       };
     });
+  }
+
+  /**
+   * Events that replay a finished extraction job (`preview` then `complete`,
+   * or one `error`), or `null` while it is still queued or running.
+   */
+  private async finishedExtractionEvents(
+    job: Job<MapExtractionJobData, MapExtractionJobResult>,
+    jobId: string,
+    user: User,
+  ): Promise<ExtractionStreamEvent[] | null> {
+    const error = (message: string): ExtractionStreamEvent => ({
+      data: { code: 'EXTRACTION_ERROR', message, retriable: false },
+      type: 'error',
+    });
+
+    const state = await job.getState();
+    if (state !== 'completed' && state !== 'failed') {
+      return null;
+    }
+
+    // `getState()` asks Redis live, but `returnvalue` and `failedReason` are
+    // whatever was loaded with `job`. If the job finished after that load,
+    // the snapshot is stale (no result yet), so reload it once.
+    const settled =
+      (state === 'completed' && !job.returnvalue) ||
+      (state === 'failed' && !job.failedReason)
+        ? ((await this.mapExtractionService.getExtractionJob(jobId)) ?? job)
+        : job;
+
+    if (state === 'failed') {
+      return [error(settled.failedReason || 'Extraction job failed')];
+    }
+
+    const result = settled.returnvalue;
+    if (!result?.mapId) {
+      return [error('Extraction job result missing mapId')];
+    }
+
+    try {
+      const draftMap = await this.thoughtMapService.getMap(
+        result.mapId,
+        user._id,
+      );
+      return [
+        { data: draftMap, type: 'preview' },
+        {
+          data: { jobId, mapId: result.mapId, nodeCount: result.nodeCount },
+          type: 'complete',
+        },
+      ];
+    } catch (caught: unknown) {
+      return [
+        error(
+          caught instanceof Error ? caught.message : 'Extraction stream failed',
+        ),
+      ];
+    }
   }
 
   /**

@@ -115,16 +115,7 @@ export function useColdStartSuggestions(mapId: string, rootNodeId: string, enabl
 
         cleanupPolling = startSuggestionPolling(mapId, jobId, (event) => {
           if (event.type === 'suggestion') {
-            const s = event.data as {
-              label: string;
-              parentId: string;
-              suggestedType: 'question' | 'thought';
-            };
-            addGhostNode({
-              label: s.label,
-              parentId: s.parentId,
-              suggestedType: s.suggestedType,
-            });
+            addGhostNode(event.data);
           }
         });
       } catch {
@@ -267,25 +258,13 @@ export function useThoughtMapSuggestions(mapId: string, parentNodeId: string) {
             setState({ error: null, isStreaming: false });
             break;
 
-          case 'error': {
-            const errData = event.data as { message: string };
-            setState({ error: new Error(errData.message), isStreaming: false });
+          case 'error':
+            setState({ error: new Error(event.data.message), isStreaming: false });
             break;
-          }
 
-          case 'suggestion': {
-            const s = event.data as {
-              label: string;
-              parentId: string;
-              suggestedType: 'question' | 'thought';
-            };
-            addGhostNode({
-              label: s.label,
-              parentId: s.parentId,
-              suggestedType: s.suggestedType,
-            });
+          case 'suggestion':
+            addGhostNode(event.data);
             break;
-          }
 
           default:
             break;

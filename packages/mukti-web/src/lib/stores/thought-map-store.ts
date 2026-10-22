@@ -11,6 +11,8 @@
  * - ghostNodes stores AI-suggested ghost nodes keyed by a client-side ghost ID
  */
 
+import type { BranchSuggestionPayload } from '@muktiai/contracts';
+
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -56,8 +58,8 @@ export interface GhostNode {
   label: string;
   /** nodeId of the parent node this branches from */
   parentId: string;
-  /** Suggested node type */
-  suggestedType: 'question' | 'thought';
+  /** Suggested node type (from the shared suggestion contract) */
+  suggestedType: BranchSuggestionPayload['suggestedType'];
 }
 
 /**

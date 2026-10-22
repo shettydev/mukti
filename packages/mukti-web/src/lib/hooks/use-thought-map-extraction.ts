@@ -111,8 +111,7 @@ export function useThoughtMapExtraction(conversationId: string) {
             break;
 
           case 'error': {
-            const errData = event.data as { message: string };
-            setState({ error: new Error(errData.message), isStreaming: false });
+            setState({ error: new Error(event.data.message), isStreaming: false });
             resetExtraction();
             break;
           }
