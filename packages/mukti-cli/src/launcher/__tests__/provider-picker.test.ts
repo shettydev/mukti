@@ -18,6 +18,7 @@ import { isInteractive, pickProvider } from '../provider-picker.ts';
 import { providerById } from '../providers.ts';
 
 const CLAUDE = providerById('claude')!;
+const CODEX = providerById('codex')!;
 const ANTIGRAVITY = providerById('agy')!;
 
 const ready = (provider = CLAUDE): ProviderStatus => ({
@@ -57,6 +58,7 @@ function prompts(answers: { confirm?: boolean | symbol; select?: string | symbol
 test('every supported CLI is offered, with its status and its trade-off', async () => {
   const statuses: ProviderStatus[] = [
     ready(CLAUDE),
+    ready(CODEX),
     { provider: ANTIGRAVITY, readiness: 'signed-out', version: '1.1.22' },
   ];
   const harness = prompts({});
@@ -65,11 +67,23 @@ test('every supported CLI is offered, with its status and its trade-off', async 
 
   assert.deepEqual(
     harness.offered.map((option) => option.value),
-    ['claude', 'agy']
+    ['claude', 'codex', 'agy']
   );
-  const [claude, antigravity] = harness.offered;
+  const [claude, codex, antigravity] = harness.offered;
   assert.match(claude.hint ?? '', new RegExp(CLAUDE.tradeOff));
+  assert.match(codex.hint ?? '', new RegExp(CODEX.tradeOff));
+  assert.equal(codex.label, 'Codex CLI');
   assert.match(antigravity.hint ?? '', new RegExp(ANTIGRAVITY.tradeOff));
+});
+
+test('Codex can be picked and kept as the default', async () => {
+  const harness = prompts({ confirm: true, select: 'codex' });
+
+  const picked = await pickProvider([ready(CLAUDE), ready(CODEX)], harness.prompts);
+
+  assert.equal(picked?.provider.id, 'codex');
+  assert.equal(picked?.remember, true);
+  assert.match(harness.asked[1], /Codex CLI/);
 });
 
 test('a CLI that is signed out or missing is shown, with the reason, and cannot be chosen', async () => {
