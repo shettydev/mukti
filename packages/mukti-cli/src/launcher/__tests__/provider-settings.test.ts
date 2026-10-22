@@ -27,7 +27,7 @@ import {
   writeStoredProvider,
 } from '../provider-settings.ts';
 
-const SUPPORTED = ['claude', 'agy'] as const;
+const SUPPORTED = ['claude', 'codex', 'agy'] as const;
 
 let root: string;
 

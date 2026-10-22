@@ -21,6 +21,7 @@ import type { LocalCliAdapter } from '../types/local-cli-adapter.interface';
 
 import { AntigravityCliAdapter } from './adapters/antigravity-cli.adapter';
 import { ClaudeCliAdapter } from './adapters/claude-cli.adapter';
+import { CodexCliAdapter } from './adapters/codex-cli.adapter';
 
 /** Provider that reaches an HTTP API using a key. */
 const OPENROUTER_PROVIDER = 'openrouter';
@@ -30,9 +31,10 @@ const DEFAULT_PROVIDER = OPENROUTER_PROVIDER;
 /**
  * Local CLIs named after the commands they run. The launcher asks for them
  * this way (`--provider claude`, `--provider agy`) and passes the name
- * straight through as `AI_PROVIDER`, while the adapters were first registered
- * under longer names. Both are accepted so neither a saved launcher default
- * nor an older `.env` has to be rewritten.
+ * straight through as `AI_PROVIDER`, while the first two adapters were
+ * registered under longer names. Both are accepted so neither a saved launcher
+ * default nor an older `.env` has to be rewritten. `codex` needs no alias: its
+ * provider id is already its command.
  */
 const PROVIDER_ALIASES: Readonly<Record<string, string>> = {
   agy: 'antigravity',
@@ -49,15 +51,20 @@ export class AiProviderRegistry implements OnModuleInit {
    * must stay free of I/O; per-provider setup belongs in `warm()`.
    */
   constructor(private readonly configService: ConfigService) {
-    // `||` (not `??`) is deliberate: a blank MUKTI_AGY_WORKSPACE means "use the
-    // default", not "run agy from ''".
+    // Agy and Codex both run from a directory Mukti owns. MUKTI_CLI_WORKSPACE
+    // names it; MUKTI_AGY_WORKSPACE is its older, agy-only name, still read so
+    // an existing `.env` keeps working. `||` (not `??`) is deliberate: a blank
+    // value means "use the default", not "run from ''".
     /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-    const agyWorkspace =
-      configService.get<string>('MUKTI_AGY_WORKSPACE')?.trim() || undefined;
+    const workspaceDir =
+      configService.get<string>('MUKTI_CLI_WORKSPACE')?.trim() ||
+      configService.get<string>('MUKTI_AGY_WORKSPACE')?.trim() ||
+      undefined;
     /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
     this.adapters = [
       new ClaudeCliAdapter(),
-      new AntigravityCliAdapter({ workspaceDir: agyWorkspace }),
+      new AntigravityCliAdapter({ workspaceDir }),
+      new CodexCliAdapter({ workspaceDir }),
     ];
   }
 

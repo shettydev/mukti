@@ -5,8 +5,9 @@
  * Mukti's local runtime borrows an AI CLI the developer has already installed
  * and signed in to, so nobody needs an API key. Each CLI answers "is it
  * installed?" and "is it signed in?" differently — Antigravity has no auth
- * subcommand at all — so each provider carries its own probes and its own
- * remediation. Neither probe may spend model tokens: it runs on every launch.
+ * subcommand at all, Codex reports sign-in only through its exit code — so each
+ * provider carries its own probes and its own remediation. Neither probe may
+ * spend model tokens: it runs on every launch.
  *
  * Resolution is pure and injectable; `selectProvider` is the thin layer that
  * prints the outcome and exits when there is nothing usable.
@@ -64,7 +65,7 @@ export interface LocalCliProvider {
   version(run: RunCommand): Promise<string | undefined>;
 }
 
-export type LocalCliProviderId = 'agy' | 'claude';
+export type LocalCliProviderId = 'agy' | 'claude' | 'codex';
 
 /** How usable a provider is on this machine. */
 export type ProviderReadiness = 'missing' | 'ready' | 'signed-out';
@@ -158,6 +159,30 @@ const CLAUDE_CODE: LocalCliProvider = {
   version: (run) => versionOf(run, 'claude'),
 };
 
+/**
+ * Measured on codex-cli 0.163.0 (add-codex-cli-provider design.md): 7-12s and
+ * about 2.4-4.5k input tokens per reply, depending on the model.
+ */
+const CODEX: LocalCliProvider = {
+  aliases: [],
+  binary: 'codex',
+  disclosure: [
+    'Codex runs read-only with its tools switched off, from a folder Mukti owns, and keeps no',
+    'session history of Mukti replies. Your Codex settings (config.toml, MCP servers) do not',
+    'apply, apart from your default model. Your global ~/.codex/AGENTS.md does apply: Codex',
+    'offers no way to leave it out, and a rule in it can change what a reply says.',
+  ].join('\n'),
+  id: 'codex',
+  installRemediation: 'Install the Codex CLI: https://developers.openai.com/codex/cli',
+  // `codex login status` exits 0 when signed in and 1 when not, prints to
+  // stderr either way, and runs no model.
+  isAuthenticated: async (run) => (await run('codex', ['login', 'status'])).status === 0,
+  label: 'Codex CLI',
+  signInRemediation: 'Run `codex login` and try again.',
+  tradeOff: 'about 8-12 seconds per reply',
+  version: (run) => versionOf(run, 'codex'),
+};
+
 const ANTIGRAVITY: LocalCliProvider = {
   aliases: ['antigravity'],
   binary: 'agy',
@@ -181,8 +206,13 @@ const ANTIGRAVITY: LocalCliProvider = {
   version: (run) => versionOf(run, 'agy'),
 };
 
-/** In detection order: the cheaper, faster provider first. */
-export const SUPPORTED_PROVIDERS: readonly LocalCliProvider[] = [CLAUDE_CODE, ANTIGRAVITY];
+/**
+ * In detection order: the cheaper, faster providers first. Claude Code stays
+ * first so that machines which already resolved to it keep doing so; Codex is
+ * measured at Claude-like cost and latency; Antigravity costs several times
+ * either.
+ */
+export const SUPPORTED_PROVIDERS: readonly LocalCliProvider[] = [CLAUDE_CODE, CODEX, ANTIGRAVITY];
 
 /** Every name a supported provider answers to, current and former. */
 export const PROVIDER_NAMES: readonly string[] = SUPPORTED_PROVIDERS.flatMap((provider) => [

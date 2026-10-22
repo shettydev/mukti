@@ -34,6 +34,10 @@ const CLAUDE_SIGNED_OUT = {
   'claude --version': '2.1.0 (Claude Code)\n',
   'claude auth status': '{"loggedIn":false}',
 };
+const ONLY_CODEX_READY = {
+  'codex --version': 'codex-cli 0.163.0\n',
+  'codex login status': '',
+};
 
 let home: string;
 
@@ -142,7 +146,11 @@ test('a saved default that is signed out is explained, and the ready CLI is used
 
 test('a pick that is kept is remembered', async () => {
   const selection = await select({
-    pick: (statuses) => Promise.resolve({ provider: statuses[1].provider, remember: true }),
+    pick: (statuses) =>
+      Promise.resolve({
+        provider: statuses.find((s) => s.provider.id === 'agy')!.provider,
+        remember: true,
+      }),
   });
 
   assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
@@ -192,7 +200,26 @@ test('nothing installed points at every install step', async () => {
   assert.equal(selection.kind, 'failed');
   const remediation = selection.kind === 'failed' ? (selection.remediation ?? '') : '';
   assert.match(remediation, /docs\.claude\.com/);
+  assert.match(remediation, /--provider codex/);
   assert.match(remediation, /antigravity\.google/);
+});
+
+test('Codex alone is enough to start, and its disclosure is shown', async () => {
+  const selection = await select({ answers: ONLY_CODEX_READY });
+
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'codex');
+  const notices = selection.kind === 'ready' ? selection.notices.join('\n') : '';
+  assert.match(notices, /only/i);
+  assert.match(notices, /AGENTS\.md/);
+});
+
+test('a saved codex default is used and reported as the default', async () => {
+  writeStoredProvider(home, 'codex');
+
+  const selection = await select({ answers: { ...BOTH_READY, ...ONLY_CODEX_READY } });
+
+  assert.equal(selection.kind === 'ready' && selection.provider.id, 'codex');
+  assert.equal(readStoredProvider(home, ['claude', 'codex', 'agy']).provider, 'codex');
 });
 
 test('an unsupported provider name is refused', async () => {

@@ -1,6 +1,6 @@
 /**
  * Contract for AI providers backed by a locally installed, user-authenticated
- * agent CLI (Claude Code, Antigravity).
+ * agent CLI (Claude Code, Codex, Antigravity).
  *
  * @remarks
  * Every such provider does the same thing mechanically — spawn a binary in
@@ -18,6 +18,20 @@ import type { AiChatSendRequest } from './ai-chat-client.interface';
 import type { AllowedModel } from './ai-model.interface';
 
 export interface LocalCliAdapter {
+  /**
+   * Called exactly once per invocation, after it settles on any path: exit,
+   * spawn failure, missing binary or timeout.
+   *
+   * @remarks
+   * For adapters that materialize a per-request file in
+   * {@link LocalCliAdapter.buildArgs} and must remove it however the run ends.
+   * `parseEnvelope` and `describeFailure` cannot do this: a timeout or a spawn
+   * failure reaches neither. Receives the arguments `buildArgs` returned, so
+   * the adapter needs no per-request state. Anything it throws is logged and
+   * ignored, so cleanup can never replace the run's own result.
+   */
+  afterRun?(args: readonly string[]): void;
+
   /** Executable name, resolved from `PATH`. */
   readonly binary: string;
 
@@ -123,7 +137,7 @@ export interface LocalCliCompletion {
 }
 
 /** `AI_PROVIDER` values served by a local CLI rather than an HTTP API. */
-export type LocalCliProviderId = 'antigravity' | 'claude-code';
+export type LocalCliProviderId = 'antigravity' | 'claude-code' | 'codex';
 
 /**
  * Raised when a local CLI is missing, unauthenticated, or fails.

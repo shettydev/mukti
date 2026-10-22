@@ -53,7 +53,22 @@ export class LocalCliClientFactory implements AiChatClientFactory {
     const { binary, errorCode, installHint, timeoutMs } = this.adapter;
     const writesStdin = (this.adapter.inputChannel ?? 'stdin') === 'stdin';
 
-    return new Promise((resolve, reject) => {
+    let settled = false;
+    const afterRun = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      try {
+        this.adapter.afterRun?.(args);
+      } catch (error) {
+        this.logger.warn(
+          `${binary} cleanup after a run failed: ${(error as Error).message}`,
+        );
+      }
+    };
+
+    return new Promise<string>((resolve, reject) => {
       let child: ReturnType<typeof spawn>;
 
       try {
@@ -141,7 +156,7 @@ export class LocalCliClientFactory implements AiChatClientFactory {
         child.stdin?.write(input);
       }
       child.stdin?.end();
-    });
+    }).finally(afterRun);
   }
 
   private async send(request: AiChatSendRequest): Promise<unknown> {

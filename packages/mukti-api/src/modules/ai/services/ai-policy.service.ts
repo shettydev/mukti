@@ -69,7 +69,7 @@ export class AiPolicyService {
 
   /**
    * Whether AI completions route through a local, user-authenticated agent CLI
-   * (Claude Code, Antigravity) rather than an HTTP API.
+   * (Claude Code, Codex, Antigravity) rather than an HTTP API.
    */
   isLocalCliProvider(): boolean {
     return this.aiProviderRegistry.isLocalCliProvider();
