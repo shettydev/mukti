@@ -44,10 +44,11 @@ subscription.
 **You need:** Node 20.11+ and one of these AI CLIs, installed and signed in:
 
 - [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) (`claude login`)
+- [Codex CLI](https://developers.openai.com/codex/cli) (`codex login`)
 - [Antigravity CLI](https://antigravity.google/docs/cli/reference) (run `agy` once and follow the prompts)
 
 > [!NOTE]
-> **Coming soon:** Codex, OpenCode, Pi, Grok, and more AI CLIs.
+> **Coming soon:** OpenCode, Pi, Grok, and more AI CLIs.
 
 The first run downloads a one-time embedded MongoDB binary, so it takes a little longer.
 Run `npx muktiai --help` for all options, or see [Local Mode](docs/local-mode.md) for details.
@@ -85,12 +86,12 @@ Mukti responds with a compact sequence:
 
 ## Ways to run Mukti
 
-| I want to…                    | Use                                                      | Needs                              |
-| ----------------------------- | -------------------------------------------------------- | ---------------------------------- |
-| Try Mukti                     | [`npx muktiai`](#try-it-in-30-seconds)                   | Node 20.11+, `claude` or `agy` CLI |
-| Run the full hosted stack     | [`docker compose up -d`](#full-stack-docker)             | Docker, an OpenRouter key          |
-| Hack on the code (hot reload) | [`bun run dev`](#development)                            | Bun, Docker (for MongoDB + Redis)  |
-| Run from source, no Docker    | [`bun run start:local`](#run-from-source-without-docker) | Bun, `claude` or `agy` CLI         |
+| I want to…                    | Use                                                      | Needs                                         |
+| ----------------------------- | -------------------------------------------------------- | --------------------------------------------- |
+| Try Mukti                     | [`npx muktiai`](#try-it-in-30-seconds)                   | Node 20.11+, a `claude`, `codex` or `agy` CLI |
+| Run the full hosted stack     | [`docker compose up -d`](#full-stack-docker)             | Docker, an OpenRouter key                     |
+| Hack on the code (hot reload) | [`bun run dev`](#development)                            | Bun, Docker (for MongoDB + Redis)             |
+| Run from source, no Docker    | [`bun run start:local`](#run-from-source-without-docker) | Bun, a `claude`, `codex` or `agy` CLI         |
 
 ### Choosing the AI CLI
 
@@ -98,20 +99,21 @@ With more than one CLI ready, Mukti asks which to use on the first run and offer
 To override:
 
 ```bash
-npx muktiai --choose                          # ask again
-npx muktiai --provider agy --save     # set the default, no prompt
+npx muktiai --choose                  # ask again
+npx muktiai --provider codex --save   # set the default, no prompt
 ```
 
-|                | Claude Code                   | Antigravity                                                   |
-| -------------- | ----------------------------- | ------------------------------------------------------------- |
-| Time per reply | about 13–20 seconds           | about 30–60 seconds                                           |
-| Tokens         | Mukti's prompt + conversation | about 15–25k per reply (includes agy's own agent prompt)      |
-| Side effects   | —                             | Keeps a ~1 MB record per reply in `~/.gemini/antigravity-cli` |
+|                | Claude Code                   | Codex                                            | Antigravity                                                   |
+| -------------- | ----------------------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| Time per reply | about 13–20 seconds           | about 8–12 seconds                               | about 30–60 seconds                                           |
+| Tokens         | Mukti's prompt + conversation | about 2.5–4.5k per reply, depending on the model | about 15–25k per reply (includes agy's own agent prompt)      |
+| Side effects   | —                             | — (runs keep no Codex session history)           | Keeps a ~1 MB record per reply in `~/.gemini/antigravity-cli` |
 
 > [!WARNING]
-> With Antigravity, your global agy rules apply to Mukti's replies, and each prompt is passed as a
-> command-line argument (visible to other local processes via `ps`). Read the
-> [full comparison and privacy notes](docs/local-mode.md#claude-code-vs-antigravity) before choosing it.
+> With Codex, your global `~/.codex/AGENTS.md` still applies to Mukti's replies. With Antigravity,
+> your global agy rules apply, and each prompt is passed as a command-line argument (visible to other
+> local processes via `ps`). Read the [full comparison and privacy notes](docs/local-mode.md#comparing-the-ai-clis)
+> before choosing either.
 
 Your data lives in `~/.mukti/` (change it with `--data-dir` or `MUKTI_HOME`).
 
@@ -192,7 +194,7 @@ TypeScript support). Every other workspace script assumes Bun. Data is stored in
 ## Troubleshooting
 
 - **First run is slow** — a one-time embedded MongoDB download. Later starts are fast.
-- **AI CLI not detected** — make sure `claude` or `agy` is on your `PATH` and signed in.
+- **AI CLI not detected** — make sure `claude`, `codex` or `agy` is on your `PATH` and signed in.
   Mukti never picks a CLI you haven't signed in to.
 - **Port already in use** — `npx muktiai --port 4001 --api-port 4000`.
 - **More** — see [Local Mode → Troubleshooting](docs/local-mode.md#troubleshooting).
