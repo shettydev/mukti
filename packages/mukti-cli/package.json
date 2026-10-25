@@ -17,7 +17,9 @@
     "mukti",
     "socratic",
     "thinking",
-    "claude-code"
+    "claude-code",
+    "codex",
+    "antigravity"
   ],
   "engines": {
     "node": ">=20.11"

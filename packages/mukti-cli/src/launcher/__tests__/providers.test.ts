@@ -43,10 +43,10 @@ function scripted(answers: Record<string, Partial<CommandResult>>) {
   return { calls, run };
 }
 
-test('supports Claude Code and Antigravity, in that detection order', () => {
+test('supports Claude Code, Codex and Antigravity, in that detection order', () => {
   assert.deepEqual(
     SUPPORTED_PROVIDERS.map((p) => p.id),
-    ['claude', 'agy']
+    ['claude', 'codex', 'agy']
   );
 });
 
@@ -239,9 +239,17 @@ test('several ready CLIs are picked between when a terminal is available', async
   const result = await resolve({ run: scripted(BOTH_READY_ANSWERS).run });
 
   assert.equal(result.kind, 'pick');
+  // Every supported CLI is listed, ready or not, so the picker can show why
+  // one cannot be chosen; Codex is not installed in this script.
   assert.deepEqual(result.kind === 'pick' ? result.statuses.map((x) => x.provider.id) : null, [
     'claude',
+    'codex',
     'agy',
+  ]);
+  assert.deepEqual(result.kind === 'pick' ? result.statuses.map((x) => x.readiness) : null, [
+    'ready',
+    'missing',
+    'ready',
   ]);
 });
 
@@ -353,6 +361,94 @@ const BOTH_READY = {
   'claude auth status': { stdout: '{"loggedIn":true}' },
 };
 
+/** Codex installed and signed in, as `codex login status` reports it: exit 0, text on stderr. */
+const CODEX_READY = {
+  'codex --version': { stdout: 'codex-cli 0.163.0\n' },
+  'codex login status': { stderr: 'Logged in using ChatGPT\n' },
+};
+
+test('the Codex sign-in probe reads the exit code of `codex login status`', async () => {
+  const codex = providerById('codex')!;
+  const signedIn = scripted(CODEX_READY);
+  const signedOut = scripted({ 'codex login status': { status: 1, stderr: 'Not logged in\n' } });
+
+  assert.equal(await codex.isAuthenticated(signedIn.run), true);
+  assert.equal(await codex.isAuthenticated(signedOut.run), false);
+  assert.equal(await codex.isAuthenticated(scripted({}).run), false);
+  for (const call of [...signedIn.calls, ...signedOut.calls]) {
+    assert.equal(call, 'codex login status');
+    assert.doesNotMatch(call, /exec|--print|(^| )-p( |$)|--prompt/);
+  }
+});
+
+test('the Codex version is what `codex --version` prints', async () => {
+  const codex = providerById('codex')!;
+
+  assert.equal(await codex.version(scripted(CODEX_READY).run), 'codex-cli 0.163.0');
+  assert.equal(await codex.version(scripted({}).run), undefined);
+});
+
+test('Codex names its own sign-in and install steps', () => {
+  const codex = providerById('codex')!;
+
+  assert.match(codex.signInRemediation, /codex login/);
+  assert.match(codex.installRemediation, /Codex CLI/);
+  assert.doesNotMatch(codex.signInRemediation, /claude|agy/);
+  assert.deepEqual(codex.aliases, []);
+});
+
+test('Codex discloses that the global AGENTS.md applies and that no history is kept', () => {
+  const disclosure = providerById('codex')!.disclosure ?? '';
+
+  assert.match(disclosure, /~\/\.codex\/AGENTS\.md/);
+  assert.match(disclosure, /no\s+session history/);
+  assert.match(disclosure, /read-only/);
+});
+
+test('Claude Code is still taken over Codex when nothing can ask', async () => {
+  const result = await resolveProvider({
+    interactive: false,
+    run: scripted({ ...BOTH_READY, ...CODEX_READY }).run,
+  });
+
+  assert.equal(result.kind === 'detected' && result.provider.id, 'claude');
+  assert.deepEqual(result.kind === 'detected' ? result.others.map((x) => x.provider.id) : null, [
+    'codex',
+    'agy',
+  ]);
+});
+
+test('Codex is taken over Antigravity when Claude Code is not ready and nothing can ask', async () => {
+  const result = await resolveProvider({
+    interactive: false,
+    run: scripted({ ...ONLY_AGY_READY, ...CODEX_READY }).run,
+  });
+
+  assert.equal(result.kind === 'detected' && result.provider.id, 'codex');
+  assert.equal(result.kind === 'detected' && result.canChoose, true);
+});
+
+test('--provider codex is honoured, and codex is a recognised AI_PROVIDER value', async () => {
+  const option = await resolve({ explicit: 'codex', run: scripted(BOTH_READY_ANSWERS).run });
+  const env = await resolve({ env: 'codex', run: scripted(BOTH_READY_ANSWERS).run });
+
+  assert.equal(option.kind === 'chosen' && option.provider.id, 'codex');
+  assert.equal(env.kind === 'chosen' && env.provider.id, 'codex');
+});
+
+test('a signed-out Codex is never chosen automatically', async () => {
+  const result = await resolveProvider({
+    interactive: false,
+    run: scripted({
+      ...ONLY_AGY_READY,
+      'codex --version': { stdout: 'codex-cli 0.163.0\n' },
+      'codex login status': { status: 1, stderr: 'Not logged in\n' },
+    }).run,
+  });
+
+  assert.equal(result.kind === 'detected' && result.provider.id, 'agy');
+});
+
 test('readiness tells missing, signed out and ready apart', async () => {
   const claude = providerById('claude')!;
 
@@ -379,15 +475,15 @@ test('a CLI that is not installed is not asked about sign-in', async () => {
 });
 
 test('scanning covers every supported provider, in registry order', async () => {
-  const statuses = await scanProviders(scripted(BOTH_READY).run);
+  const statuses = await scanProviders(scripted({ ...BOTH_READY, ...CODEX_READY }).run);
 
   assert.deepEqual(
     statuses.map((s) => s.provider.id),
-    ['claude', 'agy']
+    ['claude', 'codex', 'agy']
   );
   assert.deepEqual(
     statuses.map((s) => s.readiness),
-    ['ready', 'ready']
+    ['ready', 'ready', 'ready']
   );
 });
 

@@ -6,6 +6,7 @@ import { join } from 'path';
 
 import { AntigravityCliAdapter } from '../adapters/antigravity-cli.adapter';
 import { ClaudeCliAdapter } from '../adapters/claude-cli.adapter';
+import { CodexCliAdapter } from '../adapters/codex-cli.adapter';
 import { AiProviderRegistry } from '../ai-provider.registry';
 
 /**
@@ -60,6 +61,14 @@ describe('AiProviderRegistry', () => {
     expect(r.isLocalCliProvider()).toBe(true);
   });
 
+  it('resolves codex to the Codex adapter', () => {
+    const r = registry({ AI_PROVIDER: 'codex' });
+
+    expect(r.getProviderId()).toBe('codex');
+    expect(r.getActiveLocalCliAdapter()).toBeInstanceOf(CodexCliAdapter);
+    expect(r.isLocalCliProvider()).toBe(true);
+  });
+
   // The launcher asks for these CLIs by the command they run and passes that
   // name straight through, so both spellings have to reach the same adapter.
   it.each([
@@ -82,11 +91,36 @@ describe('AiProviderRegistry', () => {
     expect(adapter.spawnOptions?.().cwd).toBe(realpathSync(workspace));
   });
 
+  it.each(['antigravity', 'codex'])(
+    'runs %s from the workspace named by MUKTI_CLI_WORKSPACE, which wins over the older name',
+    (provider) => {
+      const workspace = join(root, 'shared-workspace');
+      const adapter = registry({
+        AI_PROVIDER: provider,
+        MUKTI_AGY_WORKSPACE: join(root, 'older-name'),
+        MUKTI_CLI_WORKSPACE: workspace,
+      }).getActiveLocalCliAdapter()!;
+
+      expect(adapter.spawnOptions?.().cwd).toBe(realpathSync(workspace));
+    },
+  );
+
+  it('runs codex from MUKTI_AGY_WORKSPACE when only the older name is set', () => {
+    const workspace = join(root, 'older-name');
+    const adapter = registry({
+      AI_PROVIDER: 'codex',
+      MUKTI_AGY_WORKSPACE: workspace,
+      MUKTI_CLI_WORKSPACE: '  ',
+    }).getActiveLocalCliAdapter()!;
+
+    expect(adapter.spawnOptions?.().cwd).toBe(realpathSync(workspace));
+  });
+
   it('fails startup on an unknown provider, naming every supported value, without falling back', async () => {
     const r = registry({ AI_PROVIDER: 'gemini-cli' });
 
     await expect(r.onModuleInit()).rejects.toThrow(
-      'Unsupported AI_PROVIDER "gemini-cli". Supported values: openrouter, claude-code, antigravity, agy, claude.',
+      'Unsupported AI_PROVIDER "gemini-cli". Supported values: openrouter, claude-code, antigravity, codex, agy, claude.',
     );
     expect(r.isLocalCliProvider()).toBe(false);
   });
@@ -95,12 +129,31 @@ describe('AiProviderRegistry', () => {
     const warm = jest
       .spyOn(AntigravityCliAdapter.prototype, 'warm')
       .mockResolvedValue();
+    const warmCodex = jest
+      .spyOn(CodexCliAdapter.prototype, 'warm')
+      .mockResolvedValue();
 
     await registry({ AI_PROVIDER: 'claude-code' }).onModuleInit();
     expect(warm).not.toHaveBeenCalled();
+    expect(warmCodex).not.toHaveBeenCalled();
 
     await registry({ AI_PROVIDER: 'antigravity' }).onModuleInit();
     expect(warm).toHaveBeenCalledTimes(1);
+    expect(warmCodex).not.toHaveBeenCalled();
+
+    await registry({ AI_PROVIDER: 'codex' }).onModuleInit();
+    expect(warmCodex).toHaveBeenCalledTimes(1);
+    expect(warm).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails startup when the Codex adapter rejects its own settings', async () => {
+    jest
+      .spyOn(CodexCliAdapter.prototype, 'warm')
+      .mockRejectedValue(new Error('unknown configuration field `x`'));
+
+    await expect(
+      registry({ AI_PROVIDER: 'codex' }).onModuleInit(),
+    ).rejects.toThrow('unknown configuration field `x`');
   });
 
   // Preflight already checked sign-in; a failure here means the environment

@@ -28,7 +28,7 @@ import {
  * Resolves the active chat-client factory from the provider registry.
  *
  * @remarks
- * Local-CLI providers (`claude-code`, `antigravity`) share
+ * Local-CLI providers (`claude-code`, `antigravity`, `codex`) share
  * {@link LocalCliClientFactory} and differ only by adapter, so a new CLI is an
  * adapter plus a registry entry rather than another branch here. Anything else
  * is served by OpenRouter over HTTP.

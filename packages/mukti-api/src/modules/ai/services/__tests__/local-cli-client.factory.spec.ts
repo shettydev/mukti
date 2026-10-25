@@ -453,4 +453,95 @@ describe('LocalCliClientFactory adapter-selected mechanics', () => {
       /Detail: timeout waiting for response$/,
     );
   });
+
+  /**
+   * An adapter that writes a file per request (the Codex instructions file)
+   * must be able to remove it however the run ends. Timeouts and spawn
+   * failures never reach parseEnvelope or describeFailure, so the factory
+   * owns this call.
+   */
+  describe('afterRun', () => {
+    const settles: [string, () => ReturnType<typeof fakeChild>][] = [
+      [
+        'a successful exit',
+        () => fakeChild({ code: 0, stdout: 'A question?' }),
+      ],
+      ['a non-zero exit', () => fakeChild({ code: 1, stderr: 'boom' })],
+      ['a missing binary', () => fakeChild({ errorCode: 'ENOENT' })],
+      ['a timeout', () => fakeChild({ hang: true })],
+    ];
+
+    it.each(settles)(
+      'runs exactly once, with the built arguments, after %s',
+      async (_label, child) => {
+        spawnMock.mockReturnValue(child() as never);
+        const afterRun = jest.fn();
+
+        await new LocalCliClientFactory(
+          stubAdapter({
+            afterRun,
+            buildArgs: () => ['--json', 'marker'],
+            timeoutMs: 20,
+          }),
+        )
+          .create('')
+          .chat.send(baseRequest)
+          .catch(() => undefined);
+
+        expect(afterRun).toHaveBeenCalledTimes(1);
+        expect(afterRun).toHaveBeenCalledWith(['--json', 'marker']);
+      },
+    );
+
+    it('runs when spawn itself throws', async () => {
+      spawnMock.mockImplementation(() => {
+        throw new Error('EACCES');
+      });
+      const afterRun = jest.fn();
+
+      await expect(
+        new LocalCliClientFactory(stubAdapter({ afterRun }))
+          .create('')
+          .chat.send(baseRequest),
+      ).rejects.toMatchObject({ code: 'STUB_CLI_ERROR' });
+      expect(afterRun).toHaveBeenCalledTimes(1);
+    });
+
+    it('runs before the completion is returned', async () => {
+      spawnMock.mockReturnValue(
+        fakeChild({ code: 0, stdout: 'A question?' }) as never,
+      );
+      const afterRun = jest.fn();
+      const parseEnvelope = jest.fn(() => {
+        expect(afterRun).toHaveBeenCalledTimes(1);
+        return { completionTokens: 0, content: 'A question?', promptTokens: 0 };
+      });
+
+      await new LocalCliClientFactory(stubAdapter({ afterRun, parseEnvelope }))
+        .create('')
+        .chat.send(baseRequest);
+
+      expect(parseEnvelope).toHaveBeenCalled();
+    });
+
+    it('cannot replace the run result with its own failure', async () => {
+      spawnMock.mockReturnValue(
+        fakeChild({ code: 0, stdout: 'A question?' }) as never,
+      );
+
+      const response = (await new LocalCliClientFactory(
+        stubAdapter({
+          afterRun: () => {
+            throw new Error('cleanup exploded');
+          },
+        }),
+      )
+        .create('')
+        .chat.send(baseRequest)) as {
+        choices: { message: { content: string } }[];
+      };
+
+      expect(response.choices[0].message.content).toBe('A question?');
+    });
+  });
 });

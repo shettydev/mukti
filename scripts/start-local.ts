@@ -3,7 +3,7 @@
  * One-command local runtime for Mukti, from a workspace checkout.
  *
  * Boots the embedded database, the API (in MUKTI_LOCAL mode, on a local AI CLI
- * — Claude Code or Antigravity) and the web app with zero external services —
+ * — Claude Code, Codex or Antigravity) and the web app with zero external services —
  * no Docker, no Redis, no OpenRouter key. Runs preflight checks first and
  * refuses to start a partial stack on failure.
  *
@@ -26,7 +26,7 @@
  * Node's own type stripping) — hence the explicit `.ts` extensions on the local
  * imports below, which Node's ESM resolver requires.
  *
- * Usage: bun run start:local [-- --provider claude|agy]
+ * Usage: bun run start:local [-- --provider claude|codex|agy]
  *        bun run start:local -- --choose        (ask, and offer to remember)
  *        bun run start:local -- --provider agy --save
  *        (or npm run start:local -- …)
@@ -168,9 +168,9 @@ const MONGO_PORT = await reserveFreePort();
 
 const env = {
   ...process.env,
-  // Repo mode leaves MUKTI_AGY_WORKSPACE unset on purpose: agy must not run from
-  // inside this repository (it is a trusted workspace with its own `.agent/`),
-  // so the API's default under ~/.mukti applies.
+  // Repo mode leaves MUKTI_CLI_WORKSPACE unset on purpose: agy and Codex must
+  // not run from inside this repository (it is a trusted workspace with its own
+  // `.agent/` and `AGENTS.md`), so the API's default under ~/.mukti applies.
   AI_PROVIDER: provider.id,
   MUKTI_LOCAL: '1',
   // The launcher owns the database; the API connects to this rather than
