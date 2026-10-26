@@ -95,6 +95,12 @@ export type ProviderResolution =
 /** Where the chosen provider came from. */
 export type ProviderSource = 'env' | 'option' | 'saved';
 
+/**
+ * How this launch's provider was decided, as told to the API so Settings can
+ * explain how a saved default will interact with the next launch.
+ */
+export type SelectionSource = 'detected' | 'picked' | ProviderSource;
+
 /** The hosted provider. Meaningless to a launcher that always runs a local CLI. */
 const HOSTED_PROVIDER = 'openrouter';
 
@@ -118,6 +124,8 @@ export type Selection =
       readonly provider: LocalCliProvider;
       /** Save this provider as the default — after preflight passes. */
       readonly remember: boolean;
+      /** How the provider was decided. */
+      readonly source: SelectionSource;
       /** Readiness already established, for preflight to reuse. */
       readonly status?: ProviderStatus;
     };
@@ -263,6 +271,7 @@ export async function selectProvider(options: {
         notices,
         provider: resolution.provider,
         remember: resolution.source === 'option' && options.save === true,
+        source: resolution.source,
         status: resolution.status,
       });
     }
@@ -278,6 +287,7 @@ export async function selectProvider(options: {
         notices,
         provider: resolution.provider,
         remember: false,
+        source: 'detected',
         status: resolution.status,
       });
     }
@@ -307,6 +317,7 @@ export async function selectProvider(options: {
         notices,
         provider: picked.provider,
         remember: picked.remember,
+        source: 'picked',
         status: resolution.statuses.find((s) => s.provider.id === picked.provider.id),
       });
     }
@@ -401,6 +412,7 @@ function ready(selection: {
   notices: string[];
   provider: LocalCliProvider;
   remember: boolean;
+  source: SelectionSource;
   status?: ProviderStatus;
 }): Selection {
   const notices = [...selection.notices];
@@ -412,6 +424,7 @@ function ready(selection: {
     notices,
     provider: selection.provider,
     remember: selection.remember,
+    source: selection.source,
     status: selection.status,
   };
 }

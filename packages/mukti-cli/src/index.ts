@@ -23,6 +23,7 @@ import { boot } from './launcher/boot.ts';
 import { createDatabaseSpec, mongoUri } from './launcher/database.ts';
 import { findFreePort, reserveFreePort } from './launcher/net.ts';
 import { runPreflight } from './launcher/preflight.ts';
+import { providerEnv } from './launcher/provider-env.ts';
 import { parseProviderOptions } from './launcher/provider-options.ts';
 import { isInteractive } from './launcher/provider-picker.ts';
 import { writeStoredProvider } from './launcher/provider-settings.ts';
@@ -178,7 +179,9 @@ const webEntry = web.webServerEntry();
 
 const baseEnv: NodeJS.ProcessEnv = {
   ...process.env,
-  AI_PROVIDER: provider.id,
+  // AI_PROVIDER, plus where the saved default lives and how this launch chose,
+  // so Settings can switch provider and keep the choice for later launches.
+  ...providerEnv({ home: home.root, provider, source: selection.source }),
   // agy and Codex run from a directory Mukti owns, never a repository. Its name
   // is also the agy project Mukti's turns are filed under.
   MUKTI_CLI_WORKSPACE: join(home.root, 'mukti-socratic'),

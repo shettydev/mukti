@@ -44,6 +44,7 @@ import { resolveMuktiRoot } from '../packages/mukti-cli/src/home.ts';
 import { runPreflight } from '../packages/mukti-cli/src/launcher/preflight.ts';
 import { isInteractive } from '../packages/mukti-cli/src/launcher/provider-picker.ts';
 import { parseProviderOptions } from '../packages/mukti-cli/src/launcher/provider-options.ts';
+import { providerEnv } from '../packages/mukti-cli/src/launcher/provider-env.ts';
 import { writeStoredProvider } from '../packages/mukti-cli/src/launcher/provider-settings.ts';
 import { selectProviderOrExit } from '../packages/mukti-cli/src/launcher/providers.ts';
 
@@ -171,7 +172,9 @@ const env = {
   // Repo mode leaves MUKTI_CLI_WORKSPACE unset on purpose: agy and Codex must
   // not run from inside this repository (it is a trusted workspace with its own
   // `.agent/` and `AGENTS.md`), so the API's default under ~/.mukti applies.
-  AI_PROVIDER: provider.id,
+  // AI_PROVIDER, plus where the saved default lives (the user-level home, not
+  // the checkout) and how this launch chose, so Settings can switch provider.
+  ...providerEnv({ home: PROVIDER_HOME, provider, source: selection.source }),
   MUKTI_LOCAL: '1',
   // The launcher owns the database; the API connects to this rather than
   // starting one of its own (see core/database/mongo-uri.ts).
