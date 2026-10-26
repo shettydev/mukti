@@ -9,6 +9,7 @@ import {
 import { User, UserSchema } from '../../schemas/user.schema';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { AiController } from './ai.controller';
+import { LocalProviderController } from './local-provider.controller';
 import { ActiveProviderClientFactory } from './services/active-provider-client.factory';
 import { AiKeyResolver } from './services/ai-key-resolver.service';
 import { AiPolicyService } from './services/ai-policy.service';
@@ -17,6 +18,7 @@ import { AiRequestGate } from './services/ai-request-gate.service';
 import { AiSecretsService } from './services/ai-secrets.service';
 import { FreeQuotaService } from './services/free-quota.service';
 import { GeminiClientFactory } from './services/gemini-client.factory';
+import { LocalProviderSwitchService } from './services/local-provider-switch.service';
 import { OpenRouterClientFactory } from './services/openrouter-client.factory';
 import { OpenRouterModelsService } from './services/openrouter-models.service';
 import {
@@ -48,7 +50,7 @@ const aiChatClientFactoryProvider = {
 };
 
 @Module({
-  controllers: [AiController],
+  controllers: [AiController, LocalProviderController],
   exports: [
     AI_CHAT_CLIENT_FACTORY,
     AiKeyResolver,
@@ -78,6 +80,7 @@ const aiChatClientFactoryProvider = {
     AiSecretsService,
     FreeQuotaService,
     GeminiClientFactory,
+    LocalProviderSwitchService,
     OpenRouterClientFactory,
     OpenRouterModelsService,
   ],
