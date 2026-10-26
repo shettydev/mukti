@@ -96,7 +96,8 @@ Mukti responds with a compact sequence:
 ### Choosing the AI CLI
 
 With more than one CLI ready, Mukti asks which to use on the first run and offers to remember it.
-To override:
+Once it is running, you can switch at any time from **Settings → AI CLI**, which shows which CLIs
+are installed and signed in. Nothing restarts. To choose from the command line instead:
 
 ```bash
 npx muktiai --choose                  # ask again
