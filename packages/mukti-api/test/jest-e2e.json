@@ -3,6 +3,8 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
+  "globalSetup": "<rootDir>/cli-stubs.global-setup.ts",
+  "globalTeardown": "<rootDir>/cli-stubs.global-teardown.ts",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
