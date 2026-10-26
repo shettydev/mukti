@@ -112,6 +112,23 @@ describe('LocalCliClientFactory with ClaudeCliAdapter', () => {
     expect(args).not.toContain('--model');
   });
 
+  // A model resolved under another provider (a turn queued before a switch in
+  // Settings) or a hosted fallback id would fail every turn if passed on.
+  it.each(['gpt-6.1', 'openai/gpt-4.1-mini'])(
+    'omits --model %s, which Claude does not offer, so the CLI uses its default',
+    async (model) => {
+      spawnMock.mockReturnValue(
+        fakeChild({ code: 0, stdout: '{"result":"ok"}' }) as never,
+      );
+
+      await factory.create('').chat.send({ ...baseRequest, model });
+
+      const [, args] = spawnMock.mock.calls[0];
+      expect(args).not.toContain('--model');
+      expect((args as string[]).join(' ')).not.toContain(model);
+    },
+  );
+
   it('writes the conversation turns to stdin', async () => {
     spawnMock.mockReturnValue(
       fakeChild({ code: 0, stdout: '{"result":"ok"}' }) as never,
@@ -358,6 +375,32 @@ describe('LocalCliClientFactory adapter-selected mechanics', () => {
     spawnMock.mockReset();
   });
 
+  it('passes no model to an adapter whose catalogue cannot be read yet', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({ code: 0, stdout: 'A question?' }) as never,
+    );
+    const buildArgs = jest.fn((request: AiChatSendRequest) =>
+      request.model ? ['--model', request.model] : [],
+    );
+
+    await new LocalCliClientFactory(
+      stubAdapter({
+        buildArgs,
+        getModels: () => {
+          throw new Error('not warmed');
+        },
+      }),
+    )
+      .create('')
+      .chat.send({
+        messages: [{ content: 'Hi', role: 'user' }],
+        model: 'gemini-3.8-flash-high',
+        responseFormat: undefined,
+      });
+
+    expect(buildArgs.mock.calls[0][0].model).toBe('');
+  });
+
   it('hands the rendered input to buildArgs and writes nothing to stdin for an argument-channel CLI', async () => {
     const child = fakeChild({ code: 0, stdout: 'A question?' });
     spawnMock.mockReturnValue(child as never);
@@ -410,7 +453,12 @@ describe('LocalCliClientFactory adapter-selected mechanics', () => {
       .create('')
       .chat.send(request);
 
-    expect(parseEnvelope).toHaveBeenCalledWith('A question?', request);
+    // The request handed on is the one served: the declared shape intact,
+    // and the model only if this CLI offers it (this stub offers none).
+    expect(parseEnvelope).toHaveBeenCalledWith('A question?', {
+      ...request,
+      model: '',
+    });
   });
 
   // A CLI that loops on its own tools can outlive its own print timeout's
