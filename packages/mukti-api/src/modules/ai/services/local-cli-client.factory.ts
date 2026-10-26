@@ -40,6 +40,39 @@ export class LocalCliClientFactory implements AiChatClientFactory {
     };
   }
 
+  /**
+   * The requested model if this CLI offers it, otherwise `''` so the adapter
+   * omits it and the CLI runs its own default.
+   *
+   * @remarks
+   * A CLI handed a model it does not know fails the turn. That happens when a
+   * model was resolved under one provider and the turn runs under another — a
+   * switch from Settings while a turn was queued — or when a surface falls back
+   * to a hosted model id. Running on the CLI's default is the better failure.
+   * An adapter whose catalogue cannot be read yet is given no model either.
+   */
+  private offeredModel(model: string): string {
+    const requested = model.trim();
+    if (!requested) {
+      return '';
+    }
+
+    let offered: boolean;
+    try {
+      offered = this.adapter.getModels().some((m) => m.id === requested);
+    } catch {
+      offered = false;
+    }
+
+    if (!offered) {
+      this.logger.debug(
+        `${this.adapter.binary} does not offer model "${requested}"; using its default`,
+      );
+      return '';
+    }
+    return requested;
+  }
+
   /** Default input: a labelled transcript of the non-system turns. */
   private renderInput(request: AiChatSendRequest): string {
     if (this.adapter.renderInput) {
@@ -160,14 +193,12 @@ export class LocalCliClientFactory implements AiChatClientFactory {
   }
 
   private async send(request: AiChatSendRequest): Promise<unknown> {
-    const input =
-      this.renderInput(request).trim() || EMPTY_CONVERSATION_KICKOFF;
-    const stdout = await this.run(
-      this.adapter.buildArgs(request, input),
-      input,
-    );
+    const offered = this.offeredModel(request.model);
+    const served = { ...request, model: offered };
+    const input = this.renderInput(served).trim() || EMPTY_CONVERSATION_KICKOFF;
+    const stdout = await this.run(this.adapter.buildArgs(served, input), input);
     const { completionTokens, content, promptTokens } =
-      this.adapter.parseEnvelope(stdout, request);
+      this.adapter.parseEnvelope(stdout, served);
 
     // A zero-exit run that produced no text is a provider failure, not a
     // Socratic answer. Returning it would let an empty assistant message reach

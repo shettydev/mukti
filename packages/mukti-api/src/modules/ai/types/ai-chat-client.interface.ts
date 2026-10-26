@@ -58,8 +58,9 @@ export interface AiChatSendRequest {
 }
 
 /**
- * DI token for the active chat-client factory. Resolved from `AI_PROVIDER`
- * (`openrouter | claude-code | antigravity | codex`, default `openrouter`) in
- * {@link AiModule}.
+ * DI token for the chat-client factory. Starts on `AI_PROVIDER`
+ * (`openrouter | claude-code | antigravity | codex`, default `openrouter`) and,
+ * in local mode, follows a provider switch from Settings: it resolves the
+ * active provider on every `create()` (see {@link AiModule}).
  */
 export const AI_CHAT_CLIENT_FACTORY = Symbol('AI_CHAT_CLIENT_FACTORY');
