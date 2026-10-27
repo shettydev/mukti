@@ -1,6 +1,6 @@
 'use client';
 
-import { Cpu, Loader2, RefreshCw } from 'lucide-react';
+import { Check, Loader2, RefreshCw, SquareTerminal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import type { LocalProvider, LocalProviderReadiness } from '@/lib/api/ai';
@@ -47,7 +47,7 @@ export function LocalProviderSection() {
       <div className="mb-4 flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-japandi-indigo/15">
-            <Cpu className="h-4 w-4 text-japandi-indigo" />
+            <SquareTerminal className="h-4 w-4 text-japandi-indigo" />
           </div>
           <h2 className="text-japandi-label text-japandi-stone" id="ai-provider-heading">
             AI CLI
@@ -157,39 +157,62 @@ function ProviderRow({
 
   return (
     <li
+      aria-current={provider.active ? 'true' : undefined}
       className={cn(
         'flex flex-col gap-3 rounded-lg border px-4 py-3 transition-colors duration-200 sm:flex-row sm:items-center',
         provider.active
-          ? 'border-japandi-sage/40 bg-japandi-sage/8'
+          ? 'border-japandi-sage bg-japandi-sage/10'
           : 'border-japandi-sand/40 bg-transparent',
         !ready && 'opacity-80'
       )}
       data-testid={`provider-row-${provider.id}`}
     >
       <div className="flex min-w-0 flex-1 items-start gap-3">
+        {/* Radio-style selection mark, matching the technique selector:
+            filled sage with a check for the CLI in use, an empty ring otherwise. */}
         <span
           aria-hidden
           className={cn(
-            'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-            ready ? 'bg-japandi-sage' : 'bg-japandi-sand'
+            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors duration-200',
+            provider.active
+              ? 'border-japandi-sage bg-japandi-sage text-white dark:text-japandi-cream'
+              : 'border-japandi-sand'
           )}
-        />
+        >
+          {provider.active && <Check className="h-3 w-3" strokeWidth={3} />}
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-sm font-medium text-japandi-stone">{provider.label}</span>
+            <span
+              className={cn(
+                'text-sm text-japandi-stone',
+                provider.active ? 'font-semibold' : 'font-medium'
+              )}
+            >
+              {provider.label}
+            </span>
             {provider.active && (
-              <span className="rounded-full bg-japandi-sage/15 px-2 py-0.5 text-[11px] font-medium text-japandi-sage">
+              <span className="rounded-full border border-japandi-sage/40 bg-japandi-sage/15 px-2 py-0.5 text-[11px] font-medium text-japandi-sage">
                 Active
               </span>
             )}
             {isDefault && (
-              <span className="rounded-full bg-japandi-indigo/10 px-2 py-0.5 text-[11px] font-medium text-japandi-indigo">
+              <span className="rounded-full border border-japandi-indigo/30 bg-japandi-indigo/10 px-2 py-0.5 text-[11px] font-medium text-japandi-indigo">
                 Default
               </span>
             )}
-            <span className="text-xs text-japandi-stone/50">
-              {READINESS_LABEL[provider.readiness]}
-              {provider.version ? ` · ${provider.version}` : ''}
+            <span className="inline-flex items-center gap-1.5 text-xs text-japandi-stone/50">
+              <span
+                aria-hidden
+                className={cn(
+                  'h-1.5 w-1.5 shrink-0 rounded-full',
+                  ready ? 'bg-japandi-sage' : 'bg-japandi-terracotta/70'
+                )}
+              />
+              <span>
+                {READINESS_LABEL[provider.readiness]}
+                {provider.version ? ` · ${provider.version}` : ''}
+              </span>
             </span>
           </div>
           <p className="mt-0.5 text-xs text-japandi-stone/50">{provider.tradeOff}</p>

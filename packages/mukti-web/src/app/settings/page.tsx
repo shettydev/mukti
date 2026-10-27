@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Key, RefreshCw, Sparkles, Trash2, Zap } from 'lucide-react';
+import { BrainCircuit, CheckCircle2, Key, RefreshCw, Trash2, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { ModelSelector } from '@/components/ai/model-selector';
@@ -73,7 +73,7 @@ function SettingsContent() {
           <section>
             <div className="mb-4 flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-japandi-sage/15">
-                <Sparkles className="h-4 w-4 text-japandi-sage" />
+                <BrainCircuit className="h-4 w-4 text-japandi-sage" />
               </div>
               <div>
                 <h2 className="text-japandi-label text-japandi-stone">Active Model</h2>
