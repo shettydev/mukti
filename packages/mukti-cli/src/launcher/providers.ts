@@ -1,74 +1,57 @@
 /**
- * The local AI CLIs the launcher can run Mukti on, and how it picks one.
+ * How the launcher picks which local AI CLI to run Mukti on.
  *
  * @remarks
  * Mukti's local runtime borrows an AI CLI the developer has already installed
- * and signed in to, so nobody needs an API key. Each CLI answers "is it
- * installed?" and "is it signed in?" differently — Antigravity has no auth
- * subcommand at all, Codex reports sign-in only through its exit code — so each
- * provider carries its own probes and its own remediation. Neither probe may
- * spend model tokens: it runs on every launch.
+ * and signed in to, so nobody needs an API key. What each CLI is called, what
+ * it costs and how it is probed without spending tokens lives in the API's
+ * shared provider catalogue, which the API also uses to report readiness and
+ * switch provider from Settings, so the terminal and the web app say the same
+ * thing. This module keeps only the launcher's part: deciding, reporting and
+ * asking.
  *
  * Resolution is pure and injectable; `selectProvider` is the thin layer that
  * prints the outcome and exits when there is nothing usable.
  */
 import { log } from '@clack/prompts';
-import { spawn } from 'node:child_process';
 
+import type {
+  LocalCliProvider,
+  ProviderStatus,
+  RunCommand,
+} from '../../../mukti-api/src/modules/ai/local-cli/provider-catalog.ts';
 import type { PickedProvider } from './provider-picker.ts';
 
+import {
+  probeProvider,
+  PROVIDER_NAMES,
+  providerById,
+  scanProviders,
+  SUPPORTED_PROVIDERS,
+} from '../../../mukti-api/src/modules/ai/local-cli/provider-catalog.ts';
+import { runCommand } from '../../../mukti-api/src/modules/ai/local-cli/run-command.ts';
 import { pickProvider } from './provider-picker.ts';
 import { readStoredProvider } from './provider-settings.ts';
 
-export interface CommandResult {
-  readonly error?: Error;
-  readonly status: null | number;
-  readonly stderr: string;
-  readonly stdout: string;
-}
+export type {
+  CommandResult,
+  LocalCliProvider,
+  LocalCliId as LocalCliProviderId,
+  ProviderReadiness,
+  ProviderStatus,
+  RunCommand,
+} from '../../../mukti-api/src/modules/ai/local-cli/provider-catalog.ts';
+export {
+  probeProvider,
+  PROVIDER_NAMES,
+  providerById,
+  scanProviders,
+  SUPPORTED_PROVIDERS,
+} from '../../../mukti-api/src/modules/ai/local-cli/provider-catalog.ts';
+export { runCommand } from '../../../mukti-api/src/modules/ai/local-cli/run-command.ts';
 
 /** Where an explicitly named provider came from. */
 export type ExplicitSource = 'env' | 'option';
-
-export interface LocalCliProvider {
-  /**
-   * Names this provider used to answer to. Still accepted from `--provider`,
-   * `AI_PROVIDER` and a saved default, so commands and config files written
-   * before the providers were named after their commands keep working.
-   */
-  readonly aliases: readonly string[];
-  /** Executable looked up on PATH. */
-  readonly binary: string;
-  /**
-   * Shown when the provider is selected: what it costs the user and what it
-   * leaves on their machine, told before they discover it.
-   */
-  readonly disclosure?: string;
-  /**
-   * The `AI_PROVIDER` value, and what `--provider` takes: the command the CLI
-   * runs as, which is the name its users already know it by.
-   */
-  readonly id: LocalCliProviderId;
-  readonly installRemediation: string;
-  /** Signed in and usable. Must not consume model tokens. */
-  isAuthenticated(run: RunCommand): Promise<boolean>;
-  /** Human name, e.g. for "Preflight passed — Antigravity CLI 1.1.22". */
-  readonly label: string;
-  readonly signInRemediation: string;
-  /**
-   * One line on what this provider costs per reply, shown beside it when the
-   * user is choosing. Kept next to the fuller {@link LocalCliProvider.disclosure}
-   * so the two cannot drift.
-   */
-  readonly tradeOff: string;
-  /** Installed version, or `undefined` when the CLI cannot be run. */
-  version(run: RunCommand): Promise<string | undefined>;
-}
-
-export type LocalCliProviderId = 'agy' | 'claude' | 'codex';
-
-/** How usable a provider is on this machine. */
-export type ProviderReadiness = 'missing' | 'ready' | 'signed-out';
 
 export type ProviderResolution =
   | {
@@ -112,113 +95,14 @@ export type ProviderResolution =
 /** Where the chosen provider came from. */
 export type ProviderSource = 'env' | 'option' | 'saved';
 
-export interface ProviderStatus {
-  readonly provider: LocalCliProvider;
-  readonly readiness: ProviderReadiness;
-  /** The CLI's reported version, when it is installed. */
-  readonly version?: string;
-}
-
 /**
- * Runs a command to completion. Injected so probes can be tested, and
- * asynchronous so several providers can be probed at once — agy's sign-in check
- * alone takes 5-7 seconds.
+ * How this launch's provider was decided, as told to the API so Settings can
+ * explain how a saved default will interact with the next launch.
  */
-export type RunCommand = (command: string, args: readonly string[]) => Promise<CommandResult>;
+export type SelectionSource = 'detected' | 'picked' | ProviderSource;
 
 /** The hosted provider. Meaningless to a launcher that always runs a local CLI. */
 const HOSTED_PROVIDER = 'openrouter';
-
-/** Long enough for agy's model listing, short enough to not hang a launch. */
-const PROBE_TIMEOUT_MS = 30_000;
-
-async function versionOf(run: RunCommand, binary: string): Promise<string | undefined> {
-  const result = await run(binary, ['--version']);
-  if (result.error || result.status !== 0) {
-    return undefined;
-  }
-  return result.stdout.trim() || 'unknown version';
-}
-
-const CLAUDE_CODE: LocalCliProvider = {
-  aliases: ['claude-code'],
-  binary: 'claude',
-  id: 'claude',
-  installRemediation: 'Install Claude Code: https://docs.claude.com/en/docs/claude-code/overview',
-  async isAuthenticated(run) {
-    const status = await run('claude', ['auth', 'status']);
-    try {
-      return (JSON.parse(status.stdout) as { loggedIn?: boolean }).loggedIn === true;
-    } catch {
-      return false;
-    }
-  },
-  label: 'Claude CLI',
-  signInRemediation: 'Run `claude login` and try again.',
-  tradeOff: 'about 13-20 seconds per reply',
-  version: (run) => versionOf(run, 'claude'),
-};
-
-/**
- * Measured on codex-cli 0.163.0 (add-codex-cli-provider design.md): 7-12s and
- * about 2.4-4.5k input tokens per reply, depending on the model.
- */
-const CODEX: LocalCliProvider = {
-  aliases: [],
-  binary: 'codex',
-  disclosure: [
-    'Codex runs read-only with its tools switched off, from a folder Mukti owns, and keeps no',
-    'session history of Mukti replies. Your Codex settings (config.toml, MCP servers) do not',
-    'apply, apart from your default model. Your global ~/.codex/AGENTS.md does apply: Codex',
-    'offers no way to leave it out, and a rule in it can change what a reply says.',
-  ].join('\n'),
-  id: 'codex',
-  installRemediation: 'Install the Codex CLI: https://developers.openai.com/codex/cli',
-  // `codex login status` exits 0 when signed in and 1 when not, prints to
-  // stderr either way, and runs no model.
-  isAuthenticated: async (run) => (await run('codex', ['login', 'status'])).status === 0,
-  label: 'Codex CLI',
-  signInRemediation: 'Run `codex login` and try again.',
-  tradeOff: 'about 8-12 seconds per reply',
-  version: (run) => versionOf(run, 'codex'),
-};
-
-const ANTIGRAVITY: LocalCliProvider = {
-  aliases: ['antigravity'],
-  binary: 'agy',
-  // Measured end to end on agy 1.1.22 (design.md Decisions 12–13).
-  disclosure: [
-    'Antigravity is slower and heavier than Claude Code here: expect roughly 15–25k input tokens',
-    'and 30–60 seconds per reply, billed to your own Antigravity subscription.',
-    'Every reply is also kept in your Antigravity history (~/.gemini/antigravity-cli), filed',
-    'under a "mukti-socratic" project, at about 1 MB per reply. Mukti never deletes it.',
-    'Your global agy rules and hooks (~/.gemini/config) also apply, and can change the replies.',
-  ].join('\n'),
-  id: 'agy',
-  installRemediation:
-    'Install the Antigravity CLI (`agy`): https://antigravity.google/docs/cli/reference',
-  // agy has no auth subcommand. Listing models needs a valid session and runs
-  // no model, so a non-zero exit is a free "not signed in".
-  isAuthenticated: async (run) => (await run('agy', ['models'])).status === 0,
-  label: 'Antigravity CLI',
-  signInRemediation: 'Run `agy` once and follow the prompts to sign in, then try again.',
-  tradeOff: 'about 30-60 seconds and 15-25k tokens per reply',
-  version: (run) => versionOf(run, 'agy'),
-};
-
-/**
- * In detection order: the cheaper, faster providers first. Claude Code stays
- * first so that machines which already resolved to it keep doing so; Codex is
- * measured at Claude-like cost and latency; Antigravity costs several times
- * either.
- */
-export const SUPPORTED_PROVIDERS: readonly LocalCliProvider[] = [CLAUDE_CODE, CODEX, ANTIGRAVITY];
-
-/** Every name a supported provider answers to, current and former. */
-export const PROVIDER_NAMES: readonly string[] = SUPPORTED_PROVIDERS.flatMap((provider) => [
-  provider.id,
-  ...provider.aliases,
-]);
 
 export const NO_PROVIDER_REMEDIATION = [
   'Mukti runs on an AI CLI you have installed and signed in to. Install one of:',
@@ -226,40 +110,6 @@ export const NO_PROVIDER_REMEDIATION = [
     (p) => `  • ${p.installRemediation}\n    then start Mukti with --provider ${p.id}`
   ),
 ].join('\n');
-
-/**
- * Runs a probe with stdin closed. `agy` waits on an open stdin, so a probe with
- * a pipe attached would hang until killed.
- */
-export const runCommand: RunCommand = (command, args) =>
-  new Promise((resolve) => {
-    let child: ReturnType<typeof spawn>;
-    let stdout = '';
-    let stderr = '';
-
-    try {
-      child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    } catch (error) {
-      resolve({ error: error as Error, status: null, stderr: '', stdout: '' });
-      return;
-    }
-
-    const deadline = setTimeout(() => {
-      stderr += `\n${command} did not finish within ${PROBE_TIMEOUT_MS / 1000}s`;
-      child.kill('SIGTERM');
-    }, PROBE_TIMEOUT_MS);
-
-    child.stdout?.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
-    child.stderr?.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
-    child.on('error', (error) => {
-      clearTimeout(deadline);
-      resolve({ error, status: null, stderr, stdout });
-    });
-    child.on('close', (status) => {
-      clearTimeout(deadline);
-      resolve({ status, stderr, stdout });
-    });
-  });
 
 export type Selection =
   | {
@@ -274,6 +124,8 @@ export type Selection =
       readonly provider: LocalCliProvider;
       /** Save this provider as the default — after preflight passes. */
       readonly remember: boolean;
+      /** How the provider was decided. */
+      readonly source: SelectionSource;
       /** Readiness already established, for preflight to reuse. */
       readonly status?: ProviderStatus;
     };
@@ -285,28 +137,6 @@ export function describeUnsupportedProvider(options: {
   const origin = options.source === 'option' ? '--provider' : 'AI_PROVIDER';
   const ids = SUPPORTED_PROVIDERS.map((p) => p.id).join(', ');
   return `${origin} is "${options.value}", which is not a supported local AI CLI. Use one of: ${ids}.`;
-}
-
-/** How usable a provider is, from its own two probes. */
-export async function probeProvider(
-  provider: LocalCliProvider,
-  run: RunCommand
-): Promise<ProviderStatus> {
-  const version = await provider.version(run);
-  if (version === undefined) {
-    return { provider, readiness: 'missing' };
-  }
-  // Only ask an installed CLI about sign-in: for agy that is the slow probe.
-  const signedIn = await provider.isAuthenticated(run);
-  return { provider, readiness: signedIn ? 'ready' : 'signed-out', version };
-}
-
-/**
- * The provider a `--provider` or `AI_PROVIDER` value names: its id, or one of
- * the names it used to go by.
- */
-export function providerById(id: string): LocalCliProvider | undefined {
-  return SUPPORTED_PROVIDERS.find((p) => p.id === id || p.aliases.includes(id));
 }
 
 /**
@@ -399,17 +229,6 @@ export async function resolveProvider(options: {
 }
 
 /**
- * How usable every supported provider is, probed concurrently so the scan costs
- * the slowest CLI rather than the sum of them.
- */
-export function scanProviders(
-  run: RunCommand,
-  providers: readonly LocalCliProvider[] = SUPPORTED_PROVIDERS
-): Promise<readonly ProviderStatus[]> {
-  return Promise.all(providers.map((provider) => probeProvider(provider, run)));
-}
-
-/**
  * Chooses the provider for this launch and says where the choice came from.
  *
  * @remarks
@@ -452,6 +271,7 @@ export async function selectProvider(options: {
         notices,
         provider: resolution.provider,
         remember: resolution.source === 'option' && options.save === true,
+        source: resolution.source,
         status: resolution.status,
       });
     }
@@ -467,6 +287,7 @@ export async function selectProvider(options: {
         notices,
         provider: resolution.provider,
         remember: false,
+        source: 'detected',
         status: resolution.status,
       });
     }
@@ -496,6 +317,7 @@ export async function selectProvider(options: {
         notices,
         provider: picked.provider,
         remember: picked.remember,
+        source: 'picked',
         status: resolution.statuses.find((s) => s.provider.id === picked.provider.id),
       });
     }
@@ -590,6 +412,7 @@ function ready(selection: {
   notices: string[];
   provider: LocalCliProvider;
   remember: boolean;
+  source: SelectionSource;
   status?: ProviderStatus;
 }): Selection {
   const notices = [...selection.notices];
@@ -601,6 +424,7 @@ function ready(selection: {
     notices,
     provider: selection.provider,
     remember: selection.remember,
+    source: selection.source,
     status: selection.status,
   };
 }

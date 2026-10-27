@@ -4,6 +4,7 @@ import { mkdtempSync, realpathSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
+import { SUPPORTED_PROVIDERS } from '../../local-cli/provider-catalog';
 import { AntigravityCliAdapter } from '../adapters/antigravity-cli.adapter';
 import { ClaudeCliAdapter } from '../adapters/claude-cli.adapter';
 import { CodexCliAdapter } from '../adapters/codex-cli.adapter';
@@ -166,5 +167,68 @@ describe('AiProviderRegistry', () => {
     await expect(
       registry({ AI_PROVIDER: 'antigravity' }).onModuleInit(),
     ).rejects.toThrow('agy models exited with code 1');
+  });
+
+  describe('switching between local CLIs at runtime', () => {
+    it('makes another local CLI active for every reader', () => {
+      const r = registry({ AI_PROVIDER: 'claude' });
+
+      r.setActiveLocalCli('codex');
+
+      expect(r.getProviderId()).toBe('codex');
+      expect(r.getActiveLocalCliAdapter()).toBeInstanceOf(CodexCliAdapter);
+      expect(r.isLocalCliProvider()).toBe(true);
+    });
+
+    it('never moves a hosted deployment onto a local CLI', () => {
+      const r = registry({});
+
+      expect(() => r.setActiveLocalCli('codex')).toThrow(/not a local CLI/);
+      expect(r.getProviderId()).toBe('openrouter');
+    });
+
+    it('refuses an id with no registered adapter and stays put', () => {
+      const r = registry({ AI_PROVIDER: 'claude' });
+
+      expect(() => r.setActiveLocalCli('gemini-cli' as never)).toThrow(
+        /No local CLI adapter/,
+      );
+      expect(r.getProviderId()).toBe('claude-code');
+    });
+
+    it('looks up any registered adapter, active or not', () => {
+      const r = registry({ AI_PROVIDER: 'claude' });
+
+      expect(r.getLocalCliAdapter('antigravity')).toBeInstanceOf(
+        AntigravityCliAdapter,
+      );
+      expect(r.getLocalCliAdapter('openrouter')).toBeUndefined();
+    });
+  });
+
+  // The launcher and Settings name CLIs by the shared catalogue; the API runs
+  // them through adapters. A CLI present in one but not the other would be
+  // offered and then fail, or run and never be offered.
+  it('has exactly one adapter for every CLI in the shared catalogue', () => {
+    const r = registry({ AI_PROVIDER: 'claude' });
+    const adapterIds = r
+      .getLocalCliAdapters()
+      .map((a) => a.providerId)
+      .sort();
+
+    expect(SUPPORTED_PROVIDERS.map((p) => p.adapterId).sort()).toEqual(
+      adapterIds,
+    );
+    for (const provider of SUPPORTED_PROVIDERS) {
+      expect(r.getLocalCliAdapter(provider.adapterId)?.binary).toBe(
+        provider.binary,
+      );
+      // Every name the launcher accepts reaches the same adapter here.
+      for (const name of [provider.id, ...provider.aliases]) {
+        expect(registry({ AI_PROVIDER: name }).getProviderId()).toBe(
+          provider.adapterId,
+        );
+      }
+    }
   });
 });

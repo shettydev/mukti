@@ -88,6 +88,7 @@ test('a named provider is used, reported as such, and not saved', async () => {
   assert.equal(selection.kind, 'ready');
   assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.equal(selection.kind === 'ready' && selection.remember, false);
+  assert.equal(selection.kind === 'ready' && selection.source, 'option');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /--provider/);
 });
 
@@ -105,6 +106,7 @@ test('AI_PROVIDER is reported as the source', async () => {
   const selection = await select({});
 
   assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
+  assert.equal(selection.kind === 'ready' && selection.source, 'env');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /AI_PROVIDER/);
 });
 
@@ -124,6 +126,7 @@ test('a saved default is used, and the report says how to change it', async () =
 
   assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.equal(selection.kind === 'ready' && selection.status?.readiness, 'ready');
+  assert.equal(selection.kind === 'ready' && selection.source, 'saved');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /--choose/);
 });
 
@@ -155,6 +158,7 @@ test('a pick that is kept is remembered', async () => {
 
   assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
   assert.equal(selection.kind === 'ready' && selection.remember, true);
+  assert.equal(selection.kind === 'ready' && selection.source, 'picked');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /chosen just now/);
 });
 
@@ -162,6 +166,7 @@ test('the only ready CLI is used and reported as the only one', async () => {
   const selection = await select({ answers: ONLY_AGY_READY });
 
   assert.equal(selection.kind === 'ready' && selection.provider.id, 'agy');
+  assert.equal(selection.kind === 'ready' && selection.source, 'detected');
   assert.match(selection.kind === 'ready' ? selection.notices.join('\n') : '', /only/i);
 });
 

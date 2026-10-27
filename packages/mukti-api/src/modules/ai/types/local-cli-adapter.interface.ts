@@ -7,12 +7,16 @@
  * headless/print mode, write a transcript to stdin, parse a JSON envelope off
  * stdout — while differing in flags, envelope field names, and model catalogue.
  * {@link LocalCliClientFactory} owns the shared mechanics; an adapter supplies
- * only the differences, so adding a CLI is one file plus a registry entry rather
- * than a change to policy, controllers, or the launcher.
+ * only the differences, so adding a CLI is one file, a registry entry and an
+ * entry in the shared provider catalogue (`local-cli/provider-catalog.ts`)
+ * rather than a change to policy, controllers, or the launcher.
  *
- * Launch-time availability and authentication checks are deliberately absent:
- * they belong to the launcher, which runs before the API exists. The API
- * discovers an unauthenticated CLI at request time, as a {@link LocalCliError}.
+ * Availability and authentication checks are deliberately not part of this
+ * contract: they live in the shared provider catalogue, as token-free probes.
+ * The launcher runs them before the API exists, and the API runs the same ones
+ * on demand to report readiness in Settings and to vet a switch
+ * (`LocalProviderSwitchService`). An adapter never probes; a CLI that signs out
+ * mid-session is still discovered at request time, as a {@link LocalCliError}.
  */
 import type { AiChatSendRequest } from './ai-chat-client.interface';
 import type { AllowedModel } from './ai-model.interface';

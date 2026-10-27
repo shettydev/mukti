@@ -100,10 +100,11 @@ export function ModelSelector({
                   <button
                     aria-selected={isSelected}
                     className={cn(
-                      'flex w-full items-start gap-3 border-b p-3 text-left transition-colors last:border-b-0',
-                      'hover:bg-accent hover:text-accent-foreground',
-                      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                      isSelected && 'bg-primary/5'
+                      'flex w-full items-start gap-3 border-b border-l-2 border-l-transparent p-3 text-left transition-colors last:border-b-0',
+                      'hover:bg-japandi-light-stone/70',
+                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-japandi-sage/50 focus-visible:ring-inset',
+                      isSelected &&
+                        'border-l-japandi-sage bg-japandi-sage/10 hover:bg-japandi-sage/15'
                     )}
                     key={m.id}
                     onClick={() => handleSelect(m.id)}
@@ -114,14 +115,21 @@ export function ModelSelector({
                       className={cn(
                         'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
                         isSelected
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-muted'
+                          ? 'border-japandi-sage bg-japandi-sage text-white dark:text-japandi-cream'
+                          : 'border-japandi-sand'
                       )}
                     >
-                      {isSelected && <Check className="h-3 w-3" />}
+                      {isSelected && <Check className="h-3 w-3" strokeWidth={3} />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium leading-none">{m.label}</p>
+                      <p
+                        className={cn(
+                          'truncate text-sm leading-none',
+                          isSelected ? 'font-semibold' : 'font-medium'
+                        )}
+                      >
+                        {m.label}
+                      </p>
                       <p className="truncate text-xs text-muted-foreground">{m.id}</p>
                     </div>
                   </button>

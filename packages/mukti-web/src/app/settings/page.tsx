@@ -1,11 +1,12 @@
 'use client';
 
-import { CheckCircle2, Key, RefreshCw, Sparkles, Trash2, Zap } from 'lucide-react';
+import { Atom, CheckCircle2, Key, RefreshCw, Trash2, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { ModelSelector } from '@/components/ai/model-selector';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { LocalProviderSection } from '@/components/settings/local-provider-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { isLocalMode } from '@/lib/config';
@@ -55,17 +56,24 @@ function SettingsContent() {
             Configuration
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-japandi-stone/60">
-            Manage your AI model preferences and API credentials.
+            {isLocalMode()
+              ? 'Choose which AI CLI and model power your Socratic sessions.'
+              : 'Manage your AI model preferences and API credentials.'}
           </p>
           <div className="mt-4 h-px bg-gradient-to-r from-japandi-sand via-japandi-terracotta/30 to-transparent" />
         </div>
 
         <div className="space-y-10">
+          {/* ── AI CLI ── */}
+          {/* Local mode only: which installed AI CLI (Claude Code, Codex or
+              Antigravity) Mukti runs on, switchable without a restart. */}
+          {isLocalMode() && <LocalProviderSection />}
+
           {/* ── Active Model ── */}
           <section>
             <div className="mb-4 flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-japandi-sage/15">
-                <Sparkles className="h-4 w-4 text-japandi-sage" />
+                <Atom className="h-4 w-4 text-japandi-sage" />
               </div>
               <div>
                 <h2 className="text-japandi-label text-japandi-stone">Active Model</h2>
@@ -121,8 +129,8 @@ function SettingsContent() {
           </section>
 
           {/* ── OpenRouter API Key ── */}
-          {/* Hidden in local mode: AI runs on the developer's own AI CLI auth
-              (Claude Code, Codex or Antigravity), so there is no BYOK key to manage. */}
+          {/* Hidden in local mode: AI runs on the developer's own AI CLI auth,
+              chosen in the AI CLI section above, so there is no BYOK key to manage. */}
           {!isLocalMode() && (
             <section>
               <div className="mb-4 flex items-center gap-2.5">

@@ -674,7 +674,20 @@ export class BranchSuggestionService extends WorkerHost {
     return `${mapId}:${parentNodeId}`;
   }
 
+  /**
+   * The model this job runs on.
+   *
+   * @remarks
+   * Under a local CLI the model was resolved when the job was queued, possibly
+   * under a provider that has since been switched away from in Settings, so it
+   * is resolved again against the active CLI rather than rejected: a queued job
+   * should run on what is active now, not fail for a model it can no longer use.
+   */
   private validateEffectiveModel(model: string, usedByok: boolean): string {
+    if (this.aiPolicyService.isLocalCliProvider()) {
+      return this.aiPolicyService.resolveLocalCliModel(model.trim());
+    }
+
     const trimmed = model.trim();
     if (!trimmed) {
       throw new Error('Model is required');

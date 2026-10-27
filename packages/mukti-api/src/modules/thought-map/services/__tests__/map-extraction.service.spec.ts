@@ -52,6 +52,8 @@ describe('MapExtractionService', () => {
 
   const mockAiPolicyService = {
     getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
+    isLocalCliProvider: jest.fn().mockReturnValue(false),
+    resolveLocalCliModel: jest.fn(),
   };
 
   const mockSend = jest.fn();
@@ -301,6 +303,20 @@ describe('MapExtractionService', () => {
       expect(
         (service as any).validateEffectiveModel('allowed-model', false),
       ).toBe('allowed-model');
+    });
+
+    // A job queued before a provider switch in Settings carries the old
+    // provider's model; it runs on the active CLI's model instead of failing.
+    it('resolves a model from another provider under a local CLI instead of rejecting it', () => {
+      mockAiPolicyService.isLocalCliProvider.mockReturnValueOnce(true);
+      mockAiPolicyService.resolveLocalCliModel.mockReturnValueOnce('gpt-6.1');
+
+      expect((service as any).validateEffectiveModel(' opus ', false)).toBe(
+        'gpt-6.1',
+      );
+      expect(mockAiPolicyService.resolveLocalCliModel).toHaveBeenCalledWith(
+        'opus',
+      );
     });
 
     it('persists draft maps with stable node ids and layout defaults', async () => {

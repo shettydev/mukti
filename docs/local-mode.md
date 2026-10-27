@@ -64,6 +64,30 @@ choice is used whether you run from a checkout or through `npx`. Delete that fil
 Without a terminal — piped output, or CI — Mukti never asks: it uses the first ready CLI and tells
 you how to choose another.
 
+### Switching from Settings
+
+Once Mukti is running, open **Settings**. The **AI CLI** section lists every supported CLI as
+ready, signed out or not installed, with its version and what it costs per reply. A CLI that cannot
+be used shows how to fix that (`codex login`, an install link). Sign in or install in a terminal,
+then press **Re-check**. Checking never runs a model, so it costs no tokens.
+
+Choose **Use** on a ready CLI to switch to it. Nothing restarts. Before switching, Mukti checks the
+CLI is still signed in and prepares it, which means loading its models and, for Codex, confirming
+it accepts Mukti's locked-down settings. This takes about a second for Claude Code and Codex and
+10 to 15 seconds for Antigravity. If any step fails, you stay on the CLI you were using and Settings
+says why. Replies already being written finish on the old CLI, and new ones use the new one. Your
+model picker, in Settings and in the chat header, switches to the new CLI's models straight away.
+Your model choice is kept as it was: if you switch to Codex without picking a Codex model and then
+switch back, you are on the Claude model you had before.
+
+**Use as default for future launches** is ticked by default. It writes the same
+`~/.mukti/config.json` as `--save` and the launcher's picker, so the next plain `npx muktiai`
+starts on that CLI. Two things still take precedence over it, as they do for any saved choice:
+`--provider` and `AI_PROVIDER`. If this launch used one of them, Settings says so.
+
+Switching is only available in local mode, and only between local CLIs. The hosted app is
+unaffected.
+
 ## Comparing the AI CLIs
 
 They are not equivalent, and the difference is worth knowing before you choose:

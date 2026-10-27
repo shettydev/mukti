@@ -1,0 +1,3 @@
+# Module-format marker only ('type: module' so the launcher can load the shared
+# provider catalogue as ESM source). Not a project: its sources belong to mukti-api.
+packages/mukti-api/src/modules/ai/local-cli/package.json
