@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import Script from 'next/script';
 
 import './globals.css';
-import './japandi.css';
 import { Providers } from '@/app/providers';
 import { ThemeProvider } from '@/components/old-landing/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -22,26 +21,35 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   authors: [{ name: 'Prathik Shetty' }],
   description:
-    'Break free from cognitive dependency with Mukti, your AI mentor that uses the Socratic method to guide you toward your own insights and rediscover independent thinking.',
+    'Mukti is an open-source Socratic thinking workspace: an AI that answers your questions with better questions. Run it locally with npx muktiai on your Claude Code, Codex or Antigravity subscription.',
   icons: {
     icon: [
       { media: '(prefers-color-scheme: light)', url: '/mukti-enso-inverted/mukti-enso-no-bg.png' },
       { media: '(prefers-color-scheme: dark)', url: '/mukti-enso/mukti-inverted-enso-no-bg.png' },
     ],
   },
-  keywords: ['AI', 'Socratic method', 'cognitive independence', 'critical thinking', 'learning'],
+  keywords: [
+    'AI',
+    'Socratic method',
+    'cognitive independence',
+    'critical thinking',
+    'learning',
+    'open source',
+    'Claude Code',
+    'Codex',
+  ],
   openGraph: {
     description:
-      'Think for yourself, not through AI. Mukti guides you toward your own insights using the Socratic method.',
-    title: 'Mukti - Liberation from AI Dependency',
+      'An AI that answers your questions with better questions. Open source, runs locally with npx muktiai.',
+    title: 'Mukti — An AI that answers your questions with better questions',
     type: 'website',
   },
   title: 'mukti',
   twitter: {
     card: 'summary_large_image',
     description:
-      'Think for yourself, not through AI. Mukti guides you toward your own insights using the Socratic method.',
-    title: 'Mukti - Liberation from AI Dependency',
+      'An AI that answers your questions with better questions. Open source, runs locally with npx muktiai.',
+    title: 'Mukti — An AI that answers your questions with better questions',
   },
 };
 

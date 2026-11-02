@@ -129,7 +129,10 @@ export default function LandingProcess() {
                 whileInView={{ opacity: 1, y: 0 }}
               >
                 <div
-                  className={cn('hidden md:block w-1/2 text-right', index % 2 !== 0 && 'text-left')}
+                  className={cn(
+                    'hidden md:block md:flex-1 md:basis-0 text-right',
+                    index % 2 !== 0 && 'text-left'
+                  )}
                 >
                   <span className="text-japandi-sage text-sm uppercase tracking-widest font-medium">
                     Step {step.step}
@@ -140,7 +143,12 @@ export default function LandingProcess() {
                   {step.icon}
                 </div>
 
-                <div className="flex-1 md:w-1/2 pt-2 md:pt-0">
+                <div
+                  className={cn(
+                    'flex-1 md:basis-0 pt-2 md:pt-0',
+                    index % 2 !== 0 && 'md:text-right'
+                  )}
+                >
                   <div className="md:hidden mb-2">
                     <span className="text-japandi-sage text-xs uppercase tracking-widest font-medium">
                       Step {step.step}

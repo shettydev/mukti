@@ -5,8 +5,10 @@ import { redirect } from 'next/navigation';
 import LandingCTA from '@/components/landing/landing-cta';
 import LandingDemo from '@/components/landing/landing-demo';
 import LandingFaq from '@/components/landing/landing-faq';
+import LandingFeatures from '@/components/landing/landing-features';
 import LandingFooter from '@/components/landing/landing-footer';
 import LandingHero from '@/components/landing/landing-hero';
+import LandingLocal from '@/components/landing/landing-local';
 import LandingNav from '@/components/landing/landing-nav';
 import LandingPhilosophy from '@/components/landing/landing-philosophy';
 import LandingPillars from '@/components/landing/landing-pillars';
@@ -26,6 +28,8 @@ export default function Home() {
       <LandingNav />
       <LandingHero />
       <LandingDemo />
+      <LandingLocal />
+      <LandingFeatures />
       <LandingPhilosophy />
       <LandingPillars />
       <LandingProcess />
