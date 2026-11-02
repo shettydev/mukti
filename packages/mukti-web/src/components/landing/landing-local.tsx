@@ -25,8 +25,9 @@ const steps = [
     description: (
       <>
         One command, Node 20.11 or newer. The first run downloads an embedded database once, so it
-        takes a little longer. With more than one CLI ready, Mukti asks which to use; run{' '}
-        <code className="font-mono text-sm">npx muktiai --choose</code> to pick again.
+        takes a little longer. With more than one CLI ready, Mukti asks which to use. Switch any
+        time from Settings → AI CLI, with no restart, or run{' '}
+        <code className="font-mono text-sm">npx muktiai --choose</code>.
       </>
     ),
     id: '02',
