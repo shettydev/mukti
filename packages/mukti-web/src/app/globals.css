@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+/* Imported here, not from layout.tsx, so Tailwind sees its @theme block and
+   generates the japandi-* colour utilities (bg-japandi-cream, text-japandi-stone, ...). */
+@import './japandi.css';
 
 @custom-variant dark (&:is(.dark *));
 
