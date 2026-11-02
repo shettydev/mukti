@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 
+import { GITHUB_URL } from './constants';
+
 export default function LandingFooter() {
   return (
     <footer className="w-full px-5 xs:px-6 py-10 sm:py-12 md:px-12 bg-japandi-cream border-t border-japandi-sand/20">
@@ -25,13 +27,20 @@ export default function LandingFooter() {
           </Link>
           <Link
             className="text-japandi-stone/60 hover:text-japandi-terracotta text-sm tracking-widest uppercase transition-colors duration-300"
+            href="#run-locally"
+          >
+            Run Locally
+          </Link>
+          <Link
+            className="text-japandi-stone/60 hover:text-japandi-terracotta text-sm tracking-widest uppercase transition-colors duration-300"
             href="/auth"
           >
             Sign Up
           </Link>
           <Link
             className="text-japandi-stone/60 hover:text-japandi-terracotta text-sm tracking-widest uppercase transition-colors duration-300"
-            href="https://github.com/shettydev/mukti"
+            href={GITHUB_URL}
+            rel="noopener noreferrer"
             target="_blank"
           >
             GitHub

@@ -9,6 +9,15 @@ import { useEffect, useState } from 'react';
 import { JapandiThemeToggle } from '@/components/theme/japandi-theme-toggle';
 import { cn } from '@/lib/utils';
 
+import { GITHUB_URL } from './constants';
+
+const navLinks = [
+  { className: 'hidden sm:block', href: '#demo', label: 'Demo' },
+  { className: 'hidden xs:block', href: '#run-locally', label: 'Run Locally' },
+  { external: true, href: GITHUB_URL, label: 'GitHub' },
+  { href: '/auth', label: 'Sign In' },
+];
+
 export default function LandingNav() {
   const { scrollY } = useScroll();
   const { resolvedTheme } = useTheme();
@@ -97,29 +106,20 @@ export default function LandingNav() {
       </Link>
 
       <div className="flex items-center gap-4 sm:gap-6">
-        <motion.div className="hidden xs:block" style={{ color: textColor }}>
-          <Link
-            className={cn(
-              'text-xs xs:text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
-              "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
-            )}
-            href="#demo"
-          >
-            See Demo
-          </Link>
-        </motion.div>
-
-        <motion.div style={{ color: textColor }}>
-          <Link
-            className={cn(
-              'text-xs xs:text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
-              "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
-            )}
-            href="/auth"
-          >
-            Get Started
-          </Link>
-        </motion.div>
+        {navLinks.map((link) => (
+          <motion.div className={link.className} key={link.label} style={{ color: textColor }}>
+            <Link
+              className={cn(
+                'text-xs xs:text-sm tracking-widest uppercase hover:text-japandi-terracotta transition-colors duration-300',
+                "relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-japandi-terracotta after:transition-all after:duration-300 hover:after:w-full"
+              )}
+              href={link.href}
+              {...(link.external ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
+            >
+              {link.label}
+            </Link>
+          </motion.div>
+        ))}
 
         <motion.div style={{ color: textColor }}>
           <JapandiThemeToggle

@@ -8,7 +8,7 @@ import VideoJsPlayer from './video-js-player';
 const demos = [
   {
     description:
-      'Choose from six classical Socratic techniques — each a different lens for examining your ideas. The AI never answers, only asks.',
+      'Choose from six classical Socratic techniques: elenchus, dialectic, maieutics, definitional, analogical and counterfactual. Each is a different lens for examining your ideas. Mukti never answers for you; it asks.',
     id: 'chat',
     label: 'Socratic Dialogue',
     placeholder: '/demos/socratic-chat.mp4',
@@ -17,7 +17,7 @@ const demos = [
   },
   {
     description:
-      'Place your problem at the center. Add constraints as Soil, surface hidden Assumptions as Roots, and let Insights emerge naturally. Each node opens its own Socratic dialogue.',
+      'Place your problem at the center as the Seed. Add constraints as Soil, surface hidden assumptions as Roots, and let Insights emerge. Each node opens its own Socratic dialogue, with a technique matched to what the node holds.',
     id: 'canvas',
     label: 'Thinking Canvas',
     placeholder: '/demos/thinking-canvas.mp4',
@@ -26,9 +26,9 @@ const demos = [
   },
   {
     description:
-      "Start with a question and let your thinking unfold. Branch into possibilities, surface questions you hadn't thought to ask, and track which paths you've truly explored.",
+      "Start with a question and let your thinking unfold. Chat with any node, take up suggested branches you hadn't thought of, or turn a conversation or a Thinking Canvas into a map. Share a read-only link when you want someone else to follow your reasoning.",
     id: 'map',
-    label: 'Thinking Map',
+    label: 'Thought Map',
     placeholder: '/demos/thinking-map.mp4',
     title: 'Let your reasoning branch freely',
     video: 'https://github.com/shettydev/mukti/releases/download/assets-v1/demo-03.mp4',

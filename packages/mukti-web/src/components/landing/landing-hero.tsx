@@ -1,9 +1,12 @@
 'use client';
 
-import { ArrowRight, ChevronDown } from 'lucide-react';
+import { ArrowRight, ChevronDown, Github } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { Noto_Serif_Devanagari } from 'next/font/google';
 import Link from 'next/link';
+
+import { GITHUB_URL } from './constants';
+import InstallCommand from './install-command';
 
 const notoSerifDevanagari = Noto_Serif_Devanagari({
   subsets: ['devanagari'],
@@ -27,49 +30,60 @@ export default function LandingHero() {
         </motion.span>
       </div>
 
-      <div className="relative z-10 flex max-w-4xl flex-col items-center text-center">
+      {/* mx-auto: globals.css forces `section { display: block }`, so the section's flex centering never applies. */}
+      <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center text-center">
         <motion.span
           animate={{ opacity: 1, y: 0 }}
           className="text-japandi-sage text-japandi-label mb-6 sm:mb-8 tracking-[0.25em]"
           initial={{ opacity: 0, y: 20 }}
           transition={{ delay: 0.2, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
-          Liberation from AI Dependency
+          Your mind, unprompted
         </motion.span>
 
         <motion.h1
           animate={{ opacity: 1, y: 0 }}
-          className="text-japandi-stone text-4xl xs:text-5xl md:text-7xl lg:text-8xl font-light tracking-wide mb-6 sm:mb-8 leading-[1.1]"
+          className="text-japandi-stone text-4xl xs:text-5xl md:text-6xl lg:text-7xl font-light tracking-wide mb-6 sm:mb-8 leading-[1.1] text-balance"
           initial={{ opacity: 0, y: 30 }}
           transition={{ delay: 0.4, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
-          Your mind,
-          <br />
-          unprompted
+          An AI that answers your questions with better questions
         </motion.h1>
 
         <motion.p
           animate={{ opacity: 1, y: 0 }}
-          className="text-japandi-stone/80 text-base xs:text-lg md:text-xl max-w-xl mb-10 sm:mb-12 font-light leading-relaxed"
+          className="text-japandi-stone/80 text-base xs:text-lg md:text-xl max-w-2xl mb-10 sm:mb-12 font-light leading-relaxed"
           initial={{ opacity: 0, y: 30 }}
           transition={{ delay: 0.6, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
-          In the silence between prompts, you exist.
-          <br />
-          Nurture the thoughts that are truly your own.
+          Mukti is an open-source Socratic thinking workspace. Run it locally on the Claude Code,
+          Codex or Antigravity subscription you already have — no signup, no API keys.
         </motion.p>
 
         <motion.div
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col xs:flex-row items-center gap-4 xs:gap-6"
+          className="flex flex-col items-center gap-5"
           initial={{ opacity: 0, y: 20 }}
           transition={{ delay: 0.8, duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
+          <div className="flex flex-col xs:flex-row items-center gap-4">
+            <InstallCommand />
+            <Link
+              className="group flex items-center gap-2 px-6 py-3 border border-japandi-stone/20 text-japandi-stone text-sm font-medium tracking-widest rounded-sm hover:border-japandi-terracotta hover:text-japandi-terracotta transition-colors duration-300"
+              href={GITHUB_URL}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Github className="w-4 h-4" />
+              <span>View on GitHub</span>
+            </Link>
+          </div>
+
           <Link
-            className="group flex items-center gap-2 px-6 py-3 bg-japandi-terracotta text-japandi-cream text-sm font-medium tracking-widest rounded-sm hover:bg-japandi-timber transition-colors duration-300"
+            className="group flex items-center gap-1.5 text-sm text-japandi-stone/60 tracking-wide hover:text-japandi-terracotta transition-colors duration-300"
             href="/auth"
           >
-            <span>Get Started</span>
+            <span>Or try it in your browser</span>
             <ArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </motion.div>
