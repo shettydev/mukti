@@ -4,6 +4,12 @@ jest.mock('@openrouter/sdk', () => ({
 }));
 
 import { ScaffoldLevel } from '../../scaffolding/interfaces/scaffolding.interface';
+import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
+import {
+  SOCRATIC_EXPLANATION_FORMAT,
+  SOCRATIC_QUESTION_FORMAT,
+  SOCRATIC_SUMMARY_FORMAT,
+} from '../../ai/types/ai-response-format.interface';
 import {
   type PrepareTurnInput,
   SocraticTurnEngine,
@@ -23,7 +29,11 @@ describe('SocraticTurnEngine', () => {
   };
   const postResponseMonitor = { monitor: jest.fn() };
   const responseEvaluator = { evaluate: jest.fn() };
-  const scaffoldFadeService = { evaluateAndTransition: jest.fn() };
+  const realFade = new ScaffoldFadeService();
+  const scaffoldFadeService = {
+    evaluateAndTransition: jest.fn(),
+    manualRaise: jest.fn((level: ScaffoldLevel) => realFade.manualRaise(level)),
+  };
 
   let engine: SocraticTurnEngine;
 
@@ -237,6 +247,192 @@ describe('SocraticTurnEngine', () => {
       });
 
       expect(outcome.misconception).toBe(misconception);
+    });
+  });
+
+  describe('help controls', () => {
+    describe('response shape (ai-response-format)', () => {
+      it.each([0, 1, 2, 3, 4])(
+        'declares the question shape for ordinary and more_help turns at level %i',
+        async (level) => {
+          for (const helpControl of [undefined, 'more_help'] as const) {
+            const turn = await engine.prepare(
+              input({ helpControl, state: { currentScaffoldLevel: level } }),
+            );
+            expect(turn.responseFormat).toBe(SOCRATIC_QUESTION_FORMAT);
+          }
+        },
+      );
+
+      it('declares the explanation shape for explain and the summary shape for wrap_up', async () => {
+        const explain = await engine.prepare(input({ helpControl: 'explain' }));
+        expect(explain.turnKind).toBe('explain');
+        expect(explain.responseFormat).toBe(SOCRATIC_EXPLANATION_FORMAT);
+
+        const wrap = await engine.prepare(input({ helpControl: 'wrap_up' }));
+        expect(wrap.turnKind).toBe('wrap_up');
+        expect(wrap.responseFormat).toBe(SOCRATIC_SUMMARY_FORMAT);
+      });
+
+      it('treats the legacy wrapUpRequested flag as wrap_up', async () => {
+        const turn = await engine.prepare(input({ wrapUpRequested: true }));
+        expect(turn.turnKind).toBe('wrap_up');
+        expect(dialogueQualityService.assess).toHaveBeenCalledWith(
+          expect.objectContaining({ wrapUpRequested: true }),
+        );
+      });
+
+      it('passes explainRequested only on an explain turn', async () => {
+        await engine.prepare(input({ helpControl: 'explain' }));
+        expect(dialogueQualityService.assess).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            explainRequested: true,
+            wrapUpRequested: false,
+          }),
+        );
+        await engine.prepare(input());
+        expect(dialogueQualityService.assess).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            explainRequested: false,
+            wrapUpRequested: false,
+          }),
+        );
+      });
+    });
+
+    describe('turn budget', () => {
+      it('turns the exchange that reaches the budget into a wrap-up, over any control', async () => {
+        const turn = await engine.prepare(
+          input({ exchangesBefore: 4, helpControl: 'explain', turnBudget: 5 }),
+        );
+        expect(turn.turnKind).toBe('wrap_up');
+        expect(turn.responseFormat).toBe(SOCRATIC_SUMMARY_FORMAT);
+        expect(turn.budget).toEqual({ limit: 5, used: 5 });
+      });
+
+      it('does not block or summarise past the budget', async () => {
+        const turn = await engine.prepare(
+          input({ exchangesBefore: 5, turnBudget: 5 }),
+        );
+        expect(turn.turnKind).toBe('ordinary');
+        expect(turn.budget).toEqual({ limit: 5, used: 6 });
+      });
+
+      it('reports no budget when none is set', async () => {
+        const turn = await engine.prepare(input({ exchangesBefore: 9 }));
+        expect(turn.budget).toBeNull();
+      });
+    });
+
+    describe('more help', () => {
+      it('writes the reply one level higher and stores it with counters reset', async () => {
+        const turn = await engine.prepare(
+          input({
+            helpControl: 'more_help',
+            state: { consecutiveFailures: 1, currentScaffoldLevel: 1 },
+          }),
+        );
+        expect(turn.scaffoldContext.level).toBe(2);
+
+        const outcome = await engine.settle(turn, {
+          hasPriorAssistantMessage: true,
+        });
+        expect(
+          scaffoldFadeService.evaluateAndTransition,
+        ).not.toHaveBeenCalled();
+        expect(outcome.scaffoldUpdate?.transition).toMatchObject({
+          changed: true,
+          newLevel: 2,
+          resetCounters: true,
+        });
+      });
+
+      it('stays at level 4 and reports no change at the top', async () => {
+        const turn = await engine.prepare(
+          input({
+            helpControl: 'more_help',
+            state: { currentScaffoldLevel: 4 },
+          }),
+        );
+        expect(turn.scaffoldContext.level).toBe(4);
+        const outcome = await engine.settle(turn, {
+          hasPriorAssistantMessage: true,
+        });
+        expect(outcome.scaffoldUpdate?.transition).toMatchObject({
+          changed: false,
+          newLevel: 4,
+        });
+      });
+
+      it('persists the gap-detected level when it is above stored + 1', async () => {
+        knowledgeGapDetector.analyze.mockResolvedValueOnce(
+          gapResult({ scaffoldLevel: 4 }),
+        );
+        const turn = await engine.prepare(
+          input({
+            helpControl: 'more_help',
+            state: { currentScaffoldLevel: 1 },
+          }),
+        );
+        const outcome = await engine.settle(turn, {
+          hasPriorAssistantMessage: true,
+        });
+        expect(outcome.scaffoldUpdate?.transition.newLevel).toBe(4);
+      });
+
+      it('raises even on the first exchange', async () => {
+        const outcome = await engine.settle(
+          await engine.prepare(input({ helpControl: 'more_help' })),
+          { hasPriorAssistantMessage: false },
+        );
+        expect(outcome.scaffoldUpdate?.transition.newLevel).toBe(1);
+      });
+    });
+
+    describe('explain and wrap up hold the ladder', () => {
+      it('explain keeps level and counters, and records the gap', async () => {
+        const turn = await engine.prepare(
+          input({
+            helpControl: 'explain',
+            state: { consecutiveFailures: 1, currentScaffoldLevel: 2 },
+          }),
+        );
+        expect(turn.scaffoldContext.level).toBe(2);
+        const outcome = await engine.settle(turn, {
+          hasPriorAssistantMessage: true,
+        });
+        expect(outcome.scaffoldHeld).toBe(true);
+        expect(outcome.scaffoldUpdate).toBeUndefined();
+        expect(
+          scaffoldFadeService.evaluateAndTransition,
+        ).not.toHaveBeenCalled();
+        expect(knowledgeGapDetector.updateKnowledgeState).toHaveBeenCalledWith(
+          'user-1',
+          'recursion',
+          false,
+        );
+      });
+
+      it('wrap up neither grades the message nor writes knowledge', async () => {
+        const outcome = await engine.settle(
+          await engine.prepare(input({ helpControl: 'wrap_up' })),
+          { hasPriorAssistantMessage: true },
+        );
+        expect(outcome.scaffoldHeld).toBe(true);
+        expect(outcome.scaffoldUpdate).toBeUndefined();
+        expect(outcome.isBreakthrough).toBe(false);
+        expect(
+          knowledgeGapDetector.updateKnowledgeState,
+        ).not.toHaveBeenCalled();
+      });
+    });
+
+    it('passes the turn kind to the reply monitor', () => {
+      engine.inspectReply('Idempotency means...', 'explain');
+      expect(postResponseMonitor.monitor).toHaveBeenCalledWith(
+        'Idempotency means...',
+        'explain',
+      );
     });
   });
 });

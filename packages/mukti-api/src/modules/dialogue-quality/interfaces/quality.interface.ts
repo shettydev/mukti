@@ -17,6 +17,8 @@ export interface QualityAssessmentInput {
   consecutiveFailures: number;
   conversationHistory: { content: string; role: 'assistant' | 'user' }[];
   demonstratesUnderstanding?: boolean;
+  /** Learner-requested one-turn explanation (help control "explain"). */
+  explainRequested?: boolean;
   scaffoldLevel: number;
   totalMessageCount?: number;
   userId: string;
@@ -31,6 +33,7 @@ export interface QualityDirective {
     | 'acknowledgment'
     | 'breakthrough'
     | 'conclusion'
+    | 'explain'
     | 'misconception'
     | 'single-question';
 }

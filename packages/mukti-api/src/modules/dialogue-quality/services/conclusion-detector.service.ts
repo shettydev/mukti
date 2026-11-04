@@ -36,26 +36,42 @@ const SATISFACTION_PATTERN =
 const EXPLICIT_CLOSURE_PATTERN =
   /\b(thanks|thank you|that's all|I think we're done|nothing else|no more questions|I'm good)\b/i;
 
-const CONCLUSION_INSTRUCTION =
+export const CONCLUSION_INSTRUCTION =
   `CONCLUSION PROTOCOL — The user is signaling readiness to conclude.\n` +
-  `Shift from questioning mode to synthesis mode:\n` +
-  `1. Synthesize 2-3 key discoveries or insights from this conversation\n` +
-  `2. Surface at most 1 unexplored angle worth noting\n` +
-  `3. Anchor the user's stated next step (if they mentioned one)\n` +
-  `4. Offer an open door: "You can always return to explore this further"\n` +
-  `5. Do NOT ask another probing question — this is a closing response`;
+  `Shift from questioning mode to synthesis mode and write a closing summary in Markdown\n` +
+  `with exactly these three headings, in this order:\n` +
+  `## Established — 2-3 key discoveries or conclusions the user reached in this conversation\n` +
+  `## Still open — what is unresolved or uncertain (at most 2 points; say "Nothing major" if none)\n` +
+  `## Next step — the user's stated next step if they mentioned one, otherwise one concrete suggestion\n` +
+  `End with an open door: "You can always return to explore this further."\n` +
+  `Do NOT ask another probing question — this is a closing response`;
 
 @Injectable()
 export class ConclusionDetectorService {
   constructor(private readonly configService: ConfigService) {}
 
   assess(input: ConclusionAssessmentInput): ConclusionAssessment {
+    // An explicit wrap-up is a learner control (dialogue-help-controls: "Wrap
+    // up is available once the dialogue has a reply"), so it is honoured even
+    // when the heuristic detection below is switched off.
+    const userWrapUp: ConclusionAssessment = {
+      conclusionReady: true,
+      directive: {
+        instruction: CONCLUSION_INSTRUCTION,
+        priority: -1,
+        source: 'conclusion',
+      },
+      signals: [{ confidence: 1.0, type: 'user-wrap-up' }],
+    };
+
     const enabled = this.configService.get<string>(
       'DIALOGUE_QUALITY_CONCLUSION_ENABLED',
       'true',
     );
     if (enabled !== 'true') {
-      return { conclusionReady: false, signals: [] };
+      return input.wrapUpRequested
+        ? userWrapUp
+        : { conclusionReady: false, signals: [] };
     }
 
     const signals: ConclusionSignal[] = [];
