@@ -20,39 +20,39 @@
 ## 4. Wrap up and summary
 
 - [x] 4.1 Rewrite `CONCLUSION_INSTRUCTION` to the three labelled parts (Established, Still open, Next step; use the learner's stated next step) and emit it whenever `turnKind === 'wrap_up'`, independent of message count; update `conclusion-detector.service.spec.ts` accordingly
-- [ ] 4.2 Keep `conclusionOffered` as an analytics flag only and set it on any wrap-up turn in all three surfaces; verify with queue-service tests that a later ordinary message still gets an ordinary reply ("Dialogue continues after a wrap up")
+- [x] 4.2 Keep `conclusionOffered` as an analytics flag only and set it on any wrap-up turn in all three surfaces; verify with queue-service tests that a later ordinary message still gets an ordinary reply ("Dialogue continues after a wrap up")
 
 ## 5. Wire the three surfaces
 
-- [ ] 5.1 Add `helpControl` (`@IsIn`) to `SendMessageDto` and `DialogueSendMessageDto`; map legacy `wrapUpRequested` to `wrap_up` in the chat controller; verify controller tests for valid control, unknown control → 400 with no enqueue, and legacy flag
-- [ ] 5.2 Chat (`conversations/services/queue.service.ts`, `openrouter.service.ts`): carry `helpControl` through the job, use `turn.responseFormat` instead of the hard-coded question format; verify queue-service tests for each turn kind
-- [ ] 5.3 Canvas node dialogue (`dialogue-queue.service.ts`, `dialogue-ai.service.ts`): same wiring; verify `dialogue-queue.service.spec.ts` covers each turn kind
-- [ ] 5.4 Thought-map node dialogue (`thought-map-dialogue-queue.service.ts`): same wiring; verify its spec covers each turn kind
-- [ ] 5.5 Confirm help-control turns pass through `AiRequestGate` unchanged; verify a test that a free-tier user over quota gets `RATE_LIMIT_EXCEEDED` for an `explain` send
+- [x] 5.1 Add `helpControl` (`@IsIn`) to `SendMessageDto` and `DialogueSendMessageDto`; map legacy `wrapUpRequested` to `wrap_up` in the chat controller; verify controller tests for valid control, unknown control → 400 with no enqueue, and legacy flag
+- [x] 5.2 Chat (`conversations/services/queue.service.ts`, `openrouter.service.ts`): carry `helpControl` through the job, use `turn.responseFormat` instead of the hard-coded question format; verify queue-service tests for each turn kind
+- [x] 5.3 Canvas node dialogue (`dialogue-queue.service.ts`, `dialogue-ai.service.ts`): same wiring; verify `dialogue-queue.service.spec.ts` covers each turn kind
+- [x] 5.4 Thought-map node dialogue (`thought-map-dialogue-queue.service.ts`): same wiring; verify its spec covers each turn kind
+- [x] 5.5 Confirm help-control turns pass through `AiRequestGate` unchanged; verify a test that a free-tier user over quota gets `RATE_LIMIT_EXCEEDED` for an `explain` send
 
 ## 6. Turn budget
 
-- [ ] 6.1 Add optional `turnBudget` (1-50, nullable) to `Conversation` and `NodeDialogue` schemas and `defaultTurnBudget` to `UserPreferences`; apply the default at dialogue creation; verify with schema/service tests that old documents load unchanged
-- [ ] 6.2 Accept `turnBudget` on `PATCH /conversations/:id`, add `PATCH /canvas/:sessionId/nodes/:nodeId/dialogue` and `PATCH /thought-maps/:mapId/nodes/:nodeId/dialogue`, and `defaultTurnBudget` on `PATCH /ai/settings`; verify controller tests including range validation and ownership checks
-- [ ] 6.3 Read the budget in each queue job and pass `exchangesSoFar`; verify "budget reached", "continuing past the budget" and "budget reached on an Explain turn" with queue-service tests
+- [x] 6.1 Add optional `turnBudget` (1-50, nullable) to `Conversation` and `NodeDialogue` schemas and `defaultTurnBudget` to `UserPreferences`; apply the default at dialogue creation; verify with schema/service tests that old documents load unchanged
+- [x] 6.2 Accept `turnBudget` on `PATCH /conversations/:id`, add `PATCH /canvas/:sessionId/nodes/:nodeId/dialogue` and `PATCH /thought-maps/:mapId/nodes/:nodeId/dialogue`, and `defaultTurnBudget` on `PATCH /ai/settings`; verify controller tests including range validation and ownership checks
+- [x] 6.3 Read the budget in each queue job and pass `exchangesSoFar`; verify "budget reached", "continuing past the budget" and "budget reached on an Explain turn" with queue-service tests
 
 ## 7. Contracts and response DTOs
 
-- [ ] 7.1 Extend `StreamEventPayloads.complete` in `mukti-contracts` with `scaffoldLevel`, `turnKind`, `budget`, and make `conclusionReady` apply to all surfaces; emit them from all three queue services; verify `tsc --noEmit` for api and web and the stream tests
-- [ ] 7.2 Expose `currentScaffoldLevel` and `turnBudget` on conversation and node-dialogue response DTOs and swagger; verify controller response tests
+- [x] 7.1 Extend `StreamEventPayloads.complete` in `mukti-contracts` with `scaffoldLevel`, `turnKind`, `budget`, and make `conclusionReady` apply to all surfaces; emit them from all three queue services; verify `tsc --noEmit` for api and web and the stream tests
+- [x] 7.2 Expose `currentScaffoldLevel` and `turnBudget` on conversation and node-dialogue response DTOs and swagger; verify controller response tests
 
 ## 8. Web
 
-- [ ] 8.1 Build a shared `HelpControls` component (level pill with names from the spec and tooltip descriptions, More help and Explain as next-send toggles, Wrap up button, budget chip with set/clear) with component tests for each state, including "maximum level already active"
-- [ ] 8.2 Mount it in chat (`conversation-detail.tsx` / `chat-header.tsx`), replacing the 20/30-message wrap-up gate; verify with a component test that Wrap up shows after one assistant reply
-- [ ] 8.3 Mount it in canvas `node-chat-panel.tsx` and `ThoughtMapDialoguePanel.tsx` and send `helpControl` through `use-dialogue.ts` and `use-thought-map-dialogue.ts`; verify hook tests
-- [ ] 8.4 Update stream hooks to apply `scaffoldLevel`, `turnKind` and `budget` from `complete` events, and tag Explanation/Summary messages in the message list; verify hook and render tests
-- [ ] 8.5 Add a "Default turn budget" field to Settings (both modes); verify a settings component test round-trips the value
+- [x] 8.1 Build a shared `HelpControls` component (level pill with names from the spec and tooltip descriptions, More help and Explain as next-send toggles, Wrap up button, budget chip with set/clear) with component tests for each state, including "maximum level already active"
+- [x] 8.2 Mount it in chat (`conversation-detail.tsx` / `chat-header.tsx`), replacing the 20/30-message wrap-up gate; verify with a component test that Wrap up shows after one assistant reply
+- [x] 8.3 Mount it in canvas `node-chat-panel.tsx` and `ThoughtMapDialoguePanel.tsx` and send `helpControl` through `use-dialogue.ts` and `use-thought-map-dialogue.ts`; verify hook tests
+- [x] 8.4 Update stream hooks to apply `scaffoldLevel`, `turnKind` and `budget` from `complete` events, and tag Explanation/Summary messages in the message list; verify hook and render tests
+- [x] 8.5 Add a "Default turn budget" field to Settings (both modes); verify a settings component test round-trips the value
 
 ## 9. Copy and docs
 
 - [ ] 9.1 Update the landing FAQ "Will I ever get a direct answer?", the local onboarding tour and `docs/local-mode.md` to describe the controls factually (no tagline changes); verify by reading the rendered landing and tour in `bun nx run @mukti/web:dev`
-- [ ] 9.2 Add a "Learner controls" section to RFC-0002 documenting manual raise and the one-turn Explain, and update CLAUDE.md's "never gives direct answers" line to match; verify the docs reference the spec
+- [x] 9.2 Add a "Learner controls" section to RFC-0002 documenting manual raise and the one-turn Explain, and update CLAUDE.md's "never gives direct answers" line to match; verify the docs reference the spec
 
 ## 10. Integration checks
 
