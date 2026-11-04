@@ -16,6 +16,7 @@ import { AiPolicyService } from './services/ai-policy.service';
 import { AiProviderRegistry } from './services/ai-provider.registry';
 import { AiRequestGate } from './services/ai-request-gate.service';
 import { AiSecretsService } from './services/ai-secrets.service';
+import { AiSettingsService } from './services/ai-settings.service';
 import { FreeQuotaService } from './services/free-quota.service';
 import { GeminiClientFactory } from './services/gemini-client.factory';
 import { LocalProviderSwitchService } from './services/local-provider-switch.service';
@@ -58,6 +59,7 @@ const aiChatClientFactoryProvider = {
     AiProviderRegistry,
     AiRequestGate,
     AiSecretsService,
+    AiSettingsService,
     FreeQuotaService,
     GeminiClientFactory,
     OpenRouterClientFactory,
@@ -78,6 +80,7 @@ const aiChatClientFactoryProvider = {
     AiProviderRegistry,
     AiRequestGate,
     AiSecretsService,
+    AiSettingsService,
     FreeQuotaService,
     GeminiClientFactory,
     LocalProviderSwitchService,

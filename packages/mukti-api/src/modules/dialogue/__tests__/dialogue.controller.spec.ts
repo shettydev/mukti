@@ -84,6 +84,7 @@ describe('DialogueController.sendMessage', () => {
       'free',
       'sonnet',
       false,
+      undefined, // no help control
     );
   });
 

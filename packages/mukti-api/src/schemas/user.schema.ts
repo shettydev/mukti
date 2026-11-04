@@ -6,6 +6,11 @@ export type UserDocument = Document & User;
 export interface UserPreferences {
   activeModel?: string;
   defaultTechnique?: string;
+  /**
+   * Turn budget (in exchanges) applied to each new dialogue. Unset or null
+   * means new dialogues have no budget (dialogue-help-controls).
+   */
+  defaultTurnBudget?: null | number;
   emailNotifications?: boolean;
   language?: string;
   theme?: 'dark' | 'light';

@@ -10,7 +10,10 @@ import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
 } from '../../ai/types/ai-chat-client.interface';
-import { SOCRATIC_QUESTION_FORMAT } from '../../ai/types/ai-response-format.interface';
+import {
+  type AiJsonSchemaResponseFormat,
+  SOCRATIC_QUESTION_FORMAT,
+} from '../../ai/types/ai-response-format.interface';
 import { appendQualityGuardrails } from '../../dialogue/utils/prompt-builder';
 import { ScaffoldPromptAugmenter } from '../../scaffolding/services/scaffold-prompt-augmenter.service';
 
@@ -248,6 +251,9 @@ export class OpenRouterService {
    * @param messages - Array of messages formatted for the API
    * @param model - Model identifier to use
    * @param technique - Technique template for additional context
+   * @param responseFormat - The learner-facing shape this turn declares
+   *   (`PreparedTurn.responseFormat`): a single question on ordinary turns, an
+   *   explanation or a summary only on turns the learner asked for
    * @returns Parsed response with content, tokens, and cost
    * @throws {Error} If API request fails after retries
    *
@@ -260,6 +266,7 @@ export class OpenRouterService {
     model: string,
     apiKey: string,
     _technique: TechniqueTemplate,
+    responseFormat: AiJsonSchemaResponseFormat = SOCRATIC_QUESTION_FORMAT,
   ): Promise<OpenRouterResponse> {
     try {
       this.logger.log(
@@ -273,9 +280,10 @@ export class OpenRouterService {
           messages,
           model,
           // Learner-facing: this content is rendered as the assistant message,
-          // so it must be a question. Whether a provider enforces the shape is
-          // its own business — the declaration says what this surface needs.
-          responseFormat: SOCRATIC_QUESTION_FORMAT,
+          // so it is a question unless the learner asked for an explanation or
+          // a wrap-up. Whether a provider enforces the shape is its own
+          // business — the declaration says what this surface needs.
+          responseFormat,
           stream: false,
           temperature: 0.7,
         },

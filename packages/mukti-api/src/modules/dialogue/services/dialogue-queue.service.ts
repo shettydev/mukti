@@ -21,6 +21,10 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
+import {
+  exchangesFromMessageCount,
+  type HelpControl,
+} from '../../socratic-turn/help-controls';
 import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
 import { DialogueAIService } from './dialogue-ai.service';
 import { DialogueStreamService } from './dialogue-stream.service';
@@ -29,6 +33,8 @@ import { DialogueService } from './dialogue.service';
  * Job data structure for dialogue request processing.
  */
 export interface DialogueRequestJobData {
+  /** The learner's help control for this message, if any. */
+  helpControl?: HelpControl;
   message: string;
   model: string;
   nodeId: string;
@@ -94,6 +100,7 @@ export class DialogueQueueService extends WorkerHost {
     subscriptionTier: string,
     model: string,
     usedByok: boolean,
+    helpControl?: HelpControl,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = this.formatId(userId);
 
@@ -102,6 +109,7 @@ export class DialogueQueueService extends WorkerHost {
     );
 
     const jobData: DialogueRequestJobData = {
+      ...(helpControl ? { helpControl } : {}),
       message,
       model,
       nodeId,
@@ -210,6 +218,7 @@ export class DialogueQueueService extends WorkerHost {
   ): Promise<DialogueRequestJobResult> {
     const startTime = Date.now();
     const {
+      helpControl,
       message,
       model,
       nodeId,
@@ -226,12 +235,15 @@ export class DialogueQueueService extends WorkerHost {
       `Processing job ${job.id} for user ${userId}, session ${sessionId}, node ${nodeId}`,
     );
 
-    // Get or create dialogue first to have dialogueId for events
+    // Get or create dialogue first to have dialogueId for events. Loaded
+    // before this turn's user message is stored, so its counts and turn
+    // budget describe the dialogue before this exchange.
     const dialogue = await this.dialogueService.getOrCreateDialogue(
       sessionId,
       nodeId,
       nodeType,
       nodeLabel,
+      userId,
     );
     const dialogueId = dialogue._id.toString();
 
@@ -300,12 +312,15 @@ export class DialogueQueueService extends WorkerHost {
 
       const turn = await this.socraticTurnEngine.prepare({
         conversationHistory,
+        exchangesBefore: exchangesFromMessageCount(dialogue.messageCount),
+        helpControl,
         model,
         previousResponseLengths,
         state: dialogue,
         timeOnProblem: dialogue.lastMessageAt
           ? Date.now() - dialogue.lastMessageAt.getTime()
           : undefined,
+        turnBudget: dialogue.turnBudget,
         usedByok,
         userId,
         userMessage: message,
@@ -329,10 +344,11 @@ export class DialogueQueueService extends WorkerHost {
           apiKey,
           scaffoldContext,
           qualityDirectives,
+          turn.responseFormat,
         );
 
       // RFC-0004: Post-response monitoring
-      this.socraticTurnEngine.inspectReply(aiResponse.content);
+      this.socraticTurnEngine.inspectReply(aiResponse.content, turn.turnKind);
 
       // Add AI response to dialogue
       const aiMessage = await this.dialogueService.addMessage(
@@ -343,6 +359,7 @@ export class DialogueQueueService extends WorkerHost {
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
           tokens: aiResponse.totalTokens,
+          turnKind: turn.turnKind,
         },
       );
 
@@ -364,15 +381,19 @@ export class DialogueQueueService extends WorkerHost {
         );
       } else {
         this.logger.debug(
-          `Skipping response evaluation for dialogue ${dialogueId} because no prior assistant scaffold exists`,
+          outcome.scaffoldHeld
+            ? `Keeping scaffold state for dialogue ${dialogueId} on a ${turn.turnKind} turn`
+            : `Skipping response evaluation for dialogue ${dialogueId} because no prior assistant scaffold exists`,
         );
       }
 
-      // RFC-0004: Persist quality state (always, even on first exchange)
+      // RFC-0004: Persist quality state (always, even on first exchange).
+      // conclusionOffered records that a wrap-up happened (analytics only).
       await this.dialogueService.updateQualityState(
         dialogue._id,
         outcome.misconception,
         outcome.isBreakthrough,
+        turn.turnKind === 'wrap_up',
       );
 
       // Emit AI message event
@@ -387,6 +408,7 @@ export class DialogueQueueService extends WorkerHost {
             sequence: aiMessage.sequence,
             timestamp: aiMessage.createdAt.toISOString(),
             tokens: aiResponse.totalTokens,
+            turnKind: turn.turnKind,
           },
           type: 'message',
         },
@@ -413,17 +435,21 @@ export class DialogueQueueService extends WorkerHost {
 
       const latency = Date.now() - startTime;
 
-      // Emit complete event
+      // Emit complete event, with the help state the client shows
       this.dialogueStreamService.emitToNodeDialogue(
         sessionId,
         nodeId,
         dialogueId,
         {
           data: {
+            budget: turn.budget,
+            conclusionReady: qualityDirectives.conclusionReady ?? false,
             cost: aiResponse.cost,
             jobId: job.id!,
             latency,
+            scaffoldLevel: outcome.levelAfter,
             tokens: aiResponse.totalTokens,
+            turnKind: turn.turnKind,
           },
           type: 'complete',
         },

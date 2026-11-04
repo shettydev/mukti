@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import type { AiJsonSchemaResponseFormat } from '../ai/types/ai-response-format.interface';
 import type {
   MisconceptionResult,
   PostResponseMetrics,
   QualityDirectives,
 } from '../dialogue-quality/interfaces/quality.interface';
-
-import type { AiJsonSchemaResponseFormat } from '../ai/types/ai-response-format.interface';
 
 import { AiKeyResolver } from '../ai/services/ai-key-resolver.service';
 import { AiPolicyService } from '../ai/services/ai-policy.service';
@@ -98,6 +97,14 @@ export interface PrepareTurnInput {
 /** What changed for the learner this turn. The surface persists it. */
 export interface TurnOutcome {
   isBreakthrough: boolean;
+  /**
+   * The help level the dialogue is stored at once the surface has persisted
+   * this outcome: the transition's level when there is a `scaffoldUpdate`,
+   * otherwise the level stored before the turn. A surface that writes an
+   * initial level on a first exchange reports that level instead. Streamed
+   * to the client as the help-level indicator.
+   */
+  levelAfter: ScaffoldLevel;
   misconception?: MisconceptionResult;
   /**
    * True when this turn SHALL NOT change the stored scaffold level or
@@ -311,6 +318,7 @@ export class SocraticTurnEngine {
         options.hasPriorAssistantMessage &&
         turn.preDemonstratesUnderstanding &&
         failuresBefore >= 2,
+      levelAfter: storedLevel,
       misconception: turn.qualityDirectives.misconception,
     };
 
@@ -357,6 +365,7 @@ export class SocraticTurnEngine {
           newLevel: writtenAt,
         },
       };
+      outcome.levelAfter = writtenAt;
       return outcome;
     }
 
@@ -395,6 +404,7 @@ export class SocraticTurnEngine {
       guard: scaffoldStateGuard(state),
       transition,
     };
+    outcome.levelAfter = transition.newLevel;
     return outcome;
   }
 

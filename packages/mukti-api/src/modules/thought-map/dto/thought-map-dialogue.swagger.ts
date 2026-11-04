@@ -8,7 +8,9 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
+import { NodeDialogueResponseDto } from '../../dialogue/dto/dialogue-response.dto';
 import { DialogueSendMessageDto } from '../../dialogue/dto/send-message.dto';
+import { UpdateNodeDialogueDto } from '../../dialogue/dto/update-dialogue.dto';
 
 /**
  * Swagger docs for starting Thought Map node dialogue with an initial question.
@@ -256,4 +258,31 @@ export const ApiStreamThoughtMapNodeDialogue = () =>
     ApiResponse({ description: 'Unauthorized', status: 401 }),
     ApiResponse({ description: 'Forbidden', status: 403 }),
     ApiResponse({ description: 'Map not found', status: 404 }),
+  );
+
+/**
+ * Swagger docs for updating a Thought Map node dialogue's settings.
+ */
+export const ApiUpdateThoughtMapNodeDialogue = () =>
+  applyDecorators(
+    ApiOperation({
+      description:
+        "Sets or clears the node dialogue's turn budget. Creates the dialogue if it does not exist yet. The change applies from the next message.",
+      summary: 'Update Thought Map node dialogue settings',
+    }),
+    ApiBearerAuth(),
+    ApiParam({ description: 'Thought Map ID', name: 'mapId' }),
+    ApiParam({ description: 'Node identifier', name: 'nodeId' }),
+    ApiBody({ type: UpdateNodeDialogueDto }),
+    ApiResponse({
+      description: 'Dialogue updated',
+      status: 200,
+      type: NodeDialogueResponseDto,
+    }),
+    ApiResponse({
+      description: 'Turn budget outside 1-50 (and not null)',
+      status: 400,
+    }),
+    ApiResponse({ description: 'User does not own the map', status: 403 }),
+    ApiResponse({ description: 'Map or node not found', status: 404 }),
   );

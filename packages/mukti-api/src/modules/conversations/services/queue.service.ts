@@ -29,6 +29,10 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
+import {
+  exchangesFromMessageCount,
+  type HelpControl,
+} from '../../socratic-turn/help-controls';
 import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
 import { MessageService } from './message.service';
 import { OpenRouterService } from './openrouter.service';
@@ -39,12 +43,18 @@ import { StreamService } from './stream.service';
  */
 export interface ConversationRequestJobData {
   conversationId: string;
+  /** The learner's help control for this message, if any. */
+  helpControl?: HelpControl;
   message: string;
   model: string;
   subscriptionTier: string;
   technique: string;
   usedByok: boolean;
   userId: string;
+  /**
+   * @deprecated Jobs enqueued before `helpControl` existed. Read as
+   * `helpControl: 'wrap_up'`.
+   */
   wrapUpRequested?: boolean;
 }
 
@@ -104,6 +114,7 @@ export class QueueService extends WorkerHost {
    * @param message - The user's message content
    * @param subscriptionTier - The user's subscription tier (free/paid)
    * @param technique - The Socratic technique being used
+   * @param helpControl - The learner's help control for this message, if any
    * @returns Object containing job ID and current queue position
    *
    * @remarks
@@ -133,7 +144,7 @@ export class QueueService extends WorkerHost {
     technique: string,
     model: string,
     usedByok: boolean,
-    wrapUpRequested?: boolean,
+    helpControl?: HelpControl,
   ): Promise<{ jobId: string; position: number }> {
     const userIdString = this.formatId(userId);
     const conversationIdString = this.formatId(conversationId);
@@ -151,7 +162,7 @@ export class QueueService extends WorkerHost {
       technique,
       usedByok,
       userId: userIdString,
-      ...(wrapUpRequested ? { wrapUpRequested } : {}),
+      ...(helpControl ? { helpControl } : {}),
     };
 
     // Local mode: process inline with no Redis/BullMQ, preserving the SSE
@@ -412,6 +423,8 @@ export class QueueService extends WorkerHost {
       userId,
       wrapUpRequested,
     } = job.data;
+    const helpControl =
+      job.data.helpControl ?? (wrapUpRequested ? 'wrap_up' : undefined);
 
     this.logger.log(
       `Processing job ${job.id} for user ${userId}, conversation ${conversationId}`,
@@ -464,7 +477,8 @@ export class QueueService extends WorkerHost {
       // 3-4. Shared Socratic turn: model/key, gap detection, quality, scaffold.
       // Use recentMessages (which carry real timestamps) so temporal signals
       // (abandonment, long pauses) are accurate. Fall back to new Date() only
-      // when a message has no stored timestamp.
+      // when a message has no stored timestamp. The turn budget is read here,
+      // not at enqueue time, so a change applies from the next message.
       const turn = await this.socraticTurnEngine.prepare({
         conversationHistory: conversation.recentMessages.map((m) => ({
           content: m.content,
@@ -476,15 +490,19 @@ export class QueueService extends WorkerHost {
             m.timestamp ??
             new Date(),
         })),
+        exchangesBefore: exchangesFromMessageCount(
+          conversation.totalMessageCount ?? conversation.metadata?.messageCount,
+        ),
+        helpControl,
         model,
         previousResponseLengths: conversation.recentMessages
           .filter((m) => m.role === 'user')
           .map((m) => m.content.trim().length),
         state: conversation,
+        turnBudget: conversation.turnBudget,
         usedByok,
         userId,
         userMessage: message,
-        wrapUpRequested,
       });
       const {
         apiKey,
@@ -521,10 +539,11 @@ export class QueueService extends WorkerHost {
         effectiveModel,
         apiKey,
         techniqueDoc.template,
+        turn.responseFormat,
       );
 
       // RFC-0004: Post-response monitoring
-      this.socraticTurnEngine.inspectReply(response.content);
+      this.socraticTurnEngine.inspectReply(response.content, turn.turnKind);
 
       // 6. Add messages to conversation
       const updatedConversation =
@@ -539,6 +558,7 @@ export class QueueService extends WorkerHost {
             model: response.model,
             promptTokens: response.promptTokens,
             totalTokens: response.totalTokens,
+            turnKind: turn.turnKind,
           },
         );
 
@@ -551,6 +571,9 @@ export class QueueService extends WorkerHost {
         hasPriorAssistantMessage,
       });
 
+      // The level the help-level indicator shows after this reply.
+      let levelAfter = outcome.levelAfter;
+
       if (outcome.scaffoldUpdate) {
         // Persist scaffold state to conversation
         await this.updateConversationScaffoldState(
@@ -560,8 +583,9 @@ export class QueueService extends WorkerHost {
           outcome.scaffoldUpdate.demonstratedUnderstanding,
           outcome.scaffoldUpdate.guard,
         );
-      } else {
-        // First exchange — just persist detected concepts and initial level
+      } else if (!outcome.scaffoldHeld) {
+        // First exchange — just persist detected concepts and initial level.
+        // Explain and Wrap up (scaffoldHeld) leave the stored state alone.
         await this.conversationModel.updateOne(
           { _id: conversationId },
           {
@@ -571,15 +595,16 @@ export class QueueService extends WorkerHost {
             },
           },
         );
+        levelAfter = gapResult.scaffoldLevel;
       }
 
-      // RFC-0004: Persist quality state (always, even on first exchange)
+      // RFC-0004: Persist quality state (always, even on first exchange).
+      // conclusionOffered records that a wrap-up happened (analytics only).
       await this.updateConversationQualityState(
         conversationId,
         outcome.misconception,
         outcome.isBreakthrough,
-        wrapUpRequested &&
-          qualityDirectives.directives.some((d) => d.source === 'conclusion'),
+        turn.turnKind === 'wrap_up',
       );
 
       // Use the conversation-wide total count so sequences remain monotonic even when
@@ -610,6 +635,7 @@ export class QueueService extends WorkerHost {
           sequence: assistantMessageSequence,
           timestamp: new Date().toISOString(),
           tokens: response.totalTokens,
+          turnKind: turn.turnKind,
         },
         type: 'message',
       });
@@ -642,14 +668,17 @@ export class QueueService extends WorkerHost {
         `Job ${job.id} completed successfully in ${latency}ms. Tokens: ${response.totalTokens}, Cost: ${response.cost}`,
       );
 
-      // Emit complete event
+      // Emit complete event, with the help state the client shows
       this.streamService.emitToConversation(conversationId, {
         data: {
+          budget: turn.budget,
           conclusionReady: qualityDirectives.conclusionReady ?? false,
           cost: response.cost,
           jobId: job.id!,
           latency,
+          scaffoldLevel: levelAfter,
           tokens: response.totalTokens,
+          turnKind: turn.turnKind,
         },
         type: 'complete',
       });

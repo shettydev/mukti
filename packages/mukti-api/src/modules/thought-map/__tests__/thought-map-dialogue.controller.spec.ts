@@ -282,7 +282,7 @@ describe('ThoughtMapDialogueController', () => {
       'free', // subscriptionTier
       'resolved-model', // effectiveModel from resolveEffectiveModel
       false, // not BYOK
-      true, // isInitialQuestion
+      { isInitialQuestion: true },
     );
 
     // Should return async response shape with jobId
@@ -354,7 +354,7 @@ describe('ThoughtMapDialogueController', () => {
       'free',
       'resolved-model',
       true, // BYOK
-      true, // isInitialQuestion
+      { isInitialQuestion: true },
     );
   });
 
@@ -551,6 +551,7 @@ describe('ThoughtMapDialogueController', () => {
       'free',
       'resolved-model',
       false,
+      { helpControl: undefined },
     );
     expect(result).toEqual({ jobId: 'job-1', position: 2 });
   });
@@ -602,6 +603,7 @@ describe('ThoughtMapDialogueController', () => {
       'free',
       'resolved-model',
       true,
+      { helpControl: undefined },
     );
   });
 

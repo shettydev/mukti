@@ -1,3 +1,9 @@
+import type {
+  HelpControl,
+  TurnBudgetStatus,
+  TurnKind,
+} from '@muktiai/contracts';
+
 import type { AiJsonSchemaResponseFormat } from '../ai/types/ai-response-format.interface';
 
 import {
@@ -7,27 +13,65 @@ import {
 } from '../ai/types/ai-response-format.interface';
 
 /**
- * A control the learner can attach to one message (dialogue-help-controls).
- * At most one per message.
+ * The help-control vocabulary is part of the web/API wire contract, so the
+ * types live in `@muktiai/contracts`; re-exported here for API code.
  */
-export const HELP_CONTROLS = ['more_help', 'explain', 'wrap_up'] as const;
-export type HelpControl = (typeof HELP_CONTROLS)[number];
+export type { HelpControl, TurnBudgetStatus, TurnKind };
 
-/** What kind of reply this turn produces, after the budget is applied. */
-export type TurnKind = 'ordinary' | HelpControl;
+/**
+ * Every control the learner can attach to one message (dialogue-help-controls).
+ * At most one per message. Send-message DTOs validate against this list.
+ */
+export const HELP_CONTROLS = [
+  'more_help',
+  'explain',
+  'wrap_up',
+] as const satisfies readonly HelpControl[];
 
 /** Bounds for a dialogue's optional turn budget, in exchanges. */
 export const TURN_BUDGET_MIN = 1;
 export const TURN_BUDGET_MAX = 50;
 
+/** Budget status after this exchange, or null when no budget is set. */
+export function budgetStatus(
+  turnBudget: null | number | undefined,
+  exchangesBefore: number,
+): null | TurnBudgetStatus {
+  if (!turnBudget) {
+    return null;
+  }
+  return { limit: turnBudget, used: exchangesBefore + 1 };
+}
+
 /**
- * Where a dialogue stands against its turn budget.
+ * Exchanges (user messages answered) in a dialogue, from its message count.
  *
- * `used` counts exchanges including the current one once it is sent.
+ * @remarks
+ * Chat stores each exchange as a user/assistant pair. A node dialogue may also
+ * start with one assistant opening question, which `floor` leaves out. So no
+ * separate counter is needed (design D6).
  */
-export interface TurnBudgetStatus {
-  limit: number;
-  used: number;
+export function exchangesFromMessageCount(
+  messageCount: null | number | undefined,
+): number {
+  if (!messageCount || messageCount < 0) {
+    return 0;
+  }
+  return Math.floor(messageCount / 2);
+}
+
+/**
+ * Normalises a stored or requested turn budget: an integer from
+ * {@link TURN_BUDGET_MIN} to {@link TURN_BUDGET_MAX}, or null for none.
+ * Anything else (a corrupt preference, an old document) means no budget.
+ */
+export function normaliseTurnBudget(value: unknown): null | number {
+  return typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= TURN_BUDGET_MIN &&
+    value <= TURN_BUDGET_MAX
+    ? value
+    : null;
 }
 
 /**
@@ -64,15 +108,4 @@ export function responseFormatForTurn(
     default:
       return SOCRATIC_QUESTION_FORMAT;
   }
-}
-
-/** Budget status after this exchange, or null when no budget is set. */
-export function budgetStatus(
-  turnBudget: null | number | undefined,
-  exchangesBefore: number,
-): null | TurnBudgetStatus {
-  if (!turnBudget) {
-    return null;
-  }
-  return { limit: turnBudget, used: exchangesBefore + 1 };
 }

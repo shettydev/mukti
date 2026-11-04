@@ -8,6 +8,7 @@ import {
   MessageEvent,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Sse,
@@ -34,6 +35,7 @@ import {
   NodeDialogueResponseDto,
 } from '../dialogue/dto/dialogue-response.dto';
 import { DialogueSendMessageDto } from '../dialogue/dto/send-message.dto';
+import { UpdateNodeDialogueDto } from '../dialogue/dto/update-dialogue.dto';
 import { DialogueStreamService } from '../dialogue/services/dialogue-stream.service';
 import { DialogueService } from '../dialogue/services/dialogue.service';
 import {
@@ -41,6 +43,7 @@ import {
   ApiSendThoughtMapNodeMessage,
   ApiStartThoughtMapNodeDialogue,
   ApiStreamThoughtMapNodeDialogue,
+  ApiUpdateThoughtMapNodeDialogue,
 } from './dto/thought-map-dialogue.swagger';
 import { ThoughtMapDialogueQueueService } from './services/thought-map-dialogue-queue.service';
 import { ThoughtMapService } from './services/thought-map.service';
@@ -93,13 +96,15 @@ export class ThoughtMapDialogueController {
     const { depth, fromSuggestion, nodeLabel, nodeType, parentType, siblings } =
       await this.resolveNodeContext(mapId, nodeId);
 
-    // Get or create dialogue (scoped to mapId+nodeId)
+    // Get or create dialogue (scoped to mapId+nodeId); a new one starts with
+    // the learner's default turn budget
     const dialogue =
       await this.thoughtMapDialogueQueueService.getOrCreateMapDialogue(
         mapId,
         nodeId,
         nodeType,
         nodeLabel,
+        user._id,
       );
 
     // Mark the node as explored immediately (idempotent $set)
@@ -149,7 +154,7 @@ export class ThoughtMapDialogueController {
         subscriptionTier,
         effectiveModel,
         usedByok,
-        true, // isInitialQuestion flag
+        { isInitialQuestion: true },
       );
 
     return {
@@ -207,8 +212,13 @@ export class ThoughtMapDialogueController {
   }
 
   /**
-   * Sends a user message to a Thought Map node dialogue.
-   * Returns 202 Accepted with job ID. Use the SSE stream to receive real-time updates.
+   * Sends a user message, with at most one help control, to a Thought Map
+   * node dialogue. Returns 202 Accepted with job ID. Use the SSE stream to
+   * receive real-time updates.
+   *
+   * @remarks
+   * A help-control turn is an ordinary model call: it passes the same
+   * {@link AiRequestGate} and counts against the free quota like any message.
    */
   @ApiSendThoughtMapNodeMessage()
   @HttpCode(HttpStatus.ACCEPTED)
@@ -245,6 +255,7 @@ export class ThoughtMapDialogueController {
         subscriptionTier,
         effectiveModel,
         usedByok,
+        { helpControl: dto.helpControl },
       );
 
     return { jobId: result.jobId, position: result.position };
@@ -297,6 +308,42 @@ export class ThoughtMapDialogueController {
         );
       };
     });
+  }
+
+  /**
+   * Updates a Thought Map node dialogue's settings: sets or clears its turn
+   * budget (dialogue-help-controls). Creates the dialogue when the node has
+   * none yet, so a budget can be set before the first message.
+   */
+  @ApiUpdateThoughtMapNodeDialogue()
+  @Patch(':mapId/nodes/:nodeId/dialogue')
+  async updateDialogue(
+    @Param('mapId') mapId: string,
+    @Param('nodeId') nodeId: string,
+    @Body() dto: UpdateNodeDialogueDto,
+    @CurrentUser() user: User,
+  ) {
+    await this.thoughtMapService.findMapById(mapId, user._id);
+
+    const { nodeLabel, nodeType } = await this.resolveNodeInfo(mapId, nodeId);
+
+    let dialogue =
+      await this.thoughtMapDialogueQueueService.getOrCreateMapDialogue(
+        mapId,
+        nodeId,
+        nodeType,
+        nodeLabel,
+        user._id,
+      );
+
+    if (dto.turnBudget !== undefined) {
+      dialogue = await this.dialogueService.updateTurnBudget(
+        dialogue._id,
+        dto.turnBudget,
+      );
+    }
+
+    return NodeDialogueResponseDto.fromDocument(dialogue);
   }
 
   /**

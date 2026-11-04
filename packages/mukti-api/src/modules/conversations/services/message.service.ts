@@ -1,3 +1,5 @@
+import type { TurnKind } from '@muktiai/contracts';
+
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -85,6 +87,8 @@ export class MessageService {
       model?: string;
       promptTokens?: number;
       totalTokens?: number;
+      /** What kind of reply this is (dialogue-help-controls). */
+      turnKind?: TurnKind;
     },
   ): Promise<ConversationDocument> {
     this.logger.log(
@@ -120,6 +124,7 @@ export class MessageService {
               model: metadata.model,
               promptTokens: metadata.promptTokens,
               totalTokens: metadata.totalTokens,
+              ...(metadata.turnKind ? { turnKind: metadata.turnKind } : {}),
             }
           : undefined,
         role: 'assistant',

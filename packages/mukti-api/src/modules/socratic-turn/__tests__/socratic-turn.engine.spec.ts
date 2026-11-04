@@ -3,13 +3,13 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
-import { ScaffoldLevel } from '../../scaffolding/interfaces/scaffolding.interface';
-import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
 import {
   SOCRATIC_EXPLANATION_FORMAT,
   SOCRATIC_QUESTION_FORMAT,
   SOCRATIC_SUMMARY_FORMAT,
 } from '../../ai/types/ai-response-format.interface';
+import { ScaffoldLevel } from '../../scaffolding/interfaces/scaffolding.interface';
+import { ScaffoldFadeService } from '../../scaffolding/services/scaffold-fade.service';
 import {
   type PrepareTurnInput,
   SocraticTurnEngine,
@@ -424,6 +424,65 @@ describe('SocraticTurnEngine', () => {
         expect(
           knowledgeGapDetector.updateKnowledgeState,
         ).not.toHaveBeenCalled();
+      });
+    });
+
+    /**
+     * The level streamed to the help-level indicator: what the dialogue is
+     * stored at once the surface persists the outcome
+     * (dialogue-help-controls, "Current help level is visible").
+     */
+    describe('levelAfter', () => {
+      it('is the evaluated transition level on an ordinary turn', async () => {
+        scaffoldFadeService.evaluateAndTransition.mockReturnValueOnce({
+          changed: true,
+          newLevel: ScaffoldLevel.STRATEGIC_HINTS,
+          reason: 'two struggles',
+          resetCounters: true,
+        });
+        const outcome = await engine.settle(
+          await engine.prepare(
+            input({
+              state: { consecutiveFailures: 1, currentScaffoldLevel: 1 },
+            }),
+          ),
+          { hasPriorAssistantMessage: true },
+        );
+        expect(outcome.levelAfter).toBe(ScaffoldLevel.STRATEGIC_HINTS);
+      });
+
+      it('is the raised level after More help', async () => {
+        const outcome = await engine.settle(
+          await engine.prepare(
+            input({
+              helpControl: 'more_help',
+              state: { currentScaffoldLevel: 1 },
+            }),
+          ),
+          { hasPriorAssistantMessage: true },
+        );
+        expect(outcome.levelAfter).toBe(2);
+      });
+
+      it.each(['explain', 'wrap_up'] as const)(
+        'is the stored level after %s',
+        async (helpControl) => {
+          const outcome = await engine.settle(
+            await engine.prepare(
+              input({ helpControl, state: { currentScaffoldLevel: 3 } }),
+            ),
+            { hasPriorAssistantMessage: true },
+          );
+          expect(outcome.levelAfter).toBe(3);
+        },
+      );
+
+      it('is the stored level on a first exchange, which grades nothing', async () => {
+        const outcome = await engine.settle(
+          await engine.prepare(input({ state: { currentScaffoldLevel: 0 } })),
+          { hasPriorAssistantMessage: false },
+        );
+        expect(outcome.levelAfter).toBe(0);
       });
     });
 

@@ -60,6 +60,13 @@ export class NodeDialogue {
   _id: Types.ObjectId;
 
   /**
+   * True once this dialogue has had at least one wrap-up summary. An
+   * analytics flag only: it never hides or gates the Wrap up control.
+   */
+  @Prop({ default: false, type: Boolean })
+  conclusionOffered: boolean;
+
+  /**
    * Count of consecutive failed responses at current level.
    * Used for scaffold escalation (2 failures = increase level).
    */
@@ -200,6 +207,14 @@ export class NodeDialogue {
    */
   @Prop({ default: 0, type: Number })
   totalMisconceptionsDetected: number;
+
+  /**
+   * Optional cap on exchanges (dialogue-help-controls). The exchange that
+   * reaches it is answered with a wrap-up summary; later messages are still
+   * accepted. Null (the default) means no budget.
+   */
+  @Prop({ default: null, max: 50, min: 1, type: Number })
+  turnBudget?: null | number;
 
   updatedAt: Date;
 

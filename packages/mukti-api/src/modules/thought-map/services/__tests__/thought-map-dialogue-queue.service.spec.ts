@@ -4,7 +4,13 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
+import {
+  SOCRATIC_EXPLANATION_FORMAT,
+  SOCRATIC_QUESTION_FORMAT,
+  SOCRATIC_SUMMARY_FORMAT,
+} from '../../../ai/types/ai-response-format.interface';
 import { ScaffoldLevel } from '../../../scaffolding/interfaces/scaffolding.interface';
+import { ScaffoldFadeService } from '../../../scaffolding/services/scaffold-fade.service';
 import { SocraticTurnEngine } from '../../../socratic-turn/socratic-turn.engine';
 import { ThoughtMapDialogueQueueService } from '../thought-map-dialogue-queue.service';
 
@@ -73,8 +79,15 @@ describe('ThoughtMapDialogueQueueService', () => {
     updateKnowledgeState: jest.fn(),
   };
 
+  // More help runs the real manual raise, so the level moves as in production.
+  const realFade = new ScaffoldFadeService();
   const mockScaffoldFadeService = {
     evaluateAndTransition: jest.fn(),
+    manualRaise: jest.fn((level: ScaffoldLevel) => realFade.manualRaise(level)),
+  };
+
+  const mockAiSettingsService = {
+    getDefaultTurnBudget: jest.fn().mockResolvedValue(null),
   };
 
   const mockResponseEvaluator = {
@@ -88,6 +101,7 @@ describe('ThoughtMapDialogueQueueService', () => {
       mockDialogueMessageModel as any,
       mockThoughtNodeModel as any,
       mockUsageEventModel as any,
+      mockAiSettingsService as any,
       mockDialogueAIService as any,
       mockDialogueService as any,
       mockDialogueStreamService as any,
@@ -207,35 +221,57 @@ describe('ThoughtMapDialogueQueueService', () => {
     it('returns an existing dialogue without creating a new one', async () => {
       const dialogue = { _id: new Types.ObjectId() };
       const mapId = validMapId();
-      mockNodeDialogueModel.findOneAndUpdate.mockResolvedValue(dialogue);
+      mockNodeDialogueModel.findOne.mockResolvedValue(dialogue);
 
       await expect(
-        service.getOrCreateMapDialogue(mapId, 'node-1', 'thought', 'Node'),
+        service.getOrCreateMapDialogue(
+          mapId,
+          'node-1',
+          'thought',
+          'Node',
+          'user-1',
+        ),
       ).resolves.toBe(dialogue);
+      expect(mockNodeDialogueModel.findOne).toHaveBeenCalledWith({
+        mapId: expect.any(Types.ObjectId),
+        nodeId: 'node-1',
+      });
+      expect(mockNodeDialogueModel.findOneAndUpdate).not.toHaveBeenCalled();
+      // The default budget only matters for a new dialogue.
+      expect(mockAiSettingsService.getDefaultTurnBudget).not.toHaveBeenCalled();
+    });
+
+    it("starts a new dialogue with the learner's default turn budget", async () => {
+      const created = { _id: new Types.ObjectId(), nodeId: 'node-1' };
+      const mapId = validMapId();
+      mockNodeDialogueModel.findOne.mockResolvedValue(null);
+      mockNodeDialogueModel.findOneAndUpdate.mockResolvedValue(created);
+      mockAiSettingsService.getDefaultTurnBudget.mockResolvedValueOnce(10);
+
+      await service.getOrCreateMapDialogue(
+        mapId,
+        'node-1',
+        'thought',
+        'Node',
+        'user-1',
+      );
+
+      expect(mockAiSettingsService.getDefaultTurnBudget).toHaveBeenCalledWith(
+        'user-1',
+      );
       expect(mockNodeDialogueModel.findOneAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
         {
-          mapId: expect.any(Types.ObjectId),
-          nodeId: 'node-1',
+          $setOnInsert: expect.objectContaining({ turnBudget: 10 }),
         },
-        {
-          $setOnInsert: {
-            mapId: expect.any(Types.ObjectId),
-            messageCount: 0,
-            nodeId: 'node-1',
-            nodeLabel: 'Node',
-            nodeType: 'thought',
-          },
-        },
-        {
-          new: true,
-          upsert: true,
-        },
+        { new: true, upsert: true },
       );
     });
 
     it('upserts a dialogue without marking the node as explored', async () => {
       const created = { _id: new Types.ObjectId(), nodeId: 'node-1' };
       const mapId = validMapId();
+      mockNodeDialogueModel.findOne.mockResolvedValue(null);
       mockNodeDialogueModel.findOneAndUpdate.mockResolvedValue(created);
 
       const result = await service.getOrCreateMapDialogue(
@@ -257,6 +293,7 @@ describe('ThoughtMapDialogueQueueService', () => {
             nodeId: 'node-1',
             nodeLabel: 'Node',
             nodeType: 'thought',
+            turnBudget: null,
           },
         },
         {
@@ -395,6 +432,7 @@ describe('ThoughtMapDialogueQueueService', () => {
         dialogue._id,
         expect.objectContaining({ hasMisconception: false }),
         false,
+        false, // not a wrap-up
       );
       expect(mockDialogueService.updateScaffoldState).not.toHaveBeenCalled();
       expect(
@@ -519,6 +557,220 @@ describe('ThoughtMapDialogueQueueService', () => {
           currentScaffoldLevel: { $in: [0, null] },
         },
       );
+    });
+
+    /**
+     * dialogue-help-controls in a thought-map node dialogue: each turn kind
+     * declares its own shape, tags the reply, and streams the help state.
+     */
+    describe('help controls and turn budget', () => {
+      const runTurn = async (options: {
+        dialogue?: Record<string, unknown>;
+        helpControl?: string;
+      }) => {
+        const turnDialogue = {
+          ...dialogue,
+          currentScaffoldLevel: ScaffoldLevel.META_COGNITIVE,
+          // An opening question plus one exchange
+          messageCount: 3,
+          ...options.dialogue,
+        };
+        jest
+          .spyOn(service as any, 'getOrCreateMapDialogue')
+          .mockResolvedValue(turnDialogue);
+        jest
+          .spyOn(service as any, 'resolveMapTitle')
+          .mockResolvedValue('Map title');
+        mockDialogueService.addMessage
+          .mockResolvedValueOnce(userMessage)
+          .mockResolvedValueOnce(aiMessage);
+        mockDialogueService.getMessages.mockResolvedValue({
+          messages: [
+            {
+              content: 'Opening question?',
+              createdAt: new Date('2026-01-01T00:00:00.000Z'),
+              role: 'assistant',
+              sequence: 0,
+            },
+            {
+              content: 'My answer',
+              createdAt: userMessage.createdAt,
+              role: 'user',
+              sequence: userMessage.sequence,
+            },
+          ],
+          pagination: { total: 2 },
+        });
+        mockKnowledgeGapDetector.analyze.mockResolvedValue(gapResult);
+        mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+          aiResponse,
+        );
+        mockScaffoldFadeService.evaluateAndTransition.mockReturnValue({
+          changed: false,
+          newLevel: turnDialogue.currentScaffoldLevel,
+          reason: 'No change needed',
+          resetCounters: false,
+        });
+
+        await service.process({
+          data: {
+            depth: 1,
+            fromSuggestion: false,
+            ...(options.helpControl
+              ? { helpControl: options.helpControl }
+              : {}),
+            mapId: validMapId(),
+            message: 'My answer',
+            model: 'allowed-model',
+            nodeId: 'node-1',
+            nodeLabel: 'Node label',
+            nodeType: 'thought',
+            siblings: 0,
+            subscriptionTier: 'free',
+            usedByok: false,
+            userId: new Types.ObjectId().toString(),
+          },
+          id: 'job-1',
+        } as any);
+
+        const events =
+          mockDialogueStreamService.emitToNodeDialogue.mock.calls.map(
+            ([, , , event]) => event,
+          );
+        return {
+          complete: events.find((e) => e.type === 'complete')?.data,
+          reply: events.filter((e) => e.type === 'message').at(-1)?.data,
+          responseFormat:
+            mockDialogueAIService.generateScaffoldedResponseWithPrompt.mock
+              .calls[0][7],
+          savedReply: mockDialogueService.addMessage.mock.calls[1][3],
+        };
+      };
+
+      it.each([
+        ['ordinary', undefined, SOCRATIC_QUESTION_FORMAT],
+        ['more_help', 'more_help', SOCRATIC_QUESTION_FORMAT],
+        ['explain', 'explain', SOCRATIC_EXPLANATION_FORMAT],
+        ['wrap_up', 'wrap_up', SOCRATIC_SUMMARY_FORMAT],
+      ])(
+        '%s: declares its shape, tags the reply and streams the turn kind',
+        async (turnKind, helpControl, format) => {
+          const { complete, reply, responseFormat, savedReply } = await runTurn(
+            { helpControl },
+          );
+
+          expect(responseFormat).toBe(format);
+          expect(savedReply).toMatchObject({ turnKind });
+          expect(reply).toMatchObject({ role: 'assistant', turnKind });
+          expect(complete).toMatchObject({ budget: null, turnKind });
+          expect(mockPostResponseMonitor.monitor).toHaveBeenCalledWith(
+            aiResponse.content,
+            turnKind,
+          );
+        },
+      );
+
+      it('More help from level 1 writes and stores level 2 with counters reset', async () => {
+        const { complete } = await runTurn({
+          dialogue: { consecutiveFailures: 1 },
+          helpControl: 'more_help',
+        });
+
+        const [, scaffoldContext] =
+          mockDialogueAIService.generateScaffoldedResponseWithPrompt.mock.calls[0].slice(
+            4,
+          );
+        expect(scaffoldContext).toMatchObject({ level: 2 });
+        expect(mockDialogueService.updateScaffoldState).toHaveBeenCalledWith(
+          dialogue._id,
+          ScaffoldLevel.META_COGNITIVE,
+          expect.objectContaining({
+            changed: true,
+            newLevel: ScaffoldLevel.STRATEGIC_HINTS,
+            resetCounters: true,
+          }),
+          expect.anything(),
+          false,
+          expect.anything(),
+        );
+        expect(complete).toMatchObject({ scaffoldLevel: 2 });
+      });
+
+      it('Explain keeps the level and counters, and records the concepts as a gap', async () => {
+        const { complete } = await runTurn({
+          dialogue: {
+            consecutiveFailures: 1,
+            currentScaffoldLevel: ScaffoldLevel.STRATEGIC_HINTS,
+          },
+          helpControl: 'explain',
+        });
+
+        expect(mockDialogueService.updateScaffoldState).not.toHaveBeenCalled();
+        expect(
+          mockKnowledgeGapDetector.updateKnowledgeState,
+        ).toHaveBeenCalledWith(expect.any(String), 'new-concept', false);
+        expect(complete).toMatchObject({ scaffoldLevel: 2 });
+      });
+
+      it('Wrap up keeps the stored state and records conclusionOffered', async () => {
+        const { complete } = await runTurn({ helpControl: 'wrap_up' });
+
+        expect(mockDialogueService.updateScaffoldState).not.toHaveBeenCalled();
+        expect(mockDialogueService.updateQualityState).toHaveBeenCalledWith(
+          dialogue._id,
+          expect.anything(),
+          false,
+          true,
+        );
+        expect(complete).toMatchObject({ scaffoldLevel: 1 });
+      });
+
+      it('continues with an ordinary reply after a wrap up', async () => {
+        const { complete, responseFormat } = await runTurn({
+          dialogue: { conclusionOffered: true },
+        });
+
+        expect(responseFormat).toBe(SOCRATIC_QUESTION_FORMAT);
+        expect(complete).toMatchObject({ turnKind: 'ordinary' });
+        expect(mockDialogueQualityService.assess).toHaveBeenCalledWith(
+          expect.objectContaining({ wrapUpRequested: false }),
+        );
+      });
+
+      it('answers the exchange that reaches the budget with a summary', async () => {
+        // Opening question + 4 exchanges, so this message is the 5th exchange
+        const { complete, responseFormat } = await runTurn({
+          dialogue: { messageCount: 9, turnBudget: 5 },
+        });
+
+        expect(responseFormat).toBe(SOCRATIC_SUMMARY_FORMAT);
+        expect(complete).toMatchObject({
+          budget: { limit: 5, used: 5 },
+          turnKind: 'wrap_up',
+        });
+      });
+
+      it('continues with an ordinary reply past the budget', async () => {
+        const { complete, responseFormat } = await runTurn({
+          dialogue: { messageCount: 11, turnBudget: 5 },
+        });
+
+        expect(responseFormat).toBe(SOCRATIC_QUESTION_FORMAT);
+        expect(complete).toMatchObject({
+          budget: { limit: 5, used: 6 },
+          turnKind: 'ordinary',
+        });
+      });
+
+      it('answers Explain with the summary when it reaches the budget', async () => {
+        const { complete, responseFormat } = await runTurn({
+          dialogue: { messageCount: 9, turnBudget: 5 },
+          helpControl: 'explain',
+        });
+
+        expect(responseFormat).toBe(SOCRATIC_SUMMARY_FORMAT);
+        expect(complete).toMatchObject({ turnKind: 'wrap_up' });
+      });
     });
 
     it('emits PROCESSING_ERROR and rethrows on AI failures', async () => {
