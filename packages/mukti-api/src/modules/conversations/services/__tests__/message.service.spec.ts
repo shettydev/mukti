@@ -324,6 +324,51 @@ describe('MessageService', () => {
     });
   });
 
+  describe('reply turn kind (dialogue-help-controls)', () => {
+    it("stores the reply's turn kind so explanations and summaries stay tagged", async () => {
+      mockConversationModel.findById.mockResolvedValue(mockConversation);
+      mockConversation.save.mockResolvedValue(mockConversation);
+
+      await service.addMessageToConversation(
+        mockConversation._id,
+        'Explain please',
+        'Idempotency means a retry has the same effect.',
+        { model: 'sonnet', turnKind: 'explain' },
+      );
+
+      const [userMessage, reply] = mockConversation.recentMessages;
+      expect(userMessage.metadata).toBeUndefined();
+      expect(reply.metadata).toMatchObject({
+        model: 'sonnet',
+        turnKind: 'explain',
+      });
+    });
+
+    it('keeps the turn kind when a reply is archived', async () => {
+      const conversation = createMockConversation();
+      conversation.recentMessages = Array.from({ length: 52 }, (_, i) => ({
+        content: `Message ${i}`,
+        metadata:
+          i === 1 ? { model: 'sonnet', turnKind: 'wrap_up' } : undefined,
+        role: i % 2 === 0 ? 'user' : 'assistant',
+        timestamp: new Date(Date.now() + i * 1000),
+      }));
+      mockConversationModel.findById.mockResolvedValue(conversation);
+      mockArchivedMessageModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+        sort: jest.fn().mockReturnThis(),
+      });
+      mockArchivedMessageModel.insertMany.mockResolvedValue([]);
+      conversation.save.mockResolvedValue(conversation);
+
+      await service.archiveOldMessages(conversation._id);
+
+      const [, archivedReply] =
+        mockArchivedMessageModel.insertMany.mock.calls[0][0];
+      expect(archivedReply.metadata).toMatchObject({ turnKind: 'wrap_up' });
+    });
+  });
+
   describe('archiveOldMessages', () => {
     /**
      * Feature: conversation-backend, Property 7: Archival threshold triggers correctly

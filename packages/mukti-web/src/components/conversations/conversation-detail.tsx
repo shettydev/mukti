@@ -21,6 +21,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ModelSelector } from '@/components/ai/model-selector';
+import { HelpControls } from '@/components/help-controls';
 import { ExtractionReviewPanel } from '@/components/thought-map/ExtractionReviewPanel';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +32,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  exchangesFromMessageCount,
+  type HelpControl,
+  type PendingHelpControl,
+  toHelpLevel,
+  turnBudgetView,
+  WRAP_UP_MESSAGES,
+} from '@/lib/help-controls';
 import { useConversationStream } from '@/lib/hooks/use-conversation-stream';
 import {
   useConversation,
@@ -47,7 +56,6 @@ import { MessageInput } from './message-input';
 import { MessageList } from './message-list';
 import { RateLimitBanner } from './rate-limit-banner';
 import { VisualizeAsMapButton } from './visualize-as-map-button';
-import { WrapUpChip } from './wrap-up-chip';
 
 interface ConversationDetailProps {
   conversationId: string;
@@ -59,7 +67,8 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const queryClient = useQueryClient();
   const router = useRouter();
   const { data: conversation, error, isLoading } = useConversation(conversationId);
-  const { mutate: updateConversation } = useUpdateConversation(conversationId);
+  const { mutate: updateConversation, mutateAsync: updateConversationAsync } =
+    useUpdateConversation(conversationId);
   const { isPending: isDeleting, mutate: deleteConversation } = useDeleteConversation();
   const { isPending: isSending, mutateAsync: sendMessage } = useSendMessage(conversationId);
 
@@ -153,30 +162,30 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     },
   });
 
-  // Wrap-up chip visibility
-  const messageCount = conversation?.metadata?.messageCount ?? 0;
-  const showWrapUp =
-    !!conversation &&
-    !conversation.isArchived &&
-    !conversation.conclusionOffered &&
-    ((messageCount >= 20 && conversation.conclusionReady) || messageCount >= 30);
+  // More help or Explain, attached to the learner's next message
+  const [pendingControl, setPendingControl] = useState<null | PendingHelpControl>(null);
 
-  // Handle wrap-up
+  // Wrap up: available as soon as there is an assistant reply, with no
+  // minimum message count, and again after an earlier wrap-up
   const handleWrapUp = useCallback(async () => {
+    setPendingControl(null);
     try {
       await sendMessage({
-        content: "Let's wrap up this conversation.",
+        content: WRAP_UP_MESSAGES.chat,
+        helpControl: 'wrap_up',
         model: activeModel ?? undefined,
-        wrapUpRequested: true,
       });
-    } catch {
-      // Error handled by MessageInput / rate limit logic
+    } catch (err) {
+      if (isRateLimitError(err)) {
+        setRateLimitRetryAfter(getRetryAfter(err));
+      }
     }
   }, [activeModel, sendMessage]);
 
-  // Handle sending messages
+  // Handle sending messages, with the pending help control (kept if not sent)
   const handleSendMessage = useCallback(
     async (content: string) => {
+      const control: HelpControl | undefined = pendingControl ?? undefined;
       // Check free message limit for users without BYOK key
       if (aiHydrated && !hasOpenRouterKey && conversation) {
         const userMessageCount = conversation.recentMessages.filter(
@@ -195,9 +204,15 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         }
       }
 
+      setPendingControl(null);
       try {
-        await sendMessage({ content, model: activeModel ?? undefined });
+        await sendMessage({
+          content,
+          ...(control ? { helpControl: control } : {}),
+          model: activeModel ?? undefined,
+        });
       } catch (err) {
+        setPendingControl(pendingControl);
         // Check if it's a rate limit error
         if (isRateLimitError(err)) {
           const retryAfter = getRetryAfter(err);
@@ -206,7 +221,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         throw err; // Re-throw to let MessageInput handle the error state
       }
     },
-    [activeModel, sendMessage, aiHydrated, hasOpenRouterKey, conversation, router]
+    [activeModel, sendMessage, aiHydrated, hasOpenRouterKey, conversation, pendingControl, router]
   );
 
   // Handle rate limit banner dismiss
@@ -482,17 +497,30 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         </div>
       )}
 
-      {/* Wrap Up Chip */}
-      <WrapUpChip
-        disabled={isSending || processingState.isProcessing}
-        onWrapUp={handleWrapUp}
-        visible={showWrapUp}
-      />
-
-      {/* Message Input */}
+      {/* Message Input, with the learner's help controls */}
       <MessageInput
         conversationId={conversationId}
         disabled={isSending || rateLimitRetryAfter !== null || conversation.isArchived}
+        helpControls={
+          <HelpControls
+            budget={turnBudgetView(
+              conversation.turnBudget,
+              exchangesFromMessageCount(conversation.metadata.messageCount)
+            )}
+            canWrapUp={conversation.recentMessages.some((m) => m.role === 'assistant')}
+            disabled={
+              isSending ||
+              processingState.isProcessing ||
+              rateLimitRetryAfter !== null ||
+              conversation.isArchived
+            }
+            level={toHelpLevel(conversation.currentScaffoldLevel)}
+            onBudgetChange={(turnBudget) => updateConversationAsync({ turnBudget })}
+            onPendingControlChange={setPendingControl}
+            onWrapUp={handleWrapUp}
+            pendingControl={pendingControl}
+          />
+        }
         onSend={handleSendMessage}
       />
     </div>

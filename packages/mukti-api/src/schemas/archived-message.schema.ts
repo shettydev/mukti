@@ -1,3 +1,5 @@
+import type { TurnKind } from '@muktiai/contracts';
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
@@ -11,6 +13,8 @@ export interface MessageMetadata {
   promptTokens?: number;
   technique?: string;
   totalTokens?: number;
+  /** What kind of reply this was (dialogue-help-controls); absent = ordinary. */
+  turnKind?: TurnKind;
 }
 
 @Schema({ collection: 'archived_messages', timestamps: true })

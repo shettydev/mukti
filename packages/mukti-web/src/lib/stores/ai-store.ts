@@ -7,6 +7,7 @@ import {
   type SwitchProviderResult,
 } from '@/lib/api/ai';
 import { isLocalMode } from '@/lib/config';
+import { toTurnBudget } from '@/lib/help-controls';
 
 export type AiModelMode = 'curated' | 'openrouter';
 
@@ -27,6 +28,8 @@ const HOSTED_DEFAULT_MODEL = 'anthropic/claude-sonnet-4-6';
 
 interface AiStoreState {
   activeModel: null | string;
+  /** Turn budget new dialogues start with (Settings), or null for none. */
+  defaultTurnBudget: null | number;
   deleteOpenRouterKey: () => Promise<void>;
   hasOpenRouterKey: boolean;
   hydrate: () => Promise<void>;
@@ -47,6 +50,8 @@ interface AiStoreState {
   providerStatus: LocalProvidersStatus | null;
   refreshModels: () => Promise<void>;
   setActiveModel: (model: string) => Promise<void>;
+  /** Saves (1-50) or clears (null) the default turn budget for new dialogues. */
+  setDefaultTurnBudget: (turnBudget: null | number) => Promise<void>;
   setOpenRouterKey: (apiKey: string) => Promise<void>;
   /** The CLI a switch is in progress to, or `null`. */
   switchingTo: null | string;
@@ -65,6 +70,7 @@ function fallbackModel(): null | string {
 
 export const useAiStore = create<AiStoreState>((set, get) => ({
   activeModel: fallbackModel(),
+  defaultTurnBudget: null,
   deleteOpenRouterKey: async () => {
     await aiApi.deleteOpenRouterKey();
     await get().hydrate();
@@ -76,6 +82,7 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
 
       set({
         activeModel: settings.activeModel ?? fallbackModel(),
+        defaultTurnBudget: toTurnBudget(settings.defaultTurnBudget),
         hasOpenRouterKey: settings.hasOpenRouterKey,
         isHydrated: true,
         openRouterKeyLast4: settings.openRouterKeyLast4,
@@ -140,6 +147,11 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
   setActiveModel: async (model: string) => {
     set({ activeModel: model });
     await aiApi.updateSettings({ activeModel: model });
+  },
+
+  setDefaultTurnBudget: async (turnBudget: null | number) => {
+    const saved = await aiApi.updateSettings({ defaultTurnBudget: turnBudget });
+    set({ defaultTurnBudget: toTurnBudget(saved.defaultTurnBudget) });
   },
 
   setOpenRouterKey: async (apiKey: string) => {

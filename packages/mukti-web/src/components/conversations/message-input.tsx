@@ -6,7 +6,7 @@
 'use client';
 
 import { ArrowUp, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 import type { SocraticTechnique } from '@/types/conversation.types';
 
@@ -18,6 +18,11 @@ import { TechniqueIndicator } from './technique-indicator';
 interface MessageInputProps {
   conversationId: string;
   disabled?: boolean;
+  /**
+   * Learner help controls, shown on the input because More help and Explain
+   * attach to the next message sent from it.
+   */
+  helpControls?: ReactNode;
   maxLength?: number;
   onSend: (content: string) => Promise<void>;
   prefillState?: null | { text: string; timestamp: number };
@@ -29,6 +34,7 @@ const DEFAULT_MAX_LENGTH = 4000;
 export function MessageInput({
   conversationId: _conversationId,
   disabled = false,
+  helpControls,
   maxLength = DEFAULT_MAX_LENGTH,
   onSend,
   prefillState,
@@ -131,6 +137,8 @@ export function MessageInput({
           <TechniqueIndicator technique={technique} />
         </div>
       )}
+
+      {helpControls && <div className="mb-2">{helpControls}</div>}
 
       <div className="relative">
         <textarea

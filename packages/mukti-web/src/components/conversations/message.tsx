@@ -7,6 +7,7 @@
 
 import type { Message as MessageType } from '@/types/conversation.types';
 
+import { ReplyKindTag } from '@/components/help-controls';
 import { Markdown } from '@/components/ui/markdown';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +44,8 @@ export function Message({ message, onQuestionClick }: MessageProps) {
         />
         <div className="flex items-start gap-2">
           <div className="flex-1 space-y-2">
+            {/* Explanations and summaries are tagged so they read apart from questions */}
+            {!isUser && <ReplyKindTag turnKind={message.turnKind} />}
             {isUser ? (
               <p className="whitespace-pre-wrap break-words text-base leading-relaxed">
                 {message.content}

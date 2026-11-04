@@ -386,4 +386,59 @@ describe('ConversationDetail', () => {
     expect(screen.getByText('Test message 1')).toBeInTheDocument();
     expect(screen.getByText('Test message 2')).toBeInTheDocument();
   });
+
+  /**
+   * dialogue-help-controls: Wrap up no longer waits for 20-30 messages or
+   * hides after the first summary.
+   */
+  describe('help controls', () => {
+    const renderDetail = (conversation: Partial<Conversation> = {}) => {
+      const mutateAsync = jest.fn().mockResolvedValue({});
+      (useConversationsHook.useConversation as jest.Mock).mockReturnValue({
+        data: { ...mockConversation, ...conversation },
+        error: null,
+        isLoading: false,
+      } as any);
+      (useConversationsHook.useUpdateConversation as jest.Mock).mockReturnValue({
+        mutate: jest.fn(),
+        mutateAsync: jest.fn(),
+      } as any);
+      (useConversationsHook.useDeleteConversation as jest.Mock).mockReturnValue({
+        isPending: false,
+        mutate: jest.fn(),
+      } as any);
+      (useConversationsHook.useSendMessage as jest.Mock).mockReturnValue({
+        error: null,
+        isPending: false,
+        mutateAsync,
+      } as any);
+      render(<ConversationDetail conversationId="test-id" />, { wrapper: createWrapper() });
+      return { mutateAsync };
+    };
+
+    it('shows Wrap up after one assistant reply', () => {
+      renderDetail();
+
+      expect(screen.getByRole('button', { name: /wrap up/i })).toBeInTheDocument();
+    });
+
+    it('still shows Wrap up after an earlier wrap-up', () => {
+      renderDetail({ conclusionOffered: true });
+
+      expect(screen.getByRole('button', { name: /wrap up/i })).toBeInTheDocument();
+    });
+
+    it('sends Wrap up as the wrap_up control', async () => {
+      const { mutateAsync } = renderDetail();
+
+      await userEvent.click(screen.getByRole('button', { name: /wrap up/i }));
+
+      expect(mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "Let's wrap up this conversation.",
+          helpControl: 'wrap_up',
+        })
+      );
+    });
+  });
 });

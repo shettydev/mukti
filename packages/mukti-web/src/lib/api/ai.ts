@@ -2,6 +2,8 @@ import { apiClient } from './client';
 
 export type AiSettings = {
   activeModel?: string;
+  /** Turn budget new dialogues start with, or null for none. */
+  defaultTurnBudget?: null | number;
   hasOpenRouterKey: boolean;
   openRouterKeyLast4: null | string;
 };
@@ -89,11 +91,7 @@ export const aiApi = {
   },
 
   getSettings: async (): Promise<AiSettings> => {
-    const response = await apiClient.get<{
-      activeModel?: string;
-      hasOpenRouterKey: boolean;
-      openRouterKeyLast4: null | string;
-    }>('/ai/settings');
+    const response = await apiClient.get<AiSettings>('/ai/settings');
     return response;
   },
 
@@ -122,7 +120,17 @@ export const aiApi = {
     return apiClient.put<SwitchProviderResult>('/ai/provider', dto);
   },
 
-  updateSettings: async (dto: { activeModel: string }): Promise<{ activeModel: string }> => {
-    return apiClient.patch<{ activeModel: string }>('/ai/settings', dto);
+  /**
+   * Saves settings. Each field is optional and saved on its own:
+   * `defaultTurnBudget: null` clears the default, omitting it leaves it.
+   */
+  updateSettings: async (dto: {
+    activeModel?: string;
+    defaultTurnBudget?: null | number;
+  }): Promise<{ activeModel?: null | string; defaultTurnBudget?: null | number }> => {
+    return apiClient.patch<{ activeModel?: null | string; defaultTurnBudget?: null | number }>(
+      '/ai/settings',
+      dto
+    );
   },
 };

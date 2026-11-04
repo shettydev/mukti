@@ -267,6 +267,10 @@ export class MessageService {
               model: message.metadata.model,
               promptTokens: message.metadata.promptTokens,
               totalTokens: message.metadata.totalTokens,
+              // Keep explanations and summaries tagged once archived
+              ...(message.metadata.turnKind
+                ? { turnKind: message.metadata.turnKind }
+                : {}),
             }
           : undefined,
         role: message.role,

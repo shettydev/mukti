@@ -15,6 +15,7 @@ import Image from 'next/image';
 
 import type { DialogueMessage } from '@/types/dialogue.types';
 
+import { ReplyKindTag } from '@/components/help-controls';
 import { Markdown } from '@/components/ui/markdown';
 import { cn } from '@/lib/utils';
 
@@ -83,9 +84,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
       {/* Message content */}
       <div className={cn('flex max-w-[85%] flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
-        {/* Role label */}
-        <span className="text-xs font-medium text-muted-foreground">
+        {/* Role label, and the tag on an explanation or a summary */}
+        <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
           {isUser ? 'You' : 'Mukti'}
+          {!isUser && <ReplyKindTag turnKind={message.metadata?.turnKind} />}
         </span>
 
         {/* Message bubble */}

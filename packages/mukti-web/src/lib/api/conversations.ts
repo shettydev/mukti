@@ -10,6 +10,8 @@
  * - Response transformation from backend format to frontend types
  */
 
+import type { TurnKind } from '@muktiai/contracts';
+
 import type {
   Conversation,
   ConversationFilters,
@@ -21,6 +23,8 @@ import type {
   UpdateConversationDto,
 } from '@/types/conversation.types';
 
+import { toHelpLevel, toTurnBudget } from '@/lib/help-controls';
+
 import { apiClient } from './client';
 
 /**
@@ -30,6 +34,7 @@ interface BackendConversation {
   _id: string;
   conclusionOffered?: boolean;
   createdAt: string;
+  currentScaffoldLevel?: number;
   hasArchivedMessages: boolean;
   isArchived: boolean;
   isFavorite: boolean;
@@ -48,6 +53,7 @@ interface BackendConversation {
       model?: string;
       promptTokens?: number;
       totalTokens?: number;
+      turnKind?: TurnKind;
     };
     role: 'assistant' | 'user';
     timestamp: string;
@@ -56,6 +62,7 @@ interface BackendConversation {
   technique: string;
   title: string;
   totalMessageCount?: number;
+  turnBudget?: null | number;
   updatedAt: string;
   userId: string;
 }
@@ -78,7 +85,11 @@ function transformConversation(backend: BackendConversation | Conversation): Con
   // Handle recentMessages - might be undefined
   // Cast to backend format since we're transforming from backend response
   const backendMessages = (backend.recentMessages || []) as Array<
-    BackendConversation['recentMessages'][number] & { sequence?: number; tokens?: number }
+    BackendConversation['recentMessages'][number] & {
+      sequence?: number;
+      tokens?: number;
+      turnKind?: TurnKind;
+    }
   >;
   const recentMessageCount = backendMessages.length;
   const totalCount =
@@ -89,17 +100,24 @@ function transformConversation(backend: BackendConversation | Conversation): Con
     recentMessageCount;
   const recentStartSequence = Math.max(1, totalCount - recentMessageCount + 1);
 
-  const recentMessages = backendMessages.map((msg, index) => ({
-    content: msg.content,
-    role: msg.role as 'assistant' | 'user',
-    sequence: typeof msg.sequence === 'number' ? msg.sequence : recentStartSequence + index,
-    timestamp: msg.timestamp,
-    tokens: msg.metadata?.totalTokens ?? msg.tokens,
-  }));
+  const recentMessages = backendMessages.map((msg, index) => {
+    // Stored replies carry their kind in metadata; already-transformed
+    // messages (frontend format) carry it at the top level.
+    const turnKind = msg.metadata?.turnKind ?? msg.turnKind;
+    return {
+      content: msg.content,
+      role: msg.role as 'assistant' | 'user',
+      sequence: typeof msg.sequence === 'number' ? msg.sequence : recentStartSequence + index,
+      timestamp: msg.timestamp,
+      tokens: msg.metadata?.totalTokens ?? msg.tokens,
+      ...(turnKind ? { turnKind } : {}),
+    };
+  });
 
   return {
     conclusionOffered: ('conclusionOffered' in backend && backend.conclusionOffered) || false,
     createdAt: backend.createdAt,
+    currentScaffoldLevel: toHelpLevel(backend.currentScaffoldLevel),
     hasArchivedMessages: backend.hasArchivedMessages ?? false,
     id,
     isArchived: backend.isArchived ?? false,
@@ -115,6 +133,7 @@ function transformConversation(backend: BackendConversation | Conversation): Con
     technique: (backend.technique || 'elenchus') as Conversation['technique'],
     title: backend.title || '',
     totalMessageCount: totalCount,
+    turnBudget: toTurnBudget(backend.turnBudget),
     updatedAt: backend.updatedAt,
     userId: backend.userId,
   };
@@ -292,8 +311,15 @@ export const conversationsApi = {
     }
 
     const query = params.toString();
-    return apiClient.get<Message[]>(
+    const messages = await apiClient.get<Array<Message & { metadata?: { turnKind?: TurnKind } }>>(
       `/conversations/${id}/messages/archived${query ? `?${query}` : ''}`
+    );
+    // Archived replies keep their kind in metadata; lift it so explanations
+    // and summaries stay tagged when the learner scrolls back.
+    return messages.map((message) =>
+      message.metadata?.turnKind && !message.turnKind
+        ? { ...message, turnKind: message.metadata.turnKind }
+        : message
     );
   },
 

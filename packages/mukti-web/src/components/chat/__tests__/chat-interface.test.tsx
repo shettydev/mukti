@@ -26,6 +26,7 @@ jest.mock('@/lib/hooks/use-conversations', () => ({
   useConversation: jest.fn(),
   useDeleteConversation: jest.fn(),
   useSendMessage: jest.fn(),
+  useUpdateConversation: jest.fn(),
 }));
 
 jest.mock('@/lib/hooks/use-conversation-stream', () => ({
@@ -137,6 +138,7 @@ describe('ChatInterface', () => {
       useConversation,
       useDeleteConversation,
       useSendMessage,
+      useUpdateConversation,
     } = require('@/lib/hooks/use-conversations');
     const { useAiStore } = require('@/lib/stores/ai-store');
 
@@ -156,6 +158,10 @@ describe('ChatInterface', () => {
       isPending: false,
       mutateAsync: jest.fn(),
       reset: jest.fn(),
+    });
+
+    useUpdateConversation.mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({}),
     });
 
     useArchivedMessages.mockReturnValue({
@@ -347,6 +353,142 @@ describe('ChatInterface', () => {
 
       const input = screen.getByPlaceholderText(/Type your message/i);
       expect(input).toBeDisabled();
+    });
+  });
+
+  /**
+   * dialogue-help-controls in chat: the controls sit on the input, Wrap up is
+   * there from the first reply, and More help / Explain go with the next send.
+   */
+  describe('Help controls', () => {
+    const renderChat = (conversation: Partial<Conversation> = {}) => {
+      const { useConversation } = require('@/lib/hooks/use-conversations');
+      useConversation.mockReturnValue({
+        data: { ...mockConversation, ...conversation },
+        error: null,
+        isLoading: false,
+      });
+      const mutateAsync = jest.fn().mockResolvedValue({});
+      const { useSendMessage } = require('@/lib/hooks/use-conversations');
+      useSendMessage.mockReturnValue({
+        error: null,
+        isPending: false,
+        mutateAsync,
+        reset: jest.fn(),
+      });
+      renderWithProviders(
+        <ChatInterface
+          conversationId="conv-123"
+          isCreating={false}
+          onCreateConversation={jest.fn()}
+          onTechniqueChange={jest.fn()}
+          selectedTechnique="elenchus"
+        />
+      );
+      return { mutateAsync };
+    };
+
+    const send = async (user: ReturnType<typeof userEvent.setup>, text: string) => {
+      await user.type(screen.getByPlaceholderText(/Type your message/i), text);
+      await user.click(screen.getByLabelText(/Send message/i));
+    };
+
+    it('shows Wrap up after one assistant reply, with no minimum message count', () => {
+      renderChat();
+
+      expect(screen.getByRole('button', { name: /wrap up/i })).toBeInTheDocument();
+    });
+
+    it('hides Wrap up until there is an assistant reply', () => {
+      renderChat({
+        metadata: { ...mockConversation.metadata, messageCount: 1 },
+        recentMessages: [mockConversation.recentMessages[0]],
+      });
+
+      expect(screen.queryByRole('button', { name: /wrap up/i })).not.toBeInTheDocument();
+    });
+
+    it('keeps Wrap up available after an earlier wrap-up', () => {
+      renderChat({ conclusionOffered: true });
+
+      expect(screen.getByRole('button', { name: /wrap up/i })).toBeInTheDocument();
+    });
+
+    it('sends Wrap up straight away as a wrap_up control', async () => {
+      const user = userEvent.setup();
+      const { mutateAsync } = renderChat();
+
+      await user.click(screen.getByRole('button', { name: /wrap up/i }));
+
+      await waitFor(() =>
+        expect(mutateAsync).toHaveBeenCalledWith({
+          content: "Let's wrap up this conversation.",
+          helpControl: 'wrap_up',
+        })
+      );
+    });
+
+    it('attaches Explain to the next message only', async () => {
+      const user = userEvent.setup();
+      const { mutateAsync } = renderChat();
+
+      await user.click(screen.getByRole('button', { name: /explain/i }));
+      await send(user, 'Why does it charge twice?');
+      await waitFor(() =>
+        expect(mutateAsync).toHaveBeenCalledWith({
+          content: 'Why does it charge twice?',
+          helpControl: 'explain',
+        })
+      );
+      expect(screen.getByRole('button', { name: /explain/i })).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+
+      await send(user, 'I see');
+      await waitFor(() => expect(mutateAsync).toHaveBeenLastCalledWith({ content: 'I see' }));
+    });
+
+    it('keeps the control selected when the message fails to send', async () => {
+      const user = userEvent.setup();
+      const { mutateAsync } = renderChat();
+      mutateAsync.mockRejectedValueOnce(new Error('offline'));
+
+      await user.click(screen.getByRole('button', { name: /more help/i }));
+      await send(user, 'Still stuck');
+
+      await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /more help/i })).toHaveAttribute(
+          'aria-pressed',
+          'true'
+        )
+      );
+    });
+
+    it("shows the conversation's help level", () => {
+      renderChat({ currentScaffoldLevel: 2 });
+
+      expect(screen.getByTestId('help-level')).toHaveTextContent('Hints');
+    });
+
+    it('shows and sets the turn budget', async () => {
+      const user = userEvent.setup();
+      const updateAsync = jest.fn().mockResolvedValue({});
+      const { useUpdateConversation } = require('@/lib/hooks/use-conversations');
+      useUpdateConversation.mockReturnValue({ mutateAsync: updateAsync });
+      renderChat({ turnBudget: 3 });
+
+      // 2 messages = 1 exchange of 3
+      expect(screen.getByTestId('turn-budget')).toHaveTextContent('1/3 turns · 2 left');
+
+      await user.click(screen.getByTestId('turn-budget'));
+      const field = screen.getByLabelText('Turn limit (exchanges)');
+      await user.clear(field);
+      await user.type(field, '5');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(updateAsync).toHaveBeenCalledWith({ turnBudget: 5 }));
     });
   });
 

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { ModelSelector } from '@/components/ai/model-selector';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { DefaultTurnBudgetSection } from '@/components/settings/default-turn-budget-section';
 import { LocalProviderSection } from '@/components/settings/local-provider-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -127,6 +128,10 @@ function SettingsContent() {
               )}
             </div>
           </section>
+
+          {/* ── Default turn limit ── */}
+          {/* Both modes: the turn budget new dialogues start with. */}
+          <DefaultTurnBudgetSection />
 
           {/* ── OpenRouter API Key ── */}
           {/* Hidden in local mode: AI runs on the developer's own AI CLI auth,

@@ -15,13 +15,26 @@
  */
 
 import { AlertCircle, GripVertical, Lightbulb, Loader2, X } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { CanvasNode } from '@/types/canvas-visualization.types';
 
 import { LoadingMessage } from '@/components/conversations/loading-message';
+import { HelpControls } from '@/components/help-controls';
 import { Button } from '@/components/ui/button';
-import { useDialogueStream, useNodeMessages, useSendNodeMessage } from '@/lib/hooks/use-dialogue';
+import {
+  exchangesFromMessageCount,
+  type PendingHelpControl,
+  toHelpLevel,
+  turnBudgetView,
+  WRAP_UP_MESSAGES,
+} from '@/lib/help-controls';
+import {
+  useDialogueStream,
+  useNodeMessages,
+  useSendNodeMessage,
+  useUpdateNodeDialogue,
+} from '@/lib/hooks/use-dialogue';
 import { useAiStore } from '@/lib/stores/ai-store';
 import {
   MAX_PANEL_WIDTH,
@@ -114,8 +127,16 @@ export function NodeChatPanel({
     sessionId,
     selectedNode?.id ?? ''
   );
+  const { mutateAsync: updateDialogue } = useUpdateNodeDialogue(sessionId, selectedNode?.id ?? '');
 
   const activeModel = useAiStore((state) => state.activeModel);
+
+  // More help or Explain, attached to the learner's next message in this node
+  const [pendingControl, setPendingControl] = useState<null | PendingHelpControl>(null);
+
+  useEffect(() => {
+    setPendingControl(null);
+  }, [selectedNode?.id]);
 
   // Subscribe to SSE stream for real-time updates
   const {
@@ -126,7 +147,8 @@ export function NodeChatPanel({
 
   // Flatten paginated messages
   const messages = messagesData?.pages.flatMap((page) => page.messages) ?? [];
-  const messageCount = messagesData?.pages[0]?.dialogue.messageCount ?? 0;
+  const dialogue = messagesData?.pages[0]?.dialogue ?? null;
+  const messageCount = dialogue?.messageCount ?? 0;
   const hasHistory = messages.length > 0;
 
   // Scroll to bottom when new messages arrive
@@ -137,14 +159,36 @@ export function NodeChatPanel({
   }, [messages.length]);
 
   /**
-   * Handle sending a message
+   * Handle sending a message, with the pending help control (kept if the
+   * send fails)
    */
   const handleSend = useCallback(
     (content: string) => {
-      sendMessage({ content, model: activeModel ?? undefined });
+      const control = pendingControl;
+      setPendingControl(null);
+      sendMessage(
+        {
+          content,
+          ...(control ? { helpControl: control } : {}),
+          model: activeModel ?? undefined,
+        },
+        { onError: () => setPendingControl(control) }
+      );
     },
-    [activeModel, sendMessage]
+    [activeModel, pendingControl, sendMessage]
   );
+
+  /**
+   * Wrap up: ask for the closing summary of this node's dialogue straight away
+   */
+  const handleWrapUp = useCallback(() => {
+    setPendingControl(null);
+    sendMessage({
+      content: WRAP_UP_MESSAGES.node,
+      helpControl: 'wrap_up',
+      model: activeModel ?? undefined,
+    });
+  }, [activeModel, sendMessage]);
 
   /**
    * Handle starting a dialogue
@@ -364,8 +408,19 @@ export function NodeChatPanel({
         </div>
       )}
 
-      {/* Input area */}
+      {/* Input area, with the learner's help controls */}
       <div className="border-t px-4 py-4">
+        <HelpControls
+          budget={turnBudgetView(dialogue?.turnBudget, exchangesFromMessageCount(messageCount))}
+          canWrapUp={messages.some((message) => message.role === 'assistant')}
+          className="mb-3"
+          disabled={isSending || isProcessing}
+          level={toHelpLevel(dialogue?.currentScaffoldLevel)}
+          onBudgetChange={(turnBudget) => updateDialogue({ turnBudget })}
+          onPendingControlChange={setPendingControl}
+          onWrapUp={handleWrapUp}
+          pendingControl={pendingControl}
+        />
         <ChatInput
           disabled={!selectedNode}
           isLoading={isSending || isProcessing}
