@@ -9,7 +9,7 @@
 | **Status**       | ![Status: Accepted](https://img.shields.io/badge/Status-Accepted-brightgreen) |
 | **Author(s)**    | [Prathik Shetty](https://github.com/shettydev)                                |
 | **Created**      | 2026-02-28                                                                    |
-| **Last Updated** | 2026-03-04                                                                    |
+| **Last Updated** | 2026-11-04                                                                    |
 
 > **Status options:** `Draft` | `In Review` | `Accepted` | `Implemented` | `Rejected` | `Superseded`
 
@@ -402,6 +402,38 @@ flowchart TD
 
 **Design rationale:** At lower levels, explanation ability is weighted highest (the user should be reasoning independently). At higher levels, concept mention and pattern application are weighted more heavily (the user should be demonstrating they absorbed the scaffolded content). The threshold for "success" is always `score ≥ 0.5`, but the weights make success progressively easier to achieve at higher scaffold levels — reflecting that scaffolded users need less independent reasoning to demonstrate progress.
 
+#### 5.6 Learner Controls
+
+Automatic escalation needs two failed replies before support increases, and the learner could not see the level at all. The learner controls (specified in `openspec/changes/add-help-level-controls/specs/dialogue-help-controls/spec.md`) make the ladder visible and let the learner steer it without turning Mukti into an answer tool. Every Socratic dialogue (chat, canvas node chat, thought-map node chat) shows its current level as a number and a short name: 0 "Questions only", 1 "Thinking prompts", 2 "Hints", 3 "Examples", 4 "Brief explanations". A message carries at most one control. Each control is handled once, in `SocraticTurnEngine`, which turns it into a turn kind; the kind decides the reply's shape, the prompt directives and how the turn settles.
+
+| Turn kind | Reply written at                    | Reply shape | Stored level and counters                          | Knowledge (BKT)            |
+| --------- | ----------------------------------- | ----------- | -------------------------------------------------- | -------------------------- |
+| Ordinary  | `max(detected, stored)`             | Question    | Fade controller (5.3)                              | Updated from the reply     |
+| More help | `max(detected, min(stored + 1, 4))` | Question    | Raised level stored, both counters reset to 0      | Updated from the reply     |
+| Explain   | `max(detected, stored)`             | Explanation | Unchanged; the turn is neither success nor failure | Concepts recorded as a gap |
+| Wrap up   | `max(detected, stored)`             | Summary     | Unchanged                                          | Not updated                |
+
+**Manual raise (More help).** The learner asks for more support before failing twice. `ScaffoldFadeService.manualRaise` builds on the existing `forceLevel`, so a manual raise resets both counters exactly as any manual change does, and is recorded in `scaffoldHistory`. The raised level persists; the two-success fading rule then applies as usual, so support still fades once the learner shows understanding. At level 4 the level cannot rise further and the control says the maximum is already active. A manual raise is one step up and never down: it is not the free level selection rejected in Alternative B, because the learner cannot opt out of support the detector added, and fading still decides when support comes off.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    L1: Level 1
+    L2: Level 2
+    L3: Level 3
+    L1 --> L2: More help (counters reset)
+    L1 --> L2: 2 failures
+    L2 --> L3: More help (counters reset)
+    L2 --> L1: 2 successes
+    L3 --> L2: 2 successes
+```
+
+**One-turn Explain.** The learner asks for the single concept or step they are missing. The reply declares a prose shape instead of the single-question shape and carries the `EXPLAIN PROTOCOL` directive: identify the one missing piece, explain it in about 120 words with at most one short example, do not complete the learner's task or rewrite their code even when asked for the full answer, and do not end with a question. The next reply goes back to the stored level under the normal question-shaped rule. Explain sits outside the ladder: it is not a jump to Level 4, which still ends with a question and would persist. Asking for an explanation is evidence of a gap, so the turn's concepts are recorded as not demonstrated, but the stored level and counters do not move. The reply monitor logs an Explain reply that ends with a question, contains a fenced code block over 8 lines, or runs over 180 words, as a possible solution leak.
+
+**Wrap up and turn budget.** Wrap up is available once the dialogue has an assistant reply and returns a three-part summary (Established, Still open, Next step) in its own prose shape. A learner can also cap a dialogue at 1 to 50 exchanges; the exchange that reaches the cap is answered as a wrap-up even when it carries More help or Explain, and later messages are still answered. Neither moves the ladder.
+
+No control, phrase or setting produces the complete solution, and there is no persistent "direct mode". Each control is an ordinary model call, metered like any message.
+
 ---
 
 ## 6. API / Interface Design
@@ -518,6 +550,8 @@ Let users choose their support level.
 |                            | Dunning-Kruger: struggling users underestimate need |
 
 **Reason for rejection:** Same reason as RFC-0001 Alternative C. Automatic detection based on behavior is more reliable than self-assessment.
+
+**Revisited (2026-11-04):** Free selection stays rejected. Learners can now raise the level one step (More help) or ask for one explanation (Explain), but cannot lower the level or switch support off; detection and fading still govern the ladder (see 5.6).
 
 ### Alternative C: AI-Determined Scaffolding Per-Response
 
@@ -643,11 +677,13 @@ No changes to existing auth. Scaffold data inherits dialogue permissions.
 
 ## 14. Decision Log
 
-| Date       | Decision                          | Rationale                                                               | Decided By |
-| ---------- | --------------------------------- | ----------------------------------------------------------------------- | ---------- |
-| 2026-02-28 | 5 scaffold levels                 | Research-backed hierarchy from meta-cognitive → direct instruction      | RFC Author |
-| 2026-02-28 | 2-success fading rule             | Van de Pol research suggests 2 consecutive successes is reliable signal | RFC Author |
-| 2026-02-28 | Level 4 preserves Socratic return | Even direct instruction must quickly return to questioning              | RFC Author |
+| Date       | Decision                               | Rationale                                                                                                        | Decided By |
+| ---------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------- |
+| 2026-02-28 | 5 scaffold levels                      | Research-backed hierarchy from meta-cognitive → direct instruction                                               | RFC Author |
+| 2026-02-28 | 2-success fading rule                  | Van de Pol research suggests 2 consecutive successes is reliable signal                                          | RFC Author |
+| 2026-02-28 | Level 4 preserves Socratic return      | Even direct instruction must quickly return to questioning                                                       | RFC Author |
+| 2026-11-04 | Learner-visible level and manual raise | Learners could neither see nor steer help; More help raises one step with counters reset, fading unchanged (5.6) | RFC Author |
+| 2026-11-04 | One-turn Explain outside the ladder    | The missing piece once, never the solution; stored level and counters untouched (5.6)                            | RFC Author |
 
 ---
 

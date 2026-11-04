@@ -29,7 +29,7 @@ The adaptive loop introduced by RFC-0001, RFC-0002, and RFC-0004 is only as good
 - `KnowledgeGapDetectorService` computes the linguistic and behavioural parts of the gap score from substring markers and Jaccard word overlap.
 - `ConclusionDetectorService` decides `conclusionReady` from three regular expressions.
 
-The outputs are not advisory. `demonstratesUnderstanding` updates `KnowledgeState.currentProbability` for every detected concept, moves `consecutiveSuccesses` / `consecutiveFailures`, triggers the acknowledgment and breakthrough directives, and fades or holds the scaffold level. `conclusionReady` shows the wrap-up chip and suppresses the single-question directive (`dialogue-quality.service.ts:92`).
+The outputs are not advisory. `demonstratesUnderstanding` updates `KnowledgeState.currentProbability` for every detected concept, moves `consecutiveSuccesses` / `consecutiveFailures`, triggers the acknowledgment and breakthrough directives, and fades or holds the scaffold level. `conclusionReady` is streamed to the client on `complete` and suppresses the single-question directive (`dialogue-quality.service.ts:92`); since the help controls, it no longer decides whether Wrap up is shown.
 
 ### Current Pain Points
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Brain, MessageCircleQuestion, Sparkles } from 'lucide-react';
+import { Brain, MessageCircleQuestion, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -77,6 +77,11 @@ export function LocalOnboardingTour() {
             body="Each surface auto-selects a questioning technique suited to what you're working through — no configuration needed."
             icon={<Sparkles className="h-4 w-4 text-japandi-sage" />}
             title="Techniques that adapt"
+          />
+          <TourItem
+            body="Every dialogue shows how much help Mukti is giving. Ask for More help, Explain the one piece you're missing (it still won't write the solution), or Wrap up with a summary of what's settled and what's open. Set a turn limit in Settings if you want one."
+            icon={<SlidersHorizontal className="h-4 w-4 text-japandi-terracotta" />}
+            title="You steer the help"
           />
         </ul>
 

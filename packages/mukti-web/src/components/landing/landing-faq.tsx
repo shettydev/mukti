@@ -35,7 +35,7 @@ const faqs: { answer: ReactNode; question: string }[] = [
   },
   {
     answer:
-      "No. Mukti uses five levels of help. It starts with pure Socratic questioning. If you're genuinely stuck and it detects a knowledge gap, it adds support step by step: meta-cognitive prompts, hints, worked examples and, at most, a brief explanation of the missing concept before it returns to questions. It never hands you the solution.",
+      "Not the full solution. Mukti uses five levels of help, and every dialogue shows the level it's at. It starts with pure Socratic questioning. If you're genuinely stuck and it detects a knowledge gap, it adds support step by step: thinking prompts, hints, examples and, at most, a brief explanation of the missing concept before it returns to questions. You can also steer it: More help raises the level for your next reply, Explain asks it to explain the one piece you're missing, and Wrap up ends with a summary of what's settled, what's still open and your next step. You can cap a dialogue at a number of turns, too. Mukti still won't write the solution for you.",
     question: 'Will I ever get a direct answer?',
   },
   {

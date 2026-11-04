@@ -16,7 +16,8 @@ Key features:
 - **Socratic Conversations** — text-based dialogue using 6 techniques: elenchus, dialectic, maieutics, definitional, analogical, counterfactual
 - **Node Dialogues** — per-node Socratic chat within canvases (technique auto-selected by node type)
 - **Knowledge Gap Detection** (RFC-0001) — Bayesian Knowledge Tracing to detect when Socratic questioning fails; runs on every chat, canvas and map turn
-- **Adaptive Scaffolding** (RFC-0002) — 5-level scaffold system that never gives direct answers; runs on every turn
+- **Adaptive Scaffolding** (RFC-0002) — 5-level scaffold system that never hands over the full solution; runs on every turn
+- **Help controls** — every dialogue shows its help level; the learner can ask for More help (one level up now), Explain (the one missing piece, for one turn), Wrap up (three-part summary), or cap the dialogue with a turn budget. Spec: `openspec/changes/add-help-level-controls/`
 - **Thought Maps** (RFC-0003) — free-form maps with per-node chat, suggested branches, and extraction from a conversation
 
 ## Repo Structure
@@ -209,7 +210,7 @@ Exposes Socratic reasoning as MCP tools via stdio transport:
 
 **RFC-0001: Knowledge Gap Detection** — BKT-based system to detect when Socratic questioning fails due to missing foundational knowledge. Multi-signal detection (behavioral, linguistic, temporal). Partially implemented in `KnowledgeTracingModule`.
 
-**RFC-0002: Adaptive Scaffolding** — 5 scaffold levels (Level 0 = pure Socratic → Level 4 = direct instruction with guided practice). Auto-fading on consecutive success/failure. Schema fields already exist on `NodeDialogue`: `currentScaffoldLevel`, `consecutiveSuccesses`, `consecutiveFailures`, `scaffoldHistory`.
+**RFC-0002: Adaptive Scaffolding** — 5 scaffold levels (Level 0 = pure Socratic → Level 4 = direct instruction with guided practice). Auto-fading on consecutive success/failure. Learner controls (§5.6): More help raises the level one step with counters reset; Explain is a one-turn explanation outside the ladder that leaves level and counters alone. Schema fields already exist on `NodeDialogue`: `currentScaffoldLevel`, `consecutiveSuccesses`, `consecutiveFailures`, `scaffoldHistory`.
 
 ---
 
