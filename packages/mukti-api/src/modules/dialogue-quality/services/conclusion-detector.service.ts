@@ -37,7 +37,9 @@ const EXPLICIT_CLOSURE_PATTERN =
   /\b(thanks|thank you|that's all|I think we're done|nothing else|no more questions|I'm good)\b/i;
 
 export const CONCLUSION_INSTRUCTION =
-  `CONCLUSION PROTOCOL — The user is signaling readiness to conclude.\n` +
+  `CONCLUSION PROTOCOL — This turn closes the dialogue: the user asked to wrap up, or reached the turn limit they set.\n` +
+  `Write the closing summary whatever the user's latest message asks for (even a request for code,\n` +
+  `the full answer or an explanation); do not answer that request, fold it into "Still open" instead.\n` +
   `Shift from questioning mode to synthesis mode and write a closing summary in Markdown\n` +
   `with exactly these three headings, in this order:\n` +
   `## Established — 2-3 key discoveries or conclusions the user reached in this conversation\n` +
