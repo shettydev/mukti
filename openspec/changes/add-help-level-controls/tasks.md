@@ -51,14 +51,14 @@
 
 ## 9. Copy and docs
 
-- [ ] 9.1 Update the landing FAQ "Will I ever get a direct answer?", the local onboarding tour and `docs/local-mode.md` to describe the controls factually (no tagline changes); verify by reading the rendered landing and tour in `bun nx run @mukti/web:dev`
+- [x] 9.1 Update the landing FAQ "Will I ever get a direct answer?", the local onboarding tour and `docs/local-mode.md` to describe the controls factually (no tagline changes); verify by reading the rendered landing and tour in `bun nx run @mukti/web:dev`
 - [x] 9.2 Add a "Learner controls" section to RFC-0002 documenting manual raise and the one-turn Explain, and update CLAUDE.md's "never gives direct answers" line to match; verify the docs reference the spec
 
 ## 10. Integration checks
 
-- [ ] 10.1 Run `bun run affected:lint`, `bun run affected:test` and `bun run affected:build`; all pass
+- [x] 10.1 Run `bun run affected:lint`, `bun run affected:test` and `bun run affected:build`; all pass
 - [ ] 10.2 Hosted smoke (Docker stack + OpenRouter free model): in chat, a canvas node and a thought-map node, exercise More help, Explain ("just give me the full code"), Wrap up after one reply, and a budget of 3; confirm each spec scenario by observation
-- [ ] 10.3 Local smoke with `bun run start:local` on each ready CLI (claude, codex, agy): Explain returns prose not a question and Wrap up returns the three-part summary, including on agy where the shape is enforced
+- [x] 10.3 Local smoke with `bun run start:local` on each ready CLI (claude, codex, agy): Explain returns prose not a question and Wrap up returns the three-part summary, including on agy where the shape is enforced
 
 ## Workflow follow-up
 
