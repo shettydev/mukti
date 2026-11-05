@@ -45,6 +45,17 @@ export interface ThoughtMapNodeTechniqueContext {
 }
 
 /**
+ * Placed at the top of the system prompt on an Explain turn, ahead of the
+ * technique and scaffold rules it overrides for that one reply.
+ */
+export const EXPLAIN_TURN_NOTICE = `=== THIS REPLY: EXPLAIN (learner request, one turn only) ===
+The learner pressed Explain. For this reply only, the questions-only rules and the
+"no direct answers or explanations" rules below do NOT apply. Write a short plain-prose
+explanation of the one missing piece, as the EXPLAIN PROTOCOL at the end describes.
+Do not end with a question. Never write the learner's full solution or rewrite their code.
+=== END ===`;
+
+/**
  * Appends quality guardrails section to a prompt if directives are present.
  * RFC-0004: Dialogue Quality Guardrails.
  */
@@ -60,7 +71,15 @@ export function appendQualityGuardrails(
     .map((d) => `- ${d.instruction}`)
     .join('\n');
 
-  return `${prompt}
+  // An Explain turn contradicts the questions-only rules that come first in
+  // the prompt. Models that weigh earlier instructions more (Codex, in local
+  // smoke) kept asking a question, so the override is announced up front too.
+  const explaining = qualityDirectives.directives.some(
+    (d) => d.source === 'explain',
+  );
+  const head = explaining ? `${EXPLAIN_TURN_NOTICE}\n\n${prompt}` : prompt;
+
+  return `${head}
 
 ---
 QUALITY GUARDRAILS
