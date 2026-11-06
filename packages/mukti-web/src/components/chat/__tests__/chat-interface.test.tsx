@@ -486,7 +486,7 @@ describe('ChatInterface', () => {
       const field = screen.getByLabelText('Turn limit (exchanges)');
       await user.clear(field);
       await user.type(field, '5');
-      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await user.click(screen.getByRole('button', { name: 'Set limit' }));
 
       await waitFor(() => expect(updateAsync).toHaveBeenCalledWith({ turnBudget: 5 }));
     });

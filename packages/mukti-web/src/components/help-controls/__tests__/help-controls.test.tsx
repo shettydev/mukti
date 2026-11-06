@@ -157,33 +157,89 @@ describe('HelpControls', () => {
       expect(chip).toHaveAttribute('data-budget-state', state);
     });
 
-    it('sets a budget', async () => {
+    it('sets a budget from a preset', async () => {
       const { onBudgetChange } = renderControls();
 
       await userEvent.click(screen.getByRole('button', { name: 'Set a turn limit' }));
-      await userEvent.type(screen.getByLabelText('Turn limit (exchanges)'), '5');
-      await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await userEvent.click(screen.getByRole('radio', { name: '10' }));
+      expect(screen.getByLabelText('Turn limit (exchanges)')).toHaveValue('10');
+      await userEvent.click(screen.getByRole('button', { name: 'Set limit' }));
 
-      await waitFor(() => expect(onBudgetChange).toHaveBeenCalledWith(5));
+      await waitFor(() => expect(onBudgetChange).toHaveBeenCalledWith(10));
     });
 
-    it.each(['0', '51', '2.5'])('rejects %s without saving', async (value) => {
+    it('fine-tunes with the stepper and types a custom value', async () => {
+      const { onBudgetChange } = renderControls();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Set a turn limit' }));
+      await userEvent.click(screen.getByRole('radio', { name: '5' }));
+      await userEvent.click(screen.getByRole('button', { name: 'More exchanges' }));
+      await userEvent.click(screen.getByRole('button', { name: 'More exchanges' }));
+      expect(screen.getByLabelText('Turn limit (exchanges)')).toHaveValue('7');
+
+      const field = screen.getByLabelText('Turn limit (exchanges)');
+      await userEvent.clear(field);
+      await userEvent.type(field, '4');
+      await userEvent.click(screen.getByRole('button', { name: 'Set limit' }));
+
+      await waitFor(() => expect(onBudgetChange).toHaveBeenCalledWith(4));
+    });
+
+    it('stops the stepper at 1 and 50', async () => {
+      renderControls();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Set a turn limit' }));
+      const field = screen.getByLabelText('Turn limit (exchanges)');
+      await userEvent.type(field, '1');
+      expect(screen.getByRole('button', { name: 'Fewer exchanges' })).toBeDisabled();
+      await userEvent.clear(field);
+      await userEvent.type(field, '50');
+      expect(screen.getByRole('button', { name: 'More exchanges' })).toBeDisabled();
+    });
+
+    it('says where a new limit lands in a dialogue already under way', async () => {
+      renderControls({ exchanges: 3 });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Set a turn limit' }));
+      await userEvent.click(screen.getByRole('radio', { name: '5' }));
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        '3 used so far. Mukti wraps up on exchange 5, 2 from now.'
+      );
+      const marks = screen.getByTestId('exchange-track').children;
+      expect(marks).toHaveLength(5);
+      expect(marks[2]).toHaveAttribute('data-state', 'used');
+      expect(marks[4]).toHaveAttribute('data-state', 'wrap-up');
+    });
+
+    it.each(['0', '51'])('rejects %s without saving', async (value) => {
       const { onBudgetChange } = renderControls();
 
       await userEvent.click(screen.getByRole('button', { name: 'Set a turn limit' }));
       await userEvent.type(screen.getByLabelText('Turn limit (exchanges)'), value);
-      await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Set limit' }));
 
-      expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole number from 1 to 50.');
+      expect(screen.getByRole('alert')).toHaveTextContent('Choose from 1 to 50 exchanges.');
       expect(onBudgetChange).not.toHaveBeenCalled();
     });
 
-    it('starts from the current budget and clears it', async () => {
+    it('keeps only digits as the learner types', async () => {
+      renderControls();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Set a turn limit' }));
+      await userEvent.type(screen.getByLabelText('Turn limit (exchanges)'), '2.5');
+
+      expect(screen.getByLabelText('Turn limit (exchanges)')).toHaveValue('25');
+    });
+
+    it('starts from the current budget and removes it with Off', async () => {
       const { onBudgetChange } = renderControls({ budget: turnBudgetView(8, 2) });
 
       await userEvent.click(screen.getByTestId('turn-budget'));
-      expect(screen.getByLabelText('Turn limit (exchanges)')).toHaveValue(8);
-      await userEvent.click(screen.getByRole('button', { name: 'Clear limit' }));
+      expect(screen.getByLabelText('Turn limit (exchanges)')).toHaveValue('8');
+      expect(screen.getByRole('button', { name: 'Set limit' })).toBeDisabled();
+      await userEvent.click(screen.getByRole('radio', { name: 'Off' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Remove limit' }));
 
       await waitFor(() => expect(onBudgetChange).toHaveBeenCalledWith(null));
     });
@@ -193,8 +249,8 @@ describe('HelpControls', () => {
       onBudgetChange.mockRejectedValueOnce(new Error('offline'));
 
       await userEvent.click(screen.getByRole('button', { name: 'Set a turn limit' }));
-      await userEvent.type(screen.getByLabelText('Turn limit (exchanges)'), '4');
-      await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await userEvent.click(screen.getByRole('radio', { name: '5' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Set limit' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/could not save/i);
     });
