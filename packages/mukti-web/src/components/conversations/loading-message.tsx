@@ -63,10 +63,7 @@ function EnsoAnimation({ duration }: { duration: number }) {
 
   if (prefersReducedMotion) {
     return (
-      <svg
-        className="h-full w-full text-japandi-stone dark:text-japandi-cream"
-        viewBox="0 0 100 100"
-      >
+      <svg className="h-full w-full text-japandi-stone" viewBox="0 0 100 100">
         <path
           d="M 82,53 C 80,30 65,14 47,14 C 28,14 13,32 13,52 C 13,72 28,88 50,88 C 70,88 83,74 83,56"
           fill="none"
@@ -81,7 +78,9 @@ function EnsoAnimation({ duration }: { duration: number }) {
   }
 
   return (
-    <svg className="h-full w-full text-japandi-stone dark:text-japandi-cream" viewBox="0 0 100 100">
+    // japandi-stone is already the light ink in dark mode (the tokens flip under
+    // .dark), so no dark: override; japandi-cream there is the page background.
+    <svg className="h-full w-full text-japandi-stone" viewBox="0 0 100 100">
       {duration > 8 && (
         <motion.circle
           animate={{
