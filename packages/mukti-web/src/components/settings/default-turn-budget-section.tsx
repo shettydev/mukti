@@ -3,8 +3,8 @@
 import { Hourglass } from 'lucide-react';
 import { type FormEvent, useEffect, useId, useState } from 'react';
 
+import { parseTurnLimit, TurnLimitPicker } from '@/components/help-controls/turn-limit-picker';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { TURN_BUDGET_MAX, TURN_BUDGET_MIN } from '@/lib/help-controls';
 import { useAiStore } from '@/lib/stores/ai-store';
 
@@ -18,7 +18,6 @@ export function DefaultTurnBudgetSection() {
   const isHydrated = useAiStore((s) => s.isHydrated);
   const setDefaultTurnBudget = useAiStore((s) => s.setDefaultTurnBudget);
 
-  const inputId = useId();
   const messageId = useId();
   const [value, setValue] = useState('');
   const [error, setError] = useState<null | string>(null);
@@ -50,16 +49,20 @@ export function DefaultTurnBudgetSection() {
       void save(null);
       return;
     }
-    const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed < TURN_BUDGET_MIN || parsed > TURN_BUDGET_MAX) {
-      setError(
-        `Enter a whole number from ${TURN_BUDGET_MIN} to ${TURN_BUDGET_MAX}, or leave it empty.`
-      );
+    const parsed = parseTurnLimit(value);
+    if (parsed === null) {
+      setError(`Choose from ${TURN_BUDGET_MIN} to ${TURN_BUDGET_MAX} exchanges, or Off.`);
       setSaved(false);
       return;
     }
     void save(parsed);
   };
+
+  const draftLimit = value.trim() === '' ? null : parseTurnLimit(value);
+  const unchanged =
+    value.trim() === ''
+      ? defaultTurnBudget === null
+      : draftLimit !== null && draftLimit === defaultTurnBudget;
 
   return (
     <section>
@@ -74,56 +77,27 @@ export function DefaultTurnBudgetSection() {
 
       <div className="rounded-xl border border-japandi-sand/60 bg-japandi-cream/40 p-5 transition-colors duration-300 hover:border-japandi-sand">
         <p className="mb-4 text-japandi-body text-sm text-japandi-stone/70">
-          Cap each new conversation and node dialogue at a number of exchanges. The message that
-          reaches the limit gets a wrap-up summary of what is settled, what is open and your next
-          step; you can keep going after it. Leave it empty for no limit. You can change the limit
-          of any dialogue from its help controls.
+          Cap each new conversation and node dialogue at a number of exchanges. The last one gets a
+          wrap-up summary of what is settled, what is open and your next step, and you can keep
+          going after it. You can change the limit of any dialogue from its help controls.
         </p>
 
-        <form
-          className="flex flex-col gap-3 sm:flex-row sm:items-start"
-          noValidate
-          onSubmit={handleSubmit}
-        >
-          <div className="flex-1">
-            <label className="sr-only" htmlFor={inputId}>
-              Default turn limit (exchanges)
-            </label>
-            <Input
-              aria-describedby={messageId}
-              aria-invalid={!!error}
-              className="h-11 border-japandi-sand/60 bg-transparent"
-              disabled={!isHydrated || saving}
-              id={inputId}
-              inputMode="numeric"
-              max={TURN_BUDGET_MAX}
-              min={TURN_BUDGET_MIN}
-              onChange={(event) => {
-                setValue(event.target.value);
-                setError(null);
-                setSaved(false);
-              }}
-              placeholder={`No limit (${TURN_BUDGET_MIN}-${TURN_BUDGET_MAX})`}
-              type="number"
-              value={value}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button className="h-11 shrink-0 px-5" disabled={!isHydrated || saving} type="submit">
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-            {defaultTurnBudget !== null && (
-              <Button
-                className="h-11 shrink-0 border-japandi-sand/60 bg-transparent px-4 text-japandi-stone/80"
-                disabled={saving}
-                onClick={() => void save(null)}
-                type="button"
-                variant="outline"
-              >
-                No limit
-              </Button>
-            )}
-          </div>
+        <form className="max-w-sm space-y-3" noValidate onSubmit={handleSubmit}>
+          <TurnLimitPicker
+            ariaLabel="Default turn limit (exchanges)"
+            describedBy={messageId}
+            disabled={!isHydrated || saving}
+            draft={value}
+            invalid={!!error}
+            onDraftChange={(next) => {
+              setValue(next);
+              setError(null);
+              setSaved(false);
+            }}
+          />
+          <Button className="h-10 px-5" disabled={!isHydrated || saving || unchanged} type="submit">
+            {saving ? 'Saving…' : 'Save default'}
+          </Button>
         </form>
 
         <p
