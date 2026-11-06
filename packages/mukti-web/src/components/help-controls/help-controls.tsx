@@ -17,7 +17,6 @@ import { Hourglass, Lightbulb, Sunrise, TrendingUp } from 'lucide-react';
 import { type FormEvent, useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -31,6 +30,8 @@ import {
 } from '@/lib/help-controls';
 import { cn } from '@/lib/utils';
 
+import { parseTurnLimit, turnLimitConsequence, TurnLimitPicker } from './turn-limit-picker';
+
 export interface HelpControlsProps {
   /** The dialogue's turn budget and exchanges so far, or null for none. */
   budget: null | TurnBudgetView;
@@ -39,6 +40,11 @@ export interface HelpControlsProps {
   className?: string;
   /** True while a message is being sent or answered. */
   disabled?: boolean;
+  /**
+   * Exchanges the dialogue has had so far, so the turn-limit picker can say
+   * where a new limit lands even when no budget is set yet.
+   */
+  exchanges?: number;
   /** The dialogue's current help level. */
   level: HelpLevel;
   /**
@@ -73,6 +79,7 @@ export function HelpControls({
   canWrapUp,
   className,
   disabled = false,
+  exchanges,
   level,
   onBudgetChange,
   onPendingControlChange,
@@ -145,7 +152,12 @@ export function HelpControls({
           </button>
         )}
 
-        <TurnBudgetChip budget={budget} className="ml-auto" onBudgetChange={onBudgetChange} />
+        <TurnBudgetChip
+          budget={budget}
+          className="ml-auto"
+          exchanges={exchanges}
+          onBudgetChange={onBudgetChange}
+        />
       </div>
 
       {pendingControl && (
@@ -224,14 +236,17 @@ function LevelDots({ level }: { level: HelpLevel }) {
 function TurnBudgetChip({
   budget,
   className,
+  exchanges,
   onBudgetChange,
 }: {
   budget: null | TurnBudgetView;
   className?: string;
+  exchanges?: number;
   onBudgetChange?: (turnBudget: null | number) => Promise<unknown> | void;
 }) {
-  const inputId = useId();
-  const errorId = useId();
+  const used = budget?.used ?? exchanges ?? 0;
+  const titleId = useId();
+  const hintId = useId();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
   const [error, setError] = useState<null | string>(null);
@@ -287,13 +302,27 @@ function TurnBudgetChip({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed < TURN_BUDGET_MIN || parsed > TURN_BUDGET_MAX) {
-      setError(`Enter a whole number from ${TURN_BUDGET_MIN} to ${TURN_BUDGET_MAX}.`);
+    if (value.trim() === '') {
+      // Off: clear an existing limit, or simply close when there is none
+      if (budget) {
+        void save(null);
+      } else {
+        setOpen(false);
+      }
+      return;
+    }
+    const parsed = parseTurnLimit(value);
+    if (parsed === null) {
+      setError(`Choose from ${TURN_BUDGET_MIN} to ${TURN_BUDGET_MAX} exchanges.`);
       return;
     }
     void save(parsed);
   };
+
+  const draftLimit = parseTurnLimit(value);
+  const unchanged =
+    value.trim() === '' ? !budget : draftLimit !== null && draftLimit === budget?.limit;
+  const submitLabel = value.trim() === '' && budget ? 'Remove limit' : 'Set limit';
 
   return (
     <Popover onOpenChange={handleOpenChange} open={open}>
@@ -308,55 +337,49 @@ function TurnBudgetChip({
           {chip}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 space-y-3 text-sm">
-        <form className="space-y-3" noValidate onSubmit={handleSubmit}>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium" htmlFor={inputId}>
-              Turn limit (exchanges)
-            </label>
-            <Input
-              aria-describedby={error ? errorId : undefined}
-              aria-invalid={!!error}
-              className="h-9"
-              id={inputId}
-              inputMode="numeric"
-              max={TURN_BUDGET_MAX}
-              min={TURN_BUDGET_MIN}
-              onChange={(event) => {
-                setValue(event.target.value);
-                setError(null);
-              }}
-              placeholder={`${TURN_BUDGET_MIN}-${TURN_BUDGET_MAX}`}
-              type="number"
-              value={value}
-            />
-            {error ? (
-              <p className="text-xs text-destructive" id={errorId} role="alert">
-                {error}
-              </p>
-            ) : (
-              <p className="text-xs leading-snug text-muted-foreground">
-                The message that reaches the limit gets a wrap-up summary. You can keep going after
-                it.
-              </p>
-            )}
+      <PopoverContent
+        align="end"
+        aria-labelledby={titleId}
+        className="w-72 p-4 text-sm"
+        role="dialog"
+      >
+        <form className="space-y-4" noValidate onSubmit={handleSubmit}>
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium text-foreground" id={titleId}>
+              Turn limit
+            </h3>
+            <p className="text-xs leading-snug text-muted-foreground">
+              Mukti answers the last exchange with a wrap-up summary.
+            </p>
           </div>
-          <div className="flex justify-end gap-2">
-            {budget && (
-              <Button
-                disabled={saving}
-                onClick={() => void save(null)}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                Clear limit
-              </Button>
+
+          <TurnLimitPicker
+            ariaLabel="Turn limit (exchanges)"
+            describedBy={hintId}
+            disabled={saving}
+            draft={value}
+            invalid={!!error}
+            onDraftChange={(next) => {
+              setValue(next);
+              setError(null);
+            }}
+            used={used}
+          />
+
+          <p
+            className={cn(
+              'min-h-8 text-xs leading-snug',
+              error ? 'text-destructive' : 'text-muted-foreground'
             )}
-            <Button disabled={saving} size="sm" type="submit">
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
+            id={hintId}
+            role={error ? 'alert' : 'status'}
+          >
+            {error ?? turnLimitConsequence(draftLimit, used)}
+          </p>
+
+          <Button className="w-full" disabled={saving || unchanged} size="sm" type="submit">
+            {saving ? 'Saving…' : submitLabel}
+          </Button>
         </form>
       </PopoverContent>
     </Popover>

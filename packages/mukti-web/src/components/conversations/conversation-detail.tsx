@@ -514,6 +514,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
               rateLimitRetryAfter !== null ||
               conversation.isArchived
             }
+            exchanges={exchangesFromMessageCount(conversation.metadata.messageCount)}
             level={toHelpLevel(conversation.currentScaffoldLevel)}
             onBudgetChange={(turnBudget) => updateConversationAsync({ turnBudget })}
             onPendingControlChange={setPendingControl}

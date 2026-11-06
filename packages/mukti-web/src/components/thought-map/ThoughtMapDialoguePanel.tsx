@@ -407,6 +407,7 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
             canWrapUp={messages.some((message) => message.role === 'assistant')}
             className="mb-3"
             disabled={isStarting || isSending || isProcessing}
+            exchanges={exchangesFromMessageCount(messageCount)}
             level={toHelpLevel(dialogue?.currentScaffoldLevel)}
             onBudgetChange={(turnBudget) => updateDialogue({ turnBudget })}
             onPendingControlChange={setPendingControl}

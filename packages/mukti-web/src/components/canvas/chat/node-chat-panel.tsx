@@ -415,6 +415,7 @@ export function NodeChatPanel({
           canWrapUp={messages.some((message) => message.role === 'assistant')}
           className="mb-3"
           disabled={isSending || isProcessing}
+          exchanges={exchangesFromMessageCount(messageCount)}
           level={toHelpLevel(dialogue?.currentScaffoldLevel)}
           onBudgetChange={(turnBudget) => updateDialogue({ turnBudget })}
           onPendingControlChange={setPendingControl}

@@ -593,6 +593,7 @@ export function ChatInterface({
               !!rateLimitInfo ||
               effectiveProcessingState.isProcessing
             }
+            exchanges={exchangesFromMessageCount(conversation.metadata.messageCount)}
             level={toHelpLevel(conversation.currentScaffoldLevel)}
             onBudgetChange={(turnBudget) => updateConversation({ turnBudget })}
             onPendingControlChange={setPendingControl}
