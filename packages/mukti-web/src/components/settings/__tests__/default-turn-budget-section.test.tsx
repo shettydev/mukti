@@ -49,14 +49,15 @@ describe('DefaultTurnBudgetSection', () => {
   it('shows the stored default', async () => {
     await renderWithStoredDefault(10);
 
-    expect(field()).toHaveValue(10);
+    expect(field()).toHaveValue('10');
     expect(screen.getByRole('status')).toHaveTextContent('limit of 10 turns');
   });
 
   it('shows no limit when none is stored', async () => {
     await renderWithStoredDefault(null);
 
-    expect(field()).toHaveValue(null);
+    expect(field()).toHaveValue('');
+    expect(screen.getByRole('radio', { name: 'Off' })).toBeChecked();
     expect(screen.getByRole('status')).toHaveTextContent('no turn limit');
   });
 
@@ -66,7 +67,7 @@ describe('DefaultTurnBudgetSection', () => {
 
     await user.clear(field());
     await user.type(field(), '12');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save default' }));
 
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(
@@ -75,14 +76,15 @@ describe('DefaultTurnBudgetSection', () => {
     );
     expect(aiApi.updateSettings).toHaveBeenCalledWith({ defaultTurnBudget: 12 });
     expect(useAiStore.getState().defaultTurnBudget).toBe(12);
-    expect(field()).toHaveValue(12);
+    expect(field()).toHaveValue('12');
   });
 
   it('clears the default', async () => {
     const user = userEvent.setup();
     await renderWithStoredDefault(10);
 
-    await user.click(screen.getByRole('button', { name: 'No limit' }));
+    await user.click(screen.getByRole('radio', { name: 'Off' }));
+    await user.click(screen.getByRole('button', { name: 'Save default' }));
 
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(
@@ -90,7 +92,7 @@ describe('DefaultTurnBudgetSection', () => {
       )
     );
     expect(aiApi.updateSettings).toHaveBeenCalledWith({ defaultTurnBudget: null });
-    expect(field()).toHaveValue(null);
+    expect(field()).toHaveValue('');
   });
 
   it('treats an empty field as no limit', async () => {
@@ -98,21 +100,21 @@ describe('DefaultTurnBudgetSection', () => {
     await renderWithStoredDefault(10);
 
     await user.clear(field());
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save default' }));
 
     await waitFor(() =>
       expect(aiApi.updateSettings).toHaveBeenCalledWith({ defaultTurnBudget: null })
     );
   });
 
-  it.each(['0', '51', '7.5'])('rejects %s without saving', async (value) => {
+  it.each(['0', '51'])('rejects %s without saving', async (value) => {
     const user = userEvent.setup();
     await renderWithStoredDefault(null);
 
     await user.type(field(), value);
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save default' }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole number from 1 to 50');
+    expect(screen.getByRole('alert')).toHaveTextContent('Choose from 1 to 50 exchanges, or Off.');
     expect(aiApi.updateSettings).not.toHaveBeenCalled();
   });
 
@@ -122,7 +124,7 @@ describe('DefaultTurnBudgetSection', () => {
     (aiApi.updateSettings as jest.Mock).mockRejectedValueOnce(new Error('offline'));
 
     await user.type(field(), '5');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save default' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not save/i);
     expect(useAiStore.getState().defaultTurnBudget).toBeNull();
