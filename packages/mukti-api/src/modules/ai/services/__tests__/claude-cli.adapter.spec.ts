@@ -73,6 +73,25 @@ describe('ClaudeCliAdapter', () => {
     });
   });
 
+  describe('parseEnvelope', () => {
+    it('counts cached prompt tokens as input, so the prompt size is visible', () => {
+      const completion = new ClaudeCliAdapter({ workspaceDir }).parseEnvelope(
+        JSON.stringify({
+          result: 'What does a 5xx tell you?',
+          usage: {
+            cache_creation_input_tokens: 6814,
+            cache_read_input_tokens: 7999,
+            input_tokens: 2,
+            output_tokens: 9,
+          },
+        }),
+      );
+
+      expect(completion.promptTokens).toBe(2 + 6814 + 7999);
+      expect(completion.completionTokens).toBe(9);
+    });
+  });
+
   describe('warm', () => {
     it('passes when the installed CLI lists both options, without a model run', async () => {
       const runHelp = jest
