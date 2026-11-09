@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { homedir } from 'os';
 import { join, resolve } from 'path';
 
 import { LOCAL_DB_PATH } from '../../common/config/local-mode';
@@ -51,6 +52,9 @@ export class DataDisclosureController {
           mode: 'local',
           now,
           provider,
+          settingsPath:
+            this.config.get<string>('MUKTI_PROVIDER_SETTINGS') ||
+            join(homedir(), '.mukti', 'config.json'),
         });
       }
     }

@@ -25,7 +25,7 @@ const hostedOwnKey: DisclosureContext = {
 const local = (
   cli: 'agy' | 'claude' | 'codex',
   dataDir = '/home/me/.mukti',
-): DisclosureContext => ({
+): Extract<DisclosureContext, { mode: 'local' }> => ({
   dataDir,
   mode: 'local',
   now: NOW,

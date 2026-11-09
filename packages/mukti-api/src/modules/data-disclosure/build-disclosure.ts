@@ -24,6 +24,7 @@ export interface DataDisclosure {
   readonly model: {
     /** The account each Socratic reply is billed to. */
     readonly billedTo: string;
+    readonly disclosure: string;
     readonly limits:
       | {
           readonly dailyMessages: number;
@@ -48,6 +49,7 @@ export interface DataDisclosure {
   readonly storage: {
     readonly items: readonly string[];
     readonly location: string;
+    readonly settingsLocation?: string;
   };
   readonly surfaces: readonly DisclosureSurface[];
 }
@@ -64,6 +66,7 @@ export type DisclosureContext =
       readonly mode: 'local';
       readonly now: Date;
       readonly provider: LocalCliProvider;
+      readonly settingsPath?: string;
     }
   | {
       readonly freeDailyLimit: number;
@@ -116,6 +119,8 @@ function hostedDisclosure(
       ? {
           billedTo:
             'Socratic replies use your own OpenRouter key, billed to your OpenRouter account. Mukti stores the key encrypted and shows only its last four characters.',
+          disclosure:
+            'Requests leave Mukti for OpenRouter and the model provider. Their retention policies apply. Deleting Mukti data does not delete copies held by those services.',
           limits: { kind: 'own-plan' },
           planNote:
             'Limits are those of your OpenRouter account and the models you choose.',
@@ -124,6 +129,8 @@ function hostedDisclosure(
         }
       : {
           billedTo: "Mukti's own OpenRouter key: replies cost you nothing.",
+          disclosure:
+            'Requests leave Mukti for OpenRouter and the model provider. Their retention policies apply. Deleting Mukti data does not delete copies held by those services.',
           limits: {
             dailyMessages: context.freeDailyLimit,
             kind: 'free-daily',
@@ -164,6 +171,9 @@ function localDisclosure(
     deletion: DELETION,
     model: {
       billedTo: `Your own ${provider.label} subscription: replies count against that plan's limits.`,
+      disclosure:
+        provider.disclosure ??
+        `Requests run through ${provider.label} and leave this computer for its vendor's servers.`,
       limits: { kind: 'own-plan' },
       planNote: `Mukti cannot guarantee replies beyond what your ${provider.label} plan allows.`,
       runner: `The ${provider.label} on this computer, which sends each request to its vendor's servers`,
@@ -174,6 +184,9 @@ function localDisclosure(
       removedByMukti: false,
     })),
     storage: {
+      ...(context.settingsPath
+        ? { settingsLocation: context.settingsPath }
+        : {}),
       items: [...STORED_ITEMS, 'Your saved AI CLI and model choice'],
       location: `${context.dataDir} (the local database on this computer)`,
     },
