@@ -5,6 +5,7 @@ import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
+import type { DisclosureDescriptor } from '../../data-disclosure/disclosure-descriptor';
 
 import { isLocalMode } from '../../../common/config/local-mode';
 import {
@@ -43,6 +44,26 @@ import {
   type HelpControl,
 } from '../../socratic-turn/help-controls';
 import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
+
+/**
+ * Messages of a thought-map node's dialogue sent with each turn: the most
+ * recent page of its history.
+ */
+export const THOUGHT_MAP_DIALOGUE_HISTORY_WINDOW = 50;
+
+/** What a thought-map node turn sends to the model (data-flow-disclosure). */
+export const THOUGHT_MAP_NODE_DISCLOSURE: DisclosureDescriptor = {
+  historyWindow: THOUGHT_MAP_DIALOGUE_HISTORY_WINDOW,
+  id: 'thought-map-node',
+  key: 'resolved',
+  label: 'Thought-map node chat',
+  runsIn: ['hosted', 'local'],
+  sends: [
+    "Mukti's Socratic instructions, with the map's title and the node's label and type.",
+    `Up to the last ${THOUGHT_MAP_DIALOGUE_HISTORY_WINDOW} messages of that node's dialogue, and your new message.`,
+  ],
+  services: ['DialogueAIService'],
+};
 
 /**
  * Job data for a Thought Map dialogue request.
@@ -406,7 +427,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
       const historyResult = await this.dialogueService.getMessages(
         dialogue._id,
         {
-          limit: 50,
+          limit: THOUGHT_MAP_DIALOGUE_HISTORY_WINDOW,
           page: 1,
         },
       );

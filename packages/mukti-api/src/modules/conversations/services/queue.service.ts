@@ -35,6 +35,7 @@ import {
 } from '../../socratic-turn/help-controls';
 import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
 import { MessageService } from './message.service';
+import { CHAT_HISTORY_WINDOW } from './message.service';
 import { OpenRouterService } from './openrouter.service';
 import { StreamService } from './stream.service';
 
@@ -641,7 +642,7 @@ export class QueueService extends WorkerHost {
       });
 
       // 8. Archive if needed
-      if (updatedConversation.recentMessages.length > 50) {
+      if (updatedConversation.recentMessages.length > CHAT_HISTORY_WINDOW) {
         await this.messageService.archiveOldMessages(conversationId);
       }
 

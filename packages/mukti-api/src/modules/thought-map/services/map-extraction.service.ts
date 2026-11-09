@@ -7,6 +7,7 @@ import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
 import type { RecentMessage } from '../../../schemas/conversation.schema';
+import type { DisclosureDescriptor } from '../../data-disclosure/disclosure-descriptor';
 
 import { isLocalMode } from '../../../common/config/local-mode';
 import {
@@ -117,6 +118,18 @@ interface ExtractionStreamConnection {
 
 /** Stream bus namespace for conversation-to-map extraction events. */
 const EXTRACTION_BUS_NAMESPACE = 'extraction';
+
+/** What turning a conversation into a thought map sends (data-flow-disclosure). */
+export const THOUGHT_MAP_EXTRACTION_DISCLOSURE: DisclosureDescriptor = {
+  id: 'thought-map-extraction',
+  key: 'resolved',
+  label: 'Thought-map extraction',
+  runsIn: ['hosted', 'local'],
+  sends: [
+    "The conversation's title and its recent messages (the ones kept on the conversation), when you turn it into a thought map.",
+  ],
+  services: ['MapExtractionService'],
+};
 
 // ============================================================================
 // Service

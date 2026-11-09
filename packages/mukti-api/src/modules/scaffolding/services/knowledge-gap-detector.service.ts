@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import type { DisclosureDescriptor } from '../../data-disclosure/disclosure-descriptor';
+
 import { Concept, ConceptDocument } from '../../../schemas/concept.schema';
 import {
   KnowledgeState,
@@ -42,6 +44,22 @@ import {
   MIN_KEYWORD_CONCEPTS_THRESHOLD,
 } from '../utils/concept-extraction-prompt';
 import { PrerequisiteCheckerService } from './prerequisite-checker.service';
+
+/**
+ * What concept extraction sends (data-flow-disclosure). It runs only when the
+ * keyword match finds fewer than two known concepts, on the key resolved for
+ * the user.
+ */
+export const CONCEPT_EXTRACTION_DISCLOSURE: DisclosureDescriptor = {
+  id: 'concept-extraction',
+  key: 'resolved',
+  label: 'Concept extraction',
+  runsIn: ['hosted', 'local'],
+  sends: [
+    `Your message alone, and only when Mukti's keyword match finds fewer than ${MIN_KEYWORD_CONCEPTS_THRESHOLD} known concepts in it.`,
+  ],
+  services: ['KnowledgeGapDetectorService'],
+};
 
 /**
  * Knowledge Gap Detector Service - RFC-0001
