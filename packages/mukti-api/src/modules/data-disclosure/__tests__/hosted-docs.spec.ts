@@ -23,7 +23,9 @@ describe('hosted disclosure documentation', () => {
       });
       for (const surface of disclosure.surfaces) {
         expect(markdown).toContain(`### ${surface.label}`);
-        for (const sent of surface.sends) expect(markdown).toContain(sent);
+        for (const sent of surface.sends) {
+          expect(markdown).toContain(sent);
+        }
         expect(markdown).toContain(surface.keyNote);
       }
     }

@@ -12,6 +12,32 @@ bun run start:local        # from a clone of this repo
 
 Both share the same launcher, preflight checks, and saved settings.
 
+## Your data and costs
+
+Open **Your data and costs** from Settings or the profile menu for the active CLI's runner,
+billing, request contents and storage locations. Before your first local message, the same panel
+asks you to review those facts. Continuing sends your pending message once. Local mode still
+sends requests to the chosen CLI vendor's servers. It is not on-device inference or offline use.
+
+The database lives in `~/.mukti/local-db` for the published launcher, or under your explicit
+`--data-dir` / `MUKTI_HOME`. A source checkout uses `.mukti/local-db` at the repository root.
+The panel reads the actual database path passed by the launcher, including overrides. Saved
+CLI preferences live in `config.json` under the Mukti home, separately from the database.
+
+In the Settings danger zone, **Delete all my Mukti data** requires typing `DELETE`. It removes
+conversations, canvases, maps, share links, learner state and usage history from the database,
+not the database directory itself. The local account and saved preferences remain. Partial
+failures are listed and can be retried. Local mode does not offer account deletion.
+
+Mukti does not touch another application's files. The deletion result lists history kept by any
+supported CLI, even if it is not currently active. In particular, Antigravity keeps reply records
+under `~/.gemini/antigravity-cli`, in its `mukti-socratic` project. Remove that project's history
+using Antigravity's history controls if you want it gone too. Claude Code and Codex runs are
+configured not to save their own session transcripts. Provider-side retention, existing logs and
+backups are outside this application-level deletion action.
+
+For the account-based OpenRouter deployment, read [Hosted mode: your data and costs](hosted-mode.md).
+
 ## Supported AI CLIs
 
 | CLI                                                                            | Provider id | Status      |
