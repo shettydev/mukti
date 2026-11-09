@@ -9,6 +9,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CanvasModule } from './modules/canvas/canvas.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
+import { DataDisclosureModule } from './modules/data-disclosure/data-disclosure.module';
 import { DialogueModule } from './modules/dialogue/dialogue.module';
 import { HealthModule } from './modules/health/health.module';
 import { KnowledgeTracingModule } from './modules/knowledge-tracing/knowledge-tracing.module';
@@ -27,6 +28,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     AiModule,
     CanvasModule,
     ConversationsModule,
+    DataDisclosureModule,
     DialogueModule,
     HealthModule,
     KnowledgeTracingModule,
