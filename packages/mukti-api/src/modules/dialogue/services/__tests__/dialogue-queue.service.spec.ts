@@ -192,7 +192,7 @@ describe('DialogueQueueService — local mode (inline)', () => {
 
   it('emits error and no complete when the provider fails', async () => {
     dialogueAIService.generateScaffoldedResponse.mockRejectedValue(
-      new Error('provider down'),
+      Object.assign(new Error('provider down'), { code: 'AI_USAGE_LIMIT', details: { limit: 'cli_plan', provider: 'codex' }, retriable: false }),
     );
 
     await enqueue();
@@ -201,6 +201,7 @@ describe('DialogueQueueService — local mode (inline)', () => {
     const types = dialogueStreamService.emitToNodeDialogue.mock.calls.map(
       ([, , , event]) => event.type,
     );
+    expect(dialogueStreamService.emitToNodeDialogue).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything(), expect.objectContaining({ type: 'error', data: expect.objectContaining({ code: 'AI_USAGE_LIMIT', details: { limit: 'cli_plan', provider: 'codex' }, retriable: false }) }));
     expect(types).toContain('error');
     expect(types).not.toContain('complete');
   });
