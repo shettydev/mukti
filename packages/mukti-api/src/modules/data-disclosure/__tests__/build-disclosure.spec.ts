@@ -125,6 +125,17 @@ describe('buildDisclosure', () => {
       expect(disclosure.outside[0].removedByMukti).toBe(false);
     });
 
+    it('includes the active CLI isolation disclosure and saved settings location', () => {
+      const disclosure = buildDisclosure({
+        ...local('claude'),
+        settingsPath: '/custom/config.json',
+      });
+      expect(disclosure.model.disclosure).toBe(
+        providerById('claude')!.disclosure,
+      );
+      expect(disclosure.storage.settingsLocation).toBe('/custom/config.json');
+    });
+
     it('states the database location under the data directory it was started with', () => {
       const disclosure = buildDisclosure(local('claude', '/tmp/m'));
 

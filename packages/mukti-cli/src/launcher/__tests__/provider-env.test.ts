@@ -26,6 +26,16 @@ test('names the provider, the saved-default file and the source', () => {
   });
 });
 
+test('passes the real database path even when the API connects through a supplied URI', () => {
+  const env = providerEnv({
+    dbPath: '/custom/mukti/local-db',
+    home: '/custom/mukti',
+    provider: codex,
+    source: 'option',
+  });
+  assert.equal(env.MUKTI_LOCAL_DB_PATH, '/custom/mukti/local-db');
+});
+
 test('the settings file is the one the launcher itself reads', () => {
   const home = join('/srv', 'mukti-data');
   const env = providerEnv({ home, provider: codex, source: 'saved' });
