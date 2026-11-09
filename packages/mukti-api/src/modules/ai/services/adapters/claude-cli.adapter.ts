@@ -59,6 +59,8 @@ interface ClaudeResultEnvelope {
   result?: string;
   subtype?: string;
   usage?: {
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
     input_tokens?: number;
     output_tokens?: number;
   };
@@ -165,10 +167,16 @@ export class ClaudeCliAdapter implements LocalCliAdapter {
       );
     }
 
+    // input_tokens is only the uncached remainder; the prompt sent is that plus
+    // what was written to and read from the prompt cache.
+    const usage = envelope.usage;
     return {
-      completionTokens: envelope.usage?.output_tokens ?? 0,
+      completionTokens: usage?.output_tokens ?? 0,
       content: envelope.result ?? '',
-      promptTokens: envelope.usage?.input_tokens ?? 0,
+      promptTokens:
+        (usage?.input_tokens ?? 0) +
+        (usage?.cache_creation_input_tokens ?? 0) +
+        (usage?.cache_read_input_tokens ?? 0),
     };
   }
 
