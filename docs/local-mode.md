@@ -92,11 +92,25 @@ unaffected.
 
 They are not equivalent, and the difference is worth knowing before you choose:
 
-|                           | Claude Code (`claude`)                                    | Codex (`codex`)                                                                                                         | Antigravity (`agy`)                                                                                                                                                       |
-| ------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Time per reply (measured) | about 13–20 seconds                                       | about 8–12 seconds                                                                                                      | about 30–60 seconds                                                                                                                                                       |
-| Prompt size per reply     | Mukti's own prompt and your conversation                  | about 2.5–4.5k input tokens: Mukti's own prompt replaces Codex's, plus up to ~2k tokens of Codex context on some models | about 15–25k input tokens: the same, plus agy's own ~14k-token coding-agent prompt, which cannot be replaced                                                              |
-| Stored outside Mukti      | whatever Claude Code itself records for a `claude -p` run | nothing: runs are ephemeral and leave no Codex session history                                                          | a conversation record (about 1 MB) per reply in your Antigravity history (`~/.gemini/antigravity-cli`), filed under a `mukti-socratic` project. Mukti never deletes these |
+|                           | Claude Code (`claude`)                            | Codex (`codex`)                                                                                                         | Antigravity (`agy`)                                                                                                                                                       |
+| ------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Time per reply (measured) | about 13–20 seconds                               | about 8–12 seconds                                                                                                      | about 30–60 seconds                                                                                                                                                       |
+| Prompt size per reply     | Mukti's own prompt and your conversation          | about 2.5–4.5k input tokens: Mukti's own prompt replaces Codex's, plus up to ~2k tokens of Codex context on some models | about 15–25k input tokens: the same, plus agy's own ~14k-token coding-agent prompt, which cannot be replaced                                                              |
+| Stored outside Mukti      | nothing: runs keep no Claude Code session history | nothing: runs are ephemeral and leave no Codex session history                                                          | a conversation record (about 1 MB) per reply in your Antigravity history (`~/.gemini/antigravity-cli`), filed under a `mukti-socratic` project. Mukti never deletes these |
+
+### Claude Code: privacy and behavior notes
+
+- Claude Code runs **with its tools switched off**: no shell, no file reads or edits, no web
+  search, no sub-agents. Mukti's Socratic prompt replaces Claude Code's own coding prompt.
+- Runs keep **no session history**: Mukti passes `--no-session-persistence`, so no prompt or reply
+  is written under `~/.claude/projects/`.
+- It runs from `~/.mukti/mukti-socratic`, never from your projects, and with
+  `--setting-sources ""`, so your Claude Code settings and `CLAUDE.md` files, global
+  (`~/.claude/`) or project, do not apply and cannot change what a reply says. Your sign-in still
+  works. Before this, a global `CLAUDE.md` added its full length to every reply's input tokens.
+- On startup, Mukti checks that your Claude Code version supports both options, without running
+  a model. On a version too old to, Mukti reports Claude Code as not ready and asks you to update
+  it, rather than running it with history on.
 
 ### Codex: privacy and behavior notes
 
