@@ -20,6 +20,7 @@ import {
 import {
   DialogueMessage,
   DialogueMessageDocument,
+  DialogueMessageMetadata,
   MessageRole,
 } from '../../../schemas/dialogue-message.schema';
 import {
@@ -27,6 +28,7 @@ import {
   NodeDialogueDocument,
   NodeType,
 } from '../../../schemas/node-dialogue.schema';
+import { AiSettingsService } from '../../ai/services/ai-settings.service';
 
 /**
  * Paginated result for messages.
@@ -76,6 +78,7 @@ export class DialogueService {
     private readonly nodeDialogueModel: Model<NodeDialogueDocument>,
     @InjectModel(DialogueMessage.name)
     private readonly dialogueMessageModel: Model<DialogueMessageDocument>,
+    private readonly aiSettingsService: AiSettingsService,
   ) {}
 
   /**
@@ -84,18 +87,15 @@ export class DialogueService {
    * @param dialogueId - The dialogue ID
    * @param role - The message role ('user' or 'assistant')
    * @param content - The message content
-   * @param metadata - Optional metadata for AI messages
+   * @param metadata - Optional metadata for AI messages, including the turn
+   *   kind of a reply to a learner turn
    * @returns The created message
    */
   async addMessage(
     dialogueId: string | Types.ObjectId,
     role: MessageRole,
     content: string,
-    metadata?: {
-      latencyMs?: number;
-      model?: string;
-      tokens?: number;
-    },
+    metadata?: DialogueMessageMetadata,
   ): Promise<DialogueMessage> {
     const dialogueObjectId =
       typeof dialogueId === 'string'
@@ -259,6 +259,8 @@ export class DialogueService {
    * @param nodeId - The node identifier (e.g., 'seed', 'soil-0', 'root-1')
    * @param nodeType - The type of node
    * @param nodeLabel - The node's content/label
+   * @param userId - The learner; when given, a newly created dialogue starts
+   *   with their default turn budget from Settings
    * @returns The existing or newly created dialogue
    */
   async getOrCreateDialogue(
@@ -266,6 +268,7 @@ export class DialogueService {
     nodeId: string,
     nodeType: NodeType,
     nodeLabel: string,
+    userId?: string | Types.ObjectId,
   ): Promise<NodeDialogue> {
     this.logger.log(
       `Getting or creating dialogue for session ${sessionId}, node ${nodeId}`,
@@ -284,13 +287,17 @@ export class DialogueService {
       return dialogue;
     }
 
-    // Create new dialogue
+    // Create new dialogue, with the learner's default turn budget if any
+    const turnBudget = userId
+      ? await this.aiSettingsService.getDefaultTurnBudget(userId)
+      : null;
     dialogue = await this.nodeDialogueModel.create({
       messageCount: 0,
       nodeId,
       nodeLabel,
       nodeType,
       sessionId: sessionObjectId,
+      turnBudget,
     });
 
     this.logger.log(
@@ -302,11 +309,15 @@ export class DialogueService {
   /**
    * Updates quality state for a dialogue after response evaluation.
    * RFC-0004: Dialogue Quality Guardrails.
+   *
+   * @param conclusionOffered - True on a wrap-up turn. Recorded as an
+   *   analytics flag; it never gates the Wrap up control.
    */
   async updateQualityState(
     dialogueId: string | Types.ObjectId,
     misconception?: MisconceptionResult,
     isBreakthrough?: boolean,
+    conclusionOffered?: boolean,
   ): Promise<void> {
     const dialogueObjectId =
       typeof dialogueId === 'string'
@@ -331,6 +342,13 @@ export class DialogueService {
       updateDoc.$inc = {
         ...(updateDoc.$inc as Record<string, number> | undefined),
         totalBreakthroughsConfirmed: 1,
+      };
+    }
+
+    if (conclusionOffered) {
+      updateDoc.$set = {
+        ...(updateDoc.$set as Record<string, unknown> | undefined),
+        conclusionOffered: true,
       };
     }
 
@@ -433,6 +451,34 @@ export class DialogueService {
       `Scaffold state updated for dialogue ${dialogueObjectId.toString()}`,
     );
     return true;
+  }
+
+  /**
+   * Sets or clears a dialogue's turn budget (dialogue-help-controls). The
+   * next queued turn reads it, so the change applies from the next message.
+   *
+   * @param dialogueId - The dialogue ID
+   * @param turnBudget - 1 to 50 exchanges, or null to clear
+   * @returns The updated dialogue
+   * @throws {NotFoundException} If the dialogue does not exist
+   */
+  async updateTurnBudget(
+    dialogueId: string | Types.ObjectId,
+    turnBudget: null | number,
+  ): Promise<NodeDialogue> {
+    const dialogue = await this.nodeDialogueModel.findByIdAndUpdate(
+      dialogueId,
+      { $set: { turnBudget } },
+      { new: true, runValidators: true },
+    );
+
+    if (!dialogue) {
+      throw new NotFoundException(
+        `Dialogue with ID ${dialogueId.toString()} not found`,
+      );
+    }
+
+    return dialogue;
   }
 
   /**

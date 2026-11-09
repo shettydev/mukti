@@ -1,8 +1,12 @@
+import type { TurnKind } from '@muktiai/contracts';
+
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 
 import type { DialogueMessage } from '../../../schemas/dialogue-message.schema';
 import type { NodeDialogue } from '../../../schemas/node-dialogue.schema';
+
+import { normaliseTurnBudget } from '../../socratic-turn/help-controls';
 
 /**
  * DTO for dialogue message metadata in API responses.
@@ -31,6 +35,16 @@ export class DialogueMessageMetadataDto {
   })
   @Expose()
   tokens?: number;
+
+  @ApiProperty({
+    description:
+      'What kind of reply this is: an explanation or a wrap-up summary the learner asked for, a reply after More help, or an ordinary Socratic reply. Absent on older replies and opening questions (ordinary).',
+    enum: ['ordinary', 'more_help', 'explain', 'wrap_up'],
+    example: 'explain',
+    required: false,
+  })
+  @Expose()
+  turnKind?: TurnKind;
 }
 
 /**
@@ -59,7 +73,8 @@ export class DialogueMessageResponseDto {
   id: string;
 
   @ApiProperty({
-    description: 'Optional metadata for AI-generated messages',
+    description:
+      'Optional metadata for AI-generated messages, including the turn kind of a reply to a learner turn',
     required: false,
     type: DialogueMessageMetadataDto,
   })
@@ -119,6 +134,16 @@ export class NodeDialogueResponseDto {
   createdAt: string;
 
   @ApiProperty({
+    description:
+      'Current help level, 0 (questions only) to 4 (brief explanations)',
+    example: 1,
+    maximum: 4,
+    minimum: 0,
+  })
+  @Expose()
+  currentScaffoldLevel: number;
+
+  @ApiProperty({
     description: 'Dialogue ID',
     example: '507f1f77bcf86cd799439011',
   })
@@ -169,6 +194,16 @@ export class NodeDialogueResponseDto {
   @Expose()
   sessionId: string;
 
+  @ApiProperty({
+    description:
+      'Turn budget in exchanges, or null when the dialogue has none. The exchange that reaches it is answered with a wrap-up summary.',
+    example: 10,
+    nullable: true,
+    type: Number,
+  })
+  @Expose()
+  turnBudget: null | number;
+
   /**
    * Creates a response DTO from a node dialogue document.
    */
@@ -183,6 +218,8 @@ export class NodeDialogueResponseDto {
     dto.lastMessageAt = dialogue.lastMessageAt?.toISOString();
     dto.createdAt =
       dialogue.createdAt?.toISOString() ?? new Date().toISOString();
+    dto.currentScaffoldLevel = dialogue.currentScaffoldLevel ?? 0;
+    dto.turnBudget = normaliseTurnBudget(dialogue.turnBudget);
     return dto;
   }
 }

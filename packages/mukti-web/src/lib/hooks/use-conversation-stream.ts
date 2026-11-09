@@ -47,12 +47,15 @@
 
 'use client';
 
+import type { HelpLevel, TurnBudgetStatus, TurnKind } from '@muktiai/contracts';
+
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 import type { Conversation, Message } from '@/types/conversation.types';
 
 import { config, isLocalMode } from '@/lib/config';
+import { applyCompletedTurn, tagNewestReply } from '@/lib/help-controls';
 import { conversationKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -68,15 +71,21 @@ export interface BaseStreamEvent {
 }
 
 /**
- * Complete event - emitted when processing finishes
+ * Complete event - emitted when processing finishes, with the help state after
+ * the turn (dialogue-help-controls)
  */
 export interface CompleteEvent extends BaseStreamEvent {
   data: {
+    /** The turn budget after this exchange, or null when there is none. */
+    budget?: null | TurnBudgetStatus;
     conclusionReady?: boolean;
     cost: number;
     jobId: string;
     latency: number;
+    /** The help level the conversation is stored at after this turn. */
+    scaffoldLevel?: HelpLevel;
     tokens: number;
+    turnKind?: TurnKind;
   };
   type: 'complete';
 }
@@ -103,6 +112,8 @@ export interface MessageStreamEvent extends BaseStreamEvent {
     sequence: number;
     timestamp: string;
     tokens?: number;
+    /** On assistant replies: what kind of reply it is. */
+    turnKind?: TurnKind;
   };
   type: 'message';
 }
@@ -357,14 +368,22 @@ export function useConversationStream(options: UseConversationStreamOptions) {
               return old;
             }
 
+            const settled = applyCompletedTurn(old, event.data);
             return {
-              ...old,
+              ...settled,
+              conclusionOffered: event.data.turnKind === 'wrap_up' ? true : old.conclusionOffered,
               conclusionReady: event.data.conclusionReady ?? old.conclusionReady,
               metadata: {
                 ...old.metadata,
                 estimatedCost: old.metadata.estimatedCost + event.data.cost,
                 totalTokens: old.metadata.totalTokens + event.data.tokens,
               },
+              recentMessages: tagNewestReply(
+                old.recentMessages,
+                event.data.turnKind,
+                (message) => message.turnKind,
+                (message, turnKind) => ({ ...message, turnKind })
+              ),
               updatedAt: new Date().toISOString(),
             };
           });
@@ -397,6 +416,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
               sequence: event.data.sequence,
               timestamp: event.data.timestamp,
               tokens: event.data.tokens,
+              ...(event.data.turnKind ? { turnKind: event.data.turnKind } : {}),
             };
 
             // Check if message already exists (prevent duplicates)

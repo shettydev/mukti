@@ -1,3 +1,5 @@
+import type { TurnKind } from '@muktiai/contracts';
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
@@ -13,6 +15,12 @@ export interface DialogueMessageMetadata {
   model?: string;
   /** Token count for the message */
   tokens?: number;
+  /**
+   * What kind of reply this is (dialogue-help-controls). Absent on replies
+   * stored before help controls existed, and on opening questions: both are
+   * ordinary.
+   */
+  turnKind?: TurnKind;
 }
 
 /**

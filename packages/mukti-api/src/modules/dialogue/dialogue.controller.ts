@@ -9,6 +9,7 @@ import {
   MessageEvent,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Sse,
@@ -33,8 +34,10 @@ import {
   ApiSendNodeMessage,
   ApiStartNodeDialogue,
   ApiStreamNodeDialogue,
+  ApiUpdateNodeDialogue,
 } from './dto/dialogue.swagger';
 import { DialogueSendMessageDto } from './dto/send-message.dto';
+import { UpdateNodeDialogueDto } from './dto/update-dialogue.dto';
 import { DialogueQueueService } from './services/dialogue-queue.service';
 import { DialogueStreamService } from './services/dialogue-stream.service';
 import { DialogueService } from './services/dialogue.service';
@@ -119,9 +122,13 @@ export class DialogueController {
    *
    * @param sessionId - The canvas session ID
    * @param nodeId - The node identifier
-   * @param sendMessageDto - The message content
+   * @param sendMessageDto - The message content and at most one help control
    * @param user - The authenticated user
    * @returns Job ID and queue position (202 Accepted)
+   *
+   * @remarks
+   * A help-control turn is an ordinary model call: it passes the same
+   * {@link AiRequestGate} and counts against the free quota like any message.
    */
   @ApiSendNodeMessage()
   @HttpCode(HttpStatus.ACCEPTED)
@@ -162,6 +169,7 @@ export class DialogueController {
       subscriptionTier,
       effectiveModel,
       usedByok,
+      sendMessageDto.helpControl,
     );
 
     return {
@@ -198,12 +206,13 @@ export class DialogueController {
       session.problemStructure,
     );
 
-    // Get or create dialogue
+    // Get or create dialogue (a new one starts with the default turn budget)
     const dialogue = await this.dialogueService.getOrCreateDialogue(
       sessionId,
       nodeId,
       nodeType,
       nodeLabel,
+      user._id,
     );
 
     // Check if dialogue already has messages
@@ -307,6 +316,52 @@ export class DialogueController {
         );
       };
     });
+  }
+
+  /**
+   * Updates a node dialogue's settings: sets or clears its turn budget
+   * (dialogue-help-controls). Creates the dialogue when the node has none yet,
+   * so a budget can be set before the first message.
+   *
+   * @param sessionId - The canvas session ID
+   * @param nodeId - The node identifier
+   * @param dto - `turnBudget`: 1 to 50 exchanges, or null to clear
+   * @param user - The authenticated user
+   * @returns The updated dialogue
+   */
+  @ApiUpdateNodeDialogue()
+  @Patch(':sessionId/nodes/:nodeId/dialogue')
+  async updateDialogue(
+    @Param('sessionId') sessionId: string,
+    @Param('nodeId') nodeId: string,
+    @Body() dto: UpdateNodeDialogueDto,
+    @CurrentUser() user: User,
+  ) {
+    const session = await this.dialogueService.validateSessionOwnership(
+      sessionId,
+      user._id,
+    );
+    const { nodeLabel, nodeType } = this.resolveNodeInfo(
+      nodeId,
+      session.problemStructure,
+    );
+
+    let dialogue = await this.dialogueService.getOrCreateDialogue(
+      sessionId,
+      nodeId,
+      nodeType,
+      nodeLabel,
+      user._id,
+    );
+
+    if (dto.turnBudget !== undefined) {
+      dialogue = await this.dialogueService.updateTurnBudget(
+        dialogue._id,
+        dto.turnBudget,
+      );
+    }
+
+    return NodeDialogueResponseDto.fromDocument(dialogue);
   }
 
   /**

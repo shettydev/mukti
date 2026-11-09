@@ -12,12 +12,14 @@
  * - `useStartThoughtMapDialogue` — start/load dialogue with initial question
  */
 
+import type { TurnKind } from '@muktiai/contracts';
 import type { InfiniteData } from '@tanstack/react-query';
 
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 import type {
+  ThoughtMapDialogue,
   ThoughtMapDialogueMessage,
   ThoughtMapPaginatedMessagesResponse,
 } from '@/types/thought-map';
@@ -29,6 +31,11 @@ import {
   type ThoughtMapSendMessageResponse,
 } from '@/lib/api/thought-map-dialogue';
 import { config, isLocalMode } from '@/lib/config';
+import {
+  applyCompletedTurn,
+  type CompletedTurnHelpState,
+  tagNewestDialogueReply,
+} from '@/lib/help-controls';
 import { thoughtMapDialogueKeys, thoughtMapKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useThoughtMapStore } from '@/lib/stores/thought-map-store';
@@ -324,6 +331,12 @@ export function useThoughtMapDialogueStream(
       switch (event.type) {
         case 'complete':
           setState((prev) => ({ ...prev, isProcessing: false, processingStatus: null }));
+          // Apply the settled help level and tag the reply straight away, so
+          // the indicator moves with the reply rather than after a refetch.
+          queryClient.setQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(
+            queryKey,
+            (old) => applyCompletedTurnToPages(old, event.data as CompletedTurnHelpState)
+          );
           queryClient.invalidateQueries({
             queryKey: thoughtMapDialogueKeys.node(currentMapId, currentNodeId),
           });
@@ -352,12 +365,19 @@ export function useThoughtMapDialogueStream(
             sequence: number;
             timestamp: string;
             tokens?: number;
+            turnKind?: TurnKind;
           };
           const newMessage: ThoughtMapDialogueMessage = {
             content: msgData.content,
             dialogueId: event.dialogueId ?? '',
             id: `msg-${msgData.sequence}-${Date.now()}`,
-            metadata: msgData.tokens ? { tokens: msgData.tokens } : undefined,
+            metadata:
+              msgData.tokens || msgData.turnKind
+                ? {
+                    ...(msgData.tokens ? { tokens: msgData.tokens } : {}),
+                    ...(msgData.turnKind ? { turnKind: msgData.turnKind } : {}),
+                  }
+                : undefined,
             role: msgData.role,
             sequence: msgData.sequence,
             timestamp: msgData.timestamp,
@@ -493,7 +513,7 @@ export function useThoughtMapDialogueStream(
 }
 
 // ============================================================================
-// useThoughtMapDialogueStream
+// useUpdateThoughtMapDialogue
 // ============================================================================
 
 /**
@@ -525,4 +545,96 @@ export function useThoughtMapNodeMessages(mapId: string, nodeId: string, enabled
     queryKey: thoughtMapDialogueKeys.messages(mapId, nodeId),
     staleTime: config.cache.defaultStaleTime,
   });
+}
+
+// ============================================================================
+// useThoughtMapDialogueStream
+// ============================================================================
+
+/**
+ * Update a Thought Map node dialogue's settings (its turn budget) with an
+ * optimistic cache update, rolled back if the request fails.
+ *
+ * @param mapId - Thought Map ID
+ * @param nodeId - Node identifier
+ */
+export function useUpdateThoughtMapDialogue(mapId: string, nodeId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = thoughtMapDialogueKeys.messages(mapId, nodeId);
+
+  return useMutation<
+    ThoughtMapDialogue,
+    Error,
+    { turnBudget?: null | number },
+    { previousData: InfiniteData<ThoughtMapPaginatedMessagesResponse> | undefined }
+  >({
+    mutationFn: (dto) => thoughtMapDialogueApi.updateDialogue(mapId, nodeId, dto),
+    onError: (_error, _dto, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKey, context.previousData);
+      }
+    },
+    onMutate: async (dto) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousData =
+        queryClient.getQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(queryKey);
+      queryClient.setQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(
+        queryKey,
+        (old) =>
+          old
+            ? {
+                ...old,
+                pages: old.pages.map((page, index) =>
+                  index === 0 && page.dialogue
+                    ? { ...page, dialogue: { ...page.dialogue, ...dto } }
+                    : page
+                ),
+              }
+            : old
+      );
+      return { previousData };
+    },
+    onSuccess: (dialogue) => {
+      // The request may have created the dialogue, so adopt it when the cache
+      // had none; otherwise take only the field this request changes.
+      queryClient.setQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(
+        queryKey,
+        (old) =>
+          old
+            ? {
+                ...old,
+                pages: old.pages.map((page, index) =>
+                  index === 0
+                    ? {
+                        ...page,
+                        dialogue: page.dialogue
+                          ? { ...page.dialogue, turnBudget: dialogue.turnBudget }
+                          : dialogue,
+                      }
+                    : page
+                ),
+              }
+            : old
+      );
+    },
+  });
+}
+
+/** The cached pages after a turn completed (help level, budget, reply tag). */
+function applyCompletedTurnToPages(
+  old: InfiniteData<ThoughtMapPaginatedMessagesResponse> | undefined,
+  data: CompletedTurnHelpState
+): InfiniteData<ThoughtMapPaginatedMessagesResponse> | undefined {
+  if (!old) {
+    return old;
+  }
+  const pages = tagNewestDialogueReply(old.pages, data.turnKind);
+  return {
+    ...old,
+    pages: pages.map((page, index) =>
+      index === 0 && page.dialogue
+        ? { ...page, dialogue: applyCompletedTurn(page.dialogue, data) }
+        : page
+    ),
+  };
 }

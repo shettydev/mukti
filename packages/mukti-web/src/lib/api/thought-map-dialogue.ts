@@ -11,6 +11,8 @@
  * - SSE subscription for real-time updates
  */
 
+import type { HelpControl, HelpLevel, TurnBudgetStatus, TurnKind } from '@muktiai/contracts';
+
 import type {
   ThoughtMapDialogue,
   ThoughtMapDialogueMessage,
@@ -19,6 +21,7 @@ import type {
 } from '@/types/thought-map';
 
 import { config } from '@/lib/config';
+import { toHelpLevel, toTurnBudget } from '@/lib/help-controls';
 
 import type { GetMessagesOptions } from './dialogue';
 
@@ -33,6 +36,8 @@ import { apiClient } from './client';
  */
 export interface SendThoughtMapMessageDto {
   content: string;
+  /** At most one learner help control for this message. */
+  helpControl?: HelpControl;
   model?: string;
 }
 
@@ -42,6 +47,16 @@ export interface SendThoughtMapMessageDto {
  */
 export interface ThoughtMapDialogueStreamEvent {
   data:
+    | {
+        budget?: null | TurnBudgetStatus;
+        conclusionReady?: boolean;
+        cost: number;
+        jobId: string;
+        latency: number;
+        scaffoldLevel?: HelpLevel;
+        tokens: number;
+        turnKind?: TurnKind;
+      }
     | { code: string; message: string; retriable: boolean }
     | {
         content: string;
@@ -49,8 +64,8 @@ export interface ThoughtMapDialogueStreamEvent {
         sequence: number;
         timestamp: string;
         tokens?: number;
+        turnKind?: TurnKind;
       }
-    | { cost: number; jobId: string; latency: number; tokens: number }
     | { jobId: string; status: string }
     | { status: string };
   dialogueId?: string;
@@ -98,6 +113,7 @@ interface BackendStartDialogueResponse {
 
 interface BackendThoughtMapDialogue {
   createdAt: string;
+  currentScaffoldLevel?: number;
   id: string;
   lastMessageAt?: string;
   mapId?: string;
@@ -106,6 +122,7 @@ interface BackendThoughtMapDialogue {
   nodeLabel: string;
   nodeType: string;
   sessionId: string;
+  turnBudget?: null | number;
 }
 
 // ============================================================================
@@ -120,6 +137,7 @@ interface BackendThoughtMapDialogueMessage {
     latencyMs?: number;
     model?: string;
     tokens?: number;
+    turnKind?: TurnKind;
   };
   role: 'assistant' | 'user';
   sequence: number;
@@ -129,6 +147,7 @@ interface BackendThoughtMapDialogueMessage {
 function transformDialogue(backend: BackendThoughtMapDialogue): ThoughtMapDialogue {
   return {
     createdAt: backend.createdAt,
+    currentScaffoldLevel: toHelpLevel(backend.currentScaffoldLevel),
     id: backend.id,
     lastMessageAt: backend.lastMessageAt,
     mapId: backend.mapId ?? '',
@@ -136,6 +155,7 @@ function transformDialogue(backend: BackendThoughtMapDialogue): ThoughtMapDialog
     nodeId: backend.nodeId,
     nodeLabel: backend.nodeLabel,
     nodeType: backend.nodeType,
+    turnBudget: toTurnBudget(backend.turnBudget),
   };
 }
 
@@ -294,5 +314,26 @@ export const thoughtMapDialogueApi = {
     return () => {
       eventSource.close();
     };
+  },
+
+  /**
+   * Update a Thought Map node dialogue's settings: set or clear its turn
+   * budget (1-50 exchanges, or null). Creates the dialogue if the node has
+   * none yet.
+   *
+   * @param mapId - Thought Map ID
+   * @param nodeId - Node identifier
+   * @param dto - The settings to change
+   */
+  updateDialogue: async (
+    mapId: string,
+    nodeId: string,
+    dto: { turnBudget?: null | number }
+  ): Promise<ThoughtMapDialogue> => {
+    const response = await apiClient.patch<BackendThoughtMapDialogue>(
+      `/thought-maps/${mapId}/nodes/${nodeId}/dialogue`,
+      dto
+    );
+    return transformDialogue(response);
   },
 };

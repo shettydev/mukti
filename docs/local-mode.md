@@ -131,6 +131,27 @@ Claude Code's Sonnet / Opus / Haiku aliases, the models Codex lists for your acc
 default first), or whatever `agy models` reports — and the selection is passed to that CLI's model
 flag.
 
+## Help controls
+
+Every Socratic dialogue (chat, canvas node chat and thought-map node chat) shows its current help
+level, from 0 "Questions only" to 4 "Brief explanations", and has the same controls as the hosted
+version:
+
+- **More help** writes your next reply one level higher. The usual fading still applies: two
+  replies that show you understand bring the level back down.
+- **Explain** turns your next reply into a short explanation of the one concept or step you are
+  missing, then the dialogue goes back to questions. It does not write your solution, even if you
+  ask for the full answer.
+- **Wrap up** replies with a summary in three parts: what was established, what is still open, and
+  your next step. It is there from the first reply, and you can keep going afterwards.
+- **Turn limit** caps a dialogue at 1 to 50 exchanges, from the dialogue's help controls or as a
+  default for new dialogues in Settings. The exchange that reaches the limit is answered with the
+  wrap-up summary; messages after it are still answered.
+
+Each control is one ordinary reply from the active CLI. Antigravity enforces the reply's shape, so
+an Explain or Wrap up reply always comes back as prose rather than a question. Claude Code and
+Codex are given the same instructions but do not enforce the shape.
+
 ## What local mode does
 
 - Sets `MUKTI_LOCAL=1` and `AI_PROVIDER` to the chosen CLI

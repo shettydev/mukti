@@ -1,3 +1,5 @@
+import type { TurnKind } from '@muktiai/contracts';
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
@@ -20,6 +22,11 @@ export interface RecentMessage {
     model?: string;
     promptTokens?: number;
     totalTokens?: number;
+    /**
+     * On assistant replies: what kind of reply this is
+     * (dialogue-help-controls). Absent on older replies, which are ordinary.
+     */
+    turnKind?: TurnKind;
   };
   role: 'assistant' | 'system' | 'user';
   timestamp: Date;
@@ -30,6 +37,10 @@ export class Conversation {
   // Virtual fields
   _id: Types.ObjectId;
 
+  /**
+   * True once the conversation has had at least one wrap-up summary. An
+   * analytics flag only: it never hides or gates the Wrap up control.
+   */
   @Prop({ default: false, type: Boolean })
   conclusionOffered: boolean;
 
@@ -124,6 +135,15 @@ export class Conversation {
    */
   @Prop({ default: 0, type: Number })
   totalMisconceptionsDetected: number;
+
+  /**
+   * Optional cap on exchanges (dialogue-help-controls). The exchange that
+   * reaches it is answered with a wrap-up summary; later messages are still
+   * accepted. Null (the default) means no budget.
+   */
+  @Prop({ default: null, max: 50, min: 1, type: Number })
+  turnBudget?: null | number;
+
   updatedAt: Date;
   @Prop({ index: true, ref: 'User', required: true, type: Types.ObjectId })
   userId: Types.ObjectId;

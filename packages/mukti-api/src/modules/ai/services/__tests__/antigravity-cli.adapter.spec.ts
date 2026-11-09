@@ -15,7 +15,11 @@ import { pathToFileURL } from 'url';
 import type { AiChatSendRequest } from '../../types/ai-chat-client.interface';
 import type { AiJsonSchemaResponseFormat } from '../../types/ai-response-format.interface';
 
-import { SOCRATIC_QUESTION_FORMAT } from '../../types/ai-response-format.interface';
+import {
+  SOCRATIC_EXPLANATION_FORMAT,
+  SOCRATIC_QUESTION_FORMAT,
+  SOCRATIC_SUMMARY_FORMAT,
+} from '../../types/ai-response-format.interface';
 import { LocalCliError } from '../../types/local-cli-adapter.interface';
 import {
   ANTIGRAVITY_CLI_ERROR_CODE,
@@ -390,6 +394,35 @@ describe('AntigravityCliAdapter', () => {
 
       expect(completion.content).toBe('clean');
     });
+
+    it.each([
+      [
+        'explanation',
+        SOCRATIC_EXPLANATION_FORMAT,
+        'Idempotency means a retry has the same effect.',
+      ],
+      [
+        'summary',
+        SOCRATIC_SUMMARY_FORMAT,
+        '## Established\n- x\n## Still open\n- y\n## Next step\n- z',
+      ],
+    ] as const)(
+      'unwraps the learner-requested %s shape into text and enforces it with --json-schema',
+      (field, format, text) => {
+        const request = { ...socraticRequest, responseFormat: format };
+
+        const completion = adapter().parseEnvelope(
+          success({ structured_output: { [field]: text } }),
+          request,
+        );
+        expect(completion.content).toBe(text);
+
+        const args = adapter().buildArgs(request, 'q');
+        const at = args.indexOf('--json-schema');
+        expect(at).toBeGreaterThan(-1);
+        expect(JSON.parse(args[at + 1])).toEqual(format.jsonSchema.schema);
+      },
+    );
 
     it('returns a multi-field declared structure as JSON text', () => {
       const format: AiJsonSchemaResponseFormat = {

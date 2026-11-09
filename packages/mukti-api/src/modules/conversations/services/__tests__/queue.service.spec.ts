@@ -14,6 +14,11 @@ import { UsageEvent } from '../../../../schemas/usage-event.schema';
 import { User } from '../../../../schemas/user.schema';
 import { AiKeyResolver } from '../../../ai/services/ai-key-resolver.service';
 import { AiPolicyService } from '../../../ai/services/ai-policy.service';
+import {
+  SOCRATIC_EXPLANATION_FORMAT,
+  SOCRATIC_QUESTION_FORMAT,
+  SOCRATIC_SUMMARY_FORMAT,
+} from '../../../ai/types/ai-response-format.interface';
 import { DialogueQualityService } from '../../../dialogue-quality/services/dialogue-quality.service';
 import { PostResponseMonitorService } from '../../../dialogue-quality/services/post-response-monitor.service';
 import { KnowledgeGapDetectorService } from '../../../scaffolding/services/knowledge-gap-detector.service';
@@ -44,7 +49,8 @@ describe('QueueService', () => {
     id: string;
     opts: any;
   }[];
-  let conversationModel: { findById: jest.Mock };
+  let conversationModel: { findById: jest.Mock; updateOne: jest.Mock };
+  let testingModule: TestingModule;
   let techniqueModel: { findOne: jest.Mock };
   let usageEventModel: { create: jest.Mock };
   let messageService: {
@@ -219,6 +225,10 @@ describe('QueueService', () => {
               newLevel: 0,
               reason: 'No change needed',
             }),
+            // More help runs the real manual raise
+            manualRaise: jest.fn((level: number) =>
+              new ScaffoldFadeService().manualRaise(level),
+            ),
           },
         },
         {
@@ -280,6 +290,7 @@ describe('QueueService', () => {
       ],
     }).compile();
 
+    testingModule = module;
     service = module.get<QueueService>(QueueService);
     conversationModel = module.get(getModelToken(Conversation.name));
     techniqueModel = module.get(getModelToken(Technique.name));
@@ -836,6 +847,255 @@ describe('QueueService', () => {
       );
       expect(types).toContain('error');
       expect(types).not.toContain('complete');
+    });
+  });
+  /**
+   * dialogue-help-controls in chat: each turn kind declares its own shape,
+   * settles the scaffold state its own way, tags the reply, and streams the
+   * help state; the turn budget is read in the job.
+   */
+  describe('help controls and turn budget', () => {
+    const CONV = '507f1f77bcf86cd799439012';
+    const USER = '507f1f77bcf86cd799439011';
+    const content =
+      'Idempotency means a retry has the same effect as one call.';
+
+    const primeTurn = (conversation: Record<string, unknown>) => {
+      conversationModel.findById.mockResolvedValue({
+        _id: CONV,
+        consecutiveFailures: 0,
+        consecutiveSuccesses: 0,
+        currentScaffoldLevel: 1,
+        detectedConcepts: ['idempotency'],
+        metadata: { messageCount: 4 },
+        recentMessages: [
+          {
+            content: 'My handler retries',
+            role: 'user',
+            timestamp: new Date(),
+          },
+          {
+            content: 'What happens twice?',
+            role: 'assistant',
+            timestamp: new Date(),
+          },
+          { content: 'It charges twice', role: 'user', timestamp: new Date() },
+          {
+            content: 'Why might that be?',
+            role: 'assistant',
+            timestamp: new Date(),
+          },
+        ],
+        totalMessageCount: 4,
+        turnBudget: null,
+        ...conversation,
+      });
+      techniqueModel.findOne.mockResolvedValue({ template: 'Technique' });
+      messageService.buildConversationContext.mockReturnValue({ messages: [] });
+      openRouterService.buildPrompt.mockReturnValue([]);
+      openRouterService.sendChatCompletion.mockResolvedValue({
+        completionTokens: 8,
+        content,
+        cost: 0,
+        model: 'openai/gpt-5-mini',
+        promptTokens: 12,
+        totalTokens: 20,
+      });
+      messageService.addMessageToConversation.mockResolvedValue({
+        _id: { toString: () => CONV },
+        metadata: { messageCount: 6 },
+        recentMessages: [],
+        totalMessageCount: 6,
+      });
+      usageEventModel.create.mockResolvedValue({});
+    };
+
+    const runTurn = async (
+      options: {
+        conversation?: Record<string, unknown>;
+        helpControl?: string;
+        wrapUpRequested?: boolean;
+      } = {},
+    ) => {
+      primeTurn(options.conversation ?? {});
+      await service.process({
+        data: {
+          conversationId: CONV,
+          ...(options.helpControl ? { helpControl: options.helpControl } : {}),
+          message: 'I am stuck',
+          model: 'openai/gpt-5-mini',
+          subscriptionTier: 'free',
+          technique: 'elenchus',
+          usedByok: false,
+          userId: USER,
+          ...(options.wrapUpRequested ? { wrapUpRequested: true } : {}),
+        },
+        id: 'job-1',
+      } as any);
+      const events = streamService.emitToConversation.mock.calls.map(
+        ([, event]) => event,
+      );
+      return {
+        complete: events.find((e) => e.type === 'complete')?.data,
+        reply: events.filter((e) => e.type === 'message').at(-1)?.data,
+        responseFormat: openRouterService.sendChatCompletion.mock.calls[0][4],
+        savedReply: messageService.addMessageToConversation.mock.calls[0][3],
+        scaffoldContext: openRouterService.buildPrompt.mock.calls[0][3],
+      };
+    };
+
+    /** The `$set` of the scaffold-state write, if this turn made one. */
+    const scaffoldWrite = () =>
+      conversationModel.updateOne.mock.calls
+        .map(([, update]) => update as { $set?: Record<string, unknown> })
+        .find((update) => update.$set && 'currentScaffoldLevel' in update.$set);
+
+    it('carries the help control into the job', async () => {
+      await service.enqueueRequest(
+        USER,
+        CONV,
+        'Explain please',
+        'free',
+        'elenchus',
+        'openai/gpt-5-mini',
+        false,
+        'explain',
+      );
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'process-conversation-request',
+        expect.objectContaining({ helpControl: 'explain' }),
+        { priority: 1 },
+      );
+    });
+
+    it.each([
+      ['ordinary', undefined, SOCRATIC_QUESTION_FORMAT],
+      ['more_help', 'more_help', SOCRATIC_QUESTION_FORMAT],
+      ['explain', 'explain', SOCRATIC_EXPLANATION_FORMAT],
+      ['wrap_up', 'wrap_up', SOCRATIC_SUMMARY_FORMAT],
+    ])(
+      '%s: declares its shape, tags the reply and streams the turn kind',
+      async (turnKind, helpControl, format) => {
+        const { complete, reply, responseFormat, savedReply } = await runTurn({
+          helpControl,
+        });
+
+        expect(responseFormat).toBe(format);
+        expect(savedReply).toMatchObject({ turnKind });
+        expect(reply).toMatchObject({ role: 'assistant', turnKind });
+        expect(complete).toMatchObject({ budget: null, turnKind });
+        const monitor = testingModule.get(PostResponseMonitorService)
+          .monitor as jest.Mock;
+        expect(monitor).toHaveBeenCalledWith(content, turnKind);
+      },
+    );
+
+    it('treats a legacy wrapUpRequested job as Wrap up', async () => {
+      const { complete, responseFormat } = await runTurn({
+        wrapUpRequested: true,
+      });
+
+      expect(responseFormat).toBe(SOCRATIC_SUMMARY_FORMAT);
+      expect(complete).toMatchObject({ turnKind: 'wrap_up' });
+    });
+
+    it('More help from level 1 writes and stores level 2 with counters reset', async () => {
+      const { complete, scaffoldContext } = await runTurn({
+        conversation: { consecutiveFailures: 1 },
+        helpControl: 'more_help',
+      });
+
+      expect(scaffoldContext).toMatchObject({ level: 2 });
+      expect(scaffoldWrite()?.$set).toMatchObject({
+        consecutiveFailures: 0,
+        consecutiveSuccesses: 0,
+        currentScaffoldLevel: 2,
+      });
+      expect(complete).toMatchObject({ scaffoldLevel: 2 });
+    });
+
+    it('Explain does not count as a failure', async () => {
+      const { complete } = await runTurn({
+        conversation: { consecutiveFailures: 1 },
+        helpControl: 'explain',
+      });
+
+      expect(scaffoldWrite()).toBeUndefined();
+      expect(
+        conversationModel.updateOne.mock.calls.some(
+          ([, update]) => '$inc' in (update as object),
+        ),
+      ).toBe(false);
+      expect(complete).toMatchObject({ scaffoldLevel: 1 });
+    });
+
+    it('Explain on a first exchange skips the initial level write', async () => {
+      await runTurn({
+        conversation: { recentMessages: [], totalMessageCount: 0 },
+        helpControl: 'explain',
+      });
+
+      expect(scaffoldWrite()).toBeUndefined();
+    });
+
+    it('Wrap up keeps the stored state and records conclusionOffered', async () => {
+      const { complete } = await runTurn({ helpControl: 'wrap_up' });
+
+      expect(scaffoldWrite()).toBeUndefined();
+      expect(conversationModel.updateOne).toHaveBeenCalledWith(
+        { _id: CONV },
+        { $set: { conclusionOffered: true } },
+      );
+      expect(complete).toMatchObject({ scaffoldLevel: 1 });
+    });
+
+    it('continues with an ordinary reply after a wrap up', async () => {
+      const { complete, responseFormat } = await runTurn({
+        conversation: { conclusionOffered: true },
+      });
+
+      expect(responseFormat).toBe(SOCRATIC_QUESTION_FORMAT);
+      expect(complete).toMatchObject({ turnKind: 'ordinary' });
+      expect(conversationModel.updateOne).not.toHaveBeenCalledWith(
+        { _id: CONV },
+        { $set: { conclusionOffered: true } },
+      );
+    });
+
+    it('answers the exchange that reaches the budget with a summary', async () => {
+      // 4 exchanges so far: this message is the 5th
+      const { complete, responseFormat } = await runTurn({
+        conversation: { totalMessageCount: 8, turnBudget: 5 },
+      });
+
+      expect(responseFormat).toBe(SOCRATIC_SUMMARY_FORMAT);
+      expect(complete).toMatchObject({
+        budget: { limit: 5, used: 5 },
+        turnKind: 'wrap_up',
+      });
+    });
+
+    it('continues with an ordinary reply past the budget', async () => {
+      const { complete, responseFormat } = await runTurn({
+        conversation: { totalMessageCount: 10, turnBudget: 5 },
+      });
+
+      expect(responseFormat).toBe(SOCRATIC_QUESTION_FORMAT);
+      expect(complete).toMatchObject({
+        budget: { limit: 5, used: 6 },
+        turnKind: 'ordinary',
+      });
+    });
+
+    it('answers Explain with the summary when it reaches the budget', async () => {
+      const { complete, responseFormat } = await runTurn({
+        conversation: { totalMessageCount: 8, turnBudget: 5 },
+        helpControl: 'explain',
+      });
+
+      expect(responseFormat).toBe(SOCRATIC_SUMMARY_FORMAT);
+      expect(complete).toMatchObject({ turnKind: 'wrap_up' });
     });
   });
 });

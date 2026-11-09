@@ -6,6 +6,8 @@
  * through branching thought nodes arranged in a radial tree layout.
  */
 
+import type { TurnKind } from '@muktiai/contracts';
+
 // ============================================================================
 // Request DTOs
 // ============================================================================
@@ -139,6 +141,8 @@ export interface ThoughtMap {
  */
 export interface ThoughtMapDialogue {
   createdAt: string;
+  /** Current help level, 0 (questions only) to 4 (brief explanations). */
+  currentScaffoldLevel?: number;
   id: string;
   lastMessageAt?: string;
   mapId: string;
@@ -146,6 +150,8 @@ export interface ThoughtMapDialogue {
   nodeId: string;
   nodeLabel: string;
   nodeType: string;
+  /** Turn budget in exchanges, or null for none. */
+  turnBudget?: null | number;
 }
 
 /**
@@ -159,6 +165,8 @@ export interface ThoughtMapDialogueMessage {
     latencyMs?: number;
     model?: string;
     tokens?: number;
+    /** What kind of reply this is (absent means ordinary). */
+    turnKind?: TurnKind;
   };
   role: 'assistant' | 'user';
   sequence: number;

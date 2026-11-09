@@ -187,4 +187,55 @@ describe('ScaffoldFadeService', () => {
       to: ScaffoldLevel.META_COGNITIVE,
     });
   });
+
+  describe('manualRaise (More help)', () => {
+    it('raises one level and resets counters', () => {
+      expect(service.manualRaise(ScaffoldLevel.META_COGNITIVE)).toEqual({
+        changed: true,
+        newLevel: ScaffoldLevel.STRATEGIC_HINTS,
+        reason: 'Learner requested more help',
+        resetCounters: true,
+      });
+    });
+
+    it('stays at the top level and reports no change', () => {
+      expect(service.manualRaise(ScaffoldLevel.DIRECT_INSTRUCTION)).toEqual({
+        changed: false,
+        newLevel: ScaffoldLevel.DIRECT_INSTRUCTION,
+        reason: 'Learner requested more help - already at maximum level',
+        resetCounters: true,
+      });
+    });
+
+    it('lets the two-success rule fade afterwards', () => {
+      const raised = service.manualRaise(ScaffoldLevel.META_COGNITIVE);
+      const success = quality({
+        confidence: 0.9,
+        demonstratesUnderstanding: true,
+      });
+      const first = service.evaluateAndTransition(
+        {
+          consecutiveFailures: 0,
+          consecutiveSuccesses: 0,
+          currentLevel: raised.newLevel,
+          transitionHistory: [],
+        },
+        success,
+      );
+      expect(first.changed).toBe(false);
+      const second = service.evaluateAndTransition(
+        {
+          consecutiveFailures: 0,
+          consecutiveSuccesses: 1,
+          currentLevel: raised.newLevel,
+          transitionHistory: [],
+        },
+        success,
+      );
+      expect(second).toMatchObject({
+        changed: true,
+        newLevel: ScaffoldLevel.META_COGNITIVE,
+      });
+    });
+  });
 });

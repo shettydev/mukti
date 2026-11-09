@@ -237,6 +237,37 @@ export class ScaffoldFadeService {
   }
 
   /**
+   * Raise support one level because the learner asked for more help
+   * (dialogue-help-controls, "More help raises the level immediately").
+   *
+   * @remarks
+   * Built on {@link forceLevel}, so counters reset exactly as for any manual
+   * change. Capped at {@link FADE_CONFIG.MAX_LEVEL}; at the cap the level is
+   * unchanged and `changed` is false so the surface can say so. The two-success
+   * fading rule applies afterwards as usual.
+   */
+  manualRaise(currentLevel: ScaffoldLevel): TransitionResult {
+    const newLevel = Math.min(
+      currentLevel + 1,
+      FADE_CONFIG.MAX_LEVEL,
+    ) as ScaffoldLevel;
+    this.forceLevel(
+      this.createInitialState(currentLevel),
+      newLevel,
+      'learner requested more help',
+    );
+    return {
+      changed: newLevel !== currentLevel,
+      newLevel,
+      reason:
+        newLevel === currentLevel
+          ? 'Learner requested more help - already at maximum level'
+          : 'Learner requested more help',
+      resetCounters: true,
+    };
+  }
+
+  /**
    * Update fade state after a transition.
    *
    * @param state - Current state

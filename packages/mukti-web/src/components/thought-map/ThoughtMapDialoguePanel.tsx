@@ -25,18 +25,27 @@ import {
   Play,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ThoughtMapNode, ThoughtMapNodeType } from '@/types/thought-map';
 
 import { LoadingMessage } from '@/components/conversations/loading-message';
+import { HelpControls } from '@/components/help-controls';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  exchangesFromMessageCount,
+  type PendingHelpControl,
+  toHelpLevel,
+  turnBudgetView,
+  WRAP_UP_MESSAGES,
+} from '@/lib/help-controls';
 import {
   useSendThoughtMapMessage,
   useStartThoughtMapDialogue,
   useThoughtMapDialogueStream,
   useThoughtMapNodeMessages,
+  useUpdateThoughtMapDialogue,
 } from '@/lib/hooks/use-thought-map-dialogue';
 import { useAiStore } from '@/lib/stores/ai-store';
 import { cn } from '@/lib/utils';
@@ -133,6 +142,14 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
     mapId,
     node.nodeId
   );
+  const { mutateAsync: updateDialogue } = useUpdateThoughtMapDialogue(mapId, node.nodeId);
+
+  // More help or Explain, attached to the learner's next message in this node
+  const [pendingControl, setPendingControl] = useState<null | PendingHelpControl>(null);
+
+  useEffect(() => {
+    setPendingControl(null);
+  }, [node.nodeId]);
 
   // SSE stream subscription
   const {
@@ -143,7 +160,8 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
 
   // Flatten pages
   const messages = messagesData?.pages.flatMap((page) => page.messages) ?? [];
-  const messageCount = messagesData?.pages[0]?.dialogue?.messageCount ?? 0;
+  const dialogue = messagesData?.pages[0]?.dialogue ?? null;
+  const messageCount = dialogue?.messageCount ?? 0;
   const hasDialogue = messagesData?.pages[0]?.dialogue !== null;
   const hasHistory = messages.length > 0;
   const isGeneratingInitialQuestion = hasDialogue && !hasHistory;
@@ -160,10 +178,29 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
 
   const handleSend = useCallback(
     (content: string) => {
-      sendMessage({ content, model: activeModel ?? undefined });
+      // The pending help control goes with this message (kept if it fails)
+      const control = pendingControl;
+      setPendingControl(null);
+      sendMessage(
+        {
+          content,
+          ...(control ? { helpControl: control } : {}),
+          model: activeModel ?? undefined,
+        },
+        { onError: () => setPendingControl(control) }
+      );
     },
-    [activeModel, sendMessage]
+    [activeModel, pendingControl, sendMessage]
   );
+
+  const handleWrapUp = useCallback(() => {
+    setPendingControl(null);
+    sendMessage({
+      content: WRAP_UP_MESSAGES.node,
+      helpControl: 'wrap_up',
+      model: activeModel ?? undefined,
+    });
+  }, [activeModel, sendMessage]);
 
   // ---- Resize drag handlers ---------------------------------------------------
 
@@ -362,8 +399,22 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
+      {/* Input, with the learner's help controls once the dialogue has started */}
       <div className="border-t px-4 py-4">
+        {hasHistory && (
+          <HelpControls
+            budget={turnBudgetView(dialogue?.turnBudget, exchangesFromMessageCount(messageCount))}
+            canWrapUp={messages.some((message) => message.role === 'assistant')}
+            className="mb-3"
+            disabled={isStarting || isSending || isProcessing}
+            exchanges={exchangesFromMessageCount(messageCount)}
+            level={toHelpLevel(dialogue?.currentScaffoldLevel)}
+            onBudgetChange={(turnBudget) => updateDialogue({ turnBudget })}
+            onPendingControlChange={setPendingControl}
+            onWrapUp={handleWrapUp}
+            pendingControl={pendingControl}
+          />
+        )}
         <ChatInput
           disabled={isStarting || !hasHistory}
           isLoading={isSending || isProcessing}

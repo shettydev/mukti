@@ -20,6 +20,8 @@ import {
   Technique,
   TechniqueDocument,
 } from '../../../schemas/technique.schema';
+import { AiSettingsService } from '../../ai/services/ai-settings.service';
+import { normaliseTurnBudget } from '../../socratic-turn/help-controls';
 
 /**
  * Service responsible for managing user conversations and Socratic inquiry sessions.
@@ -53,6 +55,7 @@ export class ConversationService {
     private archivedMessageModel: Model<ArchivedMessageDocument>,
     @InjectModel(Technique.name)
     private techniqueModel: Model<TechniqueDocument>,
+    private readonly aiSettingsService: AiSettingsService,
   ) {}
 
   /**
@@ -62,7 +65,8 @@ export class ConversationService {
    * @param title - The conversation title
    * @param technique - The Socratic technique to use
    * @param tags - Optional tags for organizing the conversation
-   * @returns The newly created conversation
+   * @returns The newly created conversation, with the user's default turn
+   *   budget (Settings) applied when they set one
    * @throws {BadRequestException} If the technique is invalid
    *
    * @example
@@ -111,6 +115,11 @@ export class ConversationService {
       );
     }
 
+    // dialogue-help-controls: a new dialogue starts with the learner's default
+    // turn budget from Settings, if any.
+    const turnBudget =
+      await this.aiSettingsService.getDefaultTurnBudget(userId);
+
     try {
       // Create conversation with default values
       const conversation = await this.conversationModel.create({
@@ -128,6 +137,7 @@ export class ConversationService {
         technique,
         title: title.trim(),
         totalMessageCount: 0, // Start at zero
+        turnBudget,
         userId: new Types.ObjectId(userId),
       });
 
@@ -418,6 +428,7 @@ export class ConversationService {
       tags?: string[];
       technique?: string;
       title?: string;
+      turnBudget?: null | number;
     },
   ): Promise<ConversationDocument> {
     const conversationId = this.formatId(id);
@@ -462,6 +473,17 @@ export class ConversationService {
       typeof updates.isArchived !== 'boolean'
     ) {
       throw new BadRequestException('isArchived must be a boolean');
+    }
+
+    // Validate turn budget is 1-50 if provided (null clears it)
+    if (
+      updates.turnBudget !== undefined &&
+      updates.turnBudget !== null &&
+      normaliseTurnBudget(updates.turnBudget) === null
+    ) {
+      throw new BadRequestException(
+        'turnBudget must be an integer from 1 to 50, or null',
+      );
     }
 
     // Validate technique is in allowed set if provided

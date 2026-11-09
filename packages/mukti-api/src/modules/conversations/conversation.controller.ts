@@ -34,7 +34,7 @@ import {
   ApiUpdateConversation,
 } from './dto/conversation.swagger';
 import { CreateConversationDto } from './dto/create-conversation.dto';
-import { SendMessageDto } from './dto/send-message.dto';
+import { resolveChatHelpControl, SendMessageDto } from './dto/send-message.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { ConversationService } from './services/conversation.service';
 import { MessageService } from './services/message.service';
@@ -226,9 +226,14 @@ export class ConversationController {
    * Checks rate limits before enqueueing.
    *
    * @param id - The conversation ID
-   * @param sendMessageDto - The message content
+   * @param sendMessageDto - The message content, and at most one help control
+   *   (`helpControl`, or the deprecated `wrapUpRequested`)
    * @param user - The authenticated user from JWT token
    * @returns Job ID and queue position (202 Accepted)
+   *
+   * @remarks
+   * A help-control turn is an ordinary model call: it passes the same
+   * {@link AiRequestGate} and counts against the free quota like any message.
    */
   @ApiSendMessage()
   @HttpCode(HttpStatus.ACCEPTED)
@@ -258,7 +263,7 @@ export class ConversationController {
       conversation.technique,
       effectiveModel,
       usedByok,
-      sendMessageDto.wrapUpRequested,
+      resolveChatHelpControl(sendMessageDto),
     );
 
     return {

@@ -11,7 +11,10 @@ import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
 } from '../../ai/types/ai-chat-client.interface';
-import { SOCRATIC_QUESTION_FORMAT } from '../../ai/types/ai-response-format.interface';
+import {
+  type AiJsonSchemaResponseFormat,
+  SOCRATIC_QUESTION_FORMAT,
+} from '../../ai/types/ai-response-format.interface';
 import {
   appendQualityGuardrails,
   buildScaffoldAwarePrompt,
@@ -189,6 +192,10 @@ export class DialogueAIService {
    * @param model - OpenRouter model id
    * @param apiKey - OpenRouter API key
    * @param scaffoldContext - Optional scaffold context from gap detection
+   * @param qualityDirectives - Optional RFC-0004 guardrails
+   * @param responseFormat - The learner-facing shape this turn declares
+   *   (`PreparedTurn.responseFormat`); a single question unless the learner
+   *   asked for an explanation or a wrap-up
    * @returns AI response with content, tokens, and cost
    */
   async generateScaffoldedResponse(
@@ -200,6 +207,7 @@ export class DialogueAIService {
     apiKey: string,
     scaffoldContext?: ScaffoldContext,
     qualityDirectives?: QualityDirectives,
+    responseFormat: AiJsonSchemaResponseFormat = SOCRATIC_QUESTION_FORMAT,
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
@@ -239,9 +247,9 @@ export class DialogueAIService {
         {
           messages,
           model: effectiveModel,
-          // Learner-facing: rendered as the assistant message, so it must be a
-          // question.
-          responseFormat: SOCRATIC_QUESTION_FORMAT,
+          // Learner-facing: rendered as the assistant message, so it is a
+          // question unless the learner asked for an explanation or a wrap-up.
+          responseFormat,
           stream: false,
           temperature: 0.7,
         },
@@ -292,6 +300,10 @@ export class DialogueAIService {
    * @param model - OpenRouter model id
    * @param apiKey - OpenRouter API key
    * @param scaffoldContext - Optional scaffold context from gap detection
+   * @param qualityDirectives - Optional RFC-0004 guardrails
+   * @param responseFormat - The learner-facing shape this turn declares; the
+   *   single-question shape unless the learner asked for an explanation or a
+   *   wrap-up (an opening question always uses the default)
    * @returns AI response with content, tokens, and cost
    */
   async generateScaffoldedResponseWithPrompt(
@@ -302,6 +314,7 @@ export class DialogueAIService {
     apiKey: string,
     scaffoldContext?: ScaffoldContext,
     qualityDirectives?: QualityDirectives,
+    responseFormat: AiJsonSchemaResponseFormat = SOCRATIC_QUESTION_FORMAT,
   ): Promise<DialogueAIResponse> {
     const startTime = Date.now();
 
@@ -336,10 +349,11 @@ export class DialogueAIService {
         {
           messages,
           model: effectiveModel,
-          // Learner-facing: rendered as the assistant message, so it must be a
-          // question. This is the RFC-0002 scaffolding path — a scaffolded turn
-          // may explain more than a Level 0 one, but it is still never an answer.
-          responseFormat: SOCRATIC_QUESTION_FORMAT,
+          // Learner-facing: rendered as the assistant message, so it is a
+          // question unless the learner asked for an explanation or a wrap-up.
+          // This is the RFC-0002 scaffolding path — a scaffolded turn may
+          // explain more than a Level 0 one, but it is still never an answer.
+          responseFormat,
           stream: false,
           temperature: 0.7,
         },

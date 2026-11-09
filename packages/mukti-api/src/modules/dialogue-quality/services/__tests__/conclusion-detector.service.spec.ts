@@ -42,13 +42,24 @@ describe('ConclusionDetectorService', () => {
   });
 
   describe('feature flag', () => {
-    it('returns not ready when disabled', () => {
+    it('returns not ready for heuristic signals when disabled', () => {
+      jest.spyOn(configService, 'get').mockReturnValue('false');
+      const result = service.assess({
+        ...baseInput,
+        userMessage: 'Thanks, that is all',
+      });
+      expect(result.conclusionReady).toBe(false);
+      expect(result.directive).toBeUndefined();
+    });
+
+    it('still honours an explicit wrap-up when disabled', () => {
       jest.spyOn(configService, 'get').mockReturnValue('false');
       const result = service.assess({
         ...baseInput,
         wrapUpRequested: true,
       });
-      expect(result.conclusionReady).toBe(false);
+      expect(result.conclusionReady).toBe(true);
+      expect(result.directive?.source).toBe('conclusion');
     });
   });
 
@@ -325,6 +336,21 @@ describe('ConclusionDetectorService', () => {
       expect(result.directive!.instruction).toContain(
         'Do NOT ask another probing question',
       );
+    });
+
+    it('asks for the three labelled parts in order (Established, Still open, Next step)', () => {
+      const result = service.assess({
+        ...baseInput,
+        wrapUpRequested: true,
+      });
+      const text = result.directive!.instruction;
+      const established = text.indexOf('## Established');
+      const open = text.indexOf('## Still open');
+      const next = text.indexOf('## Next step');
+      expect(established).toBeGreaterThan(-1);
+      expect(open).toBeGreaterThan(established);
+      expect(next).toBeGreaterThan(open);
+      expect(text).toMatch(/stated next step/);
     });
   });
 });

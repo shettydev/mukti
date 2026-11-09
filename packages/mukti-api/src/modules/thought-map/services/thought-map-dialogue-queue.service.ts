@@ -28,6 +28,7 @@ import {
   UsageEvent,
   UsageEventDocument,
 } from '../../../schemas/usage-event.schema';
+import { AiSettingsService } from '../../ai/services/ai-settings.service';
 import { DialogueAIService } from '../../dialogue/services/dialogue-ai.service';
 import { DialogueStreamService } from '../../dialogue/services/dialogue-stream.service';
 import { DialogueService } from '../../dialogue/services/dialogue.service';
@@ -37,6 +38,10 @@ import {
   selectTechniqueForNode,
   type ThoughtMapNodeTechniqueContext,
 } from '../../dialogue/utils/prompt-builder';
+import {
+  exchangesFromMessageCount,
+  type HelpControl,
+} from '../../socratic-turn/help-controls';
 import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
 
 /**
@@ -47,6 +52,8 @@ export interface ThoughtMapDialogueJobData {
   depth: number;
   /** Whether the node was created from an AI suggestion */
   fromSuggestion: boolean;
+  /** The learner's help control for this message, if any */
+  helpControl?: HelpControl;
   /** Whether this is a system-initiated initial question (no user message) */
   isInitialQuestion?: boolean;
   mapId: string;
@@ -74,6 +81,16 @@ export interface ThoughtMapDialogueJobResult {
   latency: number;
   tokens: number;
   userMessageId: string;
+}
+
+/**
+ * Optional flags for {@link ThoughtMapDialogueQueueService.enqueueMapNodeRequest}.
+ */
+export interface ThoughtMapDialogueRequestOptions {
+  /** The learner's help control for this message (learner turns only). */
+  helpControl?: HelpControl;
+  /** A system-initiated opening question: no user message, no turn. */
+  isInitialQuestion?: boolean;
 }
 
 /**
@@ -110,6 +127,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     private readonly thoughtNodeModel: Model<ThoughtNodeDocument>,
     @InjectModel(UsageEvent.name)
     private readonly usageEventModel: Model<UsageEventDocument>,
+    private readonly aiSettingsService: AiSettingsService,
     private readonly dialogueAIService: DialogueAIService,
     private readonly dialogueService: DialogueService,
     private readonly dialogueStreamService: DialogueStreamService,
@@ -134,6 +152,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
    * @param subscriptionTier - Used for queue priority
    * @param model - OpenRouter model ID
    * @param usedByok - Whether to use the user's own API key
+   * @param options - The learner's help control, or the opening-question flag
    * @returns Job ID and queue position
    */
   async enqueueMapNodeRequest(
@@ -150,8 +169,9 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     subscriptionTier: string,
     model: string,
     usedByok: boolean,
-    isInitialQuestion?: boolean,
+    options: ThoughtMapDialogueRequestOptions = {},
   ): Promise<{ jobId: string; position: number }> {
+    const { helpControl, isInitialQuestion } = options;
     const userIdString = userId.toString();
     this.logger.log(
       `Enqueueing ThoughtMap dialogue request: user=${userIdString}, map=${mapId}, node=${nodeId}`,
@@ -162,6 +182,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     const jobData: ThoughtMapDialogueJobData = {
       depth,
       fromSuggestion,
+      ...(helpControl ? { helpControl } : {}),
       isInitialQuestion,
       mapId,
       message,
@@ -233,14 +254,32 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
   /**
    * Gets or creates a NodeDialogue scoped to a Thought Map node.
    * Queries by `{ mapId, nodeId }` — no sessionId involved.
+   *
+   * @param userId - The learner; when given, a newly created dialogue starts
+   *   with their default turn budget from Settings
    */
   async getOrCreateMapDialogue(
     mapId: string,
     nodeId: string,
     nodeType: NodeType,
     nodeLabel: string,
+    userId?: string | Types.ObjectId,
   ): Promise<NodeDialogue> {
     const mapObjectId = new Types.ObjectId(mapId);
+
+    // Most calls find an existing dialogue; only a new one needs the learner's
+    // default turn budget, so read the preference just for inserts.
+    const existing = await this.nodeDialogueModel.findOne({
+      mapId: mapObjectId,
+      nodeId,
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const turnBudget = userId
+      ? await this.aiSettingsService.getDefaultTurnBudget(userId)
+      : null;
     const dialogue = await this.nodeDialogueModel.findOneAndUpdate(
       {
         mapId: mapObjectId,
@@ -253,6 +292,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
           nodeId,
           nodeLabel,
           nodeType,
+          turnBudget,
         },
       },
       {
@@ -283,6 +323,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     const {
       depth,
       fromSuggestion,
+      helpControl,
       mapId,
       message,
       model,
@@ -300,11 +341,14 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     );
 
     const streamKey = mapStreamKey(mapId);
+    // Loaded before this turn's user message is stored, so its counts and
+    // turn budget describe the dialogue before this exchange.
     const dialogue = await this.getOrCreateMapDialogue(
       mapId,
       nodeId,
       nodeType,
       nodeLabel,
+      userId,
     );
     const dialogueId = dialogue._id.toString();
 
@@ -377,12 +421,15 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
 
       const turn = await this.socraticTurnEngine.prepare({
         conversationHistory,
+        exchangesBefore: exchangesFromMessageCount(dialogue.messageCount),
+        helpControl,
         model,
         previousResponseLengths,
         state: dialogue,
         timeOnProblem: dialogue.lastMessageAt
           ? Date.now() - dialogue.lastMessageAt.getTime()
           : undefined,
+        turnBudget: dialogue.turnBudget,
         usedByok,
         userId,
         userMessage: message,
@@ -421,10 +468,11 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
           apiKey,
           scaffoldContext,
           qualityDirectives,
+          turn.responseFormat,
         );
 
       // RFC-0004: Post-response monitoring
-      this.socraticTurnEngine.inspectReply(aiResponse.content);
+      this.socraticTurnEngine.inspectReply(aiResponse.content, turn.turnKind);
 
       const aiMessage = await this.dialogueService.addMessage(
         dialogue._id,
@@ -434,6 +482,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
           tokens: aiResponse.totalTokens,
+          turnKind: turn.turnKind,
         },
       );
 
@@ -457,11 +506,13 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         );
       }
 
-      // RFC-0004: Persist quality state (always, even on first exchange)
+      // RFC-0004: Persist quality state (always, even on first exchange).
+      // conclusionOffered records that a wrap-up happened (analytics only).
       await this.dialogueService.updateQualityState(
         dialogue._id,
         outcome.misconception,
         outcome.isBreakthrough,
+        turn.turnKind === 'wrap_up',
       );
 
       this.dialogueStreamService.emitToNodeDialogue(
@@ -475,6 +526,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
             sequence: aiMessage.sequence,
             timestamp: aiMessage.createdAt.toISOString(),
             tokens: aiResponse.totalTokens,
+            turnKind: turn.turnKind,
           },
           type: 'message',
         },
@@ -501,16 +553,21 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
 
       const latency = Date.now() - startTime;
 
+      // Complete, with the help state the client shows
       this.dialogueStreamService.emitToNodeDialogue(
         streamKey,
         nodeId,
         dialogueId,
         {
           data: {
+            budget: turn.budget,
+            conclusionReady: qualityDirectives.conclusionReady ?? false,
             cost: aiResponse.cost,
             jobId: job.id!,
             latency,
+            scaffoldLevel: outcome.levelAfter,
             tokens: aiResponse.totalTokens,
+            turnKind: turn.turnKind,
           },
           type: 'complete',
         },
@@ -601,6 +658,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
       nodeId,
       nodeType,
       nodeLabel,
+      userId,
     );
     const dialogueId = dialogue._id.toString();
 

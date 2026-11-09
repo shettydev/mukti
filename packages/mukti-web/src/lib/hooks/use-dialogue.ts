@@ -26,13 +26,16 @@ import { useEffect, useRef, useState } from 'react';
 import type {
   DialogueMessage,
   DialogueStreamEvent,
+  NodeDialogue,
   PaginatedMessagesResponse,
   SendMessageResponse,
   SendNodeMessageDto,
+  UpdateNodeDialogueDto,
 } from '@/types/dialogue.types';
 
 import { dialogueApi } from '@/lib/api/dialogue';
 import { config, isLocalMode } from '@/lib/config';
+import { applyCompletedTurn, tagNewestDialogueReply } from '@/lib/help-controls';
 import { dialogueKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -153,6 +156,11 @@ export function useDialogueStream(
             isProcessing: false,
             processingStatus: null,
           }));
+          // Apply the settled help level and tag the reply straight away, so
+          // the indicator moves with the reply rather than after a refetch.
+          queryClient.setQueryData<InfiniteData<PaginatedMessagesResponse>>(queryKey, (old) =>
+            applyCompletedTurnToPages(old, event.data)
+          );
           // Invalidate to ensure consistency
           queryClient.invalidateQueries({
             queryKey: dialogueKeys.node(currentSessionId, currentNodeId),
@@ -174,7 +182,13 @@ export function useDialogueStream(
             content: event.data.content,
             dialogueId: event.dialogueId,
             id: `msg-${event.data.sequence}-${Date.now()}`,
-            metadata: event.data.tokens ? { tokens: event.data.tokens } : undefined,
+            metadata:
+              event.data.tokens || event.data.turnKind
+                ? {
+                    ...(event.data.tokens ? { tokens: event.data.tokens } : {}),
+                    ...(event.data.turnKind ? { turnKind: event.data.turnKind } : {}),
+                  }
+                : undefined,
             role: event.data.role,
             sequence: event.data.sequence,
             timestamp: event.data.timestamp,
@@ -206,11 +220,16 @@ export function useDialogueStream(
 
                   return {
                     ...page,
-                    dialogue: {
-                      ...page.dialogue,
-                      lastMessageAt: newMessage.timestamp,
-                      messageCount: Math.max(page.dialogue.messageCount, newMessage.sequence + 1),
-                    },
+                    dialogue: page.dialogue
+                      ? {
+                          ...page.dialogue,
+                          lastMessageAt: newMessage.timestamp,
+                          messageCount: Math.max(
+                            page.dialogue.messageCount,
+                            newMessage.sequence + 1
+                          ),
+                        }
+                      : page.dialogue,
                     messages: [...existingMessages, newMessage],
                   };
                 }
@@ -441,10 +460,10 @@ export function useSendNodeMessage(sessionId: string, nodeId: string) {
       if (previousData) {
         const optimisticMessage: DialogueMessage = {
           content: dto.content,
-          dialogueId: previousData.pages[0]?.dialogue.id ?? '',
+          dialogueId: previousData.pages[0]?.dialogue?.id ?? '',
           id: optimisticMessageId,
           role: 'user',
-          sequence: (previousData.pages[0]?.dialogue.messageCount ?? 0) + 1,
+          sequence: (previousData.pages[0]?.dialogue?.messageCount ?? 0) + 1,
           timestamp: new Date().toISOString(),
         };
 
@@ -454,11 +473,13 @@ export function useSendNodeMessage(sessionId: string, nodeId: string) {
             index === 0
               ? {
                   ...page,
-                  dialogue: {
-                    ...page.dialogue,
-                    lastMessageAt: optimisticMessage.timestamp,
-                    messageCount: page.dialogue.messageCount + 1,
-                  },
+                  dialogue: page.dialogue
+                    ? {
+                        ...page.dialogue,
+                        lastMessageAt: optimisticMessage.timestamp,
+                        messageCount: page.dialogue.messageCount + 1,
+                      }
+                    : page.dialogue,
                   messages: [...page.messages, optimisticMessage],
                 }
               : page
@@ -474,4 +495,95 @@ export function useSendNodeMessage(sessionId: string, nodeId: string) {
       // Job enqueued successfully - messages will arrive via SSE
     },
   });
+}
+
+/**
+ * Update a node dialogue's settings (its turn budget) with an optimistic
+ * cache update, rolled back if the request fails.
+ *
+ * @param sessionId - Canvas session ID
+ * @param nodeId - Node identifier
+ */
+export function useUpdateNodeDialogue(sessionId: string, nodeId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = dialogueKeys.messages(sessionId, nodeId);
+
+  return useMutation<
+    NodeDialogue,
+    Error,
+    UpdateNodeDialogueDto,
+    { previousData: InfiniteData<PaginatedMessagesResponse> | undefined }
+  >({
+    mutationFn: (dto) => dialogueApi.updateDialogue(sessionId, nodeId, dto),
+    onError: (_error, _dto, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKey, context.previousData);
+      }
+    },
+    onMutate: async (dto) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousData =
+        queryClient.getQueryData<InfiniteData<PaginatedMessagesResponse>>(queryKey);
+      queryClient.setQueryData<InfiniteData<PaginatedMessagesResponse>>(queryKey, (old) =>
+        patchFirstDialogue(old, dto)
+      );
+      return { previousData };
+    },
+    onSuccess: (dialogue) => {
+      // The request may have created the dialogue, so adopt it when the cache
+      // had none; otherwise take only the fields this request changes.
+      queryClient.setQueryData<InfiniteData<PaginatedMessagesResponse>>(queryKey, (old) =>
+        old
+          ? {
+              ...old,
+              pages: old.pages.map((page, index) =>
+                index === 0
+                  ? {
+                      ...page,
+                      dialogue: page.dialogue
+                        ? { ...page.dialogue, turnBudget: dialogue.turnBudget }
+                        : dialogue,
+                    }
+                  : page
+              ),
+            }
+          : old
+      );
+    },
+  });
+}
+
+/** The cached pages after a turn completed (help level, budget, reply tag). */
+function applyCompletedTurnToPages(
+  old: InfiniteData<PaginatedMessagesResponse> | undefined,
+  data: Extract<DialogueStreamEvent, { type: 'complete' }>['data']
+): InfiniteData<PaginatedMessagesResponse> | undefined {
+  if (!old) {
+    return old;
+  }
+  const pages = tagNewestDialogueReply(old.pages, data.turnKind);
+  return {
+    ...old,
+    pages: pages.map((page, index) =>
+      index === 0 && page.dialogue
+        ? { ...page, dialogue: applyCompletedTurn(page.dialogue, data) }
+        : page
+    ),
+  };
+}
+
+/** The cached pages with fields of the first page's dialogue replaced. */
+function patchFirstDialogue(
+  old: InfiniteData<PaginatedMessagesResponse> | undefined,
+  patch: Partial<NodeDialogue>
+): InfiniteData<PaginatedMessagesResponse> | undefined {
+  if (!old) {
+    return old;
+  }
+  return {
+    ...old,
+    pages: old.pages.map((page, index) =>
+      index === 0 && page.dialogue ? { ...page, dialogue: { ...page.dialogue, ...patch } } : page
+    ),
+  };
 }

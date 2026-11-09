@@ -75,7 +75,10 @@ The rules that hold this together:
 - **One Socratic turn.** Chat, canvas node chat and thought-map node chat all run
   `SocraticTurnEngine`: `prepare` (gap detection, quality directives, scaffold context),
   `inspectReply`, then `settle` (grade the reply, move the help level, update
-  knowledge). Each surface keeps only its own prompt, storage and streaming.
+  knowledge). `prepare` also turns the learner's help control (More help, Explain,
+  Wrap up) and the dialogue's turn budget into a turn kind, which picks the reply's
+  shape and how the turn settles. Each surface keeps only its own prompt, storage and
+  streaming.
 - **One writer for learner knowledge.** `KnowledgeStateStore.applyObservation` is the
   only code that writes `knowledge_states`, as a compare-and-set on `attempts`. Scaffold
   level and counters are written only if no other turn changed them first.

@@ -1,9 +1,12 @@
+import type { TurnKind } from '@muktiai/contracts';
 import type { Types } from 'mongoose';
 
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Type } from 'class-transformer';
 
 import type { Conversation } from '../../../schemas/conversation.schema';
+
+import { normaliseTurnBudget } from '../../socratic-turn/help-controls';
 
 /**
  * Metadata for conversation analytics and tracking.
@@ -98,6 +101,16 @@ export class MessageMetadataDto {
   })
   @Expose()
   totalTokens?: number;
+
+  @ApiProperty({
+    description:
+      'What kind of reply this is: an explanation or a wrap-up summary the learner asked for, a reply after More help, or an ordinary Socratic reply. Absent on older replies (ordinary).',
+    enum: ['ordinary', 'more_help', 'explain', 'wrap_up'],
+    example: 'wrap_up',
+    required: false,
+  })
+  @Expose()
+  turnKind?: TurnKind;
 }
 
 /**
@@ -157,6 +170,16 @@ export class ConversationResponseDto {
   })
   @Expose()
   createdAt: Date;
+
+  @ApiProperty({
+    description:
+      'Current help level, 0 (questions only) to 4 (brief explanations)',
+    example: 1,
+    maximum: 4,
+    minimum: 0,
+  })
+  @Expose()
+  currentScaffoldLevel: number;
 
   @ApiProperty({
     description: 'Whether conversation has archived messages',
@@ -248,6 +271,16 @@ export class ConversationResponseDto {
   totalMessageCount: number;
 
   @ApiProperty({
+    description:
+      'Turn budget in exchanges, or null when the conversation has none. The exchange that reaches it is answered with a wrap-up summary.',
+    example: 10,
+    nullable: true,
+    type: Number,
+  })
+  @Expose()
+  turnBudget: null | number;
+
+  @ApiProperty({
     description: 'Last update timestamp',
     example: '2026-01-01T01:00:00Z',
   })
@@ -277,6 +310,8 @@ export class ConversationResponseDto {
     dto.recentMessages = conversation.recentMessages ?? [];
     dto.hasArchivedMessages = conversation.hasArchivedMessages ?? false;
     dto.totalMessageCount = conversation.totalMessageCount ?? 0;
+    dto.currentScaffoldLevel = conversation.currentScaffoldLevel ?? 0;
+    dto.turnBudget = normaliseTurnBudget(conversation.turnBudget);
 
     // Map metadata with proper type conversion
     const metadata = conversation.metadata ?? {

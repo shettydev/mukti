@@ -9,6 +9,8 @@
  * - Response transformation from backend format to frontend types
  */
 
+import type { TurnKind } from '@muktiai/contracts';
+
 import type {
   DialogueMessage,
   DialogueStreamEvent,
@@ -16,9 +18,11 @@ import type {
   PaginatedMessagesResponse,
   SendMessageResponse,
   SendNodeMessageDto,
+  UpdateNodeDialogueDto,
 } from '@/types/dialogue.types';
 
 import { config } from '@/lib/config';
+import { toHelpLevel, toTurnBudget } from '@/lib/help-controls';
 
 import { apiClient } from './client';
 
@@ -42,6 +46,7 @@ interface BackendDialogueMessage {
     latencyMs?: number;
     model?: string;
     tokens?: number;
+    turnKind?: TurnKind;
   };
   role: 'assistant' | 'user';
   sequence: number;
@@ -53,6 +58,7 @@ interface BackendDialogueMessage {
  */
 interface BackendNodeDialogue {
   createdAt: string;
+  currentScaffoldLevel?: number;
   id: string;
   lastMessageAt?: string;
   messageCount: number;
@@ -60,13 +66,15 @@ interface BackendNodeDialogue {
   nodeLabel: string;
   nodeType: string;
   sessionId: string;
+  turnBudget?: null | number;
 }
 
 /**
  * Backend paginated messages response format
  */
 interface BackendPaginatedMessagesResponse {
-  dialogue: BackendNodeDialogue;
+  /** Null when the node has no dialogue yet. */
+  dialogue: BackendNodeDialogue | null;
   messages: BackendDialogueMessage[];
   pagination: {
     hasMore: boolean;
@@ -91,6 +99,7 @@ interface BackendSendMessageResponse {
 function transformDialogue(backend: BackendNodeDialogue): NodeDialogue {
   return {
     createdAt: backend.createdAt,
+    currentScaffoldLevel: toHelpLevel(backend.currentScaffoldLevel),
     id: backend.id,
     lastMessageAt: backend.lastMessageAt,
     messageCount: backend.messageCount,
@@ -98,6 +107,7 @@ function transformDialogue(backend: BackendNodeDialogue): NodeDialogue {
     nodeLabel: backend.nodeLabel,
     nodeType: backend.nodeType as NodeDialogue['nodeType'],
     sessionId: backend.sessionId,
+    turnBudget: toTurnBudget(backend.turnBudget),
   };
 }
 
@@ -158,7 +168,7 @@ export const dialogueApi = {
     );
 
     return {
-      dialogue: transformDialogue(response.dialogue),
+      dialogue: response.dialogue ? transformDialogue(response.dialogue) : null,
       messages: response.messages.map(transformMessage),
       pagination: response.pagination,
     };
@@ -267,5 +277,26 @@ export const dialogueApi = {
     return () => {
       eventSource.close();
     };
+  },
+
+  /**
+   * Update a node dialogue's settings: set or clear its turn budget
+   * (1-50 exchanges, or null). Creates the dialogue if the node has none yet.
+   *
+   * @param sessionId - Canvas session ID
+   * @param nodeId - Node identifier
+   * @param dto - The settings to change
+   * @returns The updated dialogue
+   */
+  updateDialogue: async (
+    sessionId: string,
+    nodeId: string,
+    dto: UpdateNodeDialogueDto
+  ): Promise<NodeDialogue> => {
+    const response = await apiClient.patch<BackendNodeDialogue>(
+      `/canvas/${sessionId}/nodes/${nodeId}/dialogue`,
+      dto
+    );
+    return transformDialogue(response);
   },
 };

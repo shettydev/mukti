@@ -18,11 +18,13 @@ import { Model } from 'mongoose';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User, UserDocument } from '../../schemas/user.schema';
+import { normaliseTurnBudget } from '../socratic-turn/help-controls';
 import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
 import { SetGeminiKeyDto } from './dto/gemini-key.dto';
 import { SetOpenRouterKeyDto } from './dto/openrouter-key.dto';
 import { AiPolicyService } from './services/ai-policy.service';
 import { AiSecretsService } from './services/ai-secrets.service';
+import { AiSettingsService } from './services/ai-settings.service';
 import { OpenRouterModelsService } from './services/openrouter-models.service';
 
 @ApiTags('AI')
@@ -33,6 +35,7 @@ export class AiController {
     private readonly userModel: Model<UserDocument>,
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiSecretsService: AiSecretsService,
+    private readonly aiSettingsService: AiSettingsService,
     private readonly openRouterModelsService: OpenRouterModelsService,
     private readonly configService: ConfigService,
   ) {}
@@ -58,6 +61,9 @@ export class AiController {
 
     return {
       activeModel,
+      defaultTurnBudget: normaliseTurnBudget(
+        user.preferences?.defaultTurnBudget,
+      ),
       geminiKeyLast4: user.geminiApiKeyLast4 ?? null,
       hasGeminiKey: !!user.geminiApiKeyUpdatedAt,
       hasOpenRouterKey: !!user.openRouterApiKeyUpdatedAt,
@@ -70,40 +76,29 @@ export class AiController {
     @CurrentUser('_id') userId: string,
     @Body() dto: UpdateAiSettingsDto,
   ) {
+    // Each field is optional and saved on its own, so the Settings page can
+    // change the default turn budget without resubmitting the model.
+    const result: {
+      activeModel?: null | string;
+      defaultTurnBudget?: null | number;
+    } = {};
+
+    if (dto.defaultTurnBudget !== undefined) {
+      result.defaultTurnBudget =
+        await this.aiSettingsService.setDefaultTurnBudget(
+          userId,
+          dto.defaultTurnBudget,
+        );
+    }
+
     if (!dto.activeModel) {
-      return { activeModel: null };
+      return dto.defaultTurnBudget === undefined
+        ? { activeModel: null }
+        : result;
     }
 
-    const user = await this.userModel
-      .findById(userId)
-      .select('+openRouterApiKeyEncrypted preferences')
-      .lean();
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
-
-    // A local CLI needs no OpenRouter validation key; resolveEffectiveModel
-    // honours the requested model from the CLI's own catalogue directly.
-    const validationApiKey = this.aiPolicyService.providerRequiresApiKey()
-      ? this.getValidationApiKey({ hasByok, user })
-      : '';
-
-    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
-      hasByok,
-      requestedModel: dto.activeModel,
-      userActiveModel: user.preferences?.activeModel,
-      validationApiKey,
-    });
-
-    await this.userModel.updateOne(
-      { _id: userId },
-      { $set: { 'preferences.activeModel': effectiveModel } },
-    );
-
-    return { activeModel: effectiveModel };
+    result.activeModel = await this.updateActiveModel(userId, dto.activeModel);
+    return result;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -311,6 +306,42 @@ export class AiController {
         name: m.name,
       })),
     };
+  }
+
+  private async updateActiveModel(
+    userId: string,
+    requestedModel: string,
+  ): Promise<string> {
+    const user = await this.userModel
+      .findById(userId)
+      .select('+openRouterApiKeyEncrypted preferences')
+      .lean();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const hasByok = this.aiPolicyService.hasUserOpenRouterKey(user);
+
+    // A local CLI needs no OpenRouter validation key; resolveEffectiveModel
+    // honours the requested model from the CLI's own catalogue directly.
+    const validationApiKey = this.aiPolicyService.providerRequiresApiKey()
+      ? this.getValidationApiKey({ hasByok, user })
+      : '';
+
+    const effectiveModel = await this.aiPolicyService.resolveEffectiveModel({
+      hasByok,
+      requestedModel,
+      userActiveModel: user.preferences?.activeModel,
+      validationApiKey,
+    });
+
+    await this.userModel.updateOne(
+      { _id: userId },
+      { $set: { 'preferences.activeModel': effectiveModel } },
+    );
+
+    return effectiveModel;
   }
 
   private getValidationApiKey(params: {

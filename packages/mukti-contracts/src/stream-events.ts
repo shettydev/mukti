@@ -76,6 +76,41 @@ export type ExtractionStreamEventContract<Preview = unknown> =
       type: 'complete';
     };
 
+// ---------------------------------------------------------------------------
+// Learner help controls (dialogue-help-controls). Shared by chat, canvas node
+// dialogue and thought-map node dialogue.
+// ---------------------------------------------------------------------------
+
+/**
+ * A control the learner attaches to one message. At most one per message.
+ *
+ * - `more_help`: write the reply one help level higher, straight away.
+ * - `explain`: explain the one missing piece, for this reply only.
+ * - `wrap_up`: reply with a closing summary.
+ */
+export type HelpControl = 'explain' | 'more_help' | 'wrap_up';
+
+/**
+ * How much support a dialogue gives: 0 "Questions only", 1 "Thinking
+ * prompts", 2 "Hints", 3 "Examples", 4 "Brief explanations".
+ */
+export type HelpLevel = 0 | 1 | 2 | 3 | 4;
+
+/** Where a dialogue stands against the turn budget the learner set. */
+export interface TurnBudgetStatus {
+  /** The budget, in exchanges (one user message and its reply). */
+  limit: number;
+  /** Exchanges so far, including the one that just finished. */
+  used: number;
+}
+
+/**
+ * What kind of reply a turn produced, after the turn budget is applied: the
+ * learner's control, or `ordinary`. The turn that reaches the budget is
+ * always `wrap_up`.
+ */
+export type TurnKind = 'ordinary' | HelpControl;
+
 /** One event of type `T`, with the envelope fields a stream adds. */
 export type StreamEventOf<T extends StreamEventType, Envelope> = Envelope & {
   data: StreamEventPayloads[T];
@@ -86,12 +121,26 @@ export type StreamEventOf<T extends StreamEventType, Envelope> = Envelope & {
 /** Payload of each event type, common to every stream. */
 export interface StreamEventPayloads {
   complete: {
-    /** Chat only: the dialogue has reached a conclusion the user can accept. */
+    /**
+     * The dialogue's turn budget after this exchange, or null when it has
+     * none. Absent on completions that are not a learner turn (a thought-map
+     * node's opening question).
+     */
+    budget?: null | TurnBudgetStatus;
+    /** The dialogue has reached a conclusion the learner could accept. */
     conclusionReady?: boolean;
     cost: number;
     jobId: string;
     latency: number;
+    /**
+     * The help level the dialogue is stored at after this turn settled, which
+     * the help-level indicator shows. Absent on completions that are not a
+     * learner turn.
+     */
+    scaffoldLevel?: HelpLevel;
     tokens: number;
+    /** What kind of reply this turn produced. Absent outside learner turns. */
+    turnKind?: TurnKind;
   };
   error: {
     code: string;
@@ -104,6 +153,11 @@ export interface StreamEventPayloads {
     sequence: number;
     timestamp: string;
     tokens?: number;
+    /**
+     * On an assistant reply to a learner turn: what kind of reply it is, so
+     * the client can tag explanations and summaries.
+     */
+    turnKind?: TurnKind;
   };
   processing: {
     jobId: string;

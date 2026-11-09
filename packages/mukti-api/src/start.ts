@@ -12,6 +12,7 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { applyLocalModeEnvDefaults } from './common/config/local-mode';
+import { VALIDATION_PIPE_OPTIONS } from './common/config/validation';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 /** Port used when neither the caller nor `PORT` specifies one. */
@@ -106,16 +107,7 @@ export async function startApi(
   // Global exception filter for consistent error responses
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-      whitelist: true,
-    }),
-  );
+  app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
 
   app.setGlobalPrefix(apiPrefix);
 

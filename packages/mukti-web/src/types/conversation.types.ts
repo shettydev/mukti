@@ -3,13 +3,18 @@
  * Based on conversation DTOs from backend
  */
 
+import type { HelpControl, TurnKind } from '@muktiai/contracts';
+
 /**
  * Full conversation object
  */
 export interface Conversation {
+  /** True once the conversation has had a wrap-up (analytics only; never gates Wrap up). */
   conclusionOffered?: boolean;
   conclusionReady?: boolean;
   createdAt: string;
+  /** Current help level, 0 (questions only) to 4 (brief explanations). */
+  currentScaffoldLevel?: number;
   hasArchivedMessages: boolean;
   id: string;
   isArchived: boolean;
@@ -20,6 +25,8 @@ export interface Conversation {
   technique: SocraticTechnique;
   title: string;
   totalMessageCount?: number;
+  /** Turn budget in exchanges, or null for none. */
+  turnBudget?: null | number;
   updatedAt: string;
   userId: string;
 }
@@ -65,6 +72,8 @@ export interface Message {
   sequence: number;
   timestamp: string;
   tokens?: number;
+  /** On assistant replies: what kind of reply it is (absent means ordinary). */
+  turnKind?: TurnKind;
 }
 
 /**
@@ -99,7 +108,10 @@ export interface RateLimitError {
  */
 export interface SendMessageDto {
   content: string;
+  /** At most one learner help control for this message. */
+  helpControl?: HelpControl;
   model?: string;
+  /** @deprecated Send `helpControl: 'wrap_up'`. */
   wrapUpRequested?: boolean;
 }
 
@@ -131,4 +143,6 @@ export interface UpdateConversationDto {
   tags?: string[];
   technique?: SocraticTechnique;
   title?: string;
+  /** Turn budget in exchanges (1-50); null clears it. */
+  turnBudget?: null | number;
 }

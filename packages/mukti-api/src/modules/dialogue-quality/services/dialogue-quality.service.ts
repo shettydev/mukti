@@ -9,6 +9,7 @@ import type {
 import { AcknowledgmentProtocolService } from './acknowledgment-protocol.service';
 import { BreakthroughDetectorService } from './breakthrough-detector.service';
 import { ConclusionDetectorService } from './conclusion-detector.service';
+import { EXPLAIN_DIRECTIVE } from './explain-directive';
 import { MisconceptionDetectorService } from './misconception-detector.service';
 import { SingleQuestionEnforcerService } from './single-question-enforcer.service';
 
@@ -88,8 +89,18 @@ export class DialogueQualityService {
       directives.push(conclusionAssessment.directive);
     }
 
-    // 5. Single question enforcer (sync) — skip when conclusion fires (they conflict)
-    if (!conclusionAssessment.conclusionReady) {
+    // 5. Learner-requested explanation (help control "explain"). A wrap-up on
+    // the same turn (the turn budget was reached) wins: the summary is what
+    // the learner capped the dialogue to receive.
+    const explaining =
+      input.explainRequested === true && !conclusionAssessment.directive;
+    if (explaining) {
+      directives.push(EXPLAIN_DIRECTIVE);
+    }
+
+    // 6. Single question enforcer (sync) — skip when conclusion fires or an
+    // explanation was requested (both replies are prose, not a question)
+    if (!conclusionAssessment.conclusionReady && !explaining) {
       const singleQuestionDirective =
         this.singleQuestionEnforcer.getDirective();
       if (singleQuestionDirective) {

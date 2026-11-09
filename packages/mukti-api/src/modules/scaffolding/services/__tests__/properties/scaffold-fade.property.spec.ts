@@ -84,4 +84,18 @@ describe('ScaffoldFadeService - Transition Invariants (Property-Based)', () => {
       { numRuns: 100 },
     );
   });
+
+  it('manualRaise always lands on min(level + 1, 4) with counters reset', () => {
+    fc.assert(
+      fc.property(levelArb, (level) => {
+        const result = service.manualRaise(level);
+        expect(result.newLevel).toBe(
+          Math.min(level + 1, ScaffoldLevel.DIRECT_INSTRUCTION),
+        );
+        expect(result.resetCounters).toBe(true);
+        expect(result.changed).toBe(level < ScaffoldLevel.DIRECT_INSTRUCTION);
+      }),
+      { numRuns: 100 },
+    );
+  });
 });

@@ -29,10 +29,23 @@ import { ErrorState } from '@/components/conversations/error-state';
 import { MessageInput } from '@/components/conversations/message-input';
 import { MessageList } from '@/components/conversations/message-list';
 import { RateLimitBanner } from '@/components/conversations/rate-limit-banner';
+import { HelpControls } from '@/components/help-controls';
 import { Button } from '@/components/ui/button';
 import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
+import {
+  exchangesFromMessageCount,
+  type HelpControl,
+  type PendingHelpControl,
+  toHelpLevel,
+  turnBudgetView,
+  WRAP_UP_MESSAGES,
+} from '@/lib/help-controls';
 import { SSEError, useConversationStream } from '@/lib/hooks/use-conversation-stream';
-import { useConversation, useSendMessage } from '@/lib/hooks/use-conversations';
+import {
+  useConversation,
+  useSendMessage,
+  useUpdateConversation,
+} from '@/lib/hooks/use-conversations';
 import { conversationKeys } from '@/lib/query-keys';
 import { useAiStore } from '@/lib/stores/ai-store';
 
@@ -156,6 +169,14 @@ export function ChatInterface({
     mutateAsync: sendMessage,
     reset: resetSendMutation,
   } = useSendMessage(conversationId || '');
+  const { mutateAsync: updateConversation } = useUpdateConversation(conversationId || '');
+
+  // More help or Explain, attached to the learner's next message
+  const [pendingControl, setPendingControl] = useState<null | PendingHelpControl>(null);
+
+  useEffect(() => {
+    setPendingControl(null);
+  }, [conversationId]);
 
   // Establish SSE connection for active conversation
   const { isConnected } = useConversationStream({
@@ -329,12 +350,13 @@ export function ChatInterface({
   );
 
   /**
-   * Handle sending message to existing conversation
+   * Send a message (with at most one help control) to the existing
+   * conversation. Resolves false when nothing was sent (free limit reached).
    */
-  const handleSendMessage = useCallback(
-    async (content: string) => {
+  const sendTurn = useCallback(
+    async (content: string, helpControl?: HelpControl): Promise<boolean> => {
       if (!conversationId) {
-        return;
+        return false;
       }
 
       // Check free message limit for users without BYOK key
@@ -351,7 +373,7 @@ export function ChatInterface({
             description: 'Connect your OpenRouter API key to continue the conversation.',
             duration: 8000,
           });
-          return;
+          return false;
         }
       }
 
@@ -362,8 +384,9 @@ export function ChatInterface({
           isProcessing: true,
           status: 'AI is thinking...',
         });
-        await sendMessage({ content });
+        await sendMessage({ content, ...(helpControl ? { helpControl } : {}) });
         scheduleSseFallbackRefetch(conversationId);
+        return true;
       } catch (error) {
         setProcessingState({
           isProcessing: false,
@@ -388,6 +411,40 @@ export function ChatInterface({
       router,
     ]
   );
+
+  /**
+   * Handle sending a message from the input, with the pending help control.
+   * The control is kept if the message could not be sent.
+   */
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      const control = pendingControl;
+      setPendingControl(null);
+      try {
+        const sent = await sendTurn(content, control ?? undefined);
+        if (!sent) {
+          setPendingControl(control);
+        }
+      } catch (error) {
+        setPendingControl(control);
+        throw error;
+      }
+    },
+    [pendingControl, sendTurn]
+  );
+
+  /**
+   * Wrap up: ask for the closing summary straight away (a pending More help
+   * or Explain is dropped, since a message carries one control).
+   */
+  const handleWrapUp = useCallback(async () => {
+    setPendingControl(null);
+    try {
+      await sendTurn(WRAP_UP_MESSAGES.chat, 'wrap_up');
+    } catch {
+      // sendTurn already told the learner
+    }
+  }, [sendTurn]);
 
   /**
    * Handle retry for streaming errors
@@ -519,10 +576,31 @@ export function ChatInterface({
         </div>
       )}
 
-      {/* Message input */}
+      {/* Message input, with the learner's help controls */}
       <MessageInput
         conversationId={conversationId}
         disabled={isSending || conversation.isArchived || !!rateLimitInfo}
+        helpControls={
+          <HelpControls
+            budget={turnBudgetView(
+              conversation.turnBudget,
+              exchangesFromMessageCount(conversation.metadata.messageCount)
+            )}
+            canWrapUp={conversation.recentMessages.some((m) => m.role === 'assistant')}
+            disabled={
+              isSending ||
+              conversation.isArchived ||
+              !!rateLimitInfo ||
+              effectiveProcessingState.isProcessing
+            }
+            exchanges={exchangesFromMessageCount(conversation.metadata.messageCount)}
+            level={toHelpLevel(conversation.currentScaffoldLevel)}
+            onBudgetChange={(turnBudget) => updateConversation({ turnBudget })}
+            onPendingControlChange={setPendingControl}
+            onWrapUp={handleWrapUp}
+            pendingControl={pendingControl}
+          />
+        }
         onSend={handleSendMessage}
         prefillState={prefillState}
         technique={conversation.technique}

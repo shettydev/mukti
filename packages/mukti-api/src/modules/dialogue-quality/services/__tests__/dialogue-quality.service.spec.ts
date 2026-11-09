@@ -19,6 +19,7 @@ describe('DialogueQualityService', () => {
   let breakthroughDetector: BreakthroughDetectorService;
   let acknowledgmentProtocol: AcknowledgmentProtocolService;
   let singleQuestionEnforcer: SingleQuestionEnforcerService;
+  let conclusionDetector: ConclusionDetectorService;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -72,6 +73,7 @@ describe('DialogueQualityService', () => {
     breakthroughDetector = module.get(BreakthroughDetectorService);
     acknowledgmentProtocol = module.get(AcknowledgmentProtocolService);
     singleQuestionEnforcer = module.get(SingleQuestionEnforcerService);
+    conclusionDetector = module.get(ConclusionDetectorService);
   });
 
   const baseInput: QualityAssessmentInput = {
@@ -201,5 +203,51 @@ describe('DialogueQualityService', () => {
     const result = await service.assess(baseInput);
 
     expect(result.directives).toHaveLength(0);
+  });
+
+  describe('explain (help control)', () => {
+    it('adds the explain directive first and drops the single-question rule', async () => {
+      const result = await service.assess({
+        ...baseInput,
+        explainRequested: true,
+      });
+
+      expect(result.directives[0].source).toBe('explain');
+      expect(result.directives[0].instruction).toContain('EXPLAIN PROTOCOL');
+      expect(result.directives[0].instruction).toMatch(
+        /Do NOT complete their task/,
+      );
+      expect(result.directives[0].instruction).toMatch(
+        /Do NOT end with a question/,
+      );
+      expect(
+        result.directives.some((d) => d.source === 'single-question'),
+      ).toBe(false);
+    });
+
+    it('yields to a wrap-up on the same turn (budget reached)', async () => {
+      (conclusionDetector.assess as jest.Mock).mockReturnValue({
+        conclusionReady: true,
+        directive: {
+          instruction: 'CONCLUSION PROTOCOL',
+          priority: -1,
+          source: 'conclusion',
+        },
+        signals: [],
+      });
+
+      const result = await service.assess({
+        ...baseInput,
+        explainRequested: true,
+        wrapUpRequested: true,
+      });
+
+      expect(result.directives.map((d) => d.source)).toEqual(['conclusion']);
+    });
+
+    it('is absent on ordinary turns', async () => {
+      const result = await service.assess(baseInput);
+      expect(result.directives.some((d) => d.source === 'explain')).toBe(false);
+    });
   });
 });

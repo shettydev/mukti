@@ -68,3 +68,47 @@ export const SOCRATIC_QUESTION_FORMAT: AiJsonSchemaResponseFormat = {
   },
   type: 'json_schema',
 };
+
+/**
+ * Learner-facing shape for a turn the learner explicitly asked to have the
+ * missing piece explained (help control "explain"): one block of prose, no
+ * question field.
+ *
+ * @remarks
+ * Declared only on that learner-requested turn, never because of the help
+ * level or the reply content (ai-response-format: "Learner-facing and internal
+ * surfaces are distinguished").
+ */
+export const SOCRATIC_EXPLANATION_FORMAT: AiJsonSchemaResponseFormat = {
+  jsonSchema: {
+    description: 'A short explanation of one missing concept or step.',
+    name: 'socratic_explanation',
+    schema: {
+      additionalProperties: false,
+      properties: { explanation: { type: 'string' } },
+      required: ['explanation'],
+      type: 'object',
+    },
+    strict: true,
+  },
+  type: 'json_schema',
+};
+
+/**
+ * Learner-facing shape for a wrap-up turn (help control "wrap_up", or the turn
+ * that reaches the learner's turn budget): one Markdown summary.
+ */
+export const SOCRATIC_SUMMARY_FORMAT: AiJsonSchemaResponseFormat = {
+  jsonSchema: {
+    description: 'A closing summary of the dialogue in Markdown.',
+    name: 'socratic_summary',
+    schema: {
+      additionalProperties: false,
+      properties: { summary: { type: 'string' } },
+      required: ['summary'],
+      type: 'object',
+    },
+    strict: true,
+  },
+  type: 'json_schema',
+};

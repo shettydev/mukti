@@ -11,6 +11,7 @@ import { Types } from 'mongoose';
 import { ArchivedMessage } from '../../../../schemas/archived-message.schema';
 import { Conversation } from '../../../../schemas/conversation.schema';
 import { Technique } from '../../../../schemas/technique.schema';
+import { AiSettingsService } from '../../../ai/services/ai-settings.service';
 import { ConversationService } from '../conversation.service';
 
 describe('ConversationService', () => {
@@ -36,6 +37,10 @@ describe('ConversationService', () => {
     findOne: jest.fn(),
   };
 
+  const mockAiSettingsService = {
+    getDefaultTurnBudget: jest.fn().mockResolvedValue(null),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,6 +56,10 @@ describe('ConversationService', () => {
         {
           provide: getModelToken(Technique.name),
           useValue: mockTechniqueModel,
+        },
+        {
+          provide: AiSettingsService,
+          useValue: mockAiSettingsService,
         },
       ],
     }).compile();
@@ -188,6 +197,43 @@ describe('ConversationService', () => {
       expect(result.technique).toBe(technique);
       expect(result.recentMessages).toEqual([]);
       expect(result.totalMessageCount).toBe(0);
+    });
+
+    describe('turn budget (dialogue-help-controls)', () => {
+      const userId = new Types.ObjectId();
+
+      beforeEach(() => {
+        mockTechniqueModel.findOne.mockResolvedValue({
+          isActive: true,
+          name: 'elenchus',
+          status: 'approved',
+        });
+        mockConversationModel.create.mockImplementation(
+          (doc: Record<string, unknown>) =>
+            Promise.resolve({ _id: new Types.ObjectId(), ...doc }),
+        );
+      });
+
+      it('starts a new conversation with the default budget from Settings', async () => {
+        mockAiSettingsService.getDefaultTurnBudget.mockResolvedValueOnce(10);
+
+        await service.createConversation(userId, 'Budgeted', 'elenchus');
+
+        expect(mockAiSettingsService.getDefaultTurnBudget).toHaveBeenCalledWith(
+          userId,
+        );
+        expect(mockConversationModel.create).toHaveBeenCalledWith(
+          expect.objectContaining({ turnBudget: 10 }),
+        );
+      });
+
+      it('starts with no budget when Settings has none', async () => {
+        await service.createConversation(userId, 'Open-ended', 'elenchus');
+
+        expect(mockConversationModel.create).toHaveBeenCalledWith(
+          expect.objectContaining({ turnBudget: null }),
+        );
+      });
     });
 
     it('should trim whitespace from title', async () => {
@@ -1018,6 +1064,69 @@ describe('ConversationService', () => {
 
       expect(result.title).toBe('Updated Title');
       expect(result.isFavorite).toBe(true);
+    });
+
+    describe('turn budget (dialogue-help-controls)', () => {
+      const conversationId = new Types.ObjectId();
+      const userId = new Types.ObjectId();
+
+      beforeEach(() => {
+        mockConversationModel.findById.mockResolvedValue({
+          _id: conversationId,
+          technique: 'elenchus',
+          title: 'Original Title',
+          userId,
+        });
+        mockConversationModel.findByIdAndUpdate.mockImplementation(
+          (_id: unknown, update: { $set: Record<string, unknown> }) =>
+            Promise.resolve({ _id: conversationId, ...update.$set, userId }),
+        );
+      });
+
+      it('sets a budget from 1 to 50', async () => {
+        for (const turnBudget of [1, 5, 50]) {
+          const result = await service.updateConversation(
+            conversationId,
+            userId,
+            { turnBudget },
+          );
+          expect(result.turnBudget).toBe(turnBudget);
+        }
+        expect(mockConversationModel.findByIdAndUpdate).toHaveBeenCalledWith(
+          conversationId,
+          { $set: { turnBudget: 5 } },
+          { new: true },
+        );
+      });
+
+      it('clears the budget with null', async () => {
+        await service.updateConversation(conversationId, userId, {
+          turnBudget: null,
+        });
+        expect(mockConversationModel.findByIdAndUpdate).toHaveBeenCalledWith(
+          conversationId,
+          { $set: { turnBudget: null } },
+          { new: true },
+        );
+      });
+
+      it('rejects a budget outside 1-50 without writing', async () => {
+        for (const turnBudget of [0, 51, 2.5, -1]) {
+          await expect(
+            service.updateConversation(conversationId, userId, { turnBudget }),
+          ).rejects.toThrow(BadRequestException);
+        }
+        expect(mockConversationModel.findByIdAndUpdate).not.toHaveBeenCalled();
+      });
+
+      it("rejects a change to another user's conversation", async () => {
+        await expect(
+          service.updateConversation(conversationId, new Types.ObjectId(), {
+            turnBudget: 5,
+          }),
+        ).rejects.toThrow(ForbiddenException);
+        expect(mockConversationModel.findByIdAndUpdate).not.toHaveBeenCalled();
+      });
     });
   });
 

@@ -2,10 +2,18 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
+  Min,
 } from 'class-validator';
+
+import {
+  TURN_BUDGET_MAX,
+  TURN_BUDGET_MIN,
+} from '../../socratic-turn/help-controls';
 
 /**
  * DTO for updating an existing conversation.
@@ -13,7 +21,7 @@ import {
  * @remarks
  * All fields are optional. Only provided fields will be updated.
  * Validates that title is not empty if provided, tags are strings,
- * and boolean flags are proper booleans.
+ * boolean flags are proper booleans, and a turn budget is 1-50 or null.
  */
 export class UpdateConversationDto {
   /**
@@ -88,4 +96,24 @@ export class UpdateConversationDto {
   @IsOptional()
   @IsString()
   title?: string;
+
+  /**
+   * Turn budget in exchanges (dialogue-help-controls). `null` clears it.
+   * Takes effect on the next message.
+   */
+  @ApiProperty({
+    description:
+      'Turn budget in exchanges; the exchange that reaches it is answered with a wrap-up summary. null clears it.',
+    example: 10,
+    maximum: TURN_BUDGET_MAX,
+    minimum: TURN_BUDGET_MIN,
+    nullable: true,
+    required: false,
+    type: Number,
+  })
+  @IsInt()
+  @IsOptional()
+  @Max(TURN_BUDGET_MAX)
+  @Min(TURN_BUDGET_MIN)
+  turnBudget?: null | number;
 }

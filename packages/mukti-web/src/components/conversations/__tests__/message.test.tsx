@@ -136,4 +136,23 @@ describe('Message', () => {
       expect(messageWrapper).toBeInTheDocument();
     });
   });
+  // dialogue-help-controls: a learner scrolling back can tell an explanation
+  // or a summary from a Socratic question
+  describe('reply kind tag', () => {
+    it.each([
+      ['explain', 'Explanation'],
+      ['wrap_up', 'Summary'],
+    ] as const)('tags a %s reply as "%s"', (turnKind, label) => {
+      render(<Message message={{ ...mockAssistantMessage, turnKind }} />);
+
+      expect(screen.getByText(label)).toBeInTheDocument();
+    });
+
+    it('does not tag question-shaped replies', () => {
+      render(<Message message={{ ...mockAssistantMessage, turnKind: 'more_help' }} />);
+
+      expect(screen.queryByText('Explanation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Summary')).not.toBeInTheDocument();
+    });
+  });
 });

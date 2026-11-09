@@ -3,15 +3,23 @@
  * Based on dialogue DTOs from backend
  */
 
+import type { HelpControl, HelpLevel, TurnBudgetStatus, TurnKind } from '@muktiai/contracts';
+
 /**
- * Processing complete event
+ * Processing complete event, with the help state after the turn
  */
 export interface DialogueCompleteEvent extends BaseDialogueStreamEvent {
   data: {
+    /** The turn budget after this exchange, or null when there is none. */
+    budget?: null | TurnBudgetStatus;
+    conclusionReady?: boolean;
     cost: number;
     jobId: string;
     latency: number;
+    /** The help level the dialogue is stored at after this turn. */
+    scaffoldLevel?: HelpLevel;
     tokens: number;
+    turnKind?: TurnKind;
   };
   type: 'complete';
 }
@@ -58,6 +66,8 @@ export interface DialogueMessageEvent extends BaseDialogueStreamEvent {
     sequence: number;
     timestamp: string;
     tokens?: number;
+    /** On assistant replies: what kind of reply it is. */
+    turnKind?: TurnKind;
   };
   type: 'message';
 }
@@ -72,6 +82,8 @@ export interface DialogueMessageMetadata {
   latencyMs?: number;
   model?: string;
   tokens?: number;
+  /** What kind of reply this is (absent means ordinary). */
+  turnKind?: TurnKind;
 }
 
 /**
@@ -142,9 +154,12 @@ export type DialogueStreamEvent =
  * @property nodeLabel - Node content/label
  * @property nodeType - Type of node (seed, soil, root, insight)
  * @property sessionId - Parent canvas session ID
+ * @property currentScaffoldLevel - Current help level, 0 to 4
+ * @property turnBudget - Turn budget in exchanges, or null for none
  */
 export interface NodeDialogue {
   createdAt: string;
+  currentScaffoldLevel?: number;
   id: string;
   lastMessageAt?: string;
   messageCount: number;
@@ -152,6 +167,7 @@ export interface NodeDialogue {
   nodeLabel: string;
   nodeType: NodeType;
   sessionId: string;
+  turnBudget?: null | number;
 }
 
 /**
@@ -166,7 +182,8 @@ export type NodeType = 'insight' | 'root' | 'seed' | 'soil';
  * @property pagination - Pagination metadata
  */
 export interface PaginatedMessagesResponse {
-  dialogue: NodeDialogue;
+  /** Null until the node has a dialogue (no message sent, no budget set). */
+  dialogue: NodeDialogue | null;
   messages: DialogueMessage[];
   pagination: DialoguePagination;
 }
@@ -187,7 +204,17 @@ export interface SendMessageResponse {
  */
 export interface SendNodeMessageDto {
   content: string;
+  /** At most one learner help control for this message. */
+  helpControl?: HelpControl;
   model?: string;
+}
+
+/**
+ * DTO for updating a node dialogue's settings
+ * @property turnBudget - Turn budget in exchanges (1-50); null clears it
+ */
+export interface UpdateNodeDialogueDto {
+  turnBudget?: null | number;
 }
 
 /**

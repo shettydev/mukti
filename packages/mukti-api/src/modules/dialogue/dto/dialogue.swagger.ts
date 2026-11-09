@@ -8,7 +8,9 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
+import { NodeDialogueResponseDto } from './dialogue-response.dto';
 import { DialogueSendMessageDto } from './send-message.dto';
+import { UpdateNodeDialogueDto } from './update-dialogue.dto';
 
 /**
  * Swagger documentation for sending a message to a node dialogue
@@ -386,6 +388,47 @@ export const ApiStartNodeDialogue = () =>
           success: false,
         },
       },
+      status: 404,
+    }),
+  );
+
+/**
+ * Swagger documentation for updating a node dialogue's settings
+ */
+export const ApiUpdateNodeDialogue = () =>
+  applyDecorators(
+    ApiOperation({
+      description:
+        "Sets or clears the node dialogue's turn budget. Creates the dialogue if it does not exist yet. The change applies from the next message.",
+      summary: 'Update node dialogue settings',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      description: 'Canvas session ID',
+      example: '507f1f77bcf86cd799439011',
+      name: 'sessionId',
+    }),
+    ApiParam({
+      description: 'Node identifier (e.g., seed, soil-0, root-1)',
+      example: 'root-0',
+      name: 'nodeId',
+    }),
+    ApiBody({ type: UpdateNodeDialogueDto }),
+    ApiResponse({
+      description: 'Dialogue updated',
+      status: 200,
+      type: NodeDialogueResponseDto,
+    }),
+    ApiResponse({
+      description: 'Turn budget outside 1-50 (and not null)',
+      status: 400,
+    }),
+    ApiResponse({
+      description: 'User does not own the canvas session',
+      status: 403,
+    }),
+    ApiResponse({
+      description: 'Canvas session not found',
       status: 404,
     }),
   );
