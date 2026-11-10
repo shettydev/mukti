@@ -61,12 +61,12 @@ export class DataDisclosureController {
 
     const user = await this.userModel
       .findById(userId)
-      .select('openRouterApiKeyUpdatedAt')
+      .select('+openRouterApiKeyEncrypted')
       .lean();
 
     return buildDisclosure({
       freeDailyLimit: FREE_DAILY_LIMIT,
-      hasOwnOpenRouterKey: !!user?.openRouterApiKeyUpdatedAt,
+      hasOwnOpenRouterKey: !!user?.openRouterApiKeyEncrypted,
       mode: 'hosted',
       now,
     });
