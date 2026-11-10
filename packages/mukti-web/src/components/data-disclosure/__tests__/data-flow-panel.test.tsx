@@ -1,59 +1,62 @@
 jest.mock('@/lib/api/data-disclosure', () => ({
-  dataDisclosureApi: { get: jest.fn(), deleteData: jest.fn() },
+  dataDisclosureApi: { deleteData: jest.fn(), get: jest.fn() },
 }));
 jest.mock('@/lib/config', () => ({ isLocalMode: jest.fn(() => true) }));
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DataFlowPanel } from '../data-flow-panel';
-import { DataDangerZone } from '../data-danger-zone';
+
 import { dataDisclosureApi } from '@/lib/api/data-disclosure';
 import { isLocalMode } from '@/lib/config';
 import {
+  DISCLOSURE_SEEN_KEY,
   requestDataDisclosure,
   useDataDisclosureStore,
-  DISCLOSURE_SEEN_KEY,
 } from '@/lib/stores/data-disclosure-store';
+
+import { DataDangerZone } from '../data-danger-zone';
+import { DataFlowPanel } from '../data-flow-panel';
 
 const fixture = (configuration = 'local') => ({
   configuration,
   deletion: { action: 'settings#delete-data', label: 'Delete all my Mukti data' },
   model: {
-    runner:
-      configuration === 'local' ? 'Antigravity sends requests to vendor servers' : 'OpenRouter',
     billedTo: configuration === 'hosted-own-key' ? 'Your key is encrypted' : 'Your subscription',
     disclosure: 'Provider disclosure',
-    planNote: 'Plan limits apply',
     limits:
       configuration === 'hosted-free'
-        ? { kind: 'free-daily', dailyMessages: 25, resetsAt: '2026-11-10T00:00:00Z' }
+        ? { dailyMessages: 25, kind: 'free-daily', resetsAt: '2026-11-10T00:00:00Z' }
         : { kind: 'own-plan' },
+    planNote: 'Plan limits apply',
+    runner:
+      configuration === 'local' ? 'Antigravity sends requests to vendor servers' : 'OpenRouter',
   },
-  surfaces: [
-    {
-      id: 'chat',
-      label: 'Chat',
-      keyNote: 'Your sign-in',
-      sends: ['System prompt', 'Recent messages'],
-      historyWindow: 50,
-    },
-  ],
   notRun: [{ id: 'misconception', label: 'Misconception detection' }],
+  outside:
+    configuration === 'local'
+      ? [
+          {
+            howToRemove: 'Remove using Antigravity',
+            what: 'Antigravity history under mukti-socratic',
+            where: '~/.gemini/antigravity-cli',
+          },
+        ]
+      : [],
   storage: {
     items: ['Conversations'],
     location: '/custom/local-db',
     settingsLocation: '~/.mukti/config.json',
   },
-  outside:
-    configuration === 'local'
-      ? [
-          {
-            what: 'Antigravity history under mukti-socratic',
-            where: '~/.gemini/antigravity-cli',
-            howToRemove: 'Remove using Antigravity',
-          },
-        ]
-      : [],
+  surfaces: [
+    {
+      historyWindow: 50,
+      id: 'chat',
+      keyNote: 'Your sign-in',
+      label: 'Chat',
+      sends: ['System prompt', 'Recent messages'],
+    },
+  ],
 });
 
 beforeEach(() => {
@@ -68,7 +71,7 @@ it.each(['local', 'hosted-free', 'hosted-own-key'])(
   'renders endpoint facts for %s',
   async (configuration) => {
     (dataDisclosureApi.get as jest.Mock).mockResolvedValue(fixture(configuration));
-    render(<DataFlowPanel open onOpenChange={jest.fn()} />);
+    render(<DataFlowPanel onOpenChange={jest.fn()} open />);
     expect(
       await screen.findByText(
         configuration === 'local' ? 'Antigravity sends requests to vendor servers' : 'OpenRouter'
@@ -76,20 +79,54 @@ it.each(['local', 'hosted-free', 'hosted-own-key'])(
     ).toBeVisible();
     expect(screen.getByText('System prompt')).toBeVisible();
     expect(screen.getByText('/custom/local-db')).toBeVisible();
-    if (configuration === 'local')
+    if (configuration === 'local') {
       expect(screen.getByText('Antigravity history under mukti-socratic')).toBeVisible();
-    if (configuration === 'hosted-free')
+    }
+    if (configuration === 'hosted-free') {
       expect(screen.getByText(/25 messages per day/)).toBeVisible();
-    if (configuration === 'hosted-own-key')
+    }
+    if (configuration === 'hosted-own-key') {
       expect(screen.getByText('Your key is encrypted')).toBeVisible();
+    }
   }
 );
 
 it('refetches each opening and exposes a retry after load failure', async () => {
   (dataDisclosureApi.get as jest.Mock).mockRejectedValueOnce(new Error('offline'));
-  render(<DataFlowPanel open onOpenChange={jest.fn()} />);
+  render(<DataFlowPanel onOpenChange={jest.fn()} open />);
   await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
   expect(await screen.findByText('Provider disclosure')).toBeVisible();
+});
+
+it('preserves misconception turns without relabelling them as messages', async () => {
+  const data = fixture('hosted-own-key');
+  data.surfaces = [
+    {
+      historyWindow: 3,
+      id: 'misconception',
+      keyNote: 'Mukti platform key',
+      label: 'Misconception detection',
+      sends: ['The last 3 turns of the dialogue'],
+    },
+  ];
+  (dataDisclosureApi.get as jest.Mock).mockResolvedValue(data);
+  render(<DataFlowPanel onOpenChange={jest.fn()} open />);
+  expect(await screen.findByText('The last 3 turns of the dialogue')).toBeVisible();
+  expect(screen.queryByText(/up to 3 messages/)).not.toBeInTheDocument();
+});
+
+it('refetches the active provider when reopened', async () => {
+  const { rerender } = render(<DataFlowPanel onOpenChange={jest.fn()} open />);
+  expect(await screen.findByText('Antigravity sends requests to vendor servers')).toBeVisible();
+  rerender(<DataFlowPanel onOpenChange={jest.fn()} open={false} />);
+  const next = fixture();
+  next.model.runner = 'Codex sends requests to vendor servers';
+  next.outside = [];
+  (dataDisclosureApi.get as jest.Mock).mockResolvedValue(next);
+  rerender(<DataFlowPanel onOpenChange={jest.fn()} open />);
+  expect(await screen.findByText('Codex sends requests to vendor servers')).toBeVisible();
+  expect(screen.queryByText('Antigravity history under mukti-socratic')).not.toBeInTheDocument();
+  expect(dataDisclosureApi.get).toHaveBeenCalledTimes(2);
 });
 
 it('gates the first local send, continues once and remembers subsequent sends', async () => {
@@ -122,25 +159,29 @@ it('requires typed confirmation, reports partial failures and retries with outsi
   const user = userEvent.setup();
   (dataDisclosureApi.deleteData as jest.Mock)
     .mockResolvedValueOnce({
-      success: false,
       failedCategories: ['thought maps'],
-      results: [],
       outside: ['Antigravity history was not removed'],
+      results: [],
+      success: false,
     })
     .mockResolvedValueOnce({
-      success: true,
       failedCategories: [],
-      results: [],
       outside: ['Antigravity history was not removed'],
+      results: [],
+      success: true,
     });
-  render(<DataDangerZone />);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <DataDangerZone />
+    </QueryClientProvider>
+  );
   expect(screen.queryByRole('button', { name: 'Delete my account' })).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Delete all my Mukti data' }));
   const confirm = screen.getByRole('button', { name: 'Permanently delete data' });
   expect(confirm).toBeDisabled();
   await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
   await user.click(confirm);
-  expect(await screen.findByText(/thought maps/)).toBeVisible();
+  expect(await screen.findByText(/Some data could not be deleted: thought maps/)).toBeVisible();
   expect(screen.getByText('Antigravity history was not removed')).toBeVisible();
   await user.click(screen.getByRole('button', { name: 'Retry deletion' }));
   await waitFor(() => expect(dataDisclosureApi.deleteData).toHaveBeenCalledTimes(2));
