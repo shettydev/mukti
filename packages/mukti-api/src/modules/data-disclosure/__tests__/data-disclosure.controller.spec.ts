@@ -18,7 +18,9 @@ describe('DataDisclosureController', () => {
   }) {
     const findById = jest.fn().mockReturnValue({
       lean: jest.fn().mockResolvedValue({
-        openRouterApiKeyUpdatedAt: options.ownKey ? new Date() : undefined,
+        openRouterApiKeyEncrypted: options.ownKey
+          ? 'ciphertext-not-a-real-key'
+          : undefined,
       }),
       select: jest.fn().mockReturnThis(),
     });
@@ -62,7 +64,11 @@ describe('DataDisclosureController', () => {
   it('describes hosted with own key for a user who saved one', async () => {
     const { controller: c } = controller({ ownKey: true });
 
-    expect((await c.getForUser(userId)).configuration).toBe('hosted-own-key');
+    const disclosure = await c.getForUser(userId);
+    expect(disclosure.configuration).toBe('hosted-own-key');
+    expect(JSON.stringify(disclosure)).not.toContain(
+      'ciphertext-not-a-real-key',
+    );
   });
 
   it('describes the active local CLI and the local data path', async () => {
