@@ -117,6 +117,27 @@ describe('ClaudeCliAdapter', () => {
       await expect(warm).rejects.toThrow(/update Claude Code/i);
     });
 
+    it.each([
+      { exitCode: 1, stderr: 'configuration failed', stdout: HELP_WITH_BOTH },
+      {
+        exitCode: null,
+        spawnErrorCode: 'EACCES',
+        stderr: 'permission denied',
+        stdout: HELP_WITH_BOTH,
+      },
+      { exitCode: null, stderr: 'probe timed out', stdout: HELP_WITH_BOTH },
+    ])(
+      'rejects an unsuccessful help probe even when it printed required flags',
+      async (result) => {
+        await expect(
+          new ClaudeCliAdapter({
+            runHelp: async () => result,
+            workspaceDir,
+          }).warm(),
+        ).rejects.toThrow(/could not verify Claude Code/i);
+      },
+    );
+
     it('says the CLI is not installed when it cannot be started', async () => {
       const runHelp = jest.fn().mockResolvedValue({
         exitCode: null,
