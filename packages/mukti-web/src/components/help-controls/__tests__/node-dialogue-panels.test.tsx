@@ -35,7 +35,11 @@ jest.mock('@/lib/hooks/use-dialogue', () => ({
 
 jest.mock('@/lib/hooks/use-thought-map-dialogue', () => ({
   useSendThoughtMapMessage: () => ({ error: mockMutationError, isPending: false, mutate: mapSend }),
-  useStartThoughtMapDialogue: () => ({ error: mockStartError, isPending: false, mutate: jest.fn() }),
+  useStartThoughtMapDialogue: () => ({
+    error: mockStartError,
+    isPending: false,
+    mutate: jest.fn(),
+  }),
   useThoughtMapDialogueStream: () => ({
     error: mockStreamError,
     isProcessing: false,

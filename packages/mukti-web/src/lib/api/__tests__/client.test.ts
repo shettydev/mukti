@@ -170,8 +170,8 @@ describe('ApiClient', () => {
         });
 
         await expect(apiClient.post('/test', {})).rejects.toMatchObject({ code, status: 429 });
-        const posts = (global.fetch as unknown as jest.Mock).mock.calls.filter(
-          ([url]) => String(url).endsWith('/test')
+        const posts = (global.fetch as unknown as jest.Mock).mock.calls.filter(([url]) =>
+          String(url).endsWith('/test')
         );
         expect(posts).toHaveLength(1);
       }
