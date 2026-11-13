@@ -254,5 +254,7 @@ describe('thought-map node dialogue opening question', () => {
     render(<ThoughtMapDialoguePanel mapId="map-1" node={mapNode} onClose={jest.fn()} />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Daily message limit reached');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Your message was kept');
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 });

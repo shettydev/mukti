@@ -37,4 +37,21 @@ describe('UsageLimitBanner', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Daily message limit reached');
     expect(screen.getByRole('alert')).toHaveTextContent('10');
   });
+  it('offers Try again without claiming a message was kept when no message was sent', () => {
+    const retry = jest.fn();
+    render(
+      <UsageLimitBanner
+        error={{ code: 'RATE_LIMIT_EXCEEDED', details: { dailyLimit: 10 } }}
+        onRetry={retry}
+      />
+    );
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Your message was kept');
+    expect(screen.queryByRole('button', { name: 'Resend' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+  it('does not claim a message was kept when there is nothing to resend', () => {
+    render(<UsageLimitBanner error={{ code: 'AI_USAGE_LIMIT', details: { limit: 'cli_plan' } }} />);
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Your message was kept');
+  });
 });
