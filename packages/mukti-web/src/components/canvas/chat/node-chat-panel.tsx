@@ -1,5 +1,6 @@
 'use client';
 
+import { AlertCircle, GripVertical, Lightbulb, Loader2, X } from 'lucide-react';
 /**
  * NodeChatPanel component
  *
@@ -13,13 +14,16 @@
  * @requirements 7.2 - Min/max width constraints
  * @requirements 7.3 - Canvas expands when panel closed
  */
-
-import { AlertCircle, GripVertical, Lightbulb, Loader2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { CanvasNode } from '@/types/canvas-visualization.types';
 
 import { LoadingMessage } from '@/components/conversations/loading-message';
+import {
+  isUsageLimitError,
+  UsageLimitBanner,
+  type UsageLimitError,
+} from '@/components/conversations/usage-limit-banner';
 import { HelpControls } from '@/components/help-controls';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +39,7 @@ import {
   useSendNodeMessage,
   useUpdateNodeDialogue,
 } from '@/lib/hooks/use-dialogue';
+import { useDisclosureGatedSend } from '@/lib/hooks/use-disclosure-gated-send';
 import { useAiStore } from '@/lib/stores/ai-store';
 import {
   MAX_PANEL_WIDTH,
@@ -123,19 +128,23 @@ export function NodeChatPanel({
   } = useNodeMessages(sessionId, selectedNode?.id ?? '', !!selectedNode);
 
   // Send message mutation
-  const { isPending: isSending, mutate: sendMessage } = useSendNodeMessage(
-    sessionId,
-    selectedNode?.id ?? ''
-  );
+  const {
+    error: mutationError,
+    isPending: isSending,
+    mutate: sendMessageMutation,
+  } = useSendNodeMessage(sessionId, selectedNode?.id ?? '');
   const { mutateAsync: updateDialogue } = useUpdateNodeDialogue(sessionId, selectedNode?.id ?? '');
+  const sendMessage = useDisclosureGatedSend(sendMessageMutation);
 
   const activeModel = useAiStore((state) => state.activeModel);
 
   // More help or Explain, attached to the learner's next message in this node
   const [pendingControl, setPendingControl] = useState<null | PendingHelpControl>(null);
+  const [lastMessage, setLastMessage] = useState('');
 
   useEffect(() => {
     setPendingControl(null);
+    setLastMessage('');
   }, [selectedNode?.id]);
 
   // Subscribe to SSE stream for real-time updates
@@ -164,16 +173,22 @@ export function NodeChatPanel({
    */
   const handleSend = useCallback(
     (content: string) => {
+      setLastMessage(content);
       const control = pendingControl;
       setPendingControl(null);
-      sendMessage(
+      return sendMessage(
         {
           content,
           ...(control ? { helpControl: control } : {}),
           model: activeModel ?? undefined,
         },
         { onError: () => setPendingControl(control) }
-      );
+      ).then((sent) => {
+        if (!sent) {
+          setPendingControl(control);
+        }
+        return sent;
+      });
     },
     [activeModel, pendingControl, sendMessage]
   );
@@ -374,7 +389,13 @@ export function NodeChatPanel({
         {isProcessing && <LoadingMessage status={processingStatus || 'Mukti is thinking...'} />}
 
         {/* Generation failure — surfaced instead of a placeholder answer */}
-        {streamError && (
+        {isUsageLimitError(mutationError ?? streamError) && (
+          <UsageLimitBanner
+            error={(mutationError ?? streamError) as unknown as UsageLimitError}
+            onResend={lastMessage ? () => handleSend(lastMessage) : undefined}
+          />
+        )}
+        {streamError && !isUsageLimitError(streamError) && (
           <div
             className="my-3 flex gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3"
             role="alert"

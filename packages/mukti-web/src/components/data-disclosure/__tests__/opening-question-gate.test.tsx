@@ -11,14 +11,23 @@ jest.mock('@/lib/hooks/use-thought-map-dialogue', () => ({
   useSendThoughtMapMessage: () => ({ isPending: false, mutate: jest.fn() }),
   useStartThoughtMapDialogue: () => ({ isPending: false, mutate: mockStart }),
   useThoughtMapDialogueStream: () => ({ error: null, isProcessing: false }),
-  useThoughtMapNodeMessages: () => ({ data: { pages: [{ dialogue: null, messages: [] }] }, isLoading: false }),
+  useThoughtMapNodeMessages: () => ({
+    data: { pages: [{ dialogue: null, messages: [] }] },
+    isLoading: false,
+  }),
   useUpdateThoughtMapDialogue: () => ({ mutateAsync: jest.fn() }),
 }));
 
 it('gates the generated thought-map opening question and remembers continuation', async () => {
   localStorage.clear();
   useDataDisclosureStore.getState().close();
-  render(<ThoughtMapDialoguePanel mapId="map-1" node={{ label: 'Retry handler', nodeId: 'topic-0', type: 'topic' } as never} onClose={jest.fn()} />);
+  render(
+    <ThoughtMapDialoguePanel
+      mapId="map-1"
+      node={{ label: 'Retry handler', nodeId: 'topic-0', type: 'topic' } as never}
+      onClose={jest.fn()}
+    />
+  );
   await userEvent.click(screen.getByRole('button', { name: 'Start Dialogue' }));
   expect(mockStart).not.toHaveBeenCalled();
   expect(useDataDisclosureStore.getState().isOpen).toBe(true);

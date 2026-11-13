@@ -1,5 +1,16 @@
 'use client';
 
+import {
+  AlertCircle,
+  GitBranch,
+  GripVertical,
+  Leaf,
+  Loader2,
+  MessageSquare,
+  Network,
+  Play,
+  X,
+} from 'lucide-react';
 /**
  * ThoughtMapDialoguePanel component
  *
@@ -13,23 +24,16 @@
  * - No "Create Insight" button (Thought Maps don't have insight nodes)
  * - Node type icon + label shown in dialogue header
  */
-
-import {
-  AlertCircle,
-  GitBranch,
-  GripVertical,
-  Leaf,
-  Loader2,
-  MessageSquare,
-  Network,
-  Play,
-  X,
-} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ThoughtMapNode, ThoughtMapNodeType } from '@/types/thought-map';
 
 import { LoadingMessage } from '@/components/conversations/loading-message';
+import {
+  isUsageLimitError,
+  UsageLimitBanner,
+  type UsageLimitError,
+} from '@/components/conversations/usage-limit-banner';
 import { HelpControls } from '@/components/help-controls';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,6 +44,7 @@ import {
   turnBudgetView,
   WRAP_UP_MESSAGES,
 } from '@/lib/help-controls';
+import { useDisclosureGatedSend } from '@/lib/hooks/use-disclosure-gated-send';
 import {
   useSendThoughtMapMessage,
   useStartThoughtMapDialogue,
@@ -122,7 +127,7 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   const activeModel = useAiStore((state) => state.activeModel);
 
   // Start/load dialogue (seeds initial question on first open)
-  const { isPending: isStarting, mutate: startDialogue } = useStartThoughtMapDialogue(
+  const { isPending: isStarting, mutate: startDialogueMutation } = useStartThoughtMapDialogue(
     mapId,
     node.nodeId
   );
@@ -138,17 +143,22 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   } = useThoughtMapNodeMessages(mapId, node.nodeId, true);
 
   // Send message mutation
-  const { isPending: isSending, mutate: sendMessage } = useSendThoughtMapMessage(
-    mapId,
-    node.nodeId
-  );
+  const {
+    error: mutationError,
+    isPending: isSending,
+    mutate: sendMessageMutation,
+  } = useSendThoughtMapMessage(mapId, node.nodeId);
   const { mutateAsync: updateDialogue } = useUpdateThoughtMapDialogue(mapId, node.nodeId);
+  const startDialogue = useDisclosureGatedSend(startDialogueMutation);
+  const sendMessage = useDisclosureGatedSend(sendMessageMutation);
 
   // More help or Explain, attached to the learner's next message in this node
   const [pendingControl, setPendingControl] = useState<null | PendingHelpControl>(null);
+  const [lastMessage, setLastMessage] = useState('');
 
   useEffect(() => {
     setPendingControl(null);
+    setLastMessage('');
   }, [node.nodeId]);
 
   // SSE stream subscription
@@ -178,17 +188,23 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
 
   const handleSend = useCallback(
     (content: string) => {
+      setLastMessage(content);
       // The pending help control goes with this message (kept if it fails)
       const control = pendingControl;
       setPendingControl(null);
-      sendMessage(
+      return sendMessage(
         {
           content,
           ...(control ? { helpControl: control } : {}),
           model: activeModel ?? undefined,
         },
         { onError: () => setPendingControl(control) }
-      );
+      ).then((sent) => {
+        if (!sent) {
+          setPendingControl(control);
+        }
+        return sent;
+      });
     },
     [activeModel, pendingControl, sendMessage]
   );
@@ -380,7 +396,13 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         )}
 
         {/* Generation failure — surfaced instead of a placeholder answer */}
-        {streamError && (
+        {isUsageLimitError(mutationError ?? streamError) && (
+          <UsageLimitBanner
+            error={(mutationError ?? streamError) as unknown as UsageLimitError}
+            onResend={lastMessage ? () => handleSend(lastMessage) : undefined}
+          />
+        )}
+        {streamError && !isUsageLimitError(streamError) && (
           <div
             className="my-3 flex gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3"
             role="alert"

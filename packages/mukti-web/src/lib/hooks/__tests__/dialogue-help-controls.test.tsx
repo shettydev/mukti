@@ -83,7 +83,10 @@ interface Surface {
   key: readonly unknown[];
   name: string;
   owner: string;
-  useSend: () => { mutate: (dto: { content: string; helpControl?: HelpControl }) => void };
+  useSend: () => {
+    isError: boolean;
+    mutate: (dto: { content: string; helpControl?: HelpControl }) => void;
+  };
   useStream: () => unknown;
   useUpdate: () => {
     mutateAsync: (dto: { turnBudget?: null | number }) => Promise<unknown>;
@@ -148,6 +151,33 @@ describe.each(surfaces)('$name hooks', ({ api, key, owner, useSend, useStream, u
       })
     );
   });
+
+  it.each(['RATE_LIMIT_EXCEEDED', 'AI_USAGE_LIMIT'])(
+    'keeps a refused %s message and preserves stream details',
+    async (code) => {
+      const details = {
+        limit: code === 'AI_USAGE_LIMIT' ? 'cli_plan' : 'free_daily',
+        provider: 'codex',
+      };
+      api.sendMessage.mockRejectedValue(
+        Object.assign(new Error('Limit reached'), { code, details })
+      );
+      const { result } = renderHook(useSend, { wrapper });
+      act(() => result.current.mutate({ content: 'Keep this thought' }));
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(cached().pages[0].messages.at(-1)?.content).toBe('Keep this thought');
+      act(() => result.current.mutate({ content: 'Keep this thought' }));
+      await waitFor(() => expect(api.sendMessage).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(
+        cached().pages[0].messages.filter((m) => m.content === 'Keep this thought')
+      ).toHaveLength(1);
+      const stream = renderHook(useStream, { wrapper });
+      await waitFor(() => expect(api.subscribeToStream).toHaveBeenCalled());
+      emit({ data: { code, details, message: 'Limit reached', retriable: false }, type: 'error' });
+      expect((stream.result.current as { error: unknown }).error).toMatchObject({ code, details });
+    }
+  );
 
   it("tags a streamed reply with its kind, and applies the turn's help level on complete", async () => {
     renderHook(useStream, { wrapper });

@@ -179,6 +179,10 @@ it('requires typed confirmation, reports partial failures and retries with outsi
   await user.click(screen.getByRole('button', { name: 'Delete all my Mukti data' }));
   const confirm = screen.getByRole('button', { name: 'Permanently delete data' });
   expect(confirm).toBeDisabled();
+  await user.type(screen.getByLabelText('Type DELETE to confirm'), 'delete');
+  expect(confirm).toBeDisabled();
+  expect(dataDisclosureApi.deleteData).not.toHaveBeenCalled();
+  await user.clear(screen.getByLabelText('Type DELETE to confirm'));
   await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
   await user.click(confirm);
   expect(await screen.findByText(/Some data could not be deleted: thought maps/)).toBeVisible();
@@ -186,4 +190,26 @@ it('requires typed confirmation, reports partial failures and retries with outsi
   await user.click(screen.getByRole('button', { name: 'Retry deletion' }));
   await waitFor(() => expect(dataDisclosureApi.deleteData).toHaveBeenCalledTimes(2));
   expect(await screen.findByText(/All your Mukti data was deleted/)).toBeVisible();
+});
+
+it('offers hosted account deletion and keeps the account after partial failure', async () => {
+  (isLocalMode as jest.Mock).mockReturnValue(false);
+  (dataDisclosureApi.deleteData as jest.Mock).mockResolvedValue({
+    failedCategories: ['maps'],
+    outside: [],
+    results: [{ category: 'maps', deletedCount: 0, error: 'Unavailable', success: false }],
+    success: false,
+  });
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <DataDangerZone />
+    </QueryClientProvider>
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Delete my account' }));
+  expect(screen.getByText(/This cannot be undone/)).toBeVisible();
+  await userEvent.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
+  await userEvent.click(screen.getByRole('button', { name: 'Permanently delete account' }));
+  expect(await screen.findByText(/Your account has been kept/)).toBeVisible();
+  expect(dataDisclosureApi.deleteData).toHaveBeenCalledWith(true);
+  expect(screen.getByRole('button', { name: 'Retry deletion' })).toBeEnabled();
 });

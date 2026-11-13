@@ -3,7 +3,7 @@
  * (dialogue-help-controls: "Help controls cover every Socratic dialogue
  * surface"), and the Explanation / Summary tags on replies.
  */
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import type { CanvasNode } from '@/types/canvas-visualization.types';
@@ -11,21 +11,35 @@ import type { ThoughtMapNode } from '@/types/thought-map';
 
 import { NodeChatPanel } from '@/components/canvas/chat/node-chat-panel';
 import { ThoughtMapDialoguePanel } from '@/components/thought-map/ThoughtMapDialoguePanel';
+import { isLocalMode } from '@/lib/config';
+import { useDataDisclosureStore } from '@/lib/stores/data-disclosure-store';
+
+jest.mock('@/lib/config', () => ({ isLocalMode: jest.fn(() => false) }));
 
 const canvasSend = jest.fn();
 const mapSend = jest.fn();
+let mockMutationError: unknown = null;
+let mockStreamError: unknown = null;
 
 jest.mock('@/lib/hooks/use-dialogue', () => ({
-  useDialogueStream: () => ({ error: null, isProcessing: false, processingStatus: null }),
+  useDialogueStream: () => ({
+    error: mockStreamError,
+    isProcessing: false,
+    processingStatus: null,
+  }),
   useNodeMessages: () => ({ data: mockPages(), isLoading: false }),
-  useSendNodeMessage: () => ({ isPending: false, mutate: canvasSend }),
+  useSendNodeMessage: () => ({ error: mockMutationError, isPending: false, mutate: canvasSend }),
   useUpdateNodeDialogue: () => ({ mutateAsync: jest.fn() }),
 }));
 
 jest.mock('@/lib/hooks/use-thought-map-dialogue', () => ({
-  useSendThoughtMapMessage: () => ({ isPending: false, mutate: mapSend }),
+  useSendThoughtMapMessage: () => ({ error: mockMutationError, isPending: false, mutate: mapSend }),
   useStartThoughtMapDialogue: () => ({ isPending: false, mutate: jest.fn() }),
-  useThoughtMapDialogueStream: () => ({ error: null, isProcessing: false, processingStatus: null }),
+  useThoughtMapDialogueStream: () => ({
+    error: mockStreamError,
+    isProcessing: false,
+    processingStatus: null,
+  }),
   useThoughtMapNodeMessages: () => ({ data: mockPages(), isLoading: false }),
   useUpdateThoughtMapDialogue: () => ({ mutateAsync: jest.fn() }),
 }));
@@ -86,12 +100,14 @@ const mapNode = {
 
 const surfaces = [
   {
+    element: <NodeChatPanel onClose={jest.fn()} selectedNode={canvasNode} sessionId="session-1" />,
     name: 'canvas node dialogue',
     renderPanel: () =>
       render(<NodeChatPanel onClose={jest.fn()} selectedNode={canvasNode} sessionId="session-1" />),
     send: canvasSend,
   },
   {
+    element: <ThoughtMapDialoguePanel mapId="map-1" node={mapNode} onClose={jest.fn()} />,
     name: 'thought-map node dialogue',
     renderPanel: () =>
       render(<ThoughtMapDialoguePanel mapId="map-1" node={mapNode} onClose={jest.fn()} />),
@@ -99,9 +115,14 @@ const surfaces = [
   },
 ];
 
-describe.each(surfaces)('$name panel', ({ renderPanel, send }) => {
+describe.each(surfaces)('$name panel', ({ element, renderPanel, send }) => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockMutationError = null;
+    mockStreamError = null;
+    localStorage.clear();
+    useDataDisclosureStore.getState().close();
+    (isLocalMode as jest.Mock).mockReturnValue(false);
     mockDialogue = {
       currentScaffoldLevel: 2,
       id: 'dialogue-1',
@@ -119,6 +140,50 @@ describe.each(surfaces)('$name panel', ({ renderPanel, send }) => {
     expect(screen.getByRole('button', { name: /more help/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /explain/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /wrap up/i })).toBeEnabled();
+  });
+
+  it.each(['RATE_LIMIT_EXCEEDED', 'AI_USAGE_LIMIT'])(
+    'shows %s and resends the failed message without retyping',
+    async (code) => {
+      const view = renderPanel();
+      await userEvent.type(screen.getByRole('textbox'), 'Keep my thought{Enter}');
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+      mockStreamError = Object.assign(new Error('Limit reached'), {
+        code,
+        details: {
+          dailyLimit: 10,
+          limit: code === 'AI_USAGE_LIMIT' ? 'cli_plan' : 'free_daily',
+          provider: 'codex',
+        },
+      });
+      mockMessages = [...mockMessages, message(1, 'user', 'Keep my thought')];
+      view.rerender(element);
+      expect(screen.getByRole('alert')).toHaveTextContent('Your message was kept');
+      expect(screen.getByText('Keep my thought')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Resend' }));
+      expect(send).toHaveBeenCalledTimes(2);
+      expect(send).toHaveBeenLastCalledWith(
+        expect.objectContaining({ content: 'Keep my thought' }),
+        expect.any(Object)
+      );
+    }
+  );
+
+  it('holds the first local message, sends it once on continue and lets later sends through', async () => {
+    (isLocalMode as jest.Mock).mockReturnValue(true);
+    renderPanel();
+    await userEvent.type(screen.getByRole('textbox'), 'My first thought{Enter}');
+    expect(send).not.toHaveBeenCalled();
+    expect(useDataDisclosureStore.getState().isOpen).toBe(true);
+    act(() => useDataDisclosureStore.getState().continue());
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'My first thought' }),
+      expect.any(Object)
+    );
+    await userEvent.type(screen.getByRole('textbox'), 'Another thought{Enter}');
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    expect(useDataDisclosureStore.getState().isOpen).toBe(false);
   });
 
   it("sends Wrap up straight away for this node's dialogue", async () => {

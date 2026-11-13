@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+
 import { UsageLimitBanner } from '../usage-limit-banner';
 
 describe('UsageLimitBanner', () => {
@@ -13,7 +14,7 @@ describe('UsageLimitBanner', () => {
       <UsageLimitBanner
         error={{
           code: 'AI_USAGE_LIMIT',
-          details: { limit, provider: 'codex', dailyLimit: 10, resetsAt: '2026-11-10T00:00:00Z' },
+          details: { dailyLimit: 10, limit, provider: 'codex', resetsAt: '2026-11-10T00:00:00Z' },
         }}
         onResend={resend}
       />

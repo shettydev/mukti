@@ -73,7 +73,7 @@ it.each([true, false])('profile opens disclosure in local=%s', async (local) => 
     <UserProfilePopover
       collapsed={false}
       onLogout={jest.fn()}
-      user={{ firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.test' } as never}
+      user={{ email: 'ada@example.test', firstName: 'Ada', lastName: 'Lovelace' } as never}
     />
   );
   await userEvent.click(screen.getByRole('button', { name: /Ada Lovelace/ }));
