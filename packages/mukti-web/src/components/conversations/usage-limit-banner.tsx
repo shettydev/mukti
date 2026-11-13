@@ -22,10 +22,14 @@ export function UsageLimitBanner({
   error,
   onDismiss,
   onResend,
+  onRetry,
 }: {
   error: UsageLimitError;
   onDismiss?: () => void;
+  /** A sent message was kept and can be resent. */
   onResend?: () => void;
+  /** No message was sent (e.g. an opening question); retry the action. */
+  onRetry?: () => void;
 }) {
   const details = (
     typeof error.details === 'object' && error.details !== null ? error.details : {}
@@ -64,10 +68,15 @@ export function UsageLimitBanner({
     >
       <p className="font-medium">{copy.title}</p>
       <p>{copy.next}</p>
-      <p>Your message was kept. You can resend it without retyping.</p>
+      {onResend && <p>Your message was kept. You can resend it without retyping.</p>}
       {onResend && (
         <Button onClick={onResend} size="sm" variant="outline">
           Resend
+        </Button>
+      )}
+      {!onResend && onRetry && (
+        <Button onClick={onRetry} size="sm" variant="outline">
+          Try again
         </Button>
       )}
       {onDismiss && (

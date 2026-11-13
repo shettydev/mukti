@@ -400,13 +400,8 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         {isUsageLimitError(mutationError ?? startError ?? streamError) && (
           <UsageLimitBanner
             error={(mutationError ?? startError ?? streamError) as unknown as UsageLimitError}
-            onResend={
-              lastMessage
-                ? () => handleSend(lastMessage)
-                : startError
-                  ? () => startDialogue()
-                  : undefined
-            }
+            onResend={lastMessage ? () => handleSend(lastMessage) : undefined}
+            onRetry={startError ? () => startDialogue() : undefined}
           />
         )}
         {streamError && !isUsageLimitError(streamError) && (
