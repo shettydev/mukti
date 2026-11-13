@@ -828,7 +828,11 @@ describe('QueueService', () => {
       streamService.getConversationConnectionCount.mockReturnValue(1);
       primeSuccessMocks();
       openRouterService.sendChatCompletion.mockRejectedValue(
-        Object.assign(new Error('provider down'), { code: 'AI_USAGE_LIMIT', details: { limit: 'openrouter_credit', provider: 'openrouter' }, retriable: false }),
+        Object.assign(new Error('provider down'), {
+          code: 'AI_USAGE_LIMIT',
+          details: { limit: 'openrouter_credit', provider: 'openrouter' },
+          retriable: false,
+        }),
       );
 
       await service.enqueueRequest(
@@ -845,7 +849,17 @@ describe('QueueService', () => {
       const types = streamService.emitToConversation.mock.calls.map(
         ([, payload]) => payload.type,
       );
-      expect(streamService.emitToConversation).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ type: 'error', data: expect.objectContaining({ code: 'AI_USAGE_LIMIT', details: { limit: 'openrouter_credit', provider: 'openrouter' }, retriable: false }) }));
+      expect(streamService.emitToConversation).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            code: 'AI_USAGE_LIMIT',
+            details: { limit: 'openrouter_credit', provider: 'openrouter' },
+            retriable: false,
+          }),
+          type: 'error',
+        }),
+      );
       expect(types).toContain('error');
       expect(types).not.toContain('complete');
     });

@@ -617,11 +617,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         nodeId,
         dialogueId,
         {
-          data: {
-            code: 'PROCESSING_ERROR',
-            message: this.getErrorMessage(error),
-            retriable: true,
-          },
+          data: streamErrorData(error),
           type: 'error',
         },
       );
@@ -829,11 +825,7 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         nodeId,
         dialogueId,
         {
-          data: {
-            code: 'PROCESSING_ERROR',
-            message: this.getErrorMessage(error),
-            retriable: true,
-          },
+          data: streamErrorData(error),
           type: 'error',
         },
       );
@@ -918,3 +910,4 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
     return siblings.map((s) => s.label);
   }
 }
+import { streamErrorData } from '../../ai/services/stream-error-data';

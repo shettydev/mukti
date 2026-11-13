@@ -99,7 +99,6 @@ export class ClaudeCliAdapter implements LocalCliAdapter {
     'Install Claude Code to use the claude-code provider: https://docs.claude.com/en/docs/claude-code/overview';
   readonly providerId: LocalCliProviderId = 'claude-code';
   readonly signInHint = 'If unauthenticated, run `claude login`.';
-
   /** The Mukti-owned folder runs start from. */
   readonly workspace: string;
 
@@ -142,8 +141,27 @@ export class ClaudeCliAdapter implements LocalCliAdapter {
     return args;
   }
 
+  describeFailure(stdout: string): string | undefined {
+    try {
+      const envelope = JSON.parse(stdout) as ClaudeResultEnvelope;
+      return envelope.is_error &&
+        typeof envelope.result === 'string' &&
+        envelope.result.trim()
+        ? envelope.result.trim()
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   getModels(): AllowedModel[] {
     return CLAUDE_CODE_MODELS;
+  }
+
+  isUsageLimit(detail: string): boolean {
+    return /(?:usage|rate)[ _-]limit[ _-](?:reached|exceeded)|you(?:'ve| have) hit your (?:usage )?limit/i.test(
+      detail,
+    );
   }
 
   parseEnvelope(stdout: string): LocalCliCompletion {
@@ -203,6 +221,13 @@ export class ClaudeCliAdapter implements LocalCliAdapter {
       );
     }
 
+    if (result.spawnErrorCode || result.exitCode !== 0) {
+      throw new LocalCliError(
+        'Could not verify Claude Code with `claude --help`. Check that the CLI can run, then re-check the provider in Settings.',
+        this.errorCode,
+      );
+    }
+
     const help = `${result.stdout}\n${result.stderr}`;
     const missing = CLAUDE_REQUIRED_FLAGS.filter(
       (flag) => !help.includes(flag),
@@ -241,7 +266,10 @@ function runClaudeHelp(): Promise<HelpResult> {
 
     const timer = setTimeout(() => {
       stderr += `\nclaude --help did not finish within ${HELP_TIMEOUT_MS / 1000}s`;
-      child.kill('SIGTERM');
+      // A token-free help process has no work to preserve. Bound preparation
+      // even when the child does not handle SIGTERM or never emits close.
+      child.kill('SIGKILL');
+      resolve({ exitCode: null, stderr, stdout });
     }, HELP_TIMEOUT_MS);
 
     child.stdout?.on('data', (chunk: Buffer) => (stdout += chunk.toString()));

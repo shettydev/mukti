@@ -1396,7 +1396,11 @@ describe('ThoughtMapDialogueQueueService', () => {
         signals: { behavioral: 0, linguistic: 0, temporal: 0 },
       });
       mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockRejectedValue(
-        Object.assign(new Error('provider down'), { code: 'AI_USAGE_LIMIT', details: { limit: 'cli_plan', provider: 'antigravity' }, retriable: false }),
+        Object.assign(new Error('provider down'), {
+          code: 'AI_USAGE_LIMIT',
+          details: { limit: 'cli_plan', provider: 'antigravity' },
+          retriable: false,
+        }),
       );
 
       await enqueue(validMapId());
@@ -1405,7 +1409,19 @@ describe('ThoughtMapDialogueQueueService', () => {
       const types = mockDialogueStreamService.emitToNodeDialogue.mock.calls.map(
         ([, , , event]) => event.type,
       );
-      expect(mockDialogueStreamService.emitToNodeDialogue).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything(), expect.objectContaining({ type: 'error', data: expect.objectContaining({ code: 'AI_USAGE_LIMIT', details: { limit: 'cli_plan', provider: 'antigravity' }, retriable: false }) }));
+      expect(mockDialogueStreamService.emitToNodeDialogue).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            code: 'AI_USAGE_LIMIT',
+            details: { limit: 'cli_plan', provider: 'antigravity' },
+            retriable: false,
+          }),
+          type: 'error',
+        }),
+      );
       expect(types).toContain('error');
       expect(types).not.toContain('complete');
     });

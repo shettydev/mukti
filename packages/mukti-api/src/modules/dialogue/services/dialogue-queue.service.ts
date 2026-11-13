@@ -502,11 +502,7 @@ export class DialogueQueueService extends WorkerHost {
         nodeId,
         dialogueId,
         {
-          data: {
-            code: 'PROCESSING_ERROR',
-            message: this.getErrorMessage(error),
-            retriable: true,
-          },
+          data: streamErrorData(error),
           type: 'error',
         },
       );
@@ -560,3 +556,4 @@ export class DialogueQueueService extends WorkerHost {
     });
   }
 }
+import { streamErrorData } from '../../ai/services/stream-error-data';

@@ -131,7 +131,7 @@ describe('ClaudeCliAdapter', () => {
       async (result) => {
         await expect(
           new ClaudeCliAdapter({
-            runHelp: async () => result,
+            runHelp: () => Promise.resolve(result),
             workspaceDir,
           }).warm(),
         ).rejects.toThrow(/could not verify Claude Code/i);

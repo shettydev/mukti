@@ -699,11 +699,7 @@ export class QueueService extends WorkerHost {
 
       // Emit error event
       this.streamService.emitToConversation(conversationId, {
-        data: {
-          code: 'PROCESSING_ERROR',
-          message: this.getErrorMessage(error),
-          retriable: true,
-        },
+        data: streamErrorData(error),
         type: 'error',
       });
 
@@ -872,3 +868,4 @@ export class QueueService extends WorkerHost {
     }
   }
 }
+import { streamErrorData } from '../../ai/services/stream-error-data';
