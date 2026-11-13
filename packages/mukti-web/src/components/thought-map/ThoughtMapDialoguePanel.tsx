@@ -127,10 +127,11 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
   const activeModel = useAiStore((state) => state.activeModel);
 
   // Start/load dialogue (seeds initial question on first open)
-  const { isPending: isStarting, mutate: startDialogueMutation } = useStartThoughtMapDialogue(
-    mapId,
-    node.nodeId
-  );
+  const {
+    error: startError,
+    isPending: isStarting,
+    mutate: startDialogueMutation,
+  } = useStartThoughtMapDialogue(mapId, node.nodeId);
 
   // Fetch paginated messages — always enabled so we can detect existing history
   // and show the "Start Dialogue" button when no messages exist.
@@ -396,10 +397,16 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
         )}
 
         {/* Generation failure — surfaced instead of a placeholder answer */}
-        {isUsageLimitError(mutationError ?? streamError) && (
+        {isUsageLimitError(mutationError ?? startError ?? streamError) && (
           <UsageLimitBanner
-            error={(mutationError ?? streamError) as unknown as UsageLimitError}
-            onResend={lastMessage ? () => handleSend(lastMessage) : undefined}
+            error={(mutationError ?? startError ?? streamError) as unknown as UsageLimitError}
+            onResend={
+              lastMessage
+                ? () => handleSend(lastMessage)
+                : startError
+                  ? () => startDialogue()
+                  : undefined
+            }
           />
         )}
         {streamError && !isUsageLimitError(streamError) && (
