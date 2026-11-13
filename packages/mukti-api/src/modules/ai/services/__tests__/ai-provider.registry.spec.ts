@@ -127,6 +127,10 @@ describe('AiProviderRegistry', () => {
   });
 
   it('warms only the active adapter at startup', async () => {
+    // Claude's warm() now probes the installed CLI; CI has no claude on PATH.
+    const warmClaude = jest
+      .spyOn(ClaudeCliAdapter.prototype, 'warm')
+      .mockResolvedValue();
     const warm = jest
       .spyOn(AntigravityCliAdapter.prototype, 'warm')
       .mockResolvedValue();
@@ -135,6 +139,7 @@ describe('AiProviderRegistry', () => {
       .mockResolvedValue();
 
     await registry({ AI_PROVIDER: 'claude-code' }).onModuleInit();
+    expect(warmClaude).toHaveBeenCalledTimes(1);
     expect(warm).not.toHaveBeenCalled();
     expect(warmCodex).not.toHaveBeenCalled();
 
