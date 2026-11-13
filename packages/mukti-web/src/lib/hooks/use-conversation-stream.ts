@@ -96,6 +96,7 @@ export interface CompleteEvent extends BaseStreamEvent {
 export interface ErrorEvent extends BaseStreamEvent {
   data: {
     code: string;
+    details?: Record<string, unknown>;
     message: string;
     retriable: boolean;
   };
@@ -225,6 +226,9 @@ const OPENROUTER_CREDITS_ERROR_CODE = 'OPENROUTER_INSUFFICIENT_CREDITS';
 const OPENROUTER_SETTINGS_URL = 'https://openrouter.ai/settings/keys';
 
 export function normalizeStreamErrorEvent(event: ErrorEvent): ErrorEvent {
+  if (event.data.code === 'AI_USAGE_LIMIT' || event.data.code === 'RATE_LIMIT_EXCEEDED') {
+    return event;
+  }
   const rawMessage = event.data.message?.trim();
 
   if (!rawMessage || !isOpenRouterCreditsError(rawMessage)) {

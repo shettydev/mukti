@@ -173,6 +173,10 @@ export class LocalCliClientFactory implements AiChatClientFactory {
           this.adapter.describeFailure?.(stdout) ??
           (stderr.trim() || stdout.trim() || 'no output');
         this.logger.error(`${binary} exited with code ${exitCode}: ${detail}`);
+        if (this.adapter.isUsageLimit?.(detail)) {
+          reject(this.usageLimitError());
+          return;
+        }
         reject(
           new LocalCliError(
             `The ${binary} CLI exited with code ${exitCode}. ${this.adapter.signInHint} Detail: ${detail}`,
@@ -197,8 +201,17 @@ export class LocalCliClientFactory implements AiChatClientFactory {
     const served = { ...request, model: offered };
     const input = this.renderInput(served).trim() || EMPTY_CONVERSATION_KICKOFF;
     const stdout = await this.run(this.adapter.buildArgs(served, input), input);
-    const { completionTokens, content, promptTokens } =
-      this.adapter.parseEnvelope(stdout, served);
+    let completion;
+    try {
+      completion = this.adapter.parseEnvelope(stdout, served);
+    } catch (error) {
+      const detail = this.adapter.describeFailure?.(stdout) ?? stdout;
+      if (this.adapter.isUsageLimit?.(detail)) {
+        throw this.usageLimitError();
+      }
+      throw error;
+    }
+    const { completionTokens, content, promptTokens } = completion;
 
     // A zero-exit run that produced no text is a provider failure, not a
     // Socratic answer. Returning it would let an empty assistant message reach
@@ -218,5 +231,13 @@ export class LocalCliClientFactory implements AiChatClientFactory {
         total_tokens: promptTokens + completionTokens,
       },
     };
+  }
+
+  private usageLimitError(): LocalCliError {
+    return new LocalCliError(
+      `The ${this.adapter.binary} plan usage limit was reached. Check your plan or switch CLI in Settings. Your message was kept.`,
+      'AI_USAGE_LIMIT',
+      { limit: 'cli_plan', provider: this.adapter.providerId },
+    );
   }
 }

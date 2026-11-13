@@ -57,7 +57,7 @@ export interface ThoughtMapDialogueStreamEvent {
         tokens: number;
         turnKind?: TurnKind;
       }
-    | { code: string; message: string; retriable: boolean }
+    | { code: string; details?: Record<string, unknown>; message: string; retriable: boolean }
     | {
         content: string;
         role: 'assistant' | 'user';

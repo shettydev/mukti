@@ -16,9 +16,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Archive, ArrowLeft, MoreVertical, Star, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 import { ModelSelector } from '@/components/ai/model-selector';
 import { HelpControls } from '@/components/help-controls';
@@ -55,17 +53,15 @@ import { getRetryAfter, isRateLimitError } from '@/lib/utils/error-types';
 import { MessageInput } from './message-input';
 import { MessageList } from './message-list';
 import { RateLimitBanner } from './rate-limit-banner';
+import { isUsageLimitError, UsageLimitBanner, type UsageLimitError } from './usage-limit-banner';
 import { VisualizeAsMapButton } from './visualize-as-map-button';
 
 interface ConversationDetailProps {
   conversationId: string;
 }
 
-const FREE_MESSAGE_LIMIT = 10;
-
 export function ConversationDetail({ conversationId }: ConversationDetailProps) {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const { data: conversation, error, isLoading } = useConversation(conversationId);
   const { mutate: updateConversation, mutateAsync: updateConversationAsync } =
     useUpdateConversation(conversationId);
@@ -74,7 +70,6 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   const {
     activeModel,
-    hasOpenRouterKey,
     hydrate: hydrateAi,
     isHydrated: aiHydrated,
     models,
@@ -91,6 +86,8 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   // Rate limit state
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<null | number>(null);
+  const [usageLimit, setUsageLimit] = useState<null | UsageLimitError>(null);
+  const [lastMessage, setLastMessage] = useState('');
 
   // Processing state for loading indicators
   const [processingState, setProcessingState] = useState<{
@@ -129,6 +126,11 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       }
     },
     onErrorEvent: (event) => {
+      if (isUsageLimitError(event.data)) {
+        setUsageLimit(event.data);
+        setProcessingState({ isProcessing: false, status: '' });
+        return;
+      }
       // Handle error events from the server
       setSseError(event.data.message);
       setProcessingState({
@@ -185,24 +187,10 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   // Handle sending messages, with the pending help control (kept if not sent)
   const handleSendMessage = useCallback(
     async (content: string) => {
+      setLastMessage(content);
+      setUsageLimit(null);
       const control: HelpControl | undefined = pendingControl ?? undefined;
-      // Check free message limit for users without BYOK key
-      if (aiHydrated && !hasOpenRouterKey && conversation) {
-        const userMessageCount = conversation.recentMessages.filter(
-          (m) => m.role === 'user'
-        ).length;
-        if (userMessageCount >= FREE_MESSAGE_LIMIT) {
-          toast.error('Free message limit reached', {
-            action: {
-              label: 'Add API Key',
-              onClick: () => router.push('/settings'),
-            },
-            description: 'Connect your OpenRouter API key to continue the conversation.',
-            duration: 8000,
-          });
-          return;
-        }
-      }
+      // The API owns daily quota policy, including local and BYOK bypasses.
 
       setPendingControl(null);
       try {
@@ -213,15 +201,16 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         });
       } catch (err) {
         setPendingControl(pendingControl);
-        // Check if it's a rate limit error
-        if (isRateLimitError(err)) {
+        if (isUsageLimitError(err)) {
+          setUsageLimit(err);
+        } else if (isRateLimitError(err)) {
           const retryAfter = getRetryAfter(err);
           setRateLimitRetryAfter(retryAfter);
         }
         throw err; // Re-throw to let MessageInput handle the error state
       }
     },
-    [activeModel, sendMessage, aiHydrated, hasOpenRouterKey, conversation, pendingControl, router]
+    [activeModel, sendMessage, pendingControl]
   );
 
   // Handle rate limit banner dismiss
@@ -491,6 +480,19 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       )}
 
       {/* Rate Limit Banner */}
+      {usageLimit && (
+        <UsageLimitBanner
+          error={usageLimit}
+          onDismiss={() => setUsageLimit(null)}
+          onResend={
+            lastMessage
+              ? () => {
+                  void handleSendMessage(lastMessage).catch(() => undefined);
+                }
+              : undefined
+          }
+        />
+      )}
       {rateLimitRetryAfter !== null && (
         <div className="px-4 pb-2">
           <RateLimitBanner onDismiss={handleRateLimitDismiss} retryAfter={rateLimitRetryAfter} />

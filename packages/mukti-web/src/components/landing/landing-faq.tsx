@@ -12,7 +12,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 
-import { LOCAL_MODE_PRIVACY_URL, SELF_HOST_URL } from './constants';
+import { HOSTED_MODE_PRIVACY_URL, LOCAL_MODE_PRIVACY_URL, SELF_HOST_URL } from './constants';
 
 function DocLink({ children, href }: { children: ReactNode; href: string }) {
   return (
@@ -58,7 +58,9 @@ const faqs: { answer: ReactNode; question: string }[] = [
         that other local processes can see. Read the{' '}
         <DocLink href={LOCAL_MODE_PRIVACY_URL}>per-CLI privacy notes</DocLink> before choosing. On
         the hosted version, your sessions are private to your account and API keys are encrypted at
-        rest. We don&apos;t train on your data or share it with third parties.
+        rest. Requests go to OpenRouter and the model provider, whose retention policies apply. Read
+        the <DocLink href={HOSTED_MODE_PRIVACY_URL}>hosted data and costs guide</DocLink> for what
+        each surface sends, what Mukti stores, and how to delete your data.
       </>
     ),
     question: 'Is my data private?',

@@ -4,6 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import type { DisclosureDescriptor } from '../../data-disclosure/disclosure-descriptor';
+
 import {
   ArchivedMessage,
   ArchivedMessageDocument,
@@ -13,6 +15,27 @@ import {
   ConversationDocument,
   RecentMessage,
 } from '../../../schemas/conversation.schema';
+
+/**
+ * Messages kept on the conversation, and so sent with each chat turn. Older
+ * ones are archived and no longer sent.
+ */
+export const CHAT_HISTORY_WINDOW = 50;
+
+/** What a chat turn sends to the model (data-flow-disclosure). */
+export const CHAT_DISCLOSURE: DisclosureDescriptor = {
+  historyWindow: CHAT_HISTORY_WINDOW,
+  id: 'chat',
+  key: 'resolved',
+  label: 'Chat',
+  runsIn: ['hosted', 'local'],
+  sends: [
+    "Mukti's Socratic instructions for the conversation's technique, help level and dialogue rules.",
+    `Up to the last ${CHAT_HISTORY_WINDOW} messages of the conversation; older ones are archived and not sent.`,
+    'Your new message.',
+  ],
+  services: ['OpenRouterService'],
+};
 
 /**
  * Service responsible for managing messages within conversations.
@@ -31,7 +54,7 @@ export class MessageService {
    * Maximum number of recent messages to keep in the conversation document.
    * When this threshold is exceeded, older messages are archived.
    */
-  private readonly MAX_RECENT_MESSAGES = 50;
+  private readonly MAX_RECENT_MESSAGES = CHAT_HISTORY_WINDOW;
 
   constructor(
     @InjectModel(Conversation.name)
@@ -282,9 +305,8 @@ export class MessageService {
       await this.archivedMessageModel.insertMany(archivedMessageDocs);
 
       // Keep only the last MAX_RECENT_MESSAGES in recentMessages
-      conversation.recentMessages = conversation.recentMessages.slice(
-        -this.MAX_RECENT_MESSAGES,
-      );
+      conversation.recentMessages =
+        conversation.recentMessages.slice(-CHAT_HISTORY_WINDOW);
 
       // Set the hasArchivedMessages flag to true
       conversation.hasArchivedMessages = true;

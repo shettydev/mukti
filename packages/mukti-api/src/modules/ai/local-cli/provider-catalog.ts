@@ -57,6 +57,12 @@ export interface LocalCliProvider {
   readonly installRemediation: string;
   /** Signed in and usable. Must not consume model tokens. */
   isAuthenticated(run: RunCommand): Promise<boolean>;
+  /**
+   * What this CLI keeps of Mukti runs outside Mukti, and how to remove it.
+   * Empty when it keeps nothing. Mukti never deletes another tool's files, so
+   * the data panel and the deletion screen list these instead.
+   */
+  readonly keepsOutsideMukti: readonly OutsideMuktiData[];
   /** Human name, e.g. for "Preflight passed — Antigravity CLI 1.1.22". */
   readonly label: string;
   readonly signInRemediation: string;
@@ -68,6 +74,16 @@ export interface LocalCliProvider {
   readonly tradeOff: string;
   /** Installed version, or `undefined` when the CLI cannot be run. */
   version(run: RunCommand): Promise<string | undefined>;
+}
+
+/** Something a CLI keeps of Mukti runs, outside Mukti's own data. */
+export interface OutsideMuktiData {
+  /** How to remove it, since Mukti does not. */
+  readonly howToRemove: string;
+  /** What is kept, in plain words. */
+  readonly what: string;
+  /** Where it lives, as a path the user can find. */
+  readonly where: string;
 }
 
 /** How usable a provider is on this machine. */
@@ -105,6 +121,13 @@ const CLAUDE_CODE: LocalCliProvider = {
   adapterId: 'claude-code',
   aliases: ['claude-code'],
   binary: 'claude',
+  // Enforced by the API adapter (--no-session-persistence, --setting-sources ""),
+  // and checked by its warm() before any run.
+  disclosure: [
+    'Claude Code runs with its tools switched off, from a folder Mukti owns, and keeps no',
+    'session history of Mukti replies. Your Claude Code settings and CLAUDE.md files, global',
+    'or project, do not apply. Replies are billed to your own Claude subscription.',
+  ].join('\n'),
   id: 'claude',
   installRemediation:
     'Install Claude Code: https://docs.claude.com/en/docs/claude-code/overview',
@@ -118,6 +141,7 @@ const CLAUDE_CODE: LocalCliProvider = {
       return false;
     }
   },
+  keepsOutsideMukti: [],
   label: 'Claude CLI',
   signInRemediation: 'Run `claude login` and try again.',
   tradeOff: 'about 13-20 seconds per reply',
@@ -145,6 +169,9 @@ const CODEX: LocalCliProvider = {
   // stderr either way, and runs no model.
   isAuthenticated: async (run) =>
     (await run('codex', ['login', 'status'])).status === 0,
+  // `codex exec --ephemeral` keeps no session, and the instructions file is
+  // removed after each run.
+  keepsOutsideMukti: [],
   label: 'Codex CLI',
   signInRemediation: 'Run `codex login` and try again.',
   tradeOff: 'about 8-12 seconds per reply',
@@ -169,6 +196,14 @@ const ANTIGRAVITY: LocalCliProvider = {
   // agy has no auth subcommand. Listing models needs a valid session and runs
   // no model, so a non-zero exit is a free "not signed in".
   isAuthenticated: async (run) => (await run('agy', ['models'])).status === 0,
+  keepsOutsideMukti: [
+    {
+      howToRemove:
+        'Delete the "mukti-socratic" project from your Antigravity history, or remove its entries under ~/.gemini/antigravity-cli.',
+      what: 'A conversation record of every reply, about 1 MB each',
+      where: '~/.gemini/antigravity-cli',
+    },
+  ],
   label: 'Antigravity CLI',
   signInRemediation:
     'Run `agy` once and follow the prompts to sign in, then try again.',

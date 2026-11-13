@@ -181,7 +181,7 @@ const baseEnv: NodeJS.ProcessEnv = {
   ...process.env,
   // AI_PROVIDER, plus where the saved default lives and how this launch chose,
   // so Settings can switch provider and keep the choice for later launches.
-  ...providerEnv({ home: home.root, provider, source: selection.source }),
+  ...providerEnv({ dbPath: home.dbPath, home: home.root, provider, source: selection.source }),
   // agy and Codex run from a directory Mukti owns, never a repository. Its name
   // is also the agy project Mukti's turns are filed under.
   MUKTI_CLI_WORKSPACE: join(home.root, 'mukti-socratic'),

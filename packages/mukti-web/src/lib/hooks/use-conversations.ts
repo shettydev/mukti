@@ -37,6 +37,7 @@ import type {
   UpdateConversationDto,
 } from '@/types/conversation.types';
 
+import { isUsageLimitError } from '@/components/conversations/usage-limit-banner';
 import { conversationsApi } from '@/lib/api/conversations';
 import { config } from '@/lib/config';
 import {
@@ -381,6 +382,9 @@ export function useSendMessage(conversationId: string) {
     mutationFn: (dto: SendMessageDto) => conversationsApi.sendMessage(conversationId, dto),
 
     onError: (err, message, context) => {
+      if (isUsageLimitError(err)) {
+        return;
+      }
       context?.rollback();
     },
 

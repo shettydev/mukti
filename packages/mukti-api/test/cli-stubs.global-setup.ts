@@ -34,6 +34,7 @@ export default function setup(): void {
   stub(bin, 'claude', [
     'case "$1 $2" in',
     '  "--version ") echo "2.1.0 (Claude Code)" ;;',
+    '  "--help ") echo "--no-session-persistence --setting-sources" ;;',
     `  "auth status") echo '{"loggedIn":true}' ;;`,
     '  *) exit 1 ;;',
     'esac',

@@ -35,7 +35,6 @@ export interface LocalCliAdapter {
    * ignored, so cleanup can never replace the run's own result.
    */
   afterRun?(args: readonly string[]): void;
-
   /** Executable name, resolved from `PATH`. */
   readonly binary: string;
 
@@ -88,6 +87,9 @@ export interface LocalCliAdapter {
 
   /** Shown when the binary is absent from `PATH`. */
   readonly installHint: string;
+
+  /** Best-effort recognition of provider plan/quota refusals, not auth failures. */
+  isUsageLimit?(detail: string): boolean;
 
   /**
    * Maps the CLI's JSON result envelope into a completion.
@@ -157,6 +159,7 @@ export class LocalCliError extends Error {
   constructor(
     message: string,
     readonly code: string,
+    readonly details?: { limit: 'cli_plan'; provider: LocalCliProviderId },
   ) {
     super(message);
     this.name = 'LocalCliError';

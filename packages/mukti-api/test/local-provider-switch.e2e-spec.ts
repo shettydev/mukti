@@ -105,6 +105,22 @@ describe('Local AI provider switching (e2e, local mode)', () => {
     await http.put('/api/v1/ai/provider').send({}).expect(400);
   });
 
+  it('describes the active CLI in the data disclosure, and the new one after a switch', async () => {
+    await http.put('/api/v1/ai/provider').send({ id: 'claude' }).expect(200);
+    const before = (await http.get('/api/v1/data-disclosure').expect(200)).body
+      .data;
+    expect(before.configuration).toBe('local');
+    expect(before.model.runner).toMatch(/Claude CLI/);
+    expect(before.storage.location).toContain(process.env.MUKTI_LOCAL_DB_PATH!);
+
+    await http.put('/api/v1/ai/provider').send({ id: 'codex' }).expect(200);
+    const after = (await http.get('/api/v1/data-disclosure').expect(200)).body
+      .data;
+    expect(after.model.runner).toMatch(/Codex CLI/);
+    expect(JSON.stringify(after)).not.toMatch(/Claude CLI|OpenRouter/);
+    await http.put('/api/v1/ai/provider').send({ id: 'claude' }).expect(200);
+  });
+
   it('switches to Codex, saves it, and serves its models from then on', async () => {
     const res = await http
       .put('/api/v1/ai/provider')
