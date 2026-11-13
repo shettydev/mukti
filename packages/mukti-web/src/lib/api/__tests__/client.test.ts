@@ -154,6 +154,29 @@ describe('ApiClient', () => {
       await expect(apiClient.get('/test')).rejects.toThrow(ApiClientError);
     });
 
+    it.each(['RATE_LIMIT_EXCEEDED', 'AI_USAGE_LIMIT'])(
+      'does not retry a %s refusal, since retrying cannot succeed before the limit resets',
+      async (code) => {
+        apiClient.configureRetry({ maxRetries: 2, retryDelay: 0, useExponentialBackoff: false });
+        (global.fetch as unknown as jest.Mock).mockResolvedValue({
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({
+            error: { code, details: { dailyLimit: 10 }, message: 'Limit reached' },
+            success: false,
+          }),
+          ok: false,
+          status: 429,
+          url: 'http://localhost:3000/api/v1/test',
+        });
+
+        await expect(apiClient.post('/test', {})).rejects.toMatchObject({ code, status: 429 });
+        const posts = (global.fetch as unknown as jest.Mock).mock.calls.filter(
+          ([url]) => String(url).endsWith('/test')
+        );
+        expect(posts).toHaveLength(1);
+      }
+    );
+
     it('should clear auth session when refresh endpoint returns 401', async () => {
       const refreshError = {
         error: {

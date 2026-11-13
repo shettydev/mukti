@@ -19,6 +19,7 @@ jest.mock('@/lib/config', () => ({ isLocalMode: jest.fn(() => false) }));
 const canvasSend = jest.fn();
 const mapSend = jest.fn();
 let mockMutationError: unknown = null;
+let mockStartError: unknown = null;
 let mockStreamError: unknown = null;
 
 jest.mock('@/lib/hooks/use-dialogue', () => ({
@@ -34,7 +35,7 @@ jest.mock('@/lib/hooks/use-dialogue', () => ({
 
 jest.mock('@/lib/hooks/use-thought-map-dialogue', () => ({
   useSendThoughtMapMessage: () => ({ error: mockMutationError, isPending: false, mutate: mapSend }),
-  useStartThoughtMapDialogue: () => ({ isPending: false, mutate: jest.fn() }),
+  useStartThoughtMapDialogue: () => ({ error: mockStartError, isPending: false, mutate: jest.fn() }),
   useThoughtMapDialogueStream: () => ({
     error: mockStreamError,
     isProcessing: false,
@@ -119,6 +120,7 @@ describe.each(surfaces)('$name panel', ({ element, renderPanel, send }) => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockMutationError = null;
+    mockStartError = null;
     mockStreamError = null;
     localStorage.clear();
     useDataDisclosureStore.getState().close();
@@ -230,5 +232,27 @@ describe.each(surfaces)('$name panel', ({ element, renderPanel, send }) => {
 
     expect(screen.getByText('Explanation')).toBeInTheDocument();
     expect(screen.getByText('Summary')).toBeInTheDocument();
+  });
+});
+
+describe('thought-map node dialogue opening question', () => {
+  beforeEach(() => {
+    mockMutationError = null;
+    mockStreamError = null;
+    mockStartError = null;
+    mockDialogue = {};
+    mockMessages = [];
+  });
+
+  it('shows the usage-limit banner when the opening question is refused by the free limit', () => {
+    mockStartError = {
+      code: 'RATE_LIMIT_EXCEEDED',
+      details: { dailyLimit: 10, resetsAt: '2026-11-14T00:00:00.000Z' },
+      message: 'Daily limit reached',
+      status: 429,
+    };
+    render(<ThoughtMapDialoguePanel mapId="map-1" node={mapNode} onClose={jest.fn()} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Daily message limit reached');
   });
 });
