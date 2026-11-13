@@ -1,13 +1,14 @@
-import { Test } from '@nestjs/testing';
 import { getConnectionToken } from '@nestjs/mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { Connection, createConnection, Types } from 'mongoose';
+import { Test } from '@nestjs/testing';
 import { readdirSync } from 'fs';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import { type Connection, createConnection, Types } from 'mongoose';
 import { join } from 'path';
+
 import { ALL_SCHEMAS } from '../../../schemas';
-import { UserDataService, DATA_PLAN, KEPT_SCHEMAS } from '../user-data.service';
-import { TokenService } from '../../auth/services/token.service';
 import { SessionService } from '../../auth/services/session.service';
+import { TokenService } from '../../auth/services/token.service';
+import { DATA_PLAN, KEPT_SCHEMAS, UserDataService } from '../user-data.service';
 
 describe('UserDataService Mongo integration', () => {
   jest.setTimeout(120000);
@@ -20,8 +21,14 @@ describe('UserDataService Mongo integration', () => {
   const other = new Types.ObjectId();
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
-    connection = await createConnection(mongo.getUri()).asPromise();
-    for (const entry of ALL_SCHEMAS) connection.model(entry.name, entry.schema);
+    // This suite exercises deletion, not index migrations. Several existing schemas
+    // declare conflicting TTL/non-TTL indexes, so do not race index creation with fixtures.
+    connection = await createConnection(mongo.getUri(), {
+      autoIndex: false,
+    }).asPromise();
+    for (const entry of ALL_SCHEMAS) {
+      connection.model(entry.name, entry.schema);
+    }
     const module = await Test.createTestingModule({
       providers: [
         UserDataService,
@@ -38,22 +45,32 @@ describe('UserDataService Mongo integration', () => {
   });
   beforeEach(async () => {
     jest.clearAllMocks();
-    for (const entry of ALL_SCHEMAS)
+    for (const entry of ALL_SCHEMAS) {
       await connection.model(entry.name).deleteMany({});
+    }
   });
   async function seed(userId: Types.ObjectId) {
     const ids = Object.fromEntries(
       ALL_SCHEMAS.map((e) => [e.name, new Types.ObjectId()]),
     );
+    ids.User = userId;
     for (const entry of ALL_SCHEMAS) {
       await connection.model(entry.name).collection.insertOne({
         _id: ids[entry.name],
-        userId,
-        createdBy: userId,
+        conceptId: userId.toString(),
         conversationId: ids.Conversation,
-        sessionId: ids.CanvasSession,
-        mapId: ids.ThoughtMap,
+        createdBy: userId,
         dialogueId: ids.NodeDialogue,
+        email: `${userId.toString()}@example.test`,
+        mapId: ids.ThoughtMap,
+        name: userId.toString(),
+        nodeId: userId.toString(),
+        refreshToken: userId.toString(),
+        sessionId: ids.CanvasSession,
+        shareToken: userId.toString(),
+        thoughtMapId: ids.ThoughtMap,
+        token: userId.toString(),
+        userId,
       });
     }
     return ids;
@@ -75,14 +92,46 @@ describe('UserDataService Mongo integration', () => {
     expect(await connection.model('User').findById(own.User)).not.toBeNull();
     expect((await service.deleteAll(owner.toString())).success).toBe(true);
   });
-  it.each([
-    'DialogueMessage',
-    'ThoughtNode',
-    'InsightNode',
-    'ArchivedMessage',
-    'SharedLink',
-    'ThoughtMapShareLink',
-  ])(
+  it('deletes own orphan dialogues and ownerless legacy dialogues through either parent, not other users', async () => {
+    const own = await seed(owner);
+    const theirs = await seed(other);
+    const dialogues = [
+      { userId: owner },
+      { sessionId: own.CanvasSession },
+      { mapId: own.ThoughtMap },
+      { userId: other },
+      { sessionId: theirs.CanvasSession },
+      { mapId: theirs.ThoughtMap },
+      {},
+    ].map((fields, index) => ({
+      _id: new Types.ObjectId(),
+      nodeId: `legacy-${index}`,
+      ...fields,
+    }));
+    const messages = dialogues.map((dialogue) => ({
+      _id: new Types.ObjectId(),
+      dialogueId: dialogue._id,
+    }));
+    await connection.model('NodeDialogue').collection.insertMany(dialogues);
+    await connection.model('DialogueMessage').collection.insertMany(messages);
+    expect((await service.deleteAll(owner.toString())).success).toBe(true);
+    for (let index = 0; index < dialogues.length; index++) {
+      const dialogue = await connection
+        .model('NodeDialogue')
+        .findById(dialogues[index]._id);
+      const message = await connection
+        .model('DialogueMessage')
+        .findById(messages[index]._id);
+      if (index < 3) {
+        expect(dialogue).toBeNull();
+        expect(message).toBeNull();
+      } else {
+        expect(dialogue).not.toBeNull();
+        expect(message).not.toBeNull();
+      }
+    }
+  });
+  it.each(DATA_PLAN.map((step) => step.model))(
     'keeps dependent parents retryable when %s fails, continues independent categories',
     async (model) => {
       const ids = await seed(owner);
@@ -95,12 +144,30 @@ describe('UserDataService Mongo integration', () => {
         DATA_PLAN.find((s) => s.model === model)!.category,
       );
       expect(await connection.model(model).findById(ids[model])).not.toBeNull();
+      // Every transitively dependent parent must survive so the retry can rediscover children.
+      const blocked = new Set([model]);
+      for (const step of DATA_PLAN) {
+        if (step.dependencies?.some((dependency) => blocked.has(dependency))) {
+          blocked.add(step.model);
+          expect(
+            await connection.model(step.model).findById(ids[step.model]),
+          ).not.toBeNull();
+          expect(partial.failedCategories).toContain(step.category);
+        }
+      }
+      const independent =
+        model === 'UsageEvent' ? 'KnowledgeState' : 'UsageEvent';
       expect(
-        await connection.model('UsageEvent').findById(ids.UsageEvent),
+        await connection.model(independent).findById(ids[independent]),
       ).toBeNull();
       spy.mockRestore();
       expect((await service.deleteAll(owner.toString())).success).toBe(true);
       expect(await connection.model(model).findById(ids[model])).toBeNull();
+      for (const step of DATA_PLAN) {
+        expect(
+          await connection.model(step.model).findById(ids[step.model]),
+        ).toBeNull();
+      }
     },
   );
   it('retains account and auth when data deletion fails', async () => {
@@ -127,6 +194,32 @@ describe('UserDataService Mongo integration', () => {
       expect(await connection.model(model).countDocuments({})).toBe(0);
     }
   });
+  it.each(['RefreshToken', 'Session', 'Subscription', 'RateLimit', 'User'])(
+    'retains identity for a retry when account cleanup of %s fails',
+    async (model) => {
+      await seed(owner);
+      const spy = jest
+        .spyOn(connection.model(model), 'deleteMany')
+        .mockRejectedValueOnce(new Error('database unavailable'));
+      const partial = await service.deleteAccount(owner.toString());
+      expect(partial.success).toBe(false);
+      expect(partial.failedCategories).toContain('account');
+      expect(await connection.model('User').findById(owner)).not.toBeNull();
+      spy.mockRestore();
+      expect((await service.deleteAccount(owner.toString())).success).toBe(
+        true,
+      );
+      for (const name of [
+        'RefreshToken',
+        'Session',
+        'Subscription',
+        'RateLimit',
+        'User',
+      ]) {
+        expect(await connection.model(name).countDocuments({})).toBe(0);
+      }
+    },
+  );
 });
 
 describe('deletion schema coverage', () => {

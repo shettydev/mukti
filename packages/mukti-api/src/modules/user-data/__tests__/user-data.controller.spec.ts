@@ -1,15 +1,19 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
+
 import { UserDataController } from '../user-data.controller';
 
 describe('UserDataController', () => {
-  const service = { deleteAll: jest.fn(), deleteAccount: jest.fn() };
+  const service = { deleteAccount: jest.fn(), deleteAll: jest.fn() };
   const controller = new UserDataController(service as never);
   const userId = new Types.ObjectId().toString();
   const original = process.env.MUKTI_LOCAL;
   afterEach(() => {
-    if (original === undefined) delete process.env.MUKTI_LOCAL;
-    else process.env.MUKTI_LOCAL = original;
+    if (original === undefined) {
+      delete process.env.MUKTI_LOCAL;
+    } else {
+      process.env.MUKTI_LOCAL = original;
+    }
     jest.clearAllMocks();
   });
   it.each([undefined, {}, { confirm: 'delete' }, { confirm: true }])(
@@ -24,25 +28,25 @@ describe('UserDataController', () => {
   it('returns deletion results in hosted mode', async () => {
     delete process.env.MUKTI_LOCAL;
     service.deleteAll.mockResolvedValue({
-      success: true,
-      results: [],
       failedCategories: [],
       outside: [],
+      results: [],
+      success: true,
     });
     expect(await controller.deleteData(userId, { confirm: 'DELETE' })).toEqual({
-      success: true,
-      results: [],
       failedCategories: [],
       outside: [],
+      results: [],
+      success: true,
     });
   });
   it('names all CLI-held data in local mode even on another active CLI', async () => {
     process.env.MUKTI_LOCAL = '1';
     service.deleteAll.mockResolvedValue({
-      success: true,
-      results: [],
       failedCategories: [],
       outside: [],
+      results: [],
+      success: true,
     });
     const result = await controller.deleteData(userId, { confirm: 'DELETE' });
     expect(result.outside.join(' ')).toContain('~/.gemini/antigravity-cli');

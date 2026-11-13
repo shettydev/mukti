@@ -15,6 +15,7 @@ import { HealthModule } from './modules/health/health.module';
 import { KnowledgeTracingModule } from './modules/knowledge-tracing/knowledge-tracing.module';
 import { LocalModeModule } from './modules/local-mode/local-mode.module';
 import { ThoughtMapModule } from './modules/thought-map/thought-map.module';
+import { UserDataModule } from './modules/user-data/user-data.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     LocalModeModule,
     ThoughtMapModule,
     WaitlistModule,
+    UserDataModule,
   ],
   providers: [
     {
