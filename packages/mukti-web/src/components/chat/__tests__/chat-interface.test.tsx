@@ -1,11 +1,19 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import type { Conversation, SocraticTechnique } from '@/types/conversation.types';
+
+import { isLocalMode } from '@/lib/config';
+import { useDataDisclosureStore } from '@/lib/stores/data-disclosure-store';
+
+jest.mock('@/lib/config', () => ({
+  config: { api: { baseUrl: 'http://localhost:3000/api/v1' } },
+  isLocalMode: jest.fn(() => false),
+}));
 
 import { ChatInterface } from '../chat-interface';
 
@@ -129,6 +137,9 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('ChatInterface', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
+    useDataDisclosureStore.getState().close();
+    (isLocalMode as jest.Mock).mockReturnValue(false);
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
 
     const { useConversationStream } = require('@/lib/hooks/use-conversation-stream');
@@ -221,6 +232,29 @@ describe('ChatInterface', () => {
       });
     });
 
+    it('waits before creating the first local conversation and sends exactly once on continue', async () => {
+      (isLocalMode as jest.Mock).mockReturnValue(true);
+      const onCreateConversation = jest.fn().mockResolvedValue('new-local-conversation');
+      const { optimisticallyAppendUserMessage } = require('@/lib/conversation-cache');
+      optimisticallyAppendUserMessage.mockResolvedValue({ rollback: jest.fn() });
+      renderWithProviders(
+        <ChatInterface
+          conversationId={null}
+          isCreating={false}
+          onCreateConversation={onCreateConversation}
+          onTechniqueChange={jest.fn()}
+          selectedTechnique="elenchus"
+        />
+      );
+      await userEvent.type(screen.getByPlaceholderText(/Ask me anything/i), 'Local first thought');
+      await userEvent.click(screen.getByLabelText(/Send message/i));
+      expect(onCreateConversation).not.toHaveBeenCalled();
+      expect(useDataDisclosureStore.getState().isOpen).toBe(true);
+      act(() => useDataDisclosureStore.getState().continue());
+      await waitFor(() => expect(onCreateConversation).toHaveBeenCalledTimes(1));
+      expect(onCreateConversation).toHaveBeenCalledWith('Local first thought', 'elenchus');
+    });
+
     it('should disable input when creating conversation', () => {
       renderWithProviders(
         <ChatInterface
@@ -298,6 +332,45 @@ describe('ChatInterface', () => {
       await waitFor(() => {
         expect(mutateAsync).toHaveBeenCalledWith({ content: 'New message' });
       });
+    });
+
+    it('holds a local send until continued and allows the subsequent send without reopening', async () => {
+      (isLocalMode as jest.Mock).mockReturnValue(true);
+      const mutateAsync = jest.fn().mockResolvedValue({});
+      const { useSendMessage } = require('@/lib/hooks/use-conversations');
+      useSendMessage.mockReturnValue({
+        error: null,
+        isPending: false,
+        mutateAsync,
+        reset: jest.fn(),
+      });
+      renderWithProviders(
+        <ChatInterface
+          conversationId="conv-123"
+          isCreating={false}
+          onCreateConversation={jest.fn()}
+          onTechniqueChange={jest.fn()}
+          selectedTechnique="elenchus"
+        />
+      );
+      await userEvent.type(screen.getByPlaceholderText(/Type your message/i), 'First local send');
+      await userEvent.click(screen.getByLabelText(/Send message/i));
+      expect(mutateAsync).not.toHaveBeenCalled();
+      expect(useDataDisclosureStore.getState().isOpen).toBe(true);
+      act(() => useDataDisclosureStore.getState().continue());
+      await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+      expect(mutateAsync).toHaveBeenLastCalledWith({ content: 'First local send' });
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText(/Type your message/i)).toHaveValue('')
+      );
+      await userEvent.type(
+        screen.getByPlaceholderText(/Type your message/i),
+        'Subsequent local send'
+      );
+      await userEvent.click(screen.getByLabelText(/Send message/i));
+      await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
+      expect(mutateAsync).toHaveBeenLastCalledWith({ content: 'Subsequent local send' });
+      expect(useDataDisclosureStore.getState().isOpen).toBe(false);
     });
 
     it('should show error banner when send fails', async () => {
@@ -638,9 +711,15 @@ describe('ChatInterface', () => {
   });
 
   describe('Free Message Limit', () => {
-    it('should enforce free message limit for users without API key', async () => {
+    it('delegates daily quota to the API rather than counting conversation messages', async () => {
       const user = userEvent.setup();
-      const { useConversation, useDeleteConversation } = require('@/lib/hooks/use-conversations');
+      const {
+        useConversation,
+        useDeleteConversation,
+        useSendMessage,
+      } = require('@/lib/hooks/use-conversations');
+      const mutateAsync = jest.fn().mockResolvedValue({});
+      useSendMessage.mockReturnValue({ isPending: false, mutateAsync, reset: jest.fn() });
       const { useAiStore } = require('@/lib/stores/ai-store');
 
       // Mock conversation with 10 user messages (at limit)
@@ -688,11 +767,8 @@ describe('ChatInterface', () => {
       await user.click(sendButton);
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(
-          'Free message limit reached',
-          expect.objectContaining({
-            description: 'Connect your OpenRouter API key to continue the conversation.',
-          })
+        expect(mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ content: 'New message' })
         );
       });
     });

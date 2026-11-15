@@ -163,15 +163,14 @@ export class CodexCliAdapter implements LocalCliAdapter {
   readonly providerId: LocalCliProviderId = 'codex';
   readonly signInHint = 'If it is not signed in, run `codex login`.';
   readonly timeoutMs = HARD_TIMEOUT_MS;
-
   private readonly codexHome: string;
+
   private models?: AllowedModel[];
   private readonly runModelListing: () => Promise<CommandResult>;
   private readonly runSelfCheck: (
     args: readonly string[],
   ) => Promise<CommandResult>;
   private readonly workspaceDir: string;
-
   constructor(options: CodexCliAdapterOptions = {}) {
     // `||` (not `??`): a blank CODEX_HOME is an unset one.
     /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
@@ -234,6 +233,12 @@ export class CodexCliAdapter implements LocalCliAdapter {
       );
     }
     return this.models;
+  }
+
+  isUsageLimit(detail: string): boolean {
+    return /(?:usage|rate)[ _-]limit[ _-](?:reached|exceeded)|you(?:'ve| have) hit your usage limit|quota (?:exceeded|exhausted)|too many requests/i.test(
+      detail,
+    );
   }
 
   parseEnvelope(stdout: string): LocalCliCompletion {

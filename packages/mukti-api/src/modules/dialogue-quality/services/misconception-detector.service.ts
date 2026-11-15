@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import Redis from 'ioredis';
 
+import type { DisclosureDescriptor } from '../../data-disclosure/disclosure-descriptor';
 import type { MisconceptionResult } from '../interfaces/quality.interface';
 
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
@@ -33,6 +34,26 @@ Rules:
 - Only flag clear factual misconceptions, not stylistic or opinion differences
 - "correctDirection" should hint at the right direction WITHOUT giving the answer
 - If no misconception is detected, return hasMisconception: false with null fields`;
+
+/** Prior dialogue turns included as context for misconception detection. */
+export const MISCONCEPTION_HISTORY_TURNS = 3;
+
+/**
+ * What misconception detection sends (data-flow-disclosure). Hosted only: it
+ * is skipped in local mode, and always runs on Mukti's platform key, never the
+ * user's own (RFC-0004 OQ-3).
+ */
+export const MISCONCEPTION_DISCLOSURE: DisclosureDescriptor = {
+  historyWindow: MISCONCEPTION_HISTORY_TURNS,
+  id: 'misconception-detection',
+  key: 'platform',
+  label: 'Misconception detection',
+  runsIn: ['hosted'],
+  sends: [
+    `Your message, the last ${MISCONCEPTION_HISTORY_TURNS} turns of the dialogue, and the concepts detected in it.`,
+  ],
+  services: ['MisconceptionDetectorService'],
+};
 
 @Injectable()
 export class MisconceptionDetectorService {
@@ -107,7 +128,7 @@ export class MisconceptionDetectorService {
 
     // Build recent history excerpt (last 3 turns) for context
     const recentHistory = (input.conversationHistory ?? [])
-      .slice(-3)
+      .slice(-MISCONCEPTION_HISTORY_TURNS)
       .map((m) => `${m.role}: ${m.content}`)
       .join('\n');
 

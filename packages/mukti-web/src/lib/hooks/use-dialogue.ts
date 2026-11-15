@@ -33,6 +33,7 @@ import type {
   UpdateNodeDialogueDto,
 } from '@/types/dialogue.types';
 
+import { isUsageLimitError } from '@/components/conversations/usage-limit-banner';
 import { dialogueApi } from '@/lib/api/dialogue';
 import { config, isLocalMode } from '@/lib/config';
 import { applyCompletedTurn, tagNewestDialogueReply } from '@/lib/help-controls';
@@ -170,7 +171,7 @@ export function useDialogueStream(
         case 'error':
           setState((prev) => ({
             ...prev,
-            error: new Error(event.data.message),
+            error: Object.assign(new Error(event.data.message), event.data),
             isProcessing: false,
             processingStatus: null,
           }));
@@ -440,6 +441,9 @@ export function useSendNodeMessage(sessionId: string, nodeId: string) {
     mutationFn: (dto: SendNodeMessageDto) => dialogueApi.sendMessage(sessionId, nodeId, dto),
 
     onError: (_err, _dto, context) => {
+      if (isUsageLimitError(_err)) {
+        return;
+      }
       // Rollback to previous state on error
       if (context?.previousData) {
         queryClient.setQueryData(queryKey, context.previousData);
@@ -455,6 +459,20 @@ export function useSendNodeMessage(sessionId: string, nodeId: string) {
         queryClient.getQueryData<InfiniteData<PaginatedMessagesResponse>>(queryKey);
 
       const optimisticMessageId = `temp-${Date.now()}`;
+
+      // A quota refusal keeps its optimistic message. Reuse it on Resend,
+      // rather than rendering a second copy on every refused attempt.
+      const retainedMessage = previousData?.pages
+        .flatMap((page) => page.messages)
+        .find(
+          (message) =>
+            message.id.startsWith('temp-') &&
+            message.role === 'user' &&
+            message.content === dto.content
+        );
+      if (retainedMessage) {
+        return { optimisticMessageId: retainedMessage.id, previousData };
+      }
 
       // Optimistically add user message
       if (previousData) {

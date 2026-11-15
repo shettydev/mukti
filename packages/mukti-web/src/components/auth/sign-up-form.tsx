@@ -3,11 +3,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Eye, EyeOff, Loader2, Mail, User } from 'lucide-react';
 import { useState } from 'react';
-import 'react-phone-number-input/style.css';
 import { useForm } from 'react-hook-form';
+import 'react-phone-number-input/style.css';
 import PhoneInput from 'react-phone-number-input';
 
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
+import { DataFlowLink } from '@/components/data-disclosure/data-flow-panel';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -96,6 +97,9 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn }: SignUpFormProps) {
   return (
     <Form {...form}>
       <form className="space-y-4 sm:space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
+        <p className="text-sm text-japandi-stone/80">
+          Before you begin: <DataFlowLink publicView />
+        </p>
         {/* First Name and Last Name - responsive grid */}
         <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
           <FormField

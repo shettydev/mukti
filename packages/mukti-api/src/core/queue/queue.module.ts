@@ -63,6 +63,9 @@ export class QueueModule {
       global: true,
       imports: [
         BullModule.forRootAsync({
+          // Local services process inline. Registering WorkerHosts anyway leaves
+          // Redis reconnect loops alive after shutdown when no Redis is running.
+          extraOptions: { manualRegistration: isLocalMode() },
           imports: [ConfigModule],
           inject: [ConfigService],
           useFactory: (configService: ConfigService) => {

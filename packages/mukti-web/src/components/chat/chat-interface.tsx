@@ -29,6 +29,11 @@ import { ErrorState } from '@/components/conversations/error-state';
 import { MessageInput } from '@/components/conversations/message-input';
 import { MessageList } from '@/components/conversations/message-list';
 import { RateLimitBanner } from '@/components/conversations/rate-limit-banner';
+import {
+  isUsageLimitError,
+  UsageLimitBanner,
+  type UsageLimitError,
+} from '@/components/conversations/usage-limit-banner';
 import { HelpControls } from '@/components/help-controls';
 import { Button } from '@/components/ui/button';
 import { optimisticallyAppendUserMessage } from '@/lib/conversation-cache';
@@ -47,12 +52,10 @@ import {
   useUpdateConversation,
 } from '@/lib/hooks/use-conversations';
 import { conversationKeys } from '@/lib/query-keys';
-import { useAiStore } from '@/lib/stores/ai-store';
+import { requestDataDisclosure } from '@/lib/stores/data-disclosure-store';
 
 import { ChatHeader } from './chat-header';
 import { EmptyState } from './empty-state';
-
-const FREE_MESSAGE_LIMIT = 10;
 
 interface ChatInterfaceProps {
   conversationId: null | string;
@@ -99,9 +102,10 @@ export function ChatInterface({
   // Error states
   const [streamError, setStreamError] = useState<null | SSEError>(null);
   const [rateLimitInfo, setRateLimitInfo] = useState<null | { retryAfter: number }>(null);
+  const [usageLimit, setUsageLimit] = useState<null | UsageLimitError>(null);
+  const [lastMessage, setLastMessage] = useState('');
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { hasOpenRouterKey, isHydrated: aiStoreHydrated } = useAiStore();
 
   // Fetch conversation data if we have an ID
   const {
@@ -218,6 +222,11 @@ export function ChatInterface({
       }
     },
     onErrorEvent: (event) => {
+      if (isUsageLimitError(event.data)) {
+        setUsageLimit(event.data);
+        setProcessingState({ isProcessing: false, status: '' });
+        return;
+      }
       // Handle error events from the stream
       setProcessingState({
         isProcessing: false,
@@ -310,6 +319,9 @@ export function ChatInterface({
    */
   const handleSendFirstMessage = useCallback(
     async (content: string): Promise<void> => {
+      if (!(await requestDataDisclosure())) {
+        throw new Error('Message not sent. Review your data and costs to continue.');
+      }
       // Create conversation and get ID
       const newConversationId = await onCreateConversation(content, selectedTechnique);
 
@@ -355,27 +367,16 @@ export function ChatInterface({
    */
   const sendTurn = useCallback(
     async (content: string, helpControl?: HelpControl): Promise<boolean> => {
+      setLastMessage(content);
+      setUsageLimit(null);
       if (!conversationId) {
         return false;
       }
-
-      // Check free message limit for users without BYOK key
-      if (aiStoreHydrated && !hasOpenRouterKey && conversation) {
-        const userMessageCount = conversation.recentMessages.filter(
-          (m) => m.role === 'user'
-        ).length;
-        if (userMessageCount >= FREE_MESSAGE_LIMIT) {
-          toast.error('Free message limit reached', {
-            action: {
-              label: 'Add API Key',
-              onClick: () => router.push('/settings'),
-            },
-            description: 'Connect your OpenRouter API key to continue the conversation.',
-            duration: 8000,
-          });
-          return false;
-        }
+      if (!(await requestDataDisclosure())) {
+        throw new Error('Message not sent. Review your data and costs to continue.');
       }
+
+      // The API owns daily quota policy, including local-mode and BYOK bypasses.
 
       try {
         // Clear any previous errors
@@ -388,6 +389,9 @@ export function ChatInterface({
         scheduleSseFallbackRefetch(conversationId);
         return true;
       } catch (error) {
+        if (isUsageLimitError(error)) {
+          setUsageLimit(error);
+        }
         setProcessingState({
           isProcessing: false,
           status: '',
@@ -400,16 +404,7 @@ export function ChatInterface({
         throw error; // Re-throw so MessageInput can handle it
       }
     },
-    [
-      conversationId,
-      sendMessage,
-      resetSendMutation,
-      scheduleSseFallbackRefetch,
-      aiStoreHydrated,
-      hasOpenRouterKey,
-      conversation,
-      router,
-    ]
+    [conversationId, sendMessage, resetSendMutation, scheduleSseFallbackRefetch]
   );
 
   /**
@@ -500,6 +495,7 @@ export function ChatInterface({
   const latestMessage = conversation.recentMessages[conversation.recentMessages.length - 1];
   const shouldShowDerivedProcessing =
     !processingState.isProcessing &&
+    !usageLimit &&
     !rateLimitInfo &&
     !streamError &&
     latestMessage?.role === 'user';
@@ -517,6 +513,19 @@ export function ChatInterface({
       <ChatHeader conversation={conversation} onMobileMenuToggle={onMobileMenuToggle} />
 
       {/* Rate limit banner */}
+      {usageLimit && (
+        <UsageLimitBanner
+          error={usageLimit}
+          onDismiss={() => setUsageLimit(null)}
+          onResend={
+            lastMessage
+              ? () => {
+                  void sendTurn(lastMessage).catch(() => undefined);
+                }
+              : undefined
+          }
+        />
+      )}
       {rateLimitInfo && (
         <div className="relative z-0 mt-16 border-b border-japandi-sand/60 bg-japandi-cream/60 p-4">
           <RateLimitBanner
@@ -565,7 +574,7 @@ export function ChatInterface({
       />
 
       {/* Send error banner (shown above input) */}
-      {sendError && (
+      {sendError && !isUsageLimitError(sendError) && (
         <div className="border-t border-red-500/25 bg-red-500/10 p-3">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-300" />

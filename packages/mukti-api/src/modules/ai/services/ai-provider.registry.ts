@@ -73,7 +73,7 @@ export class AiProviderRegistry implements OnModuleInit {
       undefined;
     /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
     this.adapters = [
-      new ClaudeCliAdapter(),
+      new ClaudeCliAdapter({ workspaceDir }),
       new AntigravityCliAdapter({ workspaceDir }),
       new CodexCliAdapter({ workspaceDir }),
     ];

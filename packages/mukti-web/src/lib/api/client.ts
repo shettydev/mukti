@@ -573,9 +573,10 @@ class ApiClient {
       return true;
     }
 
-    // Retry on 429 (rate limit) with backoff
+    // Retry on 429 (rate limit) with backoff, except quota refusals: those
+    // cannot succeed until the limit resets, and each retry is another refusal.
     if (error.status === 429) {
-      return true;
+      return error.code !== 'RATE_LIMIT_EXCEEDED' && error.code !== 'AI_USAGE_LIMIT';
     }
 
     // Don't retry on other errors (4xx client errors, auth errors, etc.)

@@ -22,6 +22,7 @@
   <p>
     <a href="#try-it-in-30-seconds">Quickstart</a> |
     <a href="docs/local-mode.md">Local Mode</a> |
+    <a href="docs/hosted-mode.md">Hosted data and costs</a> |
     <a href="DEVELOPMENT.md">Development</a> |
     <a href="docs/reference/architecture/overview.md">Architecture</a> |
     <a href="packages/mukti-api/README.md">API</a> |

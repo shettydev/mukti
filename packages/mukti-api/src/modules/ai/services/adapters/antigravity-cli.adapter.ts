@@ -124,8 +124,8 @@ export class AntigravityCliAdapter implements LocalCliAdapter {
   readonly signInHint =
     'If it is not signed in, run `agy` once and follow the prompts to sign in.';
   readonly timeoutMs = HARD_TIMEOUT_MS;
-
   private readonly logger = new Logger(AntigravityCliAdapter.name);
+
   private models?: AllowedModel[];
   private projectCreationRequested = false;
   /** Set once found; project ids do not change. */
@@ -134,7 +134,6 @@ export class AntigravityCliAdapter implements LocalCliAdapter {
   private readonly runModelListing: () => Promise<ModelListingResult>;
   private unreadableProjectsWarned = false;
   private readonly workspaceDir: string;
-
   constructor(options: AntigravityCliAdapterOptions = {}) {
     this.projectsDir =
       options.projectsDir ?? join(homedir(), '.gemini', 'config', 'projects');
@@ -201,6 +200,12 @@ export class AntigravityCliAdapter implements LocalCliAdapter {
       );
     }
     return this.models;
+  }
+
+  isUsageLimit(detail: string): boolean {
+    return /resource_exhausted|quota (?:exceeded|exhausted)|(?:rate|usage)[ _-]limit[ _-](?:reached|exceeded)|too many requests/i.test(
+      detail,
+    );
   }
 
   parseEnvelope(

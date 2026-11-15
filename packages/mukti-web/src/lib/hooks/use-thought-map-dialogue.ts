@@ -24,6 +24,7 @@ import type {
   ThoughtMapPaginatedMessagesResponse,
 } from '@/types/thought-map';
 
+import { isUsageLimitError } from '@/components/conversations/usage-limit-banner';
 import {
   type SendThoughtMapMessageDto,
   thoughtMapDialogueApi,
@@ -85,6 +86,9 @@ export function useSendThoughtMapMessage(mapId: string, nodeId: string) {
     mutationFn: (dto) => thoughtMapDialogueApi.sendMessage(mapId, nodeId, dto),
 
     onError: (_err, _dto, context) => {
+      if (isUsageLimitError(_err)) {
+        return;
+      }
       if (context?.previousData) {
         queryClient.setQueryData(queryKey, context.previousData);
       }
@@ -97,6 +101,20 @@ export function useSendThoughtMapMessage(mapId: string, nodeId: string) {
         queryClient.getQueryData<InfiniteData<ThoughtMapPaginatedMessagesResponse>>(queryKey);
 
       const optimisticMessageId = `temp-${Date.now()}`;
+
+      // A refused turn is still visible. Resend must not duplicate that
+      // optimistic message while the same provider limit is in effect.
+      const retainedMessage = previousData?.pages
+        .flatMap((page) => page.messages)
+        .find(
+          (message) =>
+            message.id.startsWith('temp-') &&
+            message.role === 'user' &&
+            message.content === dto.content
+        );
+      if (retainedMessage) {
+        return { optimisticMessageId: retainedMessage.id, previousData };
+      }
 
       if (previousData) {
         const existingDialogue = previousData.pages[0]?.dialogue;
@@ -351,7 +369,7 @@ export function useThoughtMapDialogueStream(
           const errorData = event.data as { message: string };
           setState((prev) => ({
             ...prev,
-            error: new Error(errorData.message),
+            error: Object.assign(new Error(errorData.message), event.data),
             isProcessing: false,
             processingStatus: null,
           }));

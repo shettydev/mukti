@@ -30,6 +30,7 @@ export interface DialogueCompleteEvent extends BaseDialogueStreamEvent {
 export interface DialogueErrorEvent extends BaseDialogueStreamEvent {
   data: {
     code: string;
+    details?: Record<string, unknown>;
     message: string;
     retriable: boolean;
   };

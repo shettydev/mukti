@@ -351,7 +351,29 @@ test('Antigravity discloses its cost, its latency, what it leaves behind and wha
   assert.match(disclosure, /30–60 seconds/);
   assert.match(disclosure, /Antigravity history/);
   assert.match(disclosure, /global agy rules and hooks/);
-  assert.equal(providerById('claude')!.disclosure, undefined);
+});
+
+test('Claude Code discloses that no session history is kept and no outside settings apply', () => {
+  const disclosure = providerById('claude')!.disclosure ?? '';
+
+  assert.match(disclosure, /no\s+session history/);
+  assert.match(disclosure, /folder Mukti owns/);
+  assert.match(disclosure, /CLAUDE\.md/);
+  assert.match(disclosure, /subscription/);
+});
+
+test('every CLI says what it keeps outside Mukti, in a form the app can list', () => {
+  const claude = providerById('claude')!;
+  const codex = providerById('codex')!;
+  const agy = providerById('agy')!;
+
+  assert.deepEqual(claude.keepsOutsideMukti, []);
+  assert.deepEqual(codex.keepsOutsideMukti, []);
+  assert.equal(agy.keepsOutsideMukti.length, 1);
+  const [history] = agy.keepsOutsideMukti;
+  assert.match(history.what, /conversation record/);
+  assert.equal(history.where, '~/.gemini/antigravity-cli');
+  assert.match(history.howToRemove, /mukti-socratic/);
 });
 
 const BOTH_READY = {

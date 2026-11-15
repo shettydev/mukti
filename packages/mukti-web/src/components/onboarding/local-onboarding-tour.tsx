@@ -3,6 +3,7 @@
 import { Brain, MessageCircleQuestion, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
+import { DataFlowLink } from '@/components/data-disclosure/data-flow-panel';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -86,6 +87,7 @@ export function LocalOnboardingTour() {
         </ul>
 
         <DialogFooter>
+          <DataFlowLink />
           <Button
             className="bg-japandi-terracotta px-5 text-white hover:bg-japandi-terracotta/90"
             onClick={close}

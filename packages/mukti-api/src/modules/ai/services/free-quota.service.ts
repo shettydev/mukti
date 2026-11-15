@@ -6,7 +6,15 @@ import { Subscription } from '../../../schemas/subscription.schema';
 import { SubscriptionService } from '../../subscription/subscription.service';
 
 /** Daily free message limit for users without BYOK configured. */
-const FREE_DAILY_LIMIT = 10;
+export const FREE_DAILY_LIMIT = 10;
+
+/** When the free daily allowance next resets: the coming UTC midnight. */
+export function nextFreeQuotaReset(now: Date = new Date()): Date {
+  const next = new Date(now);
+  next.setUTCDate(next.getUTCDate() + 1);
+  next.setUTCHours(0, 0, 0, 0);
+  return next;
+}
 
 @Injectable()
 export class FreeQuotaService {
@@ -51,7 +59,7 @@ export class FreeQuotaService {
             code: 'RATE_LIMIT_EXCEEDED',
             details: {
               dailyLimit: FREE_DAILY_LIMIT,
-              resetsAt: this.getNextMidnight().toISOString(),
+              resetsAt: nextFreeQuotaReset().toISOString(),
             },
             message: `You've reached your daily limit of ${FREE_DAILY_LIMIT} free AI messages. Add your own OpenRouter API key in Settings to continue without limits.`,
           },
@@ -63,13 +71,6 @@ export class FreeQuotaService {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-  }
-
-  private getNextMidnight(): Date {
-    const next = new Date();
-    next.setUTCDate(next.getUTCDate() + 1);
-    next.setUTCHours(0, 0, 0, 0);
-    return next;
   }
 
   /**

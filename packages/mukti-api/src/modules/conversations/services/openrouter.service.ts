@@ -22,6 +22,10 @@ import { ScaffoldPromptAugmenter } from '../../scaffolding/services/scaffold-pro
  */
 export interface OpenRouterError {
   code: string;
+  details?: {
+    limit: 'openrouter_credit' | 'openrouter_rate';
+    provider: string;
+  };
   message: string;
   retriable: boolean;
   stack?: string;
@@ -157,7 +161,7 @@ export class OpenRouterService {
    * - Network errors
    *
    * Non-retriable errors include:
-   * - 4xx client errors (except 429 rate limit)
+   * - 4xx client errors, including provider credit and rate limits
    * - Authentication errors
    * - Invalid request errors
    */
@@ -173,7 +177,12 @@ export class OpenRouterService {
     }
 
     const code = typeof error.code === 'string' ? error.code : undefined;
-    const status = typeof error.status === 'number' ? error.status : undefined;
+    const status =
+      typeof error.statusCode === 'number'
+        ? error.statusCode
+        : typeof error.status === 'number'
+          ? error.status
+          : undefined;
     const messageRaw =
       typeof error.message === 'string' ? error.message : undefined;
     const message = messageRaw?.trim() ? messageRaw : undefined;
@@ -187,10 +196,17 @@ export class OpenRouterService {
       errorDetails.code = 'SERVER_ERROR';
       errorDetails.message = message ?? 'OpenRouter server error';
       errorDetails.retriable = true;
-    } else if (status === 429) {
-      errorDetails.code = 'RATE_LIMIT';
-      errorDetails.message = 'Rate limit exceeded';
-      errorDetails.retriable = true;
+    } else if (status === 402 || status === 429) {
+      errorDetails.code = 'AI_USAGE_LIMIT';
+      errorDetails.details = {
+        limit: status === 402 ? 'openrouter_credit' : 'openrouter_rate',
+        provider: 'openrouter',
+      };
+      errorDetails.message =
+        status === 402
+          ? 'OpenRouter credit exhausted'
+          : 'OpenRouter rate limit reached';
+      errorDetails.retriable = false;
     } else if (status !== undefined && status >= 400 && status < 500) {
       errorDetails.code = 'CLIENT_ERROR';
       errorDetails.message = message ?? 'Invalid request';
@@ -316,6 +332,9 @@ export class OpenRouterService {
         `OpenRouter API error: ${errorDetails.message}`,
         errorDetails.stack,
       );
+      if (errorDetails.code === 'AI_USAGE_LIMIT') {
+        throw Object.assign(new Error(errorDetails.message), errorDetails);
+      }
       throw error;
     }
   }
@@ -382,6 +401,7 @@ export class OpenRouterService {
     message?: unknown;
     stack?: unknown;
     status?: unknown;
+    statusCode?: unknown;
   } {
     return this.isRecord(error);
   }

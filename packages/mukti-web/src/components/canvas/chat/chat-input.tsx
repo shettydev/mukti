@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 export interface ChatInputProps {
   disabled?: boolean;
   isLoading?: boolean;
-  onSend: (content: string) => void;
+  onSend: (content: string) => boolean | Promise<boolean | void> | void;
   placeholder?: string;
 }
 
@@ -70,27 +70,37 @@ export function ChatInput({
   placeholder = DEFAULT_PLACEHOLDER,
 }: ChatInputProps) {
   const [content, setContent] = useState('');
+  const [awaitingSend, setAwaitingSend] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const canSend = content.trim().length > 0 && !isLoading && !disabled;
+  const canSend = content.trim().length > 0 && !isLoading && !disabled && !awaitingSend;
 
   /**
    * Handle sending the message
    */
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const trimmedContent = content.trim();
-    if (!trimmedContent || isLoading || disabled) {
+    if (!trimmedContent || isLoading || disabled || awaitingSend) {
       return;
     }
 
-    onSend(trimmedContent);
-    setContent('');
+    setAwaitingSend(true);
+    try {
+      if ((await onSend(trimmedContent)) === false) {
+        return;
+      }
+      setContent('');
 
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
+    } catch {
+      // Keep the draft when a send fails. The dialogue surface reports errors.
+    } finally {
+      setAwaitingSend(false);
     }
-  }, [content, isLoading, disabled, onSend]);
+  }, [content, isLoading, disabled, awaitingSend, onSend]);
 
   /**
    * Handle keyboard events
@@ -124,7 +134,7 @@ export function ChatInput({
       <div className="relative flex items-end gap-2">
         <Textarea
           className={cn('min-h-[60px] max-h-[150px] resize-none pr-12', disabled && 'opacity-50')}
-          disabled={disabled || isLoading}
+          disabled={disabled || isLoading || awaitingSend}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { User } from '@/types/user.types';
 
+import { DataFlowPanel } from '@/components/data-disclosure/data-flow-panel';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -54,6 +55,7 @@ interface UserProfilePopoverProps {
 export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePopoverProps) {
   const { setTheme, theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [disclosureOpen, setDisclosureOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -62,130 +64,136 @@ export function UserProfilePopover({ collapsed, onLogout, user }: UserProfilePop
   const activeTheme = mounted ? theme : 'system';
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          className={cn(
-            'h-auto w-full justify-start rounded-xl p-2 transition-all hover:bg-japandi-cream/70',
-            collapsed && 'justify-center px-2'
-          )}
-          variant="ghost"
+    <>
+      <DataFlowPanel onOpenChange={setDisclosureOpen} open={disclosureOpen} />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className={cn(
+              'h-auto w-full justify-start rounded-xl p-2 transition-all hover:bg-japandi-cream/70',
+              collapsed && 'justify-center px-2'
+            )}
+            variant="ghost"
+          >
+            <div className="flex items-center gap-3 w-full">
+              {/* User Avatar */}
+              {user?.foundingMember ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber founder-avatar-ring">
+                      {user?.firstName?.[0]}
+                      {user?.lastName?.[0]}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    className="relative p-0 rounded-xl overflow-hidden founder-tooltip-card"
+                    hideArrow
+                    side="right"
+                    sideOffset={8}
+                    style={{
+                      backgroundColor: '#0f0e0d',
+                      border: '1px solid rgba(212,168,67,0.22)',
+                      boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,168,67,0.1)',
+                      minWidth: '190px',
+                    }}
+                  >
+                    {/* Beams — full background */}
+                    <FounderBeams />
+
+                    {/* Content sits on top of beams */}
+                    <div className="relative px-4 py-3.5">
+                      <p
+                        className="text-[11px] font-semibold tracking-[0.18em] uppercase"
+                        style={{
+                          color: '#d4a843',
+                          textShadow: '0 0 18px rgba(212,168,67,0.6)',
+                        }}
+                      >
+                        Founding Member
+                      </p>
+                      <p
+                        className="mt-1.5 text-[10px] leading-snug"
+                        style={{ color: 'rgba(232,224,214,0.85)' }}
+                      >
+                        Early access supporter
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber">
+                  {user?.firstName?.[0]}
+                  {user?.lastName?.[0]}
+                </div>
+              )}
+
+              {/* User Info - Hidden when collapsed */}
+              {!collapsed && (
+                <div className="flex flex-col items-start text-sm truncate overflow-hidden">
+                  <span className="truncate text-left font-medium text-japandi-stone">
+                    {user?.firstName} {user?.lastName}
+                  </span>
+                  <span className="w-full truncate text-left text-xs text-japandi-stone/65">
+                    {user?.email}
+                  </span>
+                </div>
+              )}
+            </div>
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          align="start"
+          className="w-56 border-japandi-sand/80 !bg-japandi-cream text-japandi-stone shadow-xl opacity-100"
+          side="top"
+          sideOffset={10}
         >
-          <div className="flex items-center gap-3 w-full">
-            {/* User Avatar */}
-            {user?.foundingMember ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber founder-avatar-ring">
-                    {user?.firstName?.[0]}
-                    {user?.lastName?.[0]}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent
-                  className="relative p-0 rounded-xl overflow-hidden founder-tooltip-card"
-                  hideArrow
-                  side="right"
-                  sideOffset={8}
-                  style={{
-                    backgroundColor: '#0f0e0d',
-                    border: '1px solid rgba(212,168,67,0.22)',
-                    boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,168,67,0.1)',
-                    minWidth: '190px',
-                  }}
-                >
-                  {/* Beams — full background */}
-                  <FounderBeams />
+          {/* Settings Link */}
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/settings">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </Link>
+          </DropdownMenuItem>
 
-                  {/* Content sits on top of beams */}
-                  <div className="relative px-4 py-3.5">
-                    <p
-                      className="text-[11px] font-semibold tracking-[0.18em] uppercase"
-                      style={{
-                        color: '#d4a843',
-                        textShadow: '0 0 18px rgba(212,168,67,0.6)',
-                      }}
-                    >
-                      Founding Member
-                    </p>
-                    <p
-                      className="mt-1.5 text-[10px] leading-snug"
-                      style={{ color: 'rgba(232,224,214,0.85)' }}
-                    >
-                      Early access supporter
-                    </p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-japandi-sage/25 text-sm font-semibold text-japandi-timber">
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
-              </div>
-            )}
+          <DropdownMenuItem className="cursor-pointer" onSelect={() => setDisclosureOpen(true)}>
+            Your data and costs
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
 
-            {/* User Info - Hidden when collapsed */}
-            {!collapsed && (
-              <div className="flex flex-col items-start text-sm truncate overflow-hidden">
-                <span className="truncate text-left font-medium text-japandi-stone">
-                  {user?.firstName} {user?.lastName}
-                </span>
-                <span className="w-full truncate text-left text-xs text-japandi-stone/65">
-                  {user?.email}
-                </span>
-              </div>
-            )}
-          </div>
-        </Button>
-      </DropdownMenuTrigger>
+          <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('system')}>
+            <Monitor className="mr-2 h-4 w-4" />
+            <span>System</span>
+            {activeTheme === 'system' && <Check className="ml-auto h-3.5 w-3.5" />}
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('light')}>
+            <Sun className="mr-2 h-4 w-4" />
+            <span>Light</span>
+            {activeTheme === 'light' && <Check className="ml-auto h-3.5 w-3.5" />}
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('dark')}>
+            <Moon className="mr-2 h-4 w-4" />
+            <span>Dark</span>
+            {activeTheme === 'dark' && <Check className="ml-auto h-3.5 w-3.5" />}
+          </DropdownMenuItem>
 
-      <DropdownMenuContent
-        align="start"
-        className="w-56 border-japandi-sand/80 !bg-japandi-cream text-japandi-stone shadow-xl opacity-100"
-        side="top"
-        sideOffset={10}
-      >
-        {/* Settings Link */}
-        <DropdownMenuItem asChild className="cursor-pointer">
-          <Link href="/settings">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('system')}>
-          <Monitor className="mr-2 h-4 w-4" />
-          <span>System</span>
-          {activeTheme === 'system' && <Check className="ml-auto h-3.5 w-3.5" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('light')}>
-          <Sun className="mr-2 h-4 w-4" />
-          <span>Light</span>
-          {activeTheme === 'light' && <Check className="ml-auto h-3.5 w-3.5" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('dark')}>
-          <Moon className="mr-2 h-4 w-4" />
-          <span>Dark</span>
-          {activeTheme === 'dark' && <Check className="ml-auto h-3.5 w-3.5" />}
-        </DropdownMenuItem>
-
-        {/* Logout Button — hidden in local mode (single seeded user, no session) */}
-        {!isLocalMode() && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer text-red-600 focus:bg-red-500/10 focus:text-red-700 dark:text-red-300 dark:focus:text-red-200"
-              onClick={onLogout}
-              variant="destructive"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {/* Logout Button — hidden in local mode (single seeded user, no session) */}
+          {!isLocalMode() && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer text-red-600 focus:bg-red-500/10 focus:text-red-700 dark:text-red-300 dark:focus:text-red-200"
+                onClick={onLogout}
+                variant="destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }
 

@@ -144,6 +144,7 @@ export interface StreamEventPayloads {
   };
   error: {
     code: string;
+    details?: Record<string, unknown>;
     message: string;
     retriable: boolean;
   };

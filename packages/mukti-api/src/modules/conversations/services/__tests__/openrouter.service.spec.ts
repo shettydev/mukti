@@ -292,17 +292,18 @@ describe('OpenRouterService', () => {
               expect(result.code).toBe('SERVER_ERROR');
             }
 
-            // Property: Rate limit errors should be retriable
-            if (error.status === 429) {
-              expect(result.retriable).toBe(true);
-              expect(result.code).toBe('RATE_LIMIT');
+            // Usage-limit refusals need user action, not automatic retries.
+            if (error.status === 429 || error.status === 402) {
+              expect(result.retriable).toBe(false);
+              expect(result.code).toBe('AI_USAGE_LIMIT');
             }
 
             // Property: Client errors (4xx except 429) should not be retriable
             if (
               error.status >= 400 &&
               error.status < 500 &&
-              error.status !== 429
+              error.status !== 429 &&
+              error.status !== 402
             ) {
               expect(result.retriable).toBe(false);
               expect(result.code).toBe('CLIENT_ERROR');
@@ -333,8 +334,8 @@ describe('OpenRouterService', () => {
       const error = { message: 'Rate limit exceeded', status: 429 };
       const result = service.handleError(error);
 
-      expect(result.code).toBe('RATE_LIMIT');
-      expect(result.retriable).toBe(true);
+      expect(result.code).toBe('AI_USAGE_LIMIT');
+      expect(result.retriable).toBe(false);
     });
 
     it('should handle client errors as non-retriable', () => {

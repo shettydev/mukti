@@ -136,6 +136,16 @@ describe('LocalProviderSwitchService', () => {
       expect(status.providers.find((p) => p.id === 'agy')!.version).toBeNull();
     });
 
+    it("reports Claude Code's disclosure, so Settings shows it before switching", async () => {
+      const { switcher } = service({ answers: ALL_READY });
+
+      const status = await switcher.getStatus();
+
+      const claude = status.providers.find((p) => p.id === 'claude')!;
+      expect(claude.disclosure).toMatch(/no\s+session history/);
+      expect(claude.disclosure).toMatch(/CLAUDE\.md/);
+    });
+
     it('spends no tokens: only version and sign-in probes run', async () => {
       const { runner, switcher } = service();
 

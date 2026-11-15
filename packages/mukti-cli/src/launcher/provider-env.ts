@@ -20,12 +20,15 @@ export const PROVIDER_SOURCE_ENV = 'MUKTI_PROVIDER_SOURCE';
 
 /** Environment for the API process describing this launch's provider choice. */
 export function providerEnv(options: {
+  /** Actual database path, including an explicit --data-dir override. */
+  readonly dbPath?: string;
   /** The Mukti home holding the saved default. Must be absolute. */
   readonly home: string;
   readonly provider: LocalCliProvider;
   readonly source: SelectionSource;
 }): Record<string, string> {
   return {
+    ...(options.dbPath ? { MUKTI_LOCAL_DB_PATH: options.dbPath } : {}),
     AI_PROVIDER: options.provider.id,
     [PROVIDER_SETTINGS_ENV]: providerSettingsPath(options.home),
     [PROVIDER_SOURCE_ENV]: options.source,

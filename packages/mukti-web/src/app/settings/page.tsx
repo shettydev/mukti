@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 
 import { ModelSelector } from '@/components/ai/model-selector';
 import { ProtectedRoute } from '@/components/auth/protected-route';
+import { DataDangerZone } from '@/components/data-disclosure/data-danger-zone';
+import { DataFlowLink } from '@/components/data-disclosure/data-flow-panel';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
 import { DefaultTurnBudgetSection } from '@/components/settings/default-turn-budget-section';
 import { LocalProviderSection } from '@/components/settings/local-provider-section';
@@ -65,6 +67,13 @@ function SettingsContent() {
         </div>
 
         <div className="space-y-10">
+          <section className="space-y-3">
+            <h2 className="text-lg font-medium text-japandi-stone">Your data and costs</h2>
+            <p className="text-sm text-japandi-stone/80">
+              See who runs your replies, what each surface sends and where your data is stored.
+            </p>
+            <DataFlowLink />
+          </section>
           {/* ── AI CLI ── */}
           {/* Local mode only: which installed AI CLI (Claude Code, Codex or
               Antigravity) Mukti runs on, switchable without a restart. */}
@@ -149,8 +158,8 @@ function SettingsContent() {
 
               <div className="rounded-xl border border-japandi-sand/60 bg-japandi-cream/40 p-5 transition-colors duration-300 hover:border-japandi-sand">
                 <p className="mb-4 text-japandi-body text-sm text-japandi-stone/70">
-                  Connect your own OpenRouter key to unlock the full model catalog. Mukti will route
-                  all AI calls through your account.
+                  Connect your own OpenRouter key to unlock the full model catalog. Socratic replies
+                  use your account. Misconception detection still uses Mukti’s platform key.
                 </p>
 
                 {/* Status indicator */}
@@ -241,6 +250,7 @@ function SettingsContent() {
               </div>
             </section>
           )}
+          <DataDangerZone />
         </div>
       </div>
     </DashboardLayout>

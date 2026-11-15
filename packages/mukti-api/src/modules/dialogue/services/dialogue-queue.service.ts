@@ -6,6 +6,7 @@ import { Model, Types } from 'mongoose';
 
 import type { ProblemStructure } from '../../../schemas/canvas-session.schema';
 import type { NodeType } from '../../../schemas/node-dialogue.schema';
+import type { DisclosureDescriptor } from '../../data-disclosure/disclosure-descriptor';
 
 import { isLocalMode } from '../../../common/config/local-mode';
 import {
@@ -29,6 +30,28 @@ import { SocraticTurnEngine } from '../../socratic-turn/socratic-turn.engine';
 import { DialogueAIService } from './dialogue-ai.service';
 import { DialogueStreamService } from './dialogue-stream.service';
 import { DialogueService } from './dialogue.service';
+
+/**
+ * Messages of a canvas node's dialogue sent with each turn: the most recent
+ * page of its history.
+ */
+export const CANVAS_DIALOGUE_HISTORY_WINDOW = 50;
+
+/** What a canvas node turn sends to the model (data-flow-disclosure). */
+export const CANVAS_NODE_DISCLOSURE: DisclosureDescriptor = {
+  historyWindow: CANVAS_DIALOGUE_HISTORY_WINDOW,
+  id: 'canvas-node',
+  key: 'resolved',
+  label: 'Canvas node chat',
+  runsIn: ['hosted', 'local'],
+  sends: [
+    "Mukti's Socratic instructions, with the node's label and type.",
+    "The canvas's problem statement, constraints and assumptions.",
+    `Up to the last ${CANVAS_DIALOGUE_HISTORY_WINDOW} messages of that node's dialogue, and your new message.`,
+  ],
+  services: ['DialogueAIService'],
+};
+
 /**
  * Job data structure for dialogue request processing.
  */
@@ -297,7 +320,7 @@ export class DialogueQueueService extends WorkerHost {
       const historyResult = await this.dialogueService.getMessages(
         dialogue._id,
         {
-          limit: 50,
+          limit: CANVAS_DIALOGUE_HISTORY_WINDOW,
           page: 1,
         },
       );
@@ -479,11 +502,7 @@ export class DialogueQueueService extends WorkerHost {
         nodeId,
         dialogueId,
         {
-          data: {
-            code: 'PROCESSING_ERROR',
-            message: this.getErrorMessage(error),
-            retriable: true,
-          },
+          data: streamErrorData(error),
           type: 'error',
         },
       );
@@ -537,3 +556,4 @@ export class DialogueQueueService extends WorkerHost {
     });
   }
 }
+import { streamErrorData } from '../../ai/services/stream-error-data';

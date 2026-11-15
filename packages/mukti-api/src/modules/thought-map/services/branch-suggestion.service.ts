@@ -10,6 +10,7 @@ import { Job, Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 
 import type { ThoughtNodeType } from '../../../schemas/thought-node.schema';
+import type { DisclosureDescriptor } from '../../data-disclosure/disclosure-descriptor';
 
 import { isLocalMode } from '../../../common/config/local-mode';
 import {
@@ -38,6 +39,18 @@ import {
 
 /** Number of suggestions to generate per invocation */
 const SUGGESTION_COUNT = 3;
+
+/** What branch suggestion sends (data-flow-disclosure). */
+export const BRANCH_SUGGESTION_DISCLOSURE: DisclosureDescriptor = {
+  id: 'branch-suggestion',
+  key: 'resolved',
+  label: 'Branch suggestions',
+  runsIn: ['hosted', 'local'],
+  sends: [
+    "The label and type of the node you're expanding, and the labels already on the map so suggestions don't repeat them.",
+  ],
+  services: ['BranchSuggestionService'],
+};
 
 // ============================================================================
 // SSE types for suggestions
