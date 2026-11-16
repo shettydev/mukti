@@ -185,10 +185,15 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                   className="w-48 border-japandi-sand/80 !bg-japandi-cream p-1 text-japandi-stone shadow-xl opacity-100"
                   sideOffset={8}
                 >
-                  {/* Archive/Restore option */}
+                  {/* Export option */}
                   {conversation && (
-                    <ExportDialogue target={{ conversationId: conversation.id, surface: 'chat' }} />
+                    <ExportDialogue
+                      target={{ conversationId: conversation.id, surface: 'chat' }}
+                      variant="menu"
+                    />
                   )}
+
+                  {/* Archive/Restore option */}
                   <button
                     className={cn(
                       'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm',

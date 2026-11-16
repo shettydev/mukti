@@ -1,5 +1,6 @@
 'use client';
 
+import { Download } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,14 @@ export type ExportTarget =
   | { nodeId: string; sessionId: string; surface: 'canvas' };
 
 /** Each entry is kept verbatim, including whitespace, punctuation and newlines. */
-export function ExportDialogue({ target }: { target: ExportTarget }) {
+export function ExportDialogue({
+  target,
+  variant = 'button',
+}: {
+  target: ExportTarget;
+  /** `menu` renders a full-width row to sit alongside other menu items. */
+  variant?: 'button' | 'menu';
+}) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<'json' | 'md'>('json');
@@ -67,9 +75,19 @@ export function ExportDialogue({ target }: { target: ExportTarget }) {
       open={open}
     >
       <DialogTrigger asChild>
-        <Button size="sm" variant="ghost">
-          Export dialogue
-        </Button>
+        {variant === 'menu' ? (
+          <button
+            className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-japandi-stone/80 transition-colors duration-150 hover:bg-japandi-light-stone/75 hover:text-japandi-stone"
+            type="button"
+          >
+            <Download className="h-4 w-4" />
+            Export dialogue
+          </button>
+        ) : (
+          <Button size="sm" variant="ghost">
+            Export dialogue
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
