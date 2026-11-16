@@ -9,7 +9,7 @@
  * process-group teardown — is the same, so it lives here and only the
  * `ServiceSpec`s differ.
  */
-import { type ChildProcess, spawn } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { createWriteStream, mkdirSync, type WriteStream } from 'node:fs';
 import { join } from 'node:path';
 
@@ -231,7 +231,12 @@ function killTree(service: Service, signal: NodeJS.Signals): void {
       process.kill(-pid, signal);
     }
   } catch {
-    // Already gone — nothing to signal.
+    // Older Bun runtimes reject negative PIDs even on POSIX. Use the OS
+    // utility so a normal shutdown cannot leave the database and ports held.
+    // Signalling an already-exited group is harmless and returns non-zero.
+    if (process.platform !== 'win32') {
+      spawnSync('/bin/kill', ['-s', signal, '--', String(-pid)], { stdio: 'ignore' });
+    }
   }
 }
 
