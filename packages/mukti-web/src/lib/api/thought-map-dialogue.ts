@@ -54,7 +54,7 @@ export interface ThoughtMapDialogueStreamEvent {
         jobId: string;
         latency: number;
         scaffoldLevel?: HelpLevel;
-        tokens: number;
+        tokens?: number;
         turnKind?: TurnKind;
       }
     | { code: string; details?: Record<string, unknown>; message: string; retriable: boolean }

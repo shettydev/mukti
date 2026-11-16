@@ -253,6 +253,29 @@ describe('MessageService', () => {
       expect(mockConversation.metadata.lastMessageAt).toBeDefined();
     });
 
+    it('keeps the conversation token total correct when a reply reports no usage', async () => {
+      mockConversation.metadata.totalTokens = 120;
+      mockConversationModel.findById.mockResolvedValue(mockConversation);
+      mockConversation.save.mockResolvedValue(mockConversation);
+
+      await service.addMessageToConversation(
+        mockConversation._id,
+        'First',
+        'Reply without usage',
+        { latencyMs: 900, model: 'sonnet', totalTokens: undefined },
+      );
+      expect(mockConversation.metadata.totalTokens).toBe(120);
+      expect(Number.isNaN(mockConversation.metadata.totalTokens)).toBe(false);
+
+      await service.addMessageToConversation(
+        mockConversation._id,
+        'Second',
+        'Reply with usage',
+        { model: 'sonnet', totalTokens: 30 },
+      );
+      expect(mockConversation.metadata.totalTokens).toBe(150);
+    });
+
     it('should update lastMessageAt timestamp', async () => {
       // Arrange
       const conversationId = new Types.ObjectId();

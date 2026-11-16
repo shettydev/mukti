@@ -78,7 +78,8 @@ export interface DialogueRequestJobResult {
   cost: number;
   dialogueId: string;
   latency: number;
-  tokens: number;
+  /** Undefined when the provider did not report usage. */
+  tokens?: number;
   userMessageId: string;
 }
 

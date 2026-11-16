@@ -240,9 +240,10 @@ export class AntigravityCliAdapter implements LocalCliAdapter {
     return {
       // thinking_tokens is a subset of output_tokens; adding it would
       // double-count (design.md Decision 5).
-      completionTokens: envelope.usage?.output_tokens ?? 0,
+      // Missing counts stay undefined ("not reported"), never 0.
+      completionTokens: envelope.usage?.output_tokens,
       content,
-      promptTokens: envelope.usage?.input_tokens ?? 0,
+      promptTokens: envelope.usage?.input_tokens,
     };
   }
 

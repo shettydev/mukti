@@ -187,14 +187,18 @@ export class ClaudeCliAdapter implements LocalCliAdapter {
 
     // input_tokens is only the uncached remainder; the prompt sent is that plus
     // what was written to and read from the prompt cache.
+    // A missing count stays undefined: an export must say "not reported"
+    // rather than show a free reply.
     const usage = envelope.usage;
     return {
-      completionTokens: usage?.output_tokens ?? 0,
+      completionTokens: usage?.output_tokens,
       content: envelope.result ?? '',
       promptTokens:
-        (usage?.input_tokens ?? 0) +
-        (usage?.cache_creation_input_tokens ?? 0) +
-        (usage?.cache_read_input_tokens ?? 0),
+        usage?.input_tokens === undefined
+          ? undefined
+          : usage.input_tokens +
+            (usage.cache_creation_input_tokens ?? 0) +
+            (usage.cache_read_input_tokens ?? 0),
     };
   }
 

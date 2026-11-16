@@ -137,9 +137,11 @@ export interface LocalCliAdapter {
 
 /** Normalized completion, before it is shaped into the OpenAI-style payload. */
 export interface LocalCliCompletion {
-  completionTokens: number;
+  /** Undefined when the CLI did not report it; never coerced to 0. */
+  completionTokens: number | undefined;
   content: string;
-  promptTokens: number;
+  /** Undefined when the CLI did not report it; never coerced to 0. */
+  promptTokens: number | undefined;
 }
 
 /** `AI_PROVIDER` values served by a local CLI rather than an HTTP API. */

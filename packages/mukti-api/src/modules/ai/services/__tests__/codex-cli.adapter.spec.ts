@@ -344,6 +344,18 @@ describe('CodexCliAdapter', () => {
       });
     });
 
+    it('leaves token counts undefined when the completed turn reports no usage', () => {
+      const completion = adapter().parseEnvelope(
+        [
+          '{"type":"item.completed","item":{"type":"agent_message","text":"Why?"}}',
+          '{"type":"turn.completed"}',
+        ].join('\n'),
+      );
+
+      expect(completion.promptTokens).toBeUndefined();
+      expect(completion.completionTokens).toBeUndefined();
+    });
+
     it('skips lines that are not JSON', () => {
       const stdout = `warning: something\n${fixture('success.jsonl')}\n`;
 

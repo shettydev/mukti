@@ -14,6 +14,7 @@ import {
   type AiJsonSchemaResponseFormat,
   SOCRATIC_QUESTION_FORMAT,
 } from '../../ai/types/ai-response-format.interface';
+import { readUsage } from '../../ai/utils/read-usage';
 import { appendQualityGuardrails } from '../../dialogue/utils/prompt-builder';
 import { ScaffoldPromptAugmenter } from '../../scaffolding/services/scaffold-prompt-augmenter.service';
 
@@ -35,12 +36,15 @@ export interface OpenRouterError {
  * Response from OpenRouter API after processing a chat completion request
  */
 export interface OpenRouterResponse {
-  completionTokens: number;
+  /** Undefined when the provider did not report it; never estimated. */
+  completionTokens?: number;
   content: string;
   cost: number;
   model: string;
-  promptTokens: number;
-  totalTokens: number;
+  /** Undefined when the provider did not report it; never estimated. */
+  promptTokens?: number;
+  /** Undefined when neither a total nor both parts were reported. */
+  totalTokens?: number;
 }
 
 interface ChatChoice {
@@ -242,14 +246,11 @@ export class OpenRouterService {
     const content = this.extractContent(safeResponse.choices?.[0]);
     const usage = safeResponse.usage;
 
-    const promptTokens = usage?.promptTokens ?? usage?.prompt_tokens ?? 0;
-    const completionTokens =
-      usage?.completionTokens ?? usage?.completion_tokens ?? 0;
-    const totalTokens = usage?.totalTokens ?? usage?.total_tokens ?? 0;
+    const { completionTokens, promptTokens, totalTokens } = readUsage(usage);
 
     const cost = 0;
 
-    this.logger.log(`Response parsed: ${totalTokens} tokens`);
+    this.logger.log(`Response parsed: ${totalTokens ?? 'unreported'} tokens`);
 
     return {
       completionTokens,

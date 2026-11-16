@@ -90,6 +90,15 @@ describe('ClaudeCliAdapter', () => {
       expect(completion.promptTokens).toBe(2 + 6814 + 7999);
       expect(completion.completionTokens).toBe(9);
     });
+
+    it('leaves token counts undefined when the envelope reports no usage', () => {
+      const completion = new ClaudeCliAdapter({ workspaceDir }).parseEnvelope(
+        JSON.stringify({ result: 'What does a 5xx tell you?' }),
+      );
+
+      expect(completion.promptTokens).toBeUndefined();
+      expect(completion.completionTokens).toBeUndefined();
+    });
   });
 
   describe('warm', () => {

@@ -198,7 +198,7 @@ describe('OpenRouterService', () => {
       );
     });
 
-    it('should handle missing usage data gracefully', () => {
+    it('leaves unreported usage undefined rather than claiming zero tokens', () => {
       const response: any = {
         choices: [{ message: { content: 'Test response' } }],
         usage: undefined,
@@ -206,10 +206,36 @@ describe('OpenRouterService', () => {
 
       const result = service.parseResponse(response, 'openai/gpt-3.5-turbo');
 
-      expect(result.promptTokens).toBe(0);
-      expect(result.completionTokens).toBe(0);
-      expect(result.totalTokens).toBe(0);
+      expect(result.promptTokens).toBeUndefined();
+      expect(result.completionTokens).toBeUndefined();
+      expect(result.totalTokens).toBeUndefined();
       expect(result.cost).toBe(0);
+    });
+
+    it('derives the total from both parts when only the parts are reported', () => {
+      const result = service.parseResponse(
+        {
+          choices: [{ message: { content: 'Q?' } }],
+          usage: { completion_tokens: 4, prompt_tokens: 10 },
+        },
+        'm',
+      );
+
+      expect(result.totalTokens).toBe(14);
+    });
+
+    it('does not invent a total when one part is missing', () => {
+      const result = service.parseResponse(
+        {
+          choices: [{ message: { content: 'Q?' } }],
+          usage: { prompt_tokens: 10 },
+        },
+        'm',
+      );
+
+      expect(result.promptTokens).toBe(10);
+      expect(result.completionTokens).toBeUndefined();
+      expect(result.totalTokens).toBeUndefined();
     });
 
     it('should handle empty content', () => {

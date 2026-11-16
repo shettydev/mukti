@@ -66,7 +66,8 @@ export interface ConversationRequestJobResult {
   cost: number;
   latency: number;
   messageId: string;
-  tokens: number;
+  /** Undefined when the provider did not report usage. */
+  tokens?: number;
 }
 
 /**
