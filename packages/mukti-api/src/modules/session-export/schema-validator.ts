@@ -116,13 +116,13 @@ function check(
 
   if (isObject(value)) {
     for (const key of schema.required ?? []) {
-      if (!(key in value)) {
+      if (!Object.hasOwn(value, key)) {
         errors.push(`${path}: missing required "${key}"`);
       }
     }
     const properties = schema.properties ?? {};
     for (const [key, child] of Object.entries(value)) {
-      if (properties[key]) {
+      if (Object.hasOwn(properties, key)) {
         check(child, properties[key], root, `${path}.${key}`, errors);
       } else if (schema.additionalProperties === false) {
         errors.push(`${path}: unexpected property "${key}"`);

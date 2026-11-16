@@ -14,6 +14,7 @@ import { DialogueModule } from './modules/dialogue/dialogue.module';
 import { HealthModule } from './modules/health/health.module';
 import { KnowledgeTracingModule } from './modules/knowledge-tracing/knowledge-tracing.module';
 import { LocalModeModule } from './modules/local-mode/local-mode.module';
+import { SessionExportModule } from './modules/session-export/session-export.module';
 import { ThoughtMapModule } from './modules/thought-map/thought-map.module';
 import { UserDataModule } from './modules/user-data/user-data.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
@@ -34,6 +35,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     HealthModule,
     KnowledgeTracingModule,
     LocalModeModule,
+    SessionExportModule,
     ThoughtMapModule,
     WaitlistModule,
     UserDataModule,

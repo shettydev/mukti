@@ -117,6 +117,11 @@ export class MessageService {
       /** What kind of reply this is (dialogue-help-controls). */
       turnKind?: TurnKind;
     },
+    /**
+     * When the learner's message arrived. Defaults to now; the queue passes
+     * the job start so the reply's latency is visible in the timestamps.
+     */
+    userMessageAt?: Date,
   ): Promise<ConversationDocument> {
     this.logger.log(
       `Adding messages to conversation ${conversationId.toString()}`,
@@ -138,7 +143,7 @@ export class MessageService {
       const userMsg: RecentMessage = {
         content: userMessage,
         role: 'user',
-        timestamp,
+        timestamp: userMessageAt ?? timestamp,
       };
 
       // Create AI response message with metadata
@@ -445,6 +450,20 @@ export class MessageService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Every archived message of a conversation, oldest first, for a full
+   * session export. Lean documents: read-only.
+   */
+  async getAllArchivedMessages(
+    conversationId: string | Types.ObjectId,
+  ): Promise<ArchivedMessage[]> {
+    return this.archivedMessageModel
+      .find({ conversationId: new Types.ObjectId(conversationId.toString()) })
+      .sort({ sequenceNumber: 1 })
+      .lean<ArchivedMessage[]>()
+      .exec();
   }
 
   /**

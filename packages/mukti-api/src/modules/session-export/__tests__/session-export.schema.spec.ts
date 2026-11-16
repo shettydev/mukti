@@ -1,18 +1,7 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-import { type JsonSchema, validateAgainstSchema } from '../schema-validator';
+import { validateAgainstSchema } from '../schema-validator';
 import { SESSION_EXPORT_SCHEMA_VERSION } from '../session-export.types';
 import { FIXTURE_EXPORT } from './fixture-export';
-
-/** The schema published for researchers, read from the repository. */
-export function loadPublishedSchema(): JsonSchema {
-  const path = join(
-    __dirname,
-    '../../../../../../docs/research/session-export.schema.json',
-  );
-  return JSON.parse(readFileSync(path, 'utf8')) as JsonSchema;
-}
+import { loadPublishedSchema } from './load-published-schema';
 
 describe('published session-export schema', () => {
   const schema = loadPublishedSchema();
@@ -33,6 +22,15 @@ describe('published session-export schema', () => {
       schema,
     );
     expect(errors).toContain('$: unexpected property "userEmail"');
+  });
+
+  it('rejects prototype-shaped unexpected keys from parsed JSON', () => {
+    const value = JSON.parse(
+      JSON.stringify(FIXTURE_EXPORT).replace('{', '{"__proto__":{},'),
+    );
+    expect(validateAgainstSchema(value, schema)).toContain(
+      '$: unexpected property "__proto__"',
+    );
   });
 
   it('rejects an unreported value written as anything but a number or not_reported', () => {
