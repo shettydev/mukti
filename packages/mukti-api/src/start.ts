@@ -11,6 +11,7 @@ import * as csurf from 'csurf';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
+import { configuredStudyArm } from './common/config/baseline-prompts';
 import { applyLocalModeEnvDefaults } from './common/config/local-mode';
 import { VALIDATION_PIPE_OPTIONS } from './common/config/validation';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -48,6 +49,7 @@ export async function startApi(
   options: StartApiOptions = {},
 ): Promise<INestApplication> {
   // Fill in ephemeral secrets/defaults before any module reads config.
+  configuredStudyArm();
   applyLocalModeEnvDefaults();
 
   const app = await NestFactory.create(AppModule, {

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
+import { configuredStudyArm } from './common/config/baseline-prompts';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { CoreModule } from './core/core.module';
@@ -24,6 +25,10 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ConfigModule.forRoot({
       envFilePath: '.env',
       isGlobal: true,
+      validate: (env: NodeJS.ProcessEnv) => {
+        configuredStudyArm(env);
+        return env;
+      },
     }),
     CoreModule,
     AuthModule,

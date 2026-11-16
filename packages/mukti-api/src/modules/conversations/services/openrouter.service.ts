@@ -282,8 +282,8 @@ export class OpenRouterService {
     messages: { content: string; role: 'assistant' | 'system' | 'user' }[],
     model: string,
     apiKey: string,
-    _technique: TechniqueTemplate,
-    responseFormat: AiJsonSchemaResponseFormat = SOCRATIC_QUESTION_FORMAT,
+    _technique: TechniqueTemplate | undefined,
+    responseFormat?: AiJsonSchemaResponseFormat,
   ): Promise<OpenRouterResponse> {
     try {
       this.logger.log(
@@ -300,7 +300,10 @@ export class OpenRouterService {
           // so it is a question unless the learner asked for an explanation or
           // a wrap-up. Whether a provider enforces the shape is its own
           // business — the declaration says what this surface needs.
-          responseFormat,
+          // Explicit undefined means unconstrained (study arms). Omission
+          // retains the legacy question default for existing callers.
+          responseFormat:
+            arguments.length < 5 ? SOCRATIC_QUESTION_FORMAT : responseFormat,
           stream: false,
           temperature: 0.7,
         },

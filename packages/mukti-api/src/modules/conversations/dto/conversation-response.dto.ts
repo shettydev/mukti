@@ -4,7 +4,10 @@ import type { Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Type } from 'class-transformer';
 
-import type { Conversation } from '../../../schemas/conversation.schema';
+import type {
+  Conversation,
+  ConversationStudyArm,
+} from '../../../schemas/conversation.schema';
 
 import { normaliseTurnBudget } from '../../socratic-turn/help-controls';
 
@@ -233,6 +236,13 @@ export class ConversationResponseDto {
   shareToken?: string;
 
   @ApiProperty({
+    description: 'Local study arm and SHA-256 of its fixed baseline prompt',
+    required: false,
+  })
+  @Expose()
+  studyArm?: ConversationStudyArm;
+
+  @ApiProperty({
     description: 'Tags for organizing the conversation',
     example: ['react', 'performance'],
     isArray: true,
@@ -304,6 +314,7 @@ export class ConversationResponseDto {
     const dto = new ConversationResponseDto();
     dto._id = conversation._id?.toString() ?? String(conversation._id);
     dto.userId = conversation.userId?.toString() ?? String(conversation.userId);
+    dto.studyArm = conversation.studyArm;
     dto.title = conversation.title;
     dto.technique = conversation.technique;
     dto.tags = conversation.tags ?? [];

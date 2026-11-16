@@ -8,6 +8,10 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn(() => ({})),
 }));
 
+import {
+  BASELINE_PROMPTS,
+  baselineStudyArm,
+} from '../../../../common/config/baseline-prompts';
 import { Conversation } from '../../../../schemas/conversation.schema';
 import { Technique } from '../../../../schemas/technique.schema';
 import { UsageEvent } from '../../../../schemas/usage-event.schema';
@@ -661,6 +665,148 @@ describe('QueueService', () => {
         delay: 1000,
         type: 'exponential',
       });
+    });
+  });
+
+  describe('study arms', () => {
+    const originalEnv = { ...process.env };
+    afterEach(() => {
+      process.env = { ...originalEnv };
+    });
+    const CONV = '507f1f77bcf86cd799439012';
+    const job = {
+      data: {
+        conversationId: CONV,
+        helpControl: 'wrap_up',
+        message: 'Help me',
+        model: 'openai/gpt-5-mini',
+        subscriptionTier: 'free',
+        technique: 'elenchus',
+        usedByok: false,
+        userId: '507f1f77bcf86cd799439011',
+      },
+      id: 'study-job',
+    };
+
+    const prime = (studyArm?: ReturnType<typeof baselineStudyArm>) => {
+      process.env.MUKTI_LOCAL = '1';
+      conversationModel.findById.mockResolvedValue({
+        _id: CONV,
+        recentMessages: [
+          { content: 'Old directives', role: 'system', timestamp: new Date() },
+          { content: 'Earlier question', role: 'user', timestamp: new Date() },
+          {
+            content: 'Earlier answer',
+            role: 'assistant',
+            timestamp: new Date(),
+          },
+        ],
+        studyArm,
+        turnBudget: 1,
+      });
+      techniqueModel.findOne.mockResolvedValue({ template: 'Technique' });
+      messageService.buildConversationContext.mockReturnValue({ messages: [] });
+      openRouterService.buildPrompt.mockReturnValue([]);
+      openRouterService.sendChatCompletion.mockResolvedValue({
+        completionTokens: 5,
+        content: 'Reply',
+        cost: 0,
+        model: 'openai/gpt-5-mini',
+        promptTokens: 10,
+        totalTokens: 15,
+      });
+      messageService.addMessageToConversation.mockResolvedValue({
+        _id: CONV,
+        recentMessages: [],
+        totalMessageCount: 4,
+      });
+      usageEventModel.create.mockResolvedValue({});
+    };
+
+    it.each(['baseline-socratic', 'baseline-direct'] as const)(
+      '%s bypasses all engine stages and help metadata, including after restart',
+      async (name) => {
+        prime(baselineStudyArm(name));
+        delete process.env.MUKTI_STUDY_ARM;
+        const engine = testingModule.get(SocraticTurnEngine);
+        const prepare = jest.spyOn(engine, 'prepare');
+        const inspect = jest.spyOn(engine, 'inspectReply');
+        const settle = jest.spyOn(engine, 'settle');
+        await service.process(job as any);
+        expect(prepare).not.toHaveBeenCalled();
+        expect(inspect).not.toHaveBeenCalled();
+        expect(settle).not.toHaveBeenCalled();
+        expect(techniqueModel.findOne).not.toHaveBeenCalled();
+        expect(openRouterService.buildPrompt).not.toHaveBeenCalled();
+        expect(openRouterService.sendChatCompletion).toHaveBeenCalledWith(
+          [
+            { content: BASELINE_PROMPTS[name], role: 'system' },
+            { content: 'Earlier question', role: 'user' },
+            { content: 'Earlier answer', role: 'assistant' },
+            { content: 'Help me', role: 'user' },
+          ],
+          'openai/gpt-5-mini',
+          'test-api-key',
+          undefined,
+          undefined,
+        );
+        const metadata =
+          messageService.addMessageToConversation.mock.calls[0][3];
+        expect(metadata).toMatchObject({
+          completionTokens: 5,
+          model: 'openai/gpt-5-mini',
+          promptTokens: 10,
+          provider: 'openrouter',
+          totalTokens: 15,
+        });
+        expect(metadata).not.toHaveProperty('scaffoldLevel');
+        expect(metadata).not.toHaveProperty('turnKind');
+        expect(conversationModel.updateOne).not.toHaveBeenCalled();
+        const events = streamService.emitToConversation.mock.calls.map(
+          ([, event]) => event,
+        );
+        for (const event of events.filter((e) =>
+          ['complete', 'message'].includes(e.type),
+        )) {
+          for (const field of [
+            'scaffoldLevel',
+            'turnKind',
+            'budget',
+            'conclusionReady',
+          ]) {
+            expect(event.data).not.toHaveProperty(field);
+          }
+        }
+        expect(events.at(-1).type).toBe('complete');
+        expect(usageEventModel.create).toHaveBeenCalled();
+      },
+    );
+
+    it('keeps existing unstamped conversations on the engine under an active arm', async () => {
+      prime();
+      process.env.MUKTI_STUDY_ARM = 'baseline-socratic';
+      const prepare = jest.spyOn(
+        testingModule.get(SocraticTurnEngine),
+        'prepare',
+      );
+      await service.process(job as any);
+      expect(prepare).toHaveBeenCalled();
+      expect(openRouterService.buildPrompt).toHaveBeenCalled();
+      expect(
+        messageService.addMessageToConversation.mock.calls[0][3],
+      ).toHaveProperty('turnKind', 'wrap_up');
+    });
+
+    it('refuses a stored hash mismatch before calling the client', async () => {
+      prime({
+        ...baselineStudyArm('baseline-socratic'),
+        promptSha256: 'changed',
+      });
+      await expect(service.process(job as any)).rejects.toThrow(
+        'hash mismatch',
+      );
+      expect(openRouterService.sendChatCompletion).not.toHaveBeenCalled();
+      expect(messageService.addMessageToConversation).not.toHaveBeenCalled();
     });
   });
 

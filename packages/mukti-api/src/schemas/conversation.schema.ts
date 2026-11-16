@@ -14,6 +14,13 @@ export interface ConversationMetadata {
   totalTokens: number;
 }
 
+/** The study arm a conversation was created under (study-arms spec). */
+export interface ConversationStudyArm {
+  name: 'baseline-direct' | 'baseline-socratic';
+  /** SHA-256 of the baseline prompt text in force at creation. */
+  promptSha256: string;
+}
+
 export interface RecentMessage {
   content: string;
   metadata?: {
@@ -106,6 +113,14 @@ export class Conversation {
 
   @Prop({ sparse: true, type: String, unique: true })
   shareToken?: string;
+
+  /**
+   * Set at creation when the API runs under a study arm (study-arms spec,
+   * local mode only). Replies then use the arm's baseline prompt instead of
+   * the Socratic engine, for the life of the conversation. Absent otherwise.
+   */
+  @Prop({ type: Object })
+  studyArm?: ConversationStudyArm;
 
   @Prop({ default: [], index: true, type: [String] })
   tags: string[];

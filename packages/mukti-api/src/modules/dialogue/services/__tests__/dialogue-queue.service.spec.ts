@@ -376,6 +376,29 @@ describe('DialogueQueueService — help controls and turn budget', () => {
     );
   };
 
+  it.each(['baseline-direct', 'baseline-socratic'])(
+    'keeps canvas engine behavior under the %s launch flag',
+    async (arm) => {
+      const originalArm = process.env.MUKTI_STUDY_ARM;
+      try {
+        process.env.MUKTI_STUDY_ARM = arm;
+        const result = await runTurn();
+        expect(assess).toHaveBeenCalledTimes(1);
+        expect(monitor).toHaveBeenCalledTimes(1);
+        expect(result.responseFormat).toEqual(SOCRATIC_QUESTION_FORMAT);
+        expect(result.savedReply).toEqual(
+          expect.objectContaining({ scaffoldLevel: 1, turnKind: 'ordinary' }),
+        );
+      } finally {
+        if (originalArm === undefined) {
+          delete process.env.MUKTI_STUDY_ARM;
+        } else {
+          process.env.MUKTI_STUDY_ARM = originalArm;
+        }
+      }
+    },
+  );
+
   const runTurn = async (
     options: { dialogue?: Record<string, unknown>; helpControl?: string } = {},
   ) => {

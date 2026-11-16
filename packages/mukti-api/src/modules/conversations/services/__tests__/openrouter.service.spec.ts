@@ -10,6 +10,7 @@ import type { RecentMessage } from '../../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../../schemas/technique.schema';
 
 import { AI_CHAT_CLIENT_FACTORY } from '../../../ai/types/ai-chat-client.interface';
+import { SOCRATIC_QUESTION_FORMAT } from '../../../ai/types/ai-response-format.interface';
 import { ScaffoldPromptAugmenter } from '../../../scaffolding/services/scaffold-prompt-augmenter.service';
 import { OpenRouterService } from '../openrouter.service';
 
@@ -54,6 +55,23 @@ describe('OpenRouterService', () => {
     }).compile();
 
     service = module.get<OpenRouterService>(OpenRouterService);
+  });
+
+  it('preserves an explicit undefined response format through the real client adapter', async () => {
+    const send = jest.fn().mockResolvedValue({
+      choices: [{ message: { content: 'Direct answer' } }],
+    });
+    const client = new OpenRouterService(
+      new ConfigService(),
+      { create: () => ({ chat: { send } }) } as any,
+      {} as any,
+    );
+    await client.sendChatCompletion([], 'model', 'key', undefined, undefined);
+    expect(send.mock.calls[0][0]).toHaveProperty('responseFormat', undefined);
+    await client.sendChatCompletion([], 'model', 'key', undefined);
+    expect(send.mock.calls[1][0].responseFormat).toEqual(
+      SOCRATIC_QUESTION_FORMAT,
+    );
   });
 
   it('should be defined', () => {
