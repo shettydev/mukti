@@ -34,6 +34,7 @@ import {
   UsageLimitBanner,
   type UsageLimitError,
 } from '@/components/conversations/usage-limit-banner';
+import { ExportDialogue } from '@/components/export/export-dialogue';
 import { HelpControls } from '@/components/help-controls';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -286,6 +287,10 @@ export function ThoughtMapDialoguePanel({ mapId, node, onClose }: ThoughtMapDial
             Socratic Dialogue
           </p>
         </div>
+        <ExportDialogue
+          key={node.nodeId}
+          target={{ mapId, nodeId: node.nodeId, surface: 'thought-map' }}
+        />
         <Button className="ml-2 shrink-0" onClick={onClose} size="icon" variant="ghost">
           <X className="h-4 w-4" />
           <span className="sr-only">Close dialogue panel</span>

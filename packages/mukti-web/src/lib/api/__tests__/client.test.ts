@@ -38,6 +38,51 @@ describe('ApiClient', () => {
   });
 
   describe('GET requests', () => {
+    it('downloads a blob with credentials and refreshes an expired access token', async () => {
+      const endpoint =
+        'http://localhost:3000/api/v1/conversations/chat/export?format=md&mode=metrics';
+      const blob = new Blob(['# Dialogue'], { type: 'text/markdown' });
+      (global.fetch as unknown as jest.Mock)
+        .mockResolvedValueOnce({ headers: new Headers(), ok: false, status: 401, url: endpoint })
+        .mockResolvedValueOnce({ json: async () => ({ csrfToken: 'csrf' }), ok: true })
+        .mockResolvedValueOnce({
+          json: async () => ({ data: { accessToken: 'fresh-token' }, success: true }),
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          blob: async () => blob,
+          headers: new Headers({ 'content-type': 'text/markdown' }),
+          ok: true,
+          status: 200,
+        });
+
+      await expect(
+        apiClient.getBlob('/conversations/chat/export?format=md&mode=metrics')
+      ).resolves.toBe(blob);
+      expect(mockAuthState.setAccessToken).toHaveBeenCalledWith('fresh-token');
+      const initialOptions = (global.fetch as unknown as jest.Mock).mock.calls[0][1];
+      expect(initialOptions.credentials).toBe('include');
+      expect(new Headers(initialOptions.headers).get('Authorization')).toBe(
+        'Bearer mock-access-token'
+      );
+      const [retryUrl, retryOptions] = (global.fetch as unknown as jest.Mock).mock.calls[3];
+      expect(retryUrl).toBe(endpoint);
+      expect(retryOptions.credentials).toBe('include');
+      expect(new Headers(retryOptions.headers).get('Authorization')).toBe('Bearer fresh-token');
+    });
+
+    it('does not download an error response as a file', async () => {
+      (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ error: { code: 'NOT_FOUND', message: 'Not found' }, success: false }),
+        ok: false,
+        status: 404,
+      });
+      await expect(apiClient.getBlob('/conversations/other/export')).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    });
     it('should make a successful GET request', async () => {
       const mockData = { id: '1', name: 'Test' };
       const mockResponse = {

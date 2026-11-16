@@ -35,6 +35,12 @@ jest.mock('../client', () => ({
 }));
 
 describe('conversationsApi', () => {
+  it('preserves the persisted study arm and prompt hash when loading a conversation', async () => {
+    const studyArm = { name: 'baseline-direct', promptSha256: 'a'.repeat(64) };
+    (apiClient.get as jest.Mock).mockResolvedValue({ _id: 'chat', studyArm });
+    const result = await conversationsApi.getById('chat');
+    expect(result.studyArm).toEqual(studyArm);
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

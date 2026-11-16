@@ -5,7 +5,10 @@ import { ThoughtMapDialoguePanel } from '@/components/thought-map/ThoughtMapDial
 import { useDataDisclosureStore } from '@/lib/stores/data-disclosure-store';
 
 const mockStart = jest.fn();
-jest.mock('@/lib/config', () => ({ isLocalMode: () => true }));
+jest.mock('@/lib/config', () => ({
+  ...jest.requireActual('@/lib/config'),
+  isLocalMode: () => true,
+}));
 jest.mock('@/lib/stores/ai-store', () => ({ useAiStore: () => 'sonnet' }));
 jest.mock('@/lib/hooks/use-thought-map-dialogue', () => ({
   useSendThoughtMapMessage: () => ({ isPending: false, mutate: jest.fn() }),

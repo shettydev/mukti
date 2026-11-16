@@ -56,6 +56,7 @@ import { requestDataDisclosure } from '@/lib/stores/data-disclosure-store';
 
 import { ChatHeader } from './chat-header';
 import { EmptyState } from './empty-state';
+import { StudyArmBanner } from './study-arm-banner';
 
 interface ChatInterfaceProps {
   conversationId: null | string;
@@ -511,6 +512,11 @@ export function ChatInterface({
     <div className="relative flex flex-1 min-h-0 flex-col bg-transparent">
       {/* Floating chat header */}
       <ChatHeader conversation={conversation} onMobileMenuToggle={onMobileMenuToggle} />
+      {conversation.studyArm && (
+        <div className="mt-16">
+          <StudyArmBanner arm={conversation.studyArm} />
+        </div>
+      )}
 
       {/* Rate limit banner */}
       {usageLimit && (
@@ -590,25 +596,27 @@ export function ChatInterface({
         conversationId={conversationId}
         disabled={isSending || conversation.isArchived || !!rateLimitInfo}
         helpControls={
-          <HelpControls
-            budget={turnBudgetView(
-              conversation.turnBudget,
-              exchangesFromMessageCount(conversation.metadata.messageCount)
-            )}
-            canWrapUp={conversation.recentMessages.some((m) => m.role === 'assistant')}
-            disabled={
-              isSending ||
-              conversation.isArchived ||
-              !!rateLimitInfo ||
-              effectiveProcessingState.isProcessing
-            }
-            exchanges={exchangesFromMessageCount(conversation.metadata.messageCount)}
-            level={toHelpLevel(conversation.currentScaffoldLevel)}
-            onBudgetChange={(turnBudget) => updateConversation({ turnBudget })}
-            onPendingControlChange={setPendingControl}
-            onWrapUp={handleWrapUp}
-            pendingControl={pendingControl}
-          />
+          !conversation.studyArm && (
+            <HelpControls
+              budget={turnBudgetView(
+                conversation.turnBudget,
+                exchangesFromMessageCount(conversation.metadata.messageCount)
+              )}
+              canWrapUp={conversation.recentMessages.some((m) => m.role === 'assistant')}
+              disabled={
+                isSending ||
+                conversation.isArchived ||
+                !!rateLimitInfo ||
+                effectiveProcessingState.isProcessing
+              }
+              exchanges={exchangesFromMessageCount(conversation.metadata.messageCount)}
+              level={toHelpLevel(conversation.currentScaffoldLevel)}
+              onBudgetChange={(turnBudget) => updateConversation({ turnBudget })}
+              onPendingControlChange={setPendingControl}
+              onWrapUp={handleWrapUp}
+              pendingControl={pendingControl}
+            />
+          )
         }
         onSend={handleSendMessage}
         prefillState={prefillState}

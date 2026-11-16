@@ -19,6 +19,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ModelSelector } from '@/components/ai/model-selector';
+import { StudyArmBanner } from '@/components/chat/study-arm-banner';
+import { ExportDialogue } from '@/components/export/export-dialogue';
 import { HelpControls } from '@/components/help-controls';
 import { ExtractionReviewPanel } from '@/components/thought-map/ExtractionReviewPanel';
 import { Button } from '@/components/ui/button';
@@ -310,9 +312,11 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   return (
     <div className="flex flex-1 min-h-0 flex-col">
+      <StudyArmBanner arm={conversation.studyArm} />
       {/* Header - responsive padding and layout */}
       <header className="shrink-0 border-b bg-background p-3 md:p-4" role="banner">
         <div className="flex items-center gap-2 md:gap-4">
+          <ExportDialogue target={{ conversationId, surface: 'chat' }} />
           {/* Back button with touch-friendly size */}
           <Button
             asChild
@@ -504,25 +508,27 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         conversationId={conversationId}
         disabled={isSending || rateLimitRetryAfter !== null || conversation.isArchived}
         helpControls={
-          <HelpControls
-            budget={turnBudgetView(
-              conversation.turnBudget,
-              exchangesFromMessageCount(conversation.metadata.messageCount)
-            )}
-            canWrapUp={conversation.recentMessages.some((m) => m.role === 'assistant')}
-            disabled={
-              isSending ||
-              processingState.isProcessing ||
-              rateLimitRetryAfter !== null ||
-              conversation.isArchived
-            }
-            exchanges={exchangesFromMessageCount(conversation.metadata.messageCount)}
-            level={toHelpLevel(conversation.currentScaffoldLevel)}
-            onBudgetChange={(turnBudget) => updateConversationAsync({ turnBudget })}
-            onPendingControlChange={setPendingControl}
-            onWrapUp={handleWrapUp}
-            pendingControl={pendingControl}
-          />
+          !conversation.studyArm && (
+            <HelpControls
+              budget={turnBudgetView(
+                conversation.turnBudget,
+                exchangesFromMessageCount(conversation.metadata.messageCount)
+              )}
+              canWrapUp={conversation.recentMessages.some((m) => m.role === 'assistant')}
+              disabled={
+                isSending ||
+                processingState.isProcessing ||
+                rateLimitRetryAfter !== null ||
+                conversation.isArchived
+              }
+              exchanges={exchangesFromMessageCount(conversation.metadata.messageCount)}
+              level={toHelpLevel(conversation.currentScaffoldLevel)}
+              onBudgetChange={(turnBudget) => updateConversationAsync({ turnBudget })}
+              onPendingControlChange={setPendingControl}
+              onWrapUp={handleWrapUp}
+              pendingControl={pendingControl}
+            />
+          )
         }
         onSend={handleSendMessage}
       />

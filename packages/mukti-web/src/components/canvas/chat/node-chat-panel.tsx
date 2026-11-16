@@ -24,6 +24,7 @@ import {
   UsageLimitBanner,
   type UsageLimitError,
 } from '@/components/conversations/usage-limit-banner';
+import { ExportDialogue } from '@/components/export/export-dialogue';
 import { HelpControls } from '@/components/help-controls';
 import { Button } from '@/components/ui/button';
 import {
@@ -325,6 +326,10 @@ export function NodeChatPanel({
       {/* Header with close button */}
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h3 className="font-semibold">Socratic Dialogue</h3>
+        <ExportDialogue
+          key={selectedNode.id}
+          target={{ nodeId: selectedNode.id, sessionId, surface: 'canvas' }}
+        />
         <Button onClick={onClose} size="icon" variant="ghost">
           <X className="h-4 w-4" />
           <span className="sr-only">Close panel</span>
