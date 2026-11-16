@@ -187,7 +187,7 @@ export function parseExportQuery(query: Record<string, unknown>): {
   return {
     format: format as ExportFormat,
     mode: mode as ExportMode,
-    redact: redact.map((term) => term.trim()),
+    redact,
   };
 }
 

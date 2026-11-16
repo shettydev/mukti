@@ -52,14 +52,18 @@ test('every selection source is passed through as is', () => {
 });
 
 test('an ordinary launch removes an inherited study arm from the child process', () => {
-  const result = spawnSync(process.execPath, ['-e', 'console.log(process.env.MUKTI_STUDY_ARM)'], {
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      MUKTI_STUDY_ARM: 'baseline-direct',
-      ...providerEnv({ home: '/h', provider: codex, source: 'saved' }),
-    },
-  });
+  const result = spawnSync(
+    process.execPath,
+    ['-e', 'process.stdout.write(String(process.env.MUKTI_STUDY_ARM))'],
+    {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        MUKTI_STUDY_ARM: 'baseline-direct',
+        ...providerEnv({ home: '/h', provider: codex, source: 'saved' }),
+      },
+    }
+  );
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout.trim(), 'undefined');
 });

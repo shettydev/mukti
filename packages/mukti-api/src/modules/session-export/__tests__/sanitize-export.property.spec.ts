@@ -60,6 +60,21 @@ describe('sanitizeExport', () => {
     expect(renderMarkdown(model)).not.toMatch(/acme-payments|priya/i);
   });
 
+  it('preserves whitespace in literal terms instead of expanding their match', () => {
+    const model = structuredClone(FIXTURE_EXPORT);
+    model.messages[0].content = 'prefix secret suffix and secret-alone';
+    const sanitized = sanitizeExport(model, {
+      mode: 'full',
+      redact: [' secret '],
+    });
+    expect(sanitized.messages[0].content).toBe(
+      'prefix[redacted]suffix and secret-alone',
+    );
+    expect(() =>
+      sanitizeExport(model, { mode: 'full', redact: ['x'.repeat(200) + ' '] }),
+    ).toThrow();
+  });
+
   it('never writes the redaction terms themselves into the export', () => {
     const model = sanitizeExport(FIXTURE_EXPORT, {
       mode: 'full',
@@ -119,16 +134,11 @@ describe('sanitizeExport', () => {
     }
   });
 
-  /** Terms the API accepts: no brackets, not a piece of "redacted". */
+  // A generated private token cannot collide with fixed schema vocabulary or
+  // the replacement marker. Punctuation still exercises literal escaping.
   const term = fc
-    .string({ maxLength: 12, minLength: 2, unit: 'grapheme' })
-    .map((s) => s.trim())
-    .filter(
-      (s) =>
-        s.length >= 2 &&
-        !/[[\]]/.test(s) &&
-        !REDACTED.toLowerCase().includes(s.toLowerCase()),
-    );
+    .string({ maxLength: 12, minLength: 1 })
+    .map((s) => `private-${s}-secret`);
 
   /** Case-insensitive occurrences of `term` in `text`. */
   const occurrences = (text: string, term: string) =>
@@ -167,20 +177,11 @@ describe('sanitizeExport', () => {
             mode: 'full',
             redact: terms,
           });
-          // The same export with no user text: a short term may legitimately
-          // occur in the export's own wording ("on" in "Configuration").
-          const baseline = sanitizeExport(withText(REDACTED), {
-            mode: 'full',
-            redact: terms,
-          });
-
           for (const t of terms) {
             const jsonTerm = JSON.stringify(t).slice(1, -1);
             if (
-              occurrences(renderJson(model), jsonTerm) >
-                occurrences(renderJson(baseline), jsonTerm) ||
-              occurrences(unescapeMd(renderMarkdown(model)), t) >
-                occurrences(unescapeMd(renderMarkdown(baseline)), t)
+              occurrences(renderJson(model), jsonTerm) > 0 ||
+              occurrences(unescapeMd(renderMarkdown(model)), t) > 0
             ) {
               return false;
             }

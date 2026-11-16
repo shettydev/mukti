@@ -7,7 +7,6 @@ import type { QualityDirectives } from '../../dialogue-quality/interfaces/qualit
 import type { ScaffoldContext } from '../../scaffolding/interfaces/scaffolding.interface';
 
 import { AiPolicyService } from '../../ai/services/ai-policy.service';
-import { readUsage } from '../../ai/utils/read-usage';
 import {
   AI_CHAT_CLIENT_FACTORY,
   type AiChatClientFactory,
@@ -16,6 +15,7 @@ import {
   type AiJsonSchemaResponseFormat,
   SOCRATIC_QUESTION_FORMAT,
 } from '../../ai/types/ai-response-format.interface';
+import { readUsage } from '../../ai/utils/read-usage';
 import {
   appendQualityGuardrails,
   buildScaffoldAwarePrompt,

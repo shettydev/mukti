@@ -141,7 +141,7 @@ export class SessionExportService {
       muktiVersion: this.muktiVersion,
       studyArm: studyArmOf(conversation),
       surface: 'chat',
-      technique: conversation.technique,
+      technique: conversation.studyArm ? null : conversation.technique,
     };
   }
 

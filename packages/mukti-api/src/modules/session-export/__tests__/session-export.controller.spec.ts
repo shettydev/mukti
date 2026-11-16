@@ -156,6 +156,13 @@ describe('parseExportQuery', () => {
   ])('rejects nonstring query values %p', (query) => {
     expect(() => parseExportQuery(query)).toThrow();
   });
+  it('keeps literal whitespace and measures the whole term length', () => {
+    expect(parseExportQuery({ redact: [' secret ', ' '] }).redact).toEqual([
+      ' secret ',
+      ' ',
+    ]);
+    expect(() => parseExportQuery({ redact: 'x'.repeat(200) + ' ' })).toThrow();
+  });
   it('accepts the documented literal term boundaries', () => {
     expect(
       parseExportQuery({ redact: ['a', 'redacted', '[x]', 'x'.repeat(200)] })

@@ -113,6 +113,7 @@ describe('SessionExportService', () => {
       USER,
     );
     expect(model.configuration.studyArm).toEqual(studyArm);
+    expect(model.configuration.technique).toBeNull();
   });
 
   it('exports a canvas node dialogue with its technique and the stored token total', async () => {

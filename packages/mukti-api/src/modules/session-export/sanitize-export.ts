@@ -20,11 +20,10 @@ export const MAX_REDACTION_LENGTH = 200;
  * are not user data, and the caller must not treat redaction as anonymization.
  */
 export function redactionTermProblem(term: string): null | string {
-  const trimmed = term.trim();
-  if (!trimmed) {
+  if (!term) {
     return 'is empty';
   }
-  if (trimmed.length > MAX_REDACTION_LENGTH) {
+  if (term.length > MAX_REDACTION_LENGTH) {
     return `is longer than ${MAX_REDACTION_LENGTH} characters`;
   }
   return null;
@@ -53,9 +52,9 @@ export function sanitizeExport(
   model: SessionExport,
   options: { mode: ExportMode; privateValues?: string[]; redact: string[] },
 ): SessionExport {
-  const terms = [
-    ...new Set(options.redact.map((t) => t.trim()).filter(Boolean)),
-  ].sort((a, b) => b.length - a.length);
+  const terms = [...new Set(options.redact)].sort(
+    (a, b) => b.length - a.length,
+  );
   for (const term of terms) {
     const problem = redactionTermProblem(term);
     if (problem) {
