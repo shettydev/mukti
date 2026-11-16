@@ -45,6 +45,25 @@ excluded the seeded synthetic email, recognizable key, and database identifiers.
 Unauthenticated requests returned 401 and downloads had attachment headers.
 This verifies hosted-mode behavior locally, not a deployed production instance.
 
+## Automated gates
+
+With Node 25.7.0 and Bun 1.1.3, all three required commands passed with
+`--parallel=1` so projects did not compete for test resources:
+
+- `bun run affected:lint`: API, web, and CLI passed, with existing warnings.
+- `bun run affected:build`: API, production Next.js web, and CLI passed.
+- `bun run affected:test`: API 120 suites / 1473 tests passed (3 suites /
+  15 tests skipped), web 79 suites / 907 tests passed, CLI 116 tests passed.
+- `bun test scripts/eval/summarize.test.ts`: 5 tests / 24 assertions passed.
+- `bun run docs:check` and strict OpenSpec validation passed.
+
+An initial parallel run timed out Mongo startup and UI interactions. Sequential
+project execution resolved those failures. A genuine partial configuration mock
+and fetch-mock type errors were corrected. A development server also replaced
+`.next` during a bundle assertion, so it was stopped and a production build was
+completed before the successful final test run. Temporary smoke servers and the
+temporary Redis process were stopped after validation.
+
 ## Remaining acceptance limitations
 
 - Automated component tests cover export controls on all three surfaces, download
