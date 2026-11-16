@@ -7,6 +7,7 @@
  * would land somewhere the next launch never reads.
  */
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
@@ -21,6 +22,7 @@ test('names the provider, the saved-default file and the source', () => {
 
   assert.deepEqual(env, {
     AI_PROVIDER: 'codex',
+    MUKTI_STUDY_ARM: undefined,
     [PROVIDER_SETTINGS_ENV]: join('/tmp/x', 'config.json'),
     [PROVIDER_SOURCE_ENV]: 'option',
   });
@@ -47,4 +49,17 @@ test('every selection source is passed through as is', () => {
   for (const source of ['detected', 'env', 'option', 'picked', 'saved'] as const) {
     assert.equal(providerEnv({ home: '/h', provider: codex, source })[PROVIDER_SOURCE_ENV], source);
   }
+});
+
+test('an ordinary launch removes an inherited study arm from the child process', () => {
+  const result = spawnSync(process.execPath, ['-e', 'console.log(process.env.MUKTI_STUDY_ARM)'], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      MUKTI_STUDY_ARM: 'baseline-direct',
+      ...providerEnv({ home: '/h', provider: codex, source: 'saved' }),
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), 'undefined');
 });
