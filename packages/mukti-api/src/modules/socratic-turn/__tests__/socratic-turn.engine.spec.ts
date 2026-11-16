@@ -21,7 +21,10 @@ import {
  */
 describe('SocraticTurnEngine', () => {
   const aiKeyResolver = { resolve: jest.fn() };
-  const aiPolicyService = { getCuratedModels: jest.fn() };
+  const aiPolicyService = {
+    getActiveProviderId: jest.fn(() => 'openrouter'),
+    getCuratedModels: jest.fn(),
+  };
   const dialogueQualityService = { assess: jest.fn() };
   const knowledgeGapDetector = {
     analyze: jest.fn(),

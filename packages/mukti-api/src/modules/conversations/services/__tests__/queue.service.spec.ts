@@ -134,6 +134,7 @@ describe('QueueService', () => {
     };
 
     const mockAiPolicyService = {
+      getActiveProviderId: jest.fn(() => 'openrouter'),
       getCuratedModels: jest.fn(() => [
         { id: 'openai/gpt-5-mini', label: 'GPT-5 Mini' },
       ]),
@@ -1016,12 +1017,18 @@ describe('QueueService', () => {
     });
 
     it('More help from level 1 writes and stores level 2 with counters reset', async () => {
-      const { complete, scaffoldContext } = await runTurn({
+      const { complete, savedReply, scaffoldContext } = await runTurn({
         conversation: { consecutiveFailures: 1 },
         helpControl: 'more_help',
       });
 
       expect(scaffoldContext).toMatchObject({ level: 2 });
+      // The reply records the level it was written at, plus the provider.
+      expect(savedReply).toMatchObject({
+        provider: 'openrouter',
+        scaffoldLevel: 2,
+        turnKind: 'more_help',
+      });
       expect(scaffoldWrite()?.$set).toMatchObject({
         consecutiveFailures: 0,
         consecutiveSuccesses: 0,

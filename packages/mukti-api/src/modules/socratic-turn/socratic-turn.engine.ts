@@ -52,6 +52,8 @@ export interface PreparedTurn {
   readonly input: PrepareTurnInput;
   model: string;
   readonly preDemonstratesUnderstanding: boolean;
+  /** The active provider id this turn is sent to, recorded on the reply. */
+  readonly provider: string;
   qualityDirectives: QualityDirectives;
   /**
    * The learner-facing response shape this surface SHALL declare for this
@@ -187,7 +189,7 @@ export class SocraticTurnEngine {
   }
 
   async prepare(input: PrepareTurnInput): Promise<PreparedTurn> {
-    const { apiKey, model } = await this.resolveAi(
+    const { apiKey, model, provider } = await this.resolveAi(
       input.model,
       input.usedByok,
       input.userId,
@@ -259,6 +261,7 @@ export class SocraticTurnEngine {
       model,
       preDemonstratesUnderstanding:
         preEvaluation.quality.demonstratesUnderstanding,
+      provider,
       qualityDirectives,
       responseFormat: responseFormatForTurn(turnKind),
       scaffoldContext: {
@@ -282,7 +285,7 @@ export class SocraticTurnEngine {
     requestedModel: string,
     usedByok: boolean,
     userId: string,
-  ): Promise<{ apiKey: string; model: string }> {
+  ): Promise<{ apiKey: string; model: string; provider: string }> {
     const model = requestedModel.trim();
 
     if (!model) {
@@ -300,7 +303,11 @@ export class SocraticTurnEngine {
     }
 
     const apiKey = await this.aiKeyResolver.resolve({ usedByok, userId });
-    return { apiKey, model };
+    return {
+      apiKey,
+      model,
+      provider: this.aiPolicyService.getActiveProviderId(),
+    };
   }
 
   async settle(

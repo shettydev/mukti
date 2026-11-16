@@ -1,4 +1,4 @@
-import type { TurnKind } from '@muktiai/contracts';
+import type { HelpLevel, TurnKind } from '@muktiai/contracts';
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
@@ -9,10 +9,21 @@ export type DialogueMessageDocument = DialogueMessage & Document;
  * Metadata for AI-generated messages.
  */
 export interface DialogueMessageMetadata {
+  /** Completion tokens, when the provider reported them */
+  completionTokens?: number;
   /** Time taken to generate the response in milliseconds */
   latencyMs?: number;
   /** AI model used for generation */
   model?: string;
+  /** Prompt tokens, when the provider reported them */
+  promptTokens?: number;
+  /** The active provider id that produced the reply */
+  provider?: string;
+  /**
+   * The help level the reply was written at. Absent on older replies and on
+   * opening questions, which are not learner turns.
+   */
+  scaffoldLevel?: HelpLevel;
   /** Token count for the message */
   tokens?: number;
   /**

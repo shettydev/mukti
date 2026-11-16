@@ -1,4 +1,4 @@
-import type { TurnKind } from '@muktiai/contracts';
+import type { HelpLevel, TurnKind } from '@muktiai/contracts';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -109,6 +109,10 @@ export class MessageService {
       latencyMs?: number;
       model?: string;
       promptTokens?: number;
+      /** The active provider id that produced the reply. */
+      provider?: string;
+      /** The help level the reply was written at. */
+      scaffoldLevel?: HelpLevel;
       totalTokens?: number;
       /** What kind of reply this is (dialogue-help-controls). */
       turnKind?: TurnKind;
@@ -146,6 +150,10 @@ export class MessageService {
               latencyMs: metadata.latencyMs,
               model: metadata.model,
               promptTokens: metadata.promptTokens,
+              ...(metadata.provider ? { provider: metadata.provider } : {}),
+              ...(metadata.scaffoldLevel === undefined
+                ? {}
+                : { scaffoldLevel: metadata.scaffoldLevel }),
               totalTokens: metadata.totalTokens,
               ...(metadata.turnKind ? { turnKind: metadata.turnKind } : {}),
             }
@@ -289,6 +297,12 @@ export class MessageService {
               latencyMs: message.metadata.latencyMs,
               model: message.metadata.model,
               promptTokens: message.metadata.promptTokens,
+              ...(message.metadata.provider
+                ? { provider: message.metadata.provider }
+                : {}),
+              ...(message.metadata.scaffoldLevel === undefined
+                ? {}
+                : { scaffoldLevel: message.metadata.scaffoldLevel }),
               totalTokens: message.metadata.totalTokens,
               // Keep explanations and summaries tagged once archived
               ...(message.metadata.turnKind

@@ -27,6 +27,15 @@ export class AiPolicyService {
   ) {}
 
   /**
+   * The active provider id (`openrouter`, `claude-code`, `codex`,
+   * `antigravity`, ...), recorded on each reply so an export states which
+   * provider produced it.
+   */
+  getActiveProviderId(): string {
+    return this.aiProviderRegistry.getProviderId();
+  }
+
+  /**
    * Models offered for the active provider: the local CLI's own catalogue when
    * one is active, the OpenRouter curated list otherwise.
    */

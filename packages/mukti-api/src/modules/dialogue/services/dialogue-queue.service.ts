@@ -1,3 +1,5 @@
+import type { HelpLevel } from '@muktiai/contracts';
+
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -380,8 +382,13 @@ export class DialogueQueueService extends WorkerHost {
         'assistant',
         aiResponse.content,
         {
+          completionTokens: aiResponse.completionTokens,
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
+          promptTokens: aiResponse.promptTokens,
+          provider: turn.provider,
+          // The level this reply was written at, not the level after it
+          scaffoldLevel: scaffoldContext.level as HelpLevel,
           tokens: aiResponse.totalTokens,
           turnKind: turn.turnKind,
         },

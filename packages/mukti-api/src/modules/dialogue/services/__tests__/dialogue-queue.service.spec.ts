@@ -116,6 +116,7 @@ describe('DialogueQueueService — local mode (inline)', () => {
     const socraticTurnEngine = new SocraticTurnEngine(
       { resolve: jest.fn().mockResolvedValue('') } as any, // aiKeyResolver
       {
+        getActiveProviderId: jest.fn().mockReturnValue('claude-code'),
         getCuratedModels: jest.fn().mockReturnValue([{ id: 'sonnet' }]),
         isLocalCliProvider: jest.fn().mockReturnValue(true),
       } as any, // aiPolicyService
@@ -328,6 +329,7 @@ describe('DialogueQueueService — help controls and turn budget', () => {
     const engine = new SocraticTurnEngine(
       { resolve: jest.fn().mockResolvedValue('key') } as any,
       {
+        getActiveProviderId: jest.fn().mockReturnValue('claude-code'),
         getCuratedModels: jest.fn().mockReturnValue([{ id: 'sonnet' }]),
       } as any,
       { assess } as any,
@@ -475,11 +477,17 @@ describe('DialogueQueueService — help controls and turn budget', () => {
   );
 
   it('More help from level 1 writes and stores level 2 with counters reset', async () => {
-    const { complete, scaffoldContext } = await runTurn({
+    const { complete, savedReply, scaffoldContext } = await runTurn({
       helpControl: 'more_help',
     });
 
     expect(scaffoldContext).toMatchObject({ level: 2 });
+    // The reply records the level it was written at, plus the provider.
+    expect(savedReply).toMatchObject({
+      provider: 'claude-code',
+      scaffoldLevel: 2,
+      turnKind: 'more_help',
+    });
     expect(dialogueService.updateScaffoldState).toHaveBeenCalledWith(
       expect.anything(),
       ScaffoldLevel.META_COGNITIVE,

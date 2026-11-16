@@ -1,4 +1,4 @@
-import type { TurnKind } from '@muktiai/contracts';
+import type { HelpLevel, TurnKind } from '@muktiai/contracts';
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
@@ -21,6 +21,13 @@ export interface RecentMessage {
     latencyMs?: number;
     model?: string;
     promptTokens?: number;
+    /** On assistant replies: the active provider id that produced it. */
+    provider?: string;
+    /**
+     * On assistant replies: the help level the reply was written at. Absent
+     * on older replies and on study-arm replies, which have no level.
+     */
+    scaffoldLevel?: HelpLevel;
     totalTokens?: number;
     /**
      * On assistant replies: what kind of reply this is

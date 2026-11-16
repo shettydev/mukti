@@ -45,6 +45,7 @@ describe('ThoughtMapDialogueQueueService', () => {
   };
 
   const mockAiPolicyService = {
+    getActiveProviderId: jest.fn().mockReturnValue('codex'),
     getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
   };
 
@@ -671,9 +672,16 @@ describe('ThoughtMapDialogueQueueService', () => {
       );
 
       it('More help from level 1 writes and stores level 2 with counters reset', async () => {
-        const { complete } = await runTurn({
+        const { complete, savedReply } = await runTurn({
           dialogue: { consecutiveFailures: 1 },
           helpControl: 'more_help',
+        });
+
+        // The reply records the level it was written at, plus the provider.
+        expect(savedReply).toMatchObject({
+          provider: 'codex',
+          scaffoldLevel: 2,
+          turnKind: 'more_help',
         });
 
         const [, scaffoldContext] =
@@ -1042,8 +1050,12 @@ describe('ThoughtMapDialogueQueueService', () => {
         'assistant',
         aiResponse.content,
         {
+          completionTokens: aiResponse.completionTokens,
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
+          promptTokens: aiResponse.promptTokens,
+          // An opening question is not a learner turn: no help level
+          provider: 'codex',
           tokens: aiResponse.totalTokens,
         },
       );
