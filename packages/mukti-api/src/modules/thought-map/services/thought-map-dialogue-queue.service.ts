@@ -1,3 +1,5 @@
+import type { HelpLevel } from '@muktiai/contracts';
+
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -100,7 +102,8 @@ export interface ThoughtMapDialogueJobResult {
   cost: number;
   dialogueId: string;
   latency: number;
-  tokens: number;
+  /** Undefined when the provider did not report usage. */
+  tokens?: number;
   userMessageId: string;
 }
 
@@ -500,8 +503,13 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         'assistant',
         aiResponse.content,
         {
+          completionTokens: aiResponse.completionTokens,
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
+          promptTokens: aiResponse.promptTokens,
+          provider: turn.provider,
+          // The level this reply was written at, not the level after it
+          scaffoldLevel: scaffoldContext.level as HelpLevel,
           tokens: aiResponse.totalTokens,
           turnKind: turn.turnKind,
         },
@@ -701,8 +709,11 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         },
       );
 
-      const { apiKey, model: effectiveModel } =
-        await this.socraticTurnEngine.resolveAi(model, usedByok, userId);
+      const {
+        apiKey,
+        model: effectiveModel,
+        provider,
+      } = await this.socraticTurnEngine.resolveAi(model, usedByok, userId);
 
       // Select technique via RFC §5.1.1 algorithm
       const techniqueCtx: ThoughtMapNodeTechniqueContext = {
@@ -743,8 +754,11 @@ export class ThoughtMapDialogueQueueService extends WorkerHost {
         'assistant',
         aiResponse.content,
         {
+          completionTokens: aiResponse.completionTokens,
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
+          promptTokens: aiResponse.promptTokens,
+          provider,
           tokens: aiResponse.totalTokens,
         },
       );

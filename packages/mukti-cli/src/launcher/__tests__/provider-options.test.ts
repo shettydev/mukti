@@ -83,3 +83,24 @@ test('naming a provider and asking to choose one is refused', () => {
   assert.equal(result.kind, 'error');
   assert.match(result.kind === 'error' ? result.message : '', /--choose/);
 });
+
+test('study arms do not change provider selection, saving or remaining arguments', () => {
+  for (const studyArm of ['baseline-socratic', 'baseline-direct']) {
+    const ordinary = parseProviderOptions(['--port', '4000', '--choose']);
+    const study = parseProviderOptions(['--study-arm', studyArm, '--port', '4000', '--choose']);
+    assert.equal(ordinary.kind, 'ok');
+    assert.equal(study.kind, 'ok');
+    if (ordinary.kind !== 'ok' || study.kind !== 'ok') {
+      return;
+    }
+    assert.deepEqual(study, {
+      ...ordinary,
+      options: { ...ordinary.options, studyArm },
+    });
+    assert.deepEqual(parseProviderOptions([]), {
+      kind: 'ok',
+      options: { choose: false, provider: undefined, save: false },
+      rest: [],
+    });
+  }
+});

@@ -223,12 +223,18 @@ export class LocalCliClientFactory implements AiChatClientFactory {
       );
     }
 
+    // Unreported counts are left out, never sent as 0, and the total is only
+    // given when both parts are known.
     return {
       choices: [{ message: { content } }],
       usage: {
-        completion_tokens: completionTokens,
-        prompt_tokens: promptTokens,
-        total_tokens: promptTokens + completionTokens,
+        ...(completionTokens === undefined
+          ? {}
+          : { completion_tokens: completionTokens }),
+        ...(promptTokens === undefined ? {} : { prompt_tokens: promptTokens }),
+        ...(promptTokens === undefined || completionTokens === undefined
+          ? {}
+          : { total_tokens: promptTokens + completionTokens }),
       },
     };
   }

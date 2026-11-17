@@ -138,6 +138,20 @@ export class DialogueService {
   }
 
   /**
+   * Every message of a dialogue, in order, for a full session export. Lean
+   * documents: read-only.
+   */
+  async getAllMessages(
+    dialogueId: string | Types.ObjectId,
+  ): Promise<DialogueMessage[]> {
+    return this.dialogueMessageModel
+      .find({ dialogueId: new Types.ObjectId(dialogueId.toString()) })
+      .sort({ sequence: 1 })
+      .lean<DialogueMessage[]>()
+      .exec();
+  }
+
+  /**
    * Gets a dialogue by session and node ID.
    *
    * @param sessionId - The canvas session ID

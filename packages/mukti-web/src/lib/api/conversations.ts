@@ -58,6 +58,7 @@ interface BackendConversation {
     role: 'assistant' | 'user';
     timestamp: string;
   }>;
+  studyArm?: Conversation['studyArm'];
   tags: string[];
   technique: string;
   title: string;
@@ -115,6 +116,7 @@ function transformConversation(backend: BackendConversation | Conversation): Con
   });
 
   return {
+    ...(backend.studyArm ? { studyArm: backend.studyArm } : {}),
     conclusionOffered: ('conclusionOffered' in backend && backend.conclusionOffered) || false,
     createdAt: backend.createdAt,
     currentScaffoldLevel: toHelpLevel(backend.currentScaffoldLevel),

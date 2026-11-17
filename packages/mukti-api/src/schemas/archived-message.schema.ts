@@ -1,4 +1,4 @@
-import type { TurnKind } from '@muktiai/contracts';
+import type { HelpLevel, TurnKind } from '@muktiai/contracts';
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
@@ -11,6 +11,10 @@ export interface MessageMetadata {
   latencyMs?: number;
   model?: string;
   promptTokens?: number;
+  /** The active provider id that produced the reply. */
+  provider?: string;
+  /** The help level the reply was written at; absent = not recorded. */
+  scaffoldLevel?: HelpLevel;
   technique?: string;
   totalTokens?: number;
   /** What kind of reply this was (dialogue-help-controls); absent = ordinary. */

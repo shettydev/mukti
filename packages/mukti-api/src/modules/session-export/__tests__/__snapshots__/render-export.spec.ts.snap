@@ -1,0 +1,525 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renderJson keeps the v1 shape, or the schema version must change: published v1 schema 1`] = `
+{
+  "$id": "https://mukti.chat/schemas/session-export/v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "configuration": {
+      "additionalProperties": false,
+      "properties": {
+        "dialogueTitle": {
+          "type": "string",
+        },
+        "mode": {
+          "enum": [
+            "hosted",
+            "local",
+          ],
+        },
+        "models": {
+          "items": {
+            "type": "string",
+          },
+          "type": "array",
+        },
+        "muktiVersion": {
+          "type": "string",
+        },
+        "nodeLabel": {
+          "type": "string",
+        },
+        "nodeType": {
+          "type": "string",
+        },
+        "providers": {
+          "items": {
+            "type": "string",
+          },
+          "type": "array",
+        },
+        "studyArm": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "enum": [
+                "baseline-socratic",
+                "baseline-direct",
+              ],
+            },
+            "promptSha256": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "name",
+            "promptSha256",
+          ],
+          "type": "object",
+        },
+        "surface": {
+          "enum": [
+            "chat",
+            "canvas_node",
+            "thought_map_node",
+          ],
+        },
+        "technique": {
+          "type": [
+            "string",
+            "null",
+          ],
+        },
+      },
+      "required": [
+        "mode",
+        "models",
+        "muktiVersion",
+        "providers",
+        "surface",
+        "technique",
+      ],
+      "type": "object",
+    },
+    "message": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "description": "Absent in metrics-only exports.",
+          "type": "string",
+        },
+        "reply": {
+          "$ref": "#/definitions/reply",
+        },
+        "role": {
+          "enum": [
+            "user",
+            "assistant",
+          ],
+        },
+        "sequence": {
+          "minimum": 1,
+          "type": "integer",
+        },
+        "timestamp": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "role",
+        "sequence",
+        "timestamp",
+      ],
+      "type": "object",
+    },
+    "reply": {
+      "additionalProperties": false,
+      "properties": {
+        "completionTokens": {
+          "$ref": "#/definitions/reportedNumber",
+        },
+        "helpLevel": {
+          "oneOf": [
+            {
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+              ],
+            },
+            {
+              "const": "not_reported",
+            },
+          ],
+        },
+        "latencyMs": {
+          "$ref": "#/definitions/reportedNumber",
+        },
+        "model": {
+          "$ref": "#/definitions/reportedString",
+        },
+        "promptTokens": {
+          "$ref": "#/definitions/reportedNumber",
+        },
+        "provider": {
+          "$ref": "#/definitions/reportedString",
+        },
+        "totalTokens": {
+          "$ref": "#/definitions/reportedNumber",
+        },
+        "turnKind": {
+          "$ref": "#/definitions/turnKind",
+        },
+      },
+      "required": [
+        "completionTokens",
+        "helpLevel",
+        "latencyMs",
+        "model",
+        "promptTokens",
+        "provider",
+        "totalTokens",
+        "turnKind",
+      ],
+      "type": "object",
+    },
+    "reportedNumber": {
+      "oneOf": [
+        {
+          "type": "number",
+        },
+        {
+          "const": "not_reported",
+        },
+      ],
+    },
+    "reportedString": {
+      "description": "A recorded value, or "not_reported".",
+      "type": "string",
+    },
+    "summary": {
+      "additionalProperties": false,
+      "properties": {
+        "assistantReplies": {
+          "minimum": 0,
+          "type": "integer",
+        },
+        "endedAt": {
+          "type": [
+            "string",
+            "null",
+          ],
+        },
+        "exchanges": {
+          "minimum": 0,
+          "type": "integer",
+        },
+        "startedAt": {
+          "type": [
+            "string",
+            "null",
+          ],
+        },
+        "timeToFirstReplyMs": {
+          "type": [
+            "number",
+            "null",
+          ],
+        },
+        "tokens": {
+          "additionalProperties": false,
+          "properties": {
+            "completion": {
+              "$ref": "#/definitions/tokenTotal",
+            },
+            "prompt": {
+              "$ref": "#/definitions/tokenTotal",
+            },
+            "total": {
+              "$ref": "#/definitions/tokenTotal",
+            },
+          },
+          "required": [
+            "completion",
+            "prompt",
+            "total",
+          ],
+          "type": "object",
+        },
+        "totalDurationMs": {
+          "type": [
+            "number",
+            "null",
+          ],
+        },
+        "turnKinds": {
+          "additionalProperties": false,
+          "properties": {
+            "explain": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "more_help": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "ordinary": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "wrap_up": {
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "ordinary",
+            "more_help",
+            "explain",
+            "wrap_up",
+          ],
+          "type": "object",
+        },
+        "wrapUpReached": {
+          "type": "boolean",
+        },
+      },
+      "required": [
+        "assistantReplies",
+        "endedAt",
+        "exchanges",
+        "startedAt",
+        "timeToFirstReplyMs",
+        "tokens",
+        "totalDurationMs",
+        "turnKinds",
+        "wrapUpReached",
+      ],
+      "type": "object",
+    },
+    "tokenTotal": {
+      "additionalProperties": false,
+      "properties": {
+        "repliesIncluded": {
+          "minimum": 0,
+          "type": "integer",
+        },
+        "repliesNotReported": {
+          "minimum": 0,
+          "type": "integer",
+        },
+        "total": {
+          "minimum": 0,
+          "type": "number",
+        },
+      },
+      "required": [
+        "repliesIncluded",
+        "repliesNotReported",
+        "total",
+      ],
+      "type": "object",
+    },
+    "turnKind": {
+      "enum": [
+        "ordinary",
+        "more_help",
+        "explain",
+        "wrap_up",
+      ],
+    },
+  },
+  "description": "One exported Socratic dialogue (chat, canvas node or thought-map node). Values a provider or an older message did not record are the string "not_reported", never estimated or zero.",
+  "properties": {
+    "configuration": {
+      "$ref": "#/definitions/configuration",
+    },
+    "exportId": {
+      "description": "Random per export. Never a database id.",
+      "type": "string",
+    },
+    "exportMode": {
+      "enum": [
+        "full",
+        "metrics",
+      ],
+    },
+    "exportedAt": {
+      "type": "string",
+    },
+    "messages": {
+      "items": {
+        "$ref": "#/definitions/message",
+      },
+      "type": "array",
+    },
+    "redactions": {
+      "description": "How many redaction strings were applied. The strings themselves are never included.",
+      "minimum": 0,
+      "type": "integer",
+    },
+    "schemaVersion": {
+      "const": 1,
+    },
+    "summary": {
+      "$ref": "#/definitions/summary",
+    },
+  },
+  "required": [
+    "configuration",
+    "exportId",
+    "exportMode",
+    "exportedAt",
+    "messages",
+    "redactions",
+    "schemaVersion",
+    "summary",
+  ],
+  "title": "Mukti session export",
+  "type": "object",
+}
+`;
+
+exports[`renderJson writes the model as stable, key-sorted JSON that matches the snapshot 1`] = `
+"{
+  "configuration": {
+    "mode": "local",
+    "models": [
+      "sonnet"
+    ],
+    "muktiVersion": "0.1.1",
+    "providers": [
+      "claude-code"
+    ],
+    "surface": "chat",
+    "technique": "elenchus"
+  },
+  "exportId": "7c1f0d2e-3b7a-4f61-9a55-1f0c2d3e4b5a",
+  "exportMode": "full",
+  "exportedAt": "2026-11-16T10:00:00.000Z",
+  "messages": [
+    {
+      "content": "My retry handler charges twice.",
+      "role": "user",
+      "sequence": 1,
+      "timestamp": "2026-11-16T09:00:00.000Z"
+    },
+    {
+      "content": "What happens on the second call?",
+      "reply": {
+        "completionTokens": 9,
+        "helpLevel": 0,
+        "latencyMs": 1800,
+        "model": "sonnet",
+        "promptTokens": 120,
+        "provider": "claude-code",
+        "totalTokens": 129,
+        "turnKind": "ordinary"
+      },
+      "role": "assistant",
+      "sequence": 2,
+      "timestamp": "2026-11-16T09:00:02.000Z"
+    },
+    {
+      "content": "Wrap up please.",
+      "role": "user",
+      "sequence": 3,
+      "timestamp": "2026-11-16T09:01:00.000Z"
+    },
+    {
+      "content": "You found that the handler is not idempotent.",
+      "reply": {
+        "completionTokens": "not_reported",
+        "helpLevel": 0,
+        "latencyMs": 2100,
+        "model": "sonnet",
+        "promptTokens": "not_reported",
+        "provider": "claude-code",
+        "totalTokens": "not_reported",
+        "turnKind": "wrap_up"
+      },
+      "role": "assistant",
+      "sequence": 4,
+      "timestamp": "2026-11-16T09:01:03.000Z"
+    }
+  ],
+  "redactions": 0,
+  "schemaVersion": 1,
+  "summary": {
+    "assistantReplies": 2,
+    "endedAt": "2026-11-16T09:01:03.000Z",
+    "exchanges": 2,
+    "startedAt": "2026-11-16T09:00:00.000Z",
+    "timeToFirstReplyMs": 2000,
+    "tokens": {
+      "completion": {
+        "repliesIncluded": 1,
+        "repliesNotReported": 1,
+        "total": 9
+      },
+      "prompt": {
+        "repliesIncluded": 1,
+        "repliesNotReported": 1,
+        "total": 120
+      },
+      "total": {
+        "repliesIncluded": 1,
+        "repliesNotReported": 1,
+        "total": 129
+      }
+    },
+    "totalDurationMs": 63000,
+    "turnKinds": {
+      "explain": 0,
+      "more_help": 0,
+      "ordinary": 1,
+      "wrap_up": 1
+    },
+    "wrapUpReached": true
+  }
+}
+"
+`;
+
+exports[`renderMarkdown renders a readable transcript that matches the snapshot 1`] = `
+"# Mukti session export
+
+## Configuration
+
+| Setting | Value |
+| --- | --- |
+| Surface | Chat |
+| Technique | elenchus |
+| Mode | local |
+| Providers | claude-code |
+| Models | sonnet |
+| Mukti version | 0\\.1.1 |
+| Export | full |
+| Export id | \`7c1f0d2e-3b7a-4f61-9a55-1f0c2d3e4b5a\` |
+| Exported at | 2026-11-16T10:00:00.000Z |
+| Schema version | 1 |
+
+## Summary
+
+| Measure | Value |
+| --- | --- |
+| Started | 2026-11-16T09:00:00.000Z |
+| Ended | 2026-11-16T09:01:03.000Z |
+| Total duration | 1m 3s (63000 ms) |
+| Time to first reply | 2s (2000 ms) |
+| Exchanges | 2 |
+| Assistant replies | 2 |
+| More help | 0 |
+| Explain | 0 |
+| Wrap up | 1 |
+| Wrap-up reached | yes |
+| Prompt tokens | 120 over 1 of 2 replies (1 not reported) |
+| Completion tokens | 9 over 1 of 2 replies (1 not reported) |
+| Total tokens | 129 over 1 of 2 replies (1 not reported) |
+
+## Transcript
+
+### 1. Learner · 2026-11-16T09:00:00.000Z
+
+> My retry handler charges twice.
+
+### 2. Mukti · 2026-11-16T09:00:02.000Z
+
+_turn: ordinary · help level: 0 · latency: 1800 ms · provider: claude-code · model: sonnet · tokens: 120 in / 9 out / 129 total_
+
+> What happens on the second call?
+
+### 3. Learner · 2026-11-16T09:01:00.000Z
+
+> Wrap up please.
+
+### 4. Mukti · 2026-11-16T09:01:03.000Z
+
+_turn: wrap_up · help level: 0 · latency: 2100 ms · provider: claude-code · model: sonnet · tokens: not reported in / not reported out / not reported total_
+
+> You found that the handler is not idempotent.
+"
+`;

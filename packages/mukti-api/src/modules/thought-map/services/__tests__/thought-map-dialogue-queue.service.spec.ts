@@ -45,6 +45,7 @@ describe('ThoughtMapDialogueQueueService', () => {
   };
 
   const mockAiPolicyService = {
+    getActiveProviderId: jest.fn().mockReturnValue('codex'),
     getCuratedModels: jest.fn().mockReturnValue([{ id: 'allowed-model' }]),
   };
 
@@ -356,100 +357,121 @@ describe('ThoughtMapDialogueQueueService', () => {
       totalTokens: 30,
     };
 
-    it('processes a dialogue turn without prior assistant history', async () => {
-      jest
-        .spyOn(service as any, 'getOrCreateMapDialogue')
-        .mockResolvedValue(dialogue);
-      jest
-        .spyOn(service as any, 'resolveMapTitle')
-        .mockResolvedValue('Map title');
-      const mapId = validMapId();
-      mockDialogueService.addMessage
-        .mockResolvedValueOnce(userMessage)
-        .mockResolvedValueOnce(aiMessage);
-      mockDialogueService.getMessages.mockResolvedValue({
-        messages: [
-          {
-            content: 'My answer',
-            createdAt: userMessage.createdAt,
-            role: 'user',
-            sequence: userMessage.sequence,
-          },
-        ],
-        pagination: { total: 1 },
-      });
-      mockKnowledgeGapDetector.analyze.mockResolvedValue(gapResult);
-      mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
-        aiResponse,
-      );
+    it.each(['baseline-direct', 'baseline-socratic'])(
+      'processes a full-engine map turn under the %s launch flag',
+      async (arm) => {
+        const originalArm = process.env.MUKTI_STUDY_ARM;
+        try {
+          process.env.MUKTI_STUDY_ARM = arm;
+          jest
+            .spyOn(service as any, 'getOrCreateMapDialogue')
+            .mockResolvedValue(dialogue);
+          jest
+            .spyOn(service as any, 'resolveMapTitle')
+            .mockResolvedValue('Map title');
+          const mapId = validMapId();
+          mockDialogueService.addMessage
+            .mockResolvedValueOnce(userMessage)
+            .mockResolvedValueOnce(aiMessage);
+          mockDialogueService.getMessages.mockResolvedValue({
+            messages: [
+              {
+                content: 'My answer',
+                createdAt: userMessage.createdAt,
+                role: 'user',
+                sequence: userMessage.sequence,
+              },
+            ],
+            pagination: { total: 1 },
+          });
+          mockKnowledgeGapDetector.analyze.mockResolvedValue(gapResult);
+          mockDialogueAIService.generateScaffoldedResponseWithPrompt.mockResolvedValue(
+            aiResponse,
+          );
 
-      const result = await service.process({
-        data: {
-          depth: 2,
-          fromSuggestion: false,
-          mapId,
-          message: 'My answer',
-          model: 'allowed-model',
-          nodeId: 'node-1',
-          nodeLabel: 'Node label',
-          nodeType: 'thought',
-          parentType: 'question',
-          siblings: 2,
-          subscriptionTier: 'free',
-          usedByok: false,
-          userId: new Types.ObjectId().toString(),
-        },
-        id: 'job-1',
-      } as any);
+          const result = await service.process({
+            data: {
+              depth: 2,
+              fromSuggestion: false,
+              mapId,
+              message: 'My answer',
+              model: 'allowed-model',
+              nodeId: 'node-1',
+              nodeLabel: 'Node label',
+              nodeType: 'thought',
+              parentType: 'question',
+              siblings: 2,
+              subscriptionTier: 'free',
+              usedByok: false,
+              userId: new Types.ObjectId().toString(),
+            },
+            id: 'job-1',
+          } as any);
 
-      expect(result).toEqual({
-        assistantMessageId: aiMessage._id.toString(),
-        cost: 0.02,
-        dialogueId: dialogue._id.toString(),
-        latency: expect.any(Number),
-        tokens: 30,
-        userMessageId: userMessage._id.toString(),
-      });
-      // isExplored is set in process() after the user message is added
-      expect(mockThoughtNodeModel.updateOne).toHaveBeenCalledWith(
-        { mapId: expect.any(Types.ObjectId), nodeId: 'node-1' },
-        { $set: { isExplored: true } },
-      );
-      expect(
-        mockDialogueStreamService.emitToNodeDialogue,
-      ).toHaveBeenCalledTimes(5);
-      expect(
-        mockDialogueStreamService.emitToNodeDialogue.mock.calls.map(
-          ([, , , event]) => event.type,
-        ),
-      ).toEqual(['processing', 'message', 'progress', 'message', 'complete']);
-      // First exchange: the message is pre-read for the quality checks, but
-      // nothing is graded against a prior turn, so no scaffold or knowledge write.
-      expect(mockResponseEvaluator.evaluate).toHaveBeenCalledTimes(1);
-      expect(mockDialogueQualityService.assess).toHaveBeenCalledTimes(1);
-      expect(mockPostResponseMonitor.monitor).toHaveBeenCalledTimes(1);
-      expect(mockDialogueService.updateQualityState).toHaveBeenCalledWith(
-        dialogue._id,
-        expect.objectContaining({ hasMisconception: false }),
-        false,
-        false, // not a wrap-up
-      );
-      expect(mockDialogueService.updateScaffoldState).not.toHaveBeenCalled();
-      expect(
-        mockKnowledgeGapDetector.updateKnowledgeState,
-      ).not.toHaveBeenCalled();
-      expect(mockUsageEventModel.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'THOUGHT_MAP_DIALOGUE_MESSAGE',
-          metadata: expect.objectContaining({
-            dialogueId: dialogue._id,
-            mapId: expect.any(Types.ObjectId),
-            nodeId: 'node-1',
+          expect(result).toEqual({
+            assistantMessageId: aiMessage._id.toString(),
+            cost: 0.02,
+            dialogueId: dialogue._id.toString(),
+            latency: expect.any(Number),
             tokens: 30,
-          }),
-        }),
-      );
-    });
+            userMessageId: userMessage._id.toString(),
+          });
+          // isExplored is set in process() after the user message is added
+          expect(mockThoughtNodeModel.updateOne).toHaveBeenCalledWith(
+            { mapId: expect.any(Types.ObjectId), nodeId: 'node-1' },
+            { $set: { isExplored: true } },
+          );
+          expect(
+            mockDialogueStreamService.emitToNodeDialogue,
+          ).toHaveBeenCalledTimes(5);
+          expect(
+            mockDialogueStreamService.emitToNodeDialogue.mock.calls.map(
+              ([, , , event]) => event.type,
+            ),
+          ).toEqual([
+            'processing',
+            'message',
+            'progress',
+            'message',
+            'complete',
+          ]);
+          // First exchange: the message is pre-read for the quality checks, but
+          // nothing is graded against a prior turn, so no scaffold or knowledge write.
+          expect(mockResponseEvaluator.evaluate).toHaveBeenCalledTimes(1);
+          expect(mockDialogueQualityService.assess).toHaveBeenCalledTimes(1);
+          expect(mockPostResponseMonitor.monitor).toHaveBeenCalledTimes(1);
+          expect(mockDialogueService.updateQualityState).toHaveBeenCalledWith(
+            dialogue._id,
+            expect.objectContaining({ hasMisconception: false }),
+            false,
+            false, // not a wrap-up
+          );
+          expect(
+            mockDialogueService.updateScaffoldState,
+          ).not.toHaveBeenCalled();
+          expect(
+            mockKnowledgeGapDetector.updateKnowledgeState,
+          ).not.toHaveBeenCalled();
+          expect(mockUsageEventModel.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+              eventType: 'THOUGHT_MAP_DIALOGUE_MESSAGE',
+              metadata: expect.objectContaining({
+                dialogueId: dialogue._id,
+                mapId: expect.any(Types.ObjectId),
+                nodeId: 'node-1',
+                tokens: 30,
+              }),
+            }),
+          );
+        } finally {
+          if (originalArm === undefined) {
+            delete process.env.MUKTI_STUDY_ARM;
+          } else {
+            process.env.MUKTI_STUDY_ARM = originalArm;
+          }
+        }
+      },
+    );
 
     it('updates scaffold state and knowledge state when prior assistant history exists', async () => {
       jest.spyOn(service as any, 'getOrCreateMapDialogue').mockResolvedValue({
@@ -671,9 +693,16 @@ describe('ThoughtMapDialogueQueueService', () => {
       );
 
       it('More help from level 1 writes and stores level 2 with counters reset', async () => {
-        const { complete } = await runTurn({
+        const { complete, savedReply } = await runTurn({
           dialogue: { consecutiveFailures: 1 },
           helpControl: 'more_help',
+        });
+
+        // The reply records the level it was written at, plus the provider.
+        expect(savedReply).toMatchObject({
+          provider: 'codex',
+          scaffoldLevel: 2,
+          turnKind: 'more_help',
         });
 
         const [, scaffoldContext] =
@@ -1042,8 +1071,12 @@ describe('ThoughtMapDialogueQueueService', () => {
         'assistant',
         aiResponse.content,
         {
+          completionTokens: aiResponse.completionTokens,
           latencyMs: aiResponse.latencyMs,
           model: aiResponse.model,
+          promptTokens: aiResponse.promptTokens,
+          // An opening question is not a learner turn: no help level
+          provider: 'codex',
           tokens: aiResponse.totalTokens,
         },
       );

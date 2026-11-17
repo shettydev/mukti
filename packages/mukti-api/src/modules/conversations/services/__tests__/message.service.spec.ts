@@ -85,6 +85,23 @@ describe('MessageService', () => {
   });
 
   describe('addMessageToConversation', () => {
+    it('preserves the learner arrival time separately from the assistant write time', async () => {
+      const arrivedAt = new Date(Date.now() - 2500);
+      mockConversationModel.findById.mockResolvedValue(mockConversation);
+      mockConversation.save.mockResolvedValue(mockConversation);
+      await service.addMessageToConversation(
+        new Types.ObjectId(),
+        'question',
+        'reply',
+        { latencyMs: 2500 },
+        arrivedAt,
+      );
+      expect(mockConversation.recentMessages[0].timestamp).toEqual(arrivedAt);
+      expect(
+        mockConversation.recentMessages[1].timestamp.getTime(),
+      ).toBeGreaterThan(arrivedAt.getTime());
+    });
+
     /**
      * Feature: conversation-backend, Property 8: Both messages are appended
      * Validates: Requirements 2.10
@@ -251,6 +268,29 @@ describe('MessageService', () => {
       expect(mockConversation.metadata.totalTokens).toBe(200);
       expect(mockConversation.metadata.estimatedCost).toBe(0.0004);
       expect(mockConversation.metadata.lastMessageAt).toBeDefined();
+    });
+
+    it('keeps the conversation token total correct when a reply reports no usage', async () => {
+      mockConversation.metadata.totalTokens = 120;
+      mockConversationModel.findById.mockResolvedValue(mockConversation);
+      mockConversation.save.mockResolvedValue(mockConversation);
+
+      await service.addMessageToConversation(
+        mockConversation._id,
+        'First',
+        'Reply without usage',
+        { latencyMs: 900, model: 'sonnet', totalTokens: undefined },
+      );
+      expect(mockConversation.metadata.totalTokens).toBe(120);
+      expect(Number.isNaN(mockConversation.metadata.totalTokens)).toBe(false);
+
+      await service.addMessageToConversation(
+        mockConversation._id,
+        'Second',
+        'Reply with usage',
+        { model: 'sonnet', totalTokens: 30 },
+      );
+      expect(mockConversation.metadata.totalTokens).toBe(150);
     });
 
     it('should update lastMessageAt timestamp', async () => {

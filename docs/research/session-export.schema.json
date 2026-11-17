@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mukti.chat/schemas/session-export/v1.json",
+  "title": "Mukti session export",
+  "description": "One exported Socratic dialogue (chat, canvas node or thought-map node). Values a provider or an older message did not record are the string \"not_reported\", never estimated or zero.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "configuration",
+    "exportId",
+    "exportMode",
+    "exportedAt",
+    "messages",
+    "redactions",
+    "schemaVersion",
+    "summary"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "exportId": {
+      "type": "string",
+      "description": "Random per export. Never a database id."
+    },
+    "exportMode": { "enum": ["full", "metrics"] },
+    "exportedAt": { "type": "string" },
+    "redactions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many redaction strings were applied. The strings themselves are never included."
+    },
+    "configuration": { "$ref": "#/definitions/configuration" },
+    "messages": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/message" }
+    },
+    "summary": { "$ref": "#/definitions/summary" }
+  },
+  "definitions": {
+    "reportedNumber": {
+      "oneOf": [{ "type": "number" }, { "const": "not_reported" }]
+    },
+    "reportedString": {
+      "type": "string",
+      "description": "A recorded value, or \"not_reported\"."
+    },
+    "turnKind": { "enum": ["ordinary", "more_help", "explain", "wrap_up"] },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "models", "muktiVersion", "providers", "surface", "technique"],
+      "properties": {
+        "dialogueTitle": { "type": "string" },
+        "mode": { "enum": ["hosted", "local"] },
+        "models": { "type": "array", "items": { "type": "string" } },
+        "muktiVersion": { "type": "string" },
+        "nodeLabel": { "type": "string" },
+        "nodeType": { "type": "string" },
+        "providers": { "type": "array", "items": { "type": "string" } },
+        "studyArm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "promptSha256"],
+          "properties": {
+            "name": { "enum": ["baseline-socratic", "baseline-direct"] },
+            "promptSha256": { "type": "string" }
+          }
+        },
+        "surface": { "enum": ["chat", "canvas_node", "thought_map_node"] },
+        "technique": { "type": ["string", "null"] }
+      }
+    },
+    "reply": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "completionTokens",
+        "helpLevel",
+        "latencyMs",
+        "model",
+        "promptTokens",
+        "provider",
+        "totalTokens",
+        "turnKind"
+      ],
+      "properties": {
+        "completionTokens": { "$ref": "#/definitions/reportedNumber" },
+        "helpLevel": {
+          "oneOf": [{ "enum": [0, 1, 2, 3, 4] }, { "const": "not_reported" }]
+        },
+        "latencyMs": { "$ref": "#/definitions/reportedNumber" },
+        "model": { "$ref": "#/definitions/reportedString" },
+        "promptTokens": { "$ref": "#/definitions/reportedNumber" },
+        "provider": { "$ref": "#/definitions/reportedString" },
+        "totalTokens": { "$ref": "#/definitions/reportedNumber" },
+        "turnKind": { "$ref": "#/definitions/turnKind" }
+      }
+    },
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "sequence", "timestamp"],
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "Absent in metrics-only exports."
+        },
+        "reply": { "$ref": "#/definitions/reply" },
+        "role": { "enum": ["user", "assistant"] },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "timestamp": { "type": "string" }
+      }
+    },
+    "tokenTotal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repliesIncluded", "repliesNotReported", "total"],
+      "properties": {
+        "repliesIncluded": { "type": "integer", "minimum": 0 },
+        "repliesNotReported": { "type": "integer", "minimum": 0 },
+        "total": { "type": "number", "minimum": 0 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assistantReplies",
+        "endedAt",
+        "exchanges",
+        "startedAt",
+        "timeToFirstReplyMs",
+        "tokens",
+        "totalDurationMs",
+        "turnKinds",
+        "wrapUpReached"
+      ],
+      "properties": {
+        "assistantReplies": { "type": "integer", "minimum": 0 },
+        "endedAt": { "type": ["string", "null"] },
+        "exchanges": { "type": "integer", "minimum": 0 },
+        "startedAt": { "type": ["string", "null"] },
+        "timeToFirstReplyMs": { "type": ["number", "null"] },
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["completion", "prompt", "total"],
+          "properties": {
+            "completion": { "$ref": "#/definitions/tokenTotal" },
+            "prompt": { "$ref": "#/definitions/tokenTotal" },
+            "total": { "$ref": "#/definitions/tokenTotal" }
+          }
+        },
+        "totalDurationMs": { "type": ["number", "null"] },
+        "turnKinds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ordinary", "more_help", "explain", "wrap_up"],
+          "properties": {
+            "ordinary": { "type": "integer", "minimum": 0 },
+            "more_help": { "type": "integer", "minimum": 0 },
+            "explain": { "type": "integer", "minimum": 0 },
+            "wrap_up": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "wrapUpReached": { "type": "boolean" }
+      }
+    }
+  }
+}

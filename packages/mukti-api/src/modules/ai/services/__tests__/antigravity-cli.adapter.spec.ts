@@ -383,6 +383,20 @@ describe('AntigravityCliAdapter', () => {
       });
     });
 
+    it('leaves token counts undefined when the envelope reports no usage', () => {
+      const completion = adapter().parseEnvelope(
+        success({
+          response: 'What do you already know?',
+          structured_output: { question: 'What do you already know?' },
+          usage: undefined,
+        }),
+        socraticRequest,
+      );
+
+      expect(completion.promptTokens).toBeUndefined();
+      expect(completion.completionTokens).toBeUndefined();
+    });
+
     it('trusts the structured output over the raw response when they differ', () => {
       const completion = adapter().parseEnvelope(
         success({

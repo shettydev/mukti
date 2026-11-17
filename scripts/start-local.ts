@@ -174,7 +174,13 @@ const env = {
   // `.agent/` and `AGENTS.md`), so the API's default under ~/.mukti applies.
   // AI_PROVIDER, plus where the saved default lives (the user-level home, not
   // the checkout) and how this launch chose, so Settings can switch provider.
-  ...providerEnv({ dbPath: DB_PATH, home: PROVIDER_HOME, provider, source: selection.source }),
+  ...providerEnv({
+    dbPath: DB_PATH,
+    home: PROVIDER_HOME,
+    provider,
+    source: selection.source,
+    studyArm: providerFlags.options.studyArm,
+  }),
   MUKTI_LOCAL: '1',
   // The launcher owns the database; the API connects to this rather than
   // starting one of its own (see core/database/mongo-uri.ts).
@@ -211,6 +217,7 @@ await boot({
   dbPort: MONGO_PORT,
   logDir: LOG_DIR,
   logHint: `${relative(REPO_ROOT, LOG_DIR)}/db.log · api.log · web.log`,
+  studyArm: providerFlags.options.studyArm,
   web: {
     args: [...web.args, 'dev', '-p', String(WEB_PORT)],
     command: web.command,

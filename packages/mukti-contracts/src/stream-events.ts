@@ -138,7 +138,8 @@ export interface StreamEventPayloads {
      * learner turn.
      */
     scaffoldLevel?: HelpLevel;
-    tokens: number;
+    /** Absent when the provider did not report usage. */
+    tokens?: number;
     /** What kind of reply this turn produced. Absent outside learner turns. */
     turnKind?: TurnKind;
   };

@@ -18,7 +18,8 @@ export interface DialogueCompleteEvent extends BaseDialogueStreamEvent {
     latency: number;
     /** The help level the dialogue is stored at after this turn. */
     scaffoldLevel?: HelpLevel;
-    tokens: number;
+    /** Absent when the provider did not report usage. */
+    tokens?: number;
     turnKind?: TurnKind;
   };
   type: 'complete';

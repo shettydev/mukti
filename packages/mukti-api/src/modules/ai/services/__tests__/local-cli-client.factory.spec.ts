@@ -70,6 +70,24 @@ describe('LocalCliClientFactory with ClaudeCliAdapter', () => {
     expect((args as string[]).join(' ')).not.toContain('ignored-api-key');
   });
 
+  it('omits unreported counts and the total instead of sending zeros', async () => {
+    spawnMock.mockReturnValue(
+      fakeChild({
+        code: 0,
+        stdout: JSON.stringify({
+          result: 'What would change if it were cached?',
+          usage: { output_tokens: 8 },
+        }),
+      }) as never,
+    );
+
+    const response = (await factory.create('k').chat.send(baseRequest)) as {
+      usage: Record<string, number>;
+    };
+
+    expect(response.usage).toEqual({ completion_tokens: 8 });
+  });
+
   it('denies every built-in agentic tool', async () => {
     spawnMock.mockReturnValue(
       fakeChild({ code: 0, stdout: '{"result":"ok"}' }) as never,

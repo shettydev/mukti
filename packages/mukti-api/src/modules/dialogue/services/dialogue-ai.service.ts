@@ -15,6 +15,7 @@ import {
   type AiJsonSchemaResponseFormat,
   SOCRATIC_QUESTION_FORMAT,
 } from '../../ai/types/ai-response-format.interface';
+import { readUsage } from '../../ai/utils/read-usage';
 import {
   appendQualityGuardrails,
   buildScaffoldAwarePrompt,
@@ -26,13 +27,16 @@ import {
  * Response from AI service after generating a Socratic response.
  */
 export interface DialogueAIResponse {
-  completionTokens: number;
+  /** Undefined when the provider did not report it; never estimated. */
+  completionTokens?: number;
   content: string;
   cost: number;
   latencyMs: number;
   model: string;
-  promptTokens: number;
-  totalTokens: number;
+  /** Undefined when the provider did not report it; never estimated. */
+  promptTokens?: number;
+  /** Undefined when neither a total nor both parts were reported. */
+  totalTokens?: number;
 }
 
 interface ChatChoice {
@@ -579,10 +583,7 @@ export class DialogueAIService {
     const content = this.extractContent(safeResponse.choices?.[0]);
     const usage = safeResponse.usage;
 
-    const promptTokens = usage?.promptTokens ?? usage?.prompt_tokens ?? 0;
-    const completionTokens =
-      usage?.completionTokens ?? usage?.completion_tokens ?? 0;
-    const totalTokens = usage?.totalTokens ?? usage?.total_tokens ?? 0;
+    const { completionTokens, promptTokens, totalTokens } = readUsage(usage);
 
     const cost = 0;
 
@@ -595,7 +596,7 @@ export class DialogueAIService {
     }
 
     this.logger.log(
-      `AI response generated: ${totalTokens} tokens, ${latencyMs}ms`,
+      `AI response generated: ${totalTokens ?? 'unreported'} tokens, ${latencyMs}ms`,
     );
 
     return {

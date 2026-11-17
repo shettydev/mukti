@@ -1,3 +1,5 @@
+import type { HelpLevel } from '@muktiai/contracts';
+
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,6 +12,7 @@ import type {
   TransitionResult,
 } from '../../scaffolding/interfaces/scaffolding.interface';
 
+import { promptForStudyArm } from '../../../common/config/baseline-prompts';
 import { isLocalMode } from '../../../common/config/local-mode';
 import {
   makeInlineJobId,
@@ -66,7 +69,8 @@ export interface ConversationRequestJobResult {
   cost: number;
   latency: number;
   messageId: string;
-  tokens: number;
+  /** Undefined when the provider did not report usage. */
+  tokens?: number;
 }
 
 /**
@@ -449,22 +453,30 @@ export class QueueService extends WorkerHost {
         throw new Error(`Conversation ${conversationId} not found`);
       }
 
-      // Load technique template
-      const techniqueDoc = await this.techniqueModel.findOne({
-        isActive: true,
-        name: technique,
-        status: 'approved',
-      });
+      const baselinePrompt = conversation.studyArm
+        ? promptForStudyArm(conversation.studyArm)
+        : undefined;
 
-      if (!techniqueDoc) {
+      // Baselines deliberately do not load technique templates or directives.
+      const techniqueDoc = baselinePrompt
+        ? undefined
+        : await this.techniqueModel.findOne({
+            isActive: true,
+            name: technique,
+            status: 'approved',
+          });
+
+      if (!baselinePrompt && !techniqueDoc) {
         throw new Error(`Technique ${technique} not found or not approved`);
       }
 
       // 2. Build conversation context
-      const context = this.messageService.buildConversationContext(
-        conversation,
-        techniqueDoc.template,
-      );
+      const context = baselinePrompt
+        ? undefined
+        : this.messageService.buildConversationContext(
+            conversation,
+            techniqueDoc!.template,
+          );
 
       // Emit progress event - building prompt
       this.streamService.emitToConversation(conversationId, {
@@ -480,51 +492,61 @@ export class QueueService extends WorkerHost {
       // (abandonment, long pauses) are accurate. Fall back to new Date() only
       // when a message has no stored timestamp. The turn budget is read here,
       // not at enqueue time, so a change applies from the next message.
-      const turn = await this.socraticTurnEngine.prepare({
-        conversationHistory: conversation.recentMessages.map((m) => ({
-          content: m.content,
-          role: m.role as 'assistant' | 'user',
-          // RecentMessage.timestamp is the canonical field; createdAt may exist
-          // at runtime if the sub-document is returned by Mongoose with timestamps.
-          timestamp:
-            (m as RecentMessage & { createdAt?: Date }).createdAt ??
-            m.timestamp ??
-            new Date(),
-        })),
-        exchangesBefore: exchangesFromMessageCount(
-          conversation.totalMessageCount ?? conversation.metadata?.messageCount,
-        ),
-        helpControl,
-        model,
-        previousResponseLengths: conversation.recentMessages
-          .filter((m) => m.role === 'user')
-          .map((m) => m.content.trim().length),
-        state: conversation,
-        turnBudget: conversation.turnBudget,
-        usedByok,
-        userId,
-        userMessage: message,
-      });
+      const turn = baselinePrompt
+        ? undefined
+        : await this.socraticTurnEngine.prepare({
+            conversationHistory: conversation.recentMessages.map((m) => ({
+              content: m.content,
+              role: m.role as 'assistant' | 'user',
+              // RecentMessage.timestamp is the canonical field; createdAt may exist
+              // at runtime if the sub-document is returned by Mongoose with timestamps.
+              timestamp:
+                (m as RecentMessage & { createdAt?: Date }).createdAt ??
+                m.timestamp ??
+                new Date(),
+            })),
+            exchangesBefore: exchangesFromMessageCount(
+              conversation.totalMessageCount ??
+                conversation.metadata?.messageCount,
+            ),
+            helpControl,
+            model,
+            previousResponseLengths: conversation.recentMessages
+              .filter((m) => m.role === 'user')
+              .map((m) => m.content.trim().length),
+            state: conversation,
+            turnBudget: conversation.turnBudget,
+            usedByok,
+            userId,
+            userMessage: message,
+          });
       const {
         apiKey,
-        gapResult,
         model: effectiveModel,
-        qualityDirectives,
-        scaffoldContext,
-      } = turn;
+        provider,
+      } = turn ??
+      (await this.socraticTurnEngine.resolveAi(model, usedByok, userId));
 
-      // 5. Build prompt with scaffold-augmented system prompt + quality guardrails
-      const messages = this.openRouterService.buildPrompt(
-        techniqueDoc.template,
-        context.messages.map((m) => ({
-          content: m.content,
-          role: m.role as 'assistant' | 'system' | 'user',
-          timestamp: new Date(),
-        })),
-        message,
-        scaffoldContext,
-        qualityDirectives,
-      );
+      // Baselines contain only the published prompt and conversational history.
+      const messages = baselinePrompt
+        ? [
+            { content: baselinePrompt, role: 'system' as const },
+            ...conversation.recentMessages
+              .filter((m) => m.role !== 'system')
+              .map(({ content, role }) => ({ content, role })),
+            { content: message, role: 'user' as const },
+          ]
+        : this.openRouterService.buildPrompt(
+            techniqueDoc!.template,
+            context!.messages.map((m) => ({
+              content: m.content,
+              role: m.role as 'assistant' | 'system' | 'user',
+              timestamp: new Date(),
+            })),
+            message,
+            turn!.scaffoldContext,
+            turn!.qualityDirectives,
+          );
 
       // Emit progress event - calling AI
       this.streamService.emitToConversation(conversationId, {
@@ -539,12 +561,14 @@ export class QueueService extends WorkerHost {
         messages,
         effectiveModel,
         apiKey,
-        techniqueDoc.template,
-        turn.responseFormat,
+        techniqueDoc?.template,
+        turn?.responseFormat,
       );
 
       // RFC-0004: Post-response monitoring
-      this.socraticTurnEngine.inspectReply(response.content, turn.turnKind);
+      if (turn) {
+        this.socraticTurnEngine.inspectReply(response.content, turn.turnKind);
+      }
 
       // 6. Add messages to conversation
       const updatedConversation =
@@ -558,55 +582,66 @@ export class QueueService extends WorkerHost {
             latencyMs: Date.now() - startTime,
             model: response.model,
             promptTokens: response.promptTokens,
+            provider,
+            ...(turn
+              ? {
+                  scaffoldLevel: turn.scaffoldContext.level as HelpLevel,
+                  turnKind: turn.turnKind,
+                }
+              : {}),
             totalTokens: response.totalTokens,
-            turnKind: turn.turnKind,
           },
+          new Date(startTime),
         );
 
-      // 7. RFC-0002: Post-response evaluation and scaffold state update
-      const hasPriorAssistantMessage = conversation.recentMessages.some(
-        (m) => m.role === 'assistant',
-      );
-
-      const outcome = await this.socraticTurnEngine.settle(turn, {
-        hasPriorAssistantMessage,
-      });
-
-      // The level the help-level indicator shows after this reply.
-      let levelAfter = outcome.levelAfter;
-
-      if (outcome.scaffoldUpdate) {
-        // Persist scaffold state to conversation
-        await this.updateConversationScaffoldState(
-          conversationId,
-          outcome.scaffoldUpdate.transition,
-          gapResult,
-          outcome.scaffoldUpdate.demonstratedUnderstanding,
-          outcome.scaffoldUpdate.guard,
+      let levelAfter: HelpLevel | undefined;
+      if (turn) {
+        const { gapResult } = turn;
+        // 7. RFC-0002: Post-response evaluation and scaffold state update
+        const hasPriorAssistantMessage = conversation.recentMessages.some(
+          (m) => m.role === 'assistant',
         );
-      } else if (!outcome.scaffoldHeld) {
-        // First exchange — just persist detected concepts and initial level.
-        // Explain and Wrap up (scaffoldHeld) leave the stored state alone.
-        await this.conversationModel.updateOne(
-          { _id: conversationId },
-          {
-            $set: {
-              currentScaffoldLevel: gapResult.scaffoldLevel,
-              detectedConcepts: gapResult.detectedConcepts,
+
+        const outcome = await this.socraticTurnEngine.settle(turn, {
+          hasPriorAssistantMessage,
+        });
+
+        // The level the help-level indicator shows after this reply.
+        levelAfter = outcome.levelAfter;
+
+        if (outcome.scaffoldUpdate) {
+          // Persist scaffold state to conversation
+          await this.updateConversationScaffoldState(
+            conversationId,
+            outcome.scaffoldUpdate.transition,
+            gapResult,
+            outcome.scaffoldUpdate.demonstratedUnderstanding,
+            outcome.scaffoldUpdate.guard,
+          );
+        } else if (!outcome.scaffoldHeld) {
+          // First exchange — just persist detected concepts and initial level.
+          // Explain and Wrap up (scaffoldHeld) leave the stored state alone.
+          await this.conversationModel.updateOne(
+            { _id: conversationId },
+            {
+              $set: {
+                currentScaffoldLevel: gapResult.scaffoldLevel,
+                detectedConcepts: gapResult.detectedConcepts,
+              },
             },
-          },
-        );
-        levelAfter = gapResult.scaffoldLevel;
-      }
+          );
+          levelAfter = gapResult.scaffoldLevel;
+        }
 
-      // RFC-0004: Persist quality state (always, even on first exchange).
-      // conclusionOffered records that a wrap-up happened (analytics only).
-      await this.updateConversationQualityState(
-        conversationId,
-        outcome.misconception,
-        outcome.isBreakthrough,
-        turn.turnKind === 'wrap_up',
-      );
+        // RFC-0004: Persist quality state (always, even on first exchange).
+        // conclusionOffered records that a wrap-up happened (analytics only).
+        await this.updateConversationQualityState(
+          conversationId,
+          outcome.misconception,
+          outcome.isBreakthrough,
+          turn.turnKind === 'wrap_up',
+        );
+      }
 
       // Use the conversation-wide total count so sequences remain monotonic even when
       // recentMessages is truncated/archived.
@@ -636,7 +671,7 @@ export class QueueService extends WorkerHost {
           sequence: assistantMessageSequence,
           timestamp: new Date().toISOString(),
           tokens: response.totalTokens,
-          turnKind: turn.turnKind,
+          ...(turn ? { turnKind: turn.turnKind } : {}),
         },
         type: 'message',
       });
@@ -672,14 +707,19 @@ export class QueueService extends WorkerHost {
       // Emit complete event, with the help state the client shows
       this.streamService.emitToConversation(conversationId, {
         data: {
-          budget: turn.budget,
-          conclusionReady: qualityDirectives.conclusionReady ?? false,
+          ...(turn
+            ? {
+                budget: turn.budget,
+                conclusionReady:
+                  turn.qualityDirectives.conclusionReady ?? false,
+                scaffoldLevel: levelAfter,
+                turnKind: turn.turnKind,
+              }
+            : {}),
           cost: response.cost,
           jobId: job.id!,
           latency,
-          scaffoldLevel: levelAfter,
           tokens: response.totalTokens,
-          turnKind: turn.turnKind,
         },
         type: 'complete',
       });

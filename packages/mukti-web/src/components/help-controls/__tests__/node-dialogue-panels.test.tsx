@@ -15,6 +15,7 @@ import { isLocalMode } from '@/lib/config';
 import { useDataDisclosureStore } from '@/lib/stores/data-disclosure-store';
 
 jest.mock('@/lib/config', () => ({ isLocalMode: jest.fn(() => false) }));
+jest.mock('@/lib/api/client', () => ({ apiClient: { getBlob: jest.fn() } }));
 
 const canvasSend = jest.fn();
 const mapSend = jest.fn();
@@ -121,6 +122,12 @@ const surfaces = [
 ];
 
 describe.each(surfaces)('$name panel', ({ element, renderPanel, send }) => {
+  it('opens the export dialog from the node panel', async () => {
+    renderPanel();
+    await userEvent.click(screen.getByRole('button', { name: 'Export dialogue' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Metrics only');
+    expect(screen.getByRole('button', { name: 'Download' })).toBeEnabled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockMutationError = null;

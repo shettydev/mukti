@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { Conversation } from '@/types/conversation.types';
 
 import { ModelSelector } from '@/components/ai/model-selector';
+import { ExportDialogue } from '@/components/export/export-dialogue';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -184,6 +185,14 @@ export function ChatHeader({ conversation, onMobileMenuToggle }: ChatHeaderProps
                   className="w-48 border-japandi-sand/80 !bg-japandi-cream p-1 text-japandi-stone shadow-xl opacity-100"
                   sideOffset={8}
                 >
+                  {/* Export option */}
+                  {conversation && (
+                    <ExportDialogue
+                      target={{ conversationId: conversation.id, surface: 'chat' }}
+                      variant="menu"
+                    />
+                  )}
+
                   {/* Archive/Restore option */}
                   <button
                     className={cn(

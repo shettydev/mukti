@@ -1,4 +1,4 @@
-import type { TurnKind } from '@muktiai/contracts';
+import type { HelpLevel, TurnKind } from '@muktiai/contracts';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -109,10 +109,19 @@ export class MessageService {
       latencyMs?: number;
       model?: string;
       promptTokens?: number;
+      /** The active provider id that produced the reply. */
+      provider?: string;
+      /** The help level the reply was written at. */
+      scaffoldLevel?: HelpLevel;
       totalTokens?: number;
       /** What kind of reply this is (dialogue-help-controls). */
       turnKind?: TurnKind;
     },
+    /**
+     * When the learner's message arrived. Defaults to now; the queue passes
+     * the job start so the reply's latency is visible in the timestamps.
+     */
+    userMessageAt?: Date,
   ): Promise<ConversationDocument> {
     this.logger.log(
       `Adding messages to conversation ${conversationId.toString()}`,
@@ -134,7 +143,7 @@ export class MessageService {
       const userMsg: RecentMessage = {
         content: userMessage,
         role: 'user',
-        timestamp,
+        timestamp: userMessageAt ?? timestamp,
       };
 
       // Create AI response message with metadata
@@ -146,6 +155,10 @@ export class MessageService {
               latencyMs: metadata.latencyMs,
               model: metadata.model,
               promptTokens: metadata.promptTokens,
+              ...(metadata.provider ? { provider: metadata.provider } : {}),
+              ...(metadata.scaffoldLevel === undefined
+                ? {}
+                : { scaffoldLevel: metadata.scaffoldLevel }),
               totalTokens: metadata.totalTokens,
               ...(metadata.turnKind ? { turnKind: metadata.turnKind } : {}),
             }
@@ -289,6 +302,12 @@ export class MessageService {
               latencyMs: message.metadata.latencyMs,
               model: message.metadata.model,
               promptTokens: message.metadata.promptTokens,
+              ...(message.metadata.provider
+                ? { provider: message.metadata.provider }
+                : {}),
+              ...(message.metadata.scaffoldLevel === undefined
+                ? {}
+                : { scaffoldLevel: message.metadata.scaffoldLevel }),
               totalTokens: message.metadata.totalTokens,
               // Keep explanations and summaries tagged once archived
               ...(message.metadata.turnKind
@@ -431,6 +450,20 @@ export class MessageService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Every archived message of a conversation, oldest first, for a full
+   * session export. Lean documents: read-only.
+   */
+  async getAllArchivedMessages(
+    conversationId: string | Types.ObjectId,
+  ): Promise<ArchivedMessage[]> {
+    return this.archivedMessageModel
+      .find({ conversationId: new Types.ObjectId(conversationId.toString()) })
+      .sort({ sequenceNumber: 1 })
+      .lean<ArchivedMessage[]>()
+      .exec();
   }
 
   /**

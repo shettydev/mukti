@@ -8,6 +8,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 import { Types } from 'mongoose';
 
+import { baselineStudyArm } from '../../../../common/config/baseline-prompts';
 import { ArchivedMessage } from '../../../../schemas/archived-message.schema';
 import { Conversation } from '../../../../schemas/conversation.schema';
 import { Technique } from '../../../../schemas/technique.schema';
@@ -75,6 +76,32 @@ describe('ConversationService', () => {
   });
 
   describe('createConversation', () => {
+    it('stamps the configured arm and hash on new conversations only', async () => {
+      const originalEnv = { ...process.env };
+      try {
+        process.env.MUKTI_LOCAL = '1';
+        process.env.MUKTI_STUDY_ARM = 'baseline-socratic';
+        mockTechniqueModel.findOne.mockResolvedValue({ name: 'elenchus' });
+        mockConversationModel.create.mockImplementation((value) =>
+          Promise.resolve({ ...value, _id: new Types.ObjectId() }),
+        );
+        const result = await service.createConversation(
+          new Types.ObjectId(),
+          'Study',
+          'elenchus',
+        );
+        expect(result.studyArm).toEqual(baselineStudyArm('baseline-socratic'));
+        delete process.env.MUKTI_STUDY_ARM;
+        const normal = await service.createConversation(
+          new Types.ObjectId(),
+          'Normal',
+          'elenchus',
+        );
+        expect(normal).not.toHaveProperty('studyArm');
+      } finally {
+        process.env = originalEnv;
+      }
+    });
     /**
      * Feature: conversation-backend, Property 1: Conversation creation initializes correctly
      * Validates: Requirements 1.1, 1.2, 1.3, 1.5

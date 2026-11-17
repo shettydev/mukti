@@ -1,3 +1,4 @@
+import type { StudyArm } from './provider-options.ts';
 /**
  * What the launcher tells the API about how this launch chose its AI provider.
  *
@@ -26,10 +27,14 @@ export function providerEnv(options: {
   readonly home: string;
   readonly provider: LocalCliProvider;
   readonly source: SelectionSource;
-}): Record<string, string> {
+  readonly studyArm?: StudyArm;
+}): Record<string, string | undefined> {
   return {
     ...(options.dbPath ? { MUKTI_LOCAL_DB_PATH: options.dbPath } : {}),
     AI_PROVIDER: options.provider.id,
+    // Explicitly clear inherited arms on ordinary launches. Node omits undefined
+    // values from child environments, even after spreading process.env first.
+    MUKTI_STUDY_ARM: options.studyArm,
     [PROVIDER_SETTINGS_ENV]: providerSettingsPath(options.home),
     [PROVIDER_SOURCE_ENV]: options.source,
   };

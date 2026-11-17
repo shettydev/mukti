@@ -10,6 +10,7 @@ import type { RecentMessage } from '../../../../schemas/conversation.schema';
 import type { TechniqueTemplate } from '../../../../schemas/technique.schema';
 
 import { AI_CHAT_CLIENT_FACTORY } from '../../../ai/types/ai-chat-client.interface';
+import { SOCRATIC_QUESTION_FORMAT } from '../../../ai/types/ai-response-format.interface';
 import { ScaffoldPromptAugmenter } from '../../../scaffolding/services/scaffold-prompt-augmenter.service';
 import { OpenRouterService } from '../openrouter.service';
 
@@ -54,6 +55,23 @@ describe('OpenRouterService', () => {
     }).compile();
 
     service = module.get<OpenRouterService>(OpenRouterService);
+  });
+
+  it('preserves an explicit undefined response format through the real client adapter', async () => {
+    const send = jest.fn().mockResolvedValue({
+      choices: [{ message: { content: 'Direct answer' } }],
+    });
+    const client = new OpenRouterService(
+      new ConfigService(),
+      { create: () => ({ chat: { send } }) } as any,
+      {} as any,
+    );
+    await client.sendChatCompletion([], 'model', 'key', undefined, undefined);
+    expect(send.mock.calls[0][0]).toHaveProperty('responseFormat', undefined);
+    await client.sendChatCompletion([], 'model', 'key', undefined);
+    expect(send.mock.calls[1][0].responseFormat).toEqual(
+      SOCRATIC_QUESTION_FORMAT,
+    );
   });
 
   it('should be defined', () => {
@@ -198,7 +216,7 @@ describe('OpenRouterService', () => {
       );
     });
 
-    it('should handle missing usage data gracefully', () => {
+    it('leaves unreported usage undefined rather than claiming zero tokens', () => {
       const response: any = {
         choices: [{ message: { content: 'Test response' } }],
         usage: undefined,
@@ -206,10 +224,36 @@ describe('OpenRouterService', () => {
 
       const result = service.parseResponse(response, 'openai/gpt-3.5-turbo');
 
-      expect(result.promptTokens).toBe(0);
-      expect(result.completionTokens).toBe(0);
-      expect(result.totalTokens).toBe(0);
+      expect(result.promptTokens).toBeUndefined();
+      expect(result.completionTokens).toBeUndefined();
+      expect(result.totalTokens).toBeUndefined();
       expect(result.cost).toBe(0);
+    });
+
+    it('derives the total from both parts when only the parts are reported', () => {
+      const result = service.parseResponse(
+        {
+          choices: [{ message: { content: 'Q?' } }],
+          usage: { completion_tokens: 4, prompt_tokens: 10 },
+        },
+        'm',
+      );
+
+      expect(result.totalTokens).toBe(14);
+    });
+
+    it('does not invent a total when one part is missing', () => {
+      const result = service.parseResponse(
+        {
+          choices: [{ message: { content: 'Q?' } }],
+          usage: { prompt_tokens: 10 },
+        },
+        'm',
+      );
+
+      expect(result.promptTokens).toBe(10);
+      expect(result.completionTokens).toBeUndefined();
+      expect(result.totalTokens).toBeUndefined();
     });
 
     it('should handle empty content', () => {

@@ -159,6 +159,11 @@ class ApiClient {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
 
+  /** Download through the same auth, refresh and retry pipeline as JSON requests. */
+  async getBlob(endpoint: string): Promise<Blob> {
+    return this.requestWithRetry<Blob>(endpoint, { method: 'GET' }, 0, true);
+  }
+
   /**
    * PATCH request
    */
@@ -427,7 +432,8 @@ class ApiClient {
   private async requestWithRetry<T>(
     endpoint: string,
     options: RequestInit,
-    attemptNumber: number
+    attemptNumber: number,
+    binary = false
   ): Promise<T> {
     try {
       // Construct full URL
@@ -456,6 +462,10 @@ class ApiClient {
 
       // Execute response interceptors (including token refresh)
       response = await this.executeResponseInterceptors(response);
+
+      if (binary && response.ok) {
+        return (await response.blob()) as T;
+      }
 
       // Handle 204 No Content early (before trying to parse JSON)
       if (response.status === 204) {
@@ -517,7 +527,7 @@ class ApiClient {
         await this.sleep(delay);
 
         // Retry the request
-        return this.requestWithRetry<T>(endpoint, options, attemptNumber + 1);
+        return this.requestWithRetry<T>(endpoint, options, attemptNumber + 1, binary);
       }
 
       // No more retries, execute error interceptors and throw

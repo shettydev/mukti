@@ -73,6 +73,12 @@ function renderWithProviders(ui: React.ReactElement) {
 }
 
 describe('ChatHeader', () => {
+  it('opens the export dialog from the chat options menu', async () => {
+    renderWithProviders(<ChatHeader conversation={mockConversation} />);
+    await userEvent.click(screen.getByRole('button', { name: 'More options' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Export dialogue' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Metrics only');
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue(mockRouter);

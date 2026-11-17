@@ -84,7 +84,8 @@ export interface CompleteEvent extends BaseStreamEvent {
     latency: number;
     /** The help level the conversation is stored at after this turn. */
     scaffoldLevel?: HelpLevel;
-    tokens: number;
+    /** Absent when the provider did not report usage. */
+    tokens?: number;
     turnKind?: TurnKind;
   };
   type: 'complete';
@@ -380,7 +381,7 @@ export function useConversationStream(options: UseConversationStreamOptions) {
               metadata: {
                 ...old.metadata,
                 estimatedCost: old.metadata.estimatedCost + event.data.cost,
-                totalTokens: old.metadata.totalTokens + event.data.tokens,
+                totalTokens: old.metadata.totalTokens + (event.data.tokens ?? 0),
               },
               recentMessages: tagNewestReply(
                 old.recentMessages,

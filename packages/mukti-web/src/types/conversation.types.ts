@@ -21,6 +21,7 @@ export interface Conversation {
   isFavorite: boolean;
   metadata: ConversationMetadata;
   recentMessages: Message[];
+  studyArm?: { name: 'baseline-direct' | 'baseline-socratic'; promptSha256: string };
   tags: string[];
   technique: SocraticTechnique;
   title: string;

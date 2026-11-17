@@ -539,8 +539,11 @@ function runCodex(args: readonly string[]): Promise<CommandResult> {
   });
 }
 
-function toCount(value: unknown): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+/** A reported token count, or undefined when codex did not report one. */
+function toCount(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 /**

@@ -98,6 +98,8 @@ const HELP = `
                             else whichever CLI is ready)
     --save                  Save --provider as your default for later runs
     --choose                Ask which AI CLI to use, and offer to save it
+    --study-arm <name>      New conversations use baseline-socratic or baseline-direct
+                            (this launch only, never saved)
     -h, --help              Show this
 
   Requires an installed, signed-in AI CLI: Claude Code (\`claude\`),
@@ -181,7 +183,13 @@ const baseEnv: NodeJS.ProcessEnv = {
   ...process.env,
   // AI_PROVIDER, plus where the saved default lives and how this launch chose,
   // so Settings can switch provider and keep the choice for later launches.
-  ...providerEnv({ dbPath: home.dbPath, home: home.root, provider, source: selection.source }),
+  ...providerEnv({
+    dbPath: home.dbPath,
+    home: home.root,
+    provider,
+    source: selection.source,
+    studyArm: providerFlags.options.studyArm,
+  }),
   // agy and Codex run from a directory Mukti owns, never a repository. Its name
   // is also the agy project Mukti's turns are filed under.
   MUKTI_CLI_WORKSPACE: join(home.root, 'mukti-socratic'),
@@ -221,6 +229,7 @@ await boot({
   dbPort,
   logDir: home.logDir,
   logHint: `${home.logDir}/db.log · api.log · web.log`,
+  studyArm: providerFlags.options.studyArm,
   web: {
     args: [webEntry],
     command: process.execPath,

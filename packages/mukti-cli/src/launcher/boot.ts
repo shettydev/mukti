@@ -16,6 +16,8 @@ import { log, outro, spinner } from '@clack/prompts';
 import { spawn } from 'node:child_process';
 import pc from 'picocolors';
 
+import type { StudyArm } from './provider-options.ts';
+
 import { renderReadyBanner } from './banner.ts';
 import { isMongoBinaryCached, MONGO_DOWNLOAD_PROGRESS } from './database.ts';
 import { sleep, waitForPort } from './net.ts';
@@ -45,6 +47,7 @@ export interface BootPlan {
   readonly logDir: string;
   /** Human-readable pointer to the log files, shown on the ready banner. */
   readonly logHint: string;
+  readonly studyArm?: StudyArm;
   readonly web: ServiceSpec;
   readonly webPort: number;
   readonly webUrl: string;
@@ -154,6 +157,9 @@ export async function boot(plan: BootPlan): Promise<void> {
   armSignalHandlers();
 
   await renderReadyBanner({ logHint: plan.logHint, url: plan.webUrl });
+  if (plan.studyArm) {
+    log.warn(`New conversations use the ${plan.studyArm} study arm, not Mukti's engine.`);
+  }
 
   // Only stream once the banner has settled, so nothing repaints over it.
   startStreaming();

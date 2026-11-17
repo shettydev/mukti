@@ -8,6 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { type FilterQuery, Model, Types } from 'mongoose';
 
+import { configuredStudyArm } from '../../../common/config/baseline-prompts';
 import {
   ArchivedMessage,
   ArchivedMessageDocument,
@@ -123,6 +124,7 @@ export class ConversationService {
     try {
       // Create conversation with default values
       const conversation = await this.conversationModel.create({
+        ...(configuredStudyArm() ? { studyArm: configuredStudyArm() } : {}),
         hasArchivedMessages: false,
         isArchived: false,
         isFavorite: false,

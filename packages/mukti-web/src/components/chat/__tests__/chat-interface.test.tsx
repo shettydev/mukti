@@ -472,6 +472,22 @@ describe('ChatInterface', () => {
       expect(screen.getByRole('button', { name: /wrap up/i })).toBeInTheDocument();
     });
 
+    it.each(['baseline-socratic', 'baseline-direct'] as const)(
+      'shows a persistent %s banner and no help entrypoints',
+      (name) => {
+        renderChat({ studyArm: { name, promptSha256: 'a'.repeat(64) } });
+        expect(screen.getByRole('complementary', { name: 'Study arm' })).toHaveTextContent(name);
+        expect(screen.getByRole('complementary', { name: 'Study arm' })).toHaveTextContent(
+          "not Mukti's engine"
+        );
+        expect(
+          screen.queryByRole('button', { name: /more help|explain|wrap up|turn budget/i })
+        ).not.toBeInTheDocument();
+        expect(screen.queryByTestId('help-level')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /dismiss.*study/i })).not.toBeInTheDocument();
+      }
+    );
+
     it('hides Wrap up until there is an assistant reply', () => {
       renderChat({
         metadata: { ...mockConversation.metadata, messageCount: 1 },

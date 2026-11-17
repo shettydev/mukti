@@ -48,7 +48,9 @@ import { ThoughtMapController } from './thought-map.controller';
  */
 @Module({
   controllers: [ThoughtMapController, ThoughtMapDialogueController],
-  exports: [ThoughtMapService],
+  // ThoughtMapDialogueQueueService.findMapDialogue is the read-only lookup the
+  // session export uses for a map node's dialogue.
+  exports: [ThoughtMapDialogueQueueService, ThoughtMapService],
   imports: [
     AiModule,
     // Read conversations and canvas sessions through their owning modules
