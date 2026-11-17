@@ -2,7 +2,9 @@ import fc from 'fast-check';
 
 import { renderJson, renderMarkdown } from '../render-export';
 import { REDACTED, sanitizeExport } from '../sanitize-export';
+import { validateAgainstSchema } from '../schema-validator';
 import { FIXTURE_EXPORT } from './fixture-export';
+import { loadPublishedSchema } from './load-published-schema';
 
 /**
  * Sanitization (session-export: "Export can be sanitized").
@@ -105,6 +107,37 @@ describe('sanitizeExport', () => {
       { mode: 'full', redact: ['dact', 'a]b'] },
     );
     expect(model.messages[0].content).toBe(`${REDACTED} ${REDACTED}`);
+  });
+
+  it('redacts free text but keeps fixed vocabulary and the marker when terms collide with them', () => {
+    const model = sanitizeExport(
+      {
+        ...FIXTURE_EXPORT,
+        configuration: {
+          ...FIXTURE_EXPORT.configuration,
+          dialogueTitle: 'Chat about a redacted log',
+        },
+        messages: [
+          { ...FIXTURE_EXPORT.messages[0], content: 'This chat was redacted.' },
+          ...FIXTURE_EXPORT.messages.slice(1),
+        ],
+      },
+      { mode: 'full', redact: ['chat', 'redacted'] },
+    );
+    expect(model.messages[0].content).toBe(`This ${REDACTED} was ${REDACTED}.`);
+    expect(model.configuration.dialogueTitle).toBe(
+      `${REDACTED} about a ${REDACTED} log`,
+    );
+    expect(model.configuration.surface).toBe('chat');
+    expect(model.messages.map((m) => m.role)).toEqual(
+      FIXTURE_EXPORT.messages.map((m) => m.role),
+    );
+    expect(
+      validateAgainstSchema(
+        JSON.parse(renderJson(model)),
+        loadPublishedSchema(),
+      ),
+    ).toEqual([]);
   });
 
   it('removes email, recognizable credentials, ObjectIds and the authenticated user name from text and labels', () => {
