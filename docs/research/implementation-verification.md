@@ -70,10 +70,9 @@ temporary Redis process were stopped after validation.
   errors, auth refresh, literal-term limits, and baseline banner/help behavior.
   Live browser verification was attempted but the installed Safari bridge did
   not respond. No visual or real-browser download acceptance is claimed.
-- Task 2.4 remains open: arbitrary terms cannot be absent from every rendered
-  string while preserving both fixed schema vocabulary and the literal
-  `[redacted]` marker. For example, `chat` is a required surface enum and
-  `redacted` occurs inside the required marker. Current sanitization covers
-  free-text values and recognizable identifiers, not fixed protocol vocabulary
-  or every possible secret. Full transcripts require manual review. The
-  specification needs an explicit decision before this task can be closed.
+- Redaction scope (task 2.4) is resolved: listed strings are removed from every
+  free-text value, while the export's fixed vocabulary (enumerated values, field
+  names, timestamps) and the `[redacted]` marker are kept so the file stays valid
+  against its schema. A test pins a `chat, redacted` collision and validates the
+  result against the published schema. Redaction is not anonymization, and full
+  transcripts require manual review before sharing.
