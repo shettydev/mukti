@@ -24,7 +24,8 @@
  * Prints a ready line on stdout once listening, then stays alive until it is
  * signalled, stopping the server cleanly so no mongod is orphaned.
  */
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const dbPath = process.env.MUKTI_LOCAL_DB_PATH;
 const port = Number(process.env.MUKTI_LOCAL_MONGO_PORT);
@@ -37,6 +38,39 @@ if (!dbPath || !Number.isInteger(port) || port <= 0) {
 }
 
 mkdirSync(dbPath, { recursive: true });
+
+// A second launch must not hide a live owner's lock behind the driver's
+// multiline-JSON parsing error. Never remove the lock or signal its owner.
+let owner;
+try {
+  const contents = readFileSync(join(dbPath, 'mongod.lock'), 'utf8').trim();
+  if (/^\d+$/.test(contents) && Number.isSafeInteger(Number(contents)) && Number(contents) > 0) {
+    owner = Number(contents);
+  }
+} catch (error) {
+  if (error.code !== 'ENOENT') {
+    throw error;
+  }
+}
+if (owner !== undefined) {
+  let alive = true;
+  try {
+    process.kill(owner, 0);
+  } catch (error) {
+    if (error.code === 'ESRCH') {
+      alive = false;
+    } else if (error.code !== 'EPERM') {
+      throw error;
+    }
+  }
+  if (alive) {
+    process.stderr.write(
+      `embedded-mongo: database appears already in use at ${dbPath} (PID ${owner}).\n` +
+        'Stop the previous Mukti launcher before starting another. Data and lock files were left untouched.\n'
+    );
+    process.exit(1);
+  }
+}
 
 // Dynamic import so the argument check above can fail before paying the (~380ms)
 // cost of loading the driver.
