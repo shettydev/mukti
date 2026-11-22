@@ -1,7 +1,7 @@
 # Local evaluation protocol
 
 Status: pilot protocol, not evidence of effectiveness. Freeze task statements and scoring before
-recruitment. The six [task placeholders](tasks/README.md) are deliberately not validated instruments.
+recruitment. The six [task drafts](tasks/README.md) are not yet reviewed or frozen instruments.
 Do not treat implementation fixtures or the maintainer's smoke test as study results.
 
 ## Question and arms
@@ -23,7 +23,7 @@ arms are opt-in local chat only. Do not compare canvas or thought-map sessions a
 
 Use three types (`debugging`, `design-review`, `cs1`) with two frozen variants per type. Each
 statement must include starting artifacts, allowed tools, acceptance checks and a distinct related
-transfer prompt with an answer key. Fill the six placeholders before participant data collection.
+transfer prompt with an answer key. Review and freeze the six drafts before participant data collection.
 
 Rotate four arm orders across participants: A B C D, B C D A, C D A B, D A B C (A=Mukti,
 B=Socratic baseline, C=direct baseline, D=real CLI). Balance variant assignment independently of
@@ -82,9 +82,10 @@ Remove sensitive material from inputs where possible, supply explicit redaction 
 review **both JSON and Markdown**, including configuration/model labels and filenames. Metrics-only
 removes message content but is not a guarantee that every remaining string is safe.
 
-The task 2.4 conflict between redacting every string and retaining schema enums/markers is unresolved.
-Do not claim that every-string literal exclusion is guaranteed. Preserve schema-valid exports for
-analysis, record redaction limitations and block publication if a sensitive structured value remains.
+Redaction removes listed strings from free-text values only. The export's fixed vocabulary
+(enumerated values, field names, timestamps) and the `[redacted]` marker are kept so the file stays
+valid against its schema. Preserve schema-valid exports for analysis, record redaction limitations
+and block publication if a sensitive structured value remains.
 Full transcripts require separate written permission _after_ the participant reviews the sanitized
 version. Never include API keys, account identifiers, personal email, raw database IDs or the consent
 identity key in published artifacts.
